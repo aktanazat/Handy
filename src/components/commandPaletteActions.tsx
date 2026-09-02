@@ -2,6 +2,7 @@ import {
   FileAudio,
   FolderOpen,
   MessageSquare,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { destinationIcons } from "@/lib/navIcons";
@@ -23,6 +24,7 @@ export const commandActionIcons = {
   importAudio: FileAudio,
   openRecordings: FolderOpen,
   openAgent: MessageSquare,
+  newPrompt: Sparkles,
 } as const satisfies Record<string, LucideIcon>;
 
 /**

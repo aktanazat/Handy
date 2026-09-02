@@ -2662,6 +2662,55 @@ async meetingAutomationRuns(sessionId: MeetingSessionId) : Promise<Result<Meetin
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async savedPromptList() : Promise<Result<SavedPromptList, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("saved_prompt_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async savedPromptSave(request: SavedPromptSaveRequest) : Promise<Result<SavedPromptMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("saved_prompt_save", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async savedPromptDelete(request: SavedPromptDeleteRequest) : Promise<Result<SavedPromptMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("saved_prompt_delete", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Ask one saved prompt about one noun, and keep the answer.
+ *
+ * Answers with the run it wrote, including the runs that produced nothing: a
+ * prompt whose engine was unreachable is a receipt the surface shows, not an
+ * error it apologises for. `not_found` is the narrow case where there was
+ * nothing to ask about — a deleted prompt, or a person this Mac has never
+ * recorded a meeting with.
+ */
+async savedPromptRun(request: SavedPromptRunRequest) : Promise<Result<PromptRun, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("saved_prompt_run", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async savedPromptRuns(target: PromptTargetRef) : Promise<Result<PromptRun[], MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("saved_prompt_runs", { target }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -4003,9 +4052,10 @@ export type MeetingAutomationFailure =
  */
 "rejected"
 /**
- * The three after-meeting actions. Nothing here is a channel to a third party:
+ * The four after-meeting actions. Nothing here is a channel to a third party:
  * reminders are Apple's local database, a Shortcut is a program the operator
- * wrote, and a webhook is refused unless its host is on their own tailnet.
+ * wrote, a saved prompt goes to whichever engine D14 already allows this
+ * meeting, and a webhook is refused unless its host is on their own tailnet.
  */
 export type MeetingAutomationKind =
 /**
@@ -4020,7 +4070,12 @@ export type MeetingAutomationKind =
 /**
  * POST the meeting's export JSON to a URL on the operator's own network.
  */
-"webhook"
+"webhook" |
+/**
+ * Ask one saved prompt about this meeting and keep the answer. The target
+ * is the prompt's id.
+ */
+"run_prompt"
 /**
  * Every series the settings surface lists, and the fence its writes carry.
  *
@@ -4084,7 +4139,7 @@ export type MeetingCatchUp = { state: MeetingCatchUpState; bullets: string[]; th
 export type MeetingCatchUpState = "ready" | "no_transcript_yet" | "model_unavailable" | "failed"
 export type MeetingCitation = { kind: CitationKind; session_id: MeetingSessionId; entity_id: string; start_offset_ns: number | null; end_offset_ns?: number | null }
 export type MeetingCommandError = "consent_required" | "consent_stale" | "invalid_transition" | "stale_revision" | "capture_lease_busy" | "no_source_started" | "source_unavailable" | "storage_unavailable" | "recovery_required" | "deletion_in_progress" | "not_found" | "invalid_request" | "export_cancelled" | "export_failed" | "local_model_unavailable" | "remote_unavailable"
-export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel" | "loop_resolve" | "loop_reopen" | "loop_assign" | "loop_carry" | "series_template_set" | "series_digest_set" | "series_always_record_set" | "follow_up_draft" | "series_automation_set" | "series_remote_opt_out_set"
+export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel" | "loop_resolve" | "loop_reopen" | "loop_assign" | "loop_carry" | "series_template_set" | "series_digest_set" | "series_always_record_set" | "follow_up_draft" | "series_automation_set" | "series_remote_opt_out_set" | "saved_prompt_save" | "saved_prompt_delete"
 export type MeetingConsentInput = { policy_version: number; microphone_acknowledged: boolean; system_audio_acknowledged: boolean; known_missing_sources_acknowledged: SourceKind[]; degraded_start_policy: DegradedStartPolicy; destination: ProcessingDestination; remote_acknowledgement: RemoteAcknowledgement | null }
 export type MeetingConsentPanelSessionState = { snapshot: MeetingSessionSnapshot; standing_series_key: string | null;
 /**
@@ -5086,7 +5141,83 @@ export type ProcessingFailure = "local_model_unavailable" | "remote_unavailable"
  */
 "interrupted"
 export type ProcessingStatus = { kind: "pending" } | { kind: "running" } | { kind: "succeeded" } | { kind: "failed"; reason: ProcessingFailure } | { kind: "cancelled" }
+/**
+ * What shape a prompt's answer takes.
+ */
+export type PromptOutput =
+/**
+ * Prose, rendered as Markdown wherever a run is read.
+ */
+{ kind: "text" } |
+/**
+ * One JSON object, checked against `json_schema` before it is stored. An
+ * answer that does not check is a failed run, never a stored half-answer.
+ */
+{ kind: "schema"; json_schema: string }
 export type PromptPreset = "minimalist_cleanup" | "application_context" | "email" | "meeting" | "notes" | "generic"
+/**
+ * One attempt at one prompt, and its receipt.
+ *
+ * This *is* the receipt, not a summary of one kept elsewhere — the same rule
+ * [`super::automation_types::MeetingAutomationRunReceipt`] follows.
+ * [`OperationReceipt`] is the currency of fenced preference writes; a run is a
+ * generation, so it records its own outcome in its own row. Nothing retries: a
+ * `Failed` row is the answer, and it stays visible.
+ */
+export type PromptRun = { run_id: PromptRunId; prompt_id: SavedPromptId; target_kind: PromptTarget; target_id: string;
+/**
+ * The notes revision this run read, when it read one meeting's own words.
+ * `None` for a prompt about a person or a series, which read a pack drawn
+ * from many.
+ */
+artifact_id: MeetingArtifactId | null; model_id: string; model_version: string; produced_at_utc_ms: number; result: PromptRunResult }
+/**
+ * Why a run produced no answer.
+ *
+ * Its own vocabulary rather than [`super::types::MeetingReasonCode`], for the
+ * same reason [`super::automation_types::MeetingAutomationFailure`] has one:
+ * these are the ways one model call fails, and widening the app-wide code list
+ * with them would make every unrelated receipt reader carry them too.
+ */
+export type PromptRunFailure =
+/**
+ * No engine at all: remote is off or this series is excluded, and this
+ * machine has no on-device model either.
+ */
+"model_unavailable" |
+/**
+ * The chosen engine could not be reached.
+ */
+"model_unreachable" |
+/**
+ * It answered, and the answer was not usable.
+ */
+"model_failed" |
+/**
+ * A schema prompt whose answer was not JSON, or not this schema's JSON.
+ */
+"schema_mismatch" |
+/**
+ * Nothing in the corpus for this prompt to read.
+ */
+"no_evidence"
+export type PromptRunId = string
+/**
+ * What one run produced.
+ *
+ * Struct variants rather than the newtypes the shape suggests, because serde's
+ * internal tagging — the convention every other tagged enum in this app uses —
+ * cannot carry a newtype variant holding a string.
+ */
+export type PromptRunResult = { kind: "text"; text: string } | { kind: "json"; json: string } | { kind: "failed"; reason: PromptRunFailure }
+/**
+ * Which noun a prompt is written about.
+ */
+export type PromptTarget = "meeting" | "person" | "series"
+/**
+ * The noun one run was about.
+ */
+export type PromptTargetRef = { kind: "meeting"; session_id: MeetingSessionId } | { kind: "person"; person_id: PersonId } | { kind: "series"; series_key: string }
 /**
  * Where the next page resumes.
  *
@@ -5240,6 +5371,30 @@ export type RemoteAcknowledgement = { destination_id: string; policy_version: nu
  */
 export type ReplacementRule = { spoken: string; written: string; enabled: boolean }
 export type RequestedEngine = "local" | "deepgram_nova_3" | "eleven_labs_scribe_v2"
+/**
+ * One prompt the operator wrote.
+ */
+export type SavedPrompt = { prompt_id: SavedPromptId; name: string; body: string; output: PromptOutput; target: PromptTarget; created_at_utc_ms: number; updated_at_utc_ms: number }
+export type SavedPromptDeleteRequest = { operation_id: MeetingOperationId; prompt_id: SavedPromptId; expected_revision: number }
+export type SavedPromptId = string
+/**
+ * The prompts on this machine, and the fence a write against them carries.
+ *
+ * One counter for the whole table, like the automations roster's: the settings
+ * page and the palette both hold the whole list and write single rows against
+ * it, and a per-row revision would cost a read each without changing what
+ * happens when two windows save from the same list.
+ */
+export type SavedPromptList = { prompts: SavedPrompt[]; revision: number }
+export type SavedPromptMutationResult = { receipt: OperationReceipt; prompts: SavedPromptList }
+export type SavedPromptRunRequest = { prompt_id: SavedPromptId; target: PromptTargetRef }
+/**
+ * Create a prompt, or rewrite one.
+ *
+ * A `None` id asks for a new prompt; any other id is the row to overwrite, so
+ * a replayed save from a stale window updates in place rather than duplicating.
+ */
+export type SavedPromptSaveRequest = { operation_id: MeetingOperationId; prompt_id: SavedPromptId | null; name: string; body: string; output: PromptOutput; target: PromptTarget; expected_revision: number }
 export type SecretCommandError = "not_found" | "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend" | "consent_required"
 export type SecretErrorKind = "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend"
 export type SecretKind = "llm" | "stt" | "meeting_storage"

@@ -43,9 +43,10 @@ fn normalized_webhook_url(target: &str) -> Result<String, MeetingAutomationFailu
     Ok(url.to_string())
 }
 
-/// The three after-meeting actions. Nothing here is a channel to a third party:
+/// The four after-meeting actions. Nothing here is a channel to a third party:
 /// reminders are Apple's local database, a Shortcut is a program the operator
-/// wrote, and a webhook is refused unless its host is on their own tailnet.
+/// wrote, a saved prompt goes to whichever engine D14 already allows this
+/// meeting, and a webhook is refused unless its host is on their own tailnet.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum MeetingAutomationKind {
@@ -56,17 +57,26 @@ pub enum MeetingAutomationKind {
     Shortcut,
     /// POST the meeting's export JSON to a URL on the operator's own network.
     Webhook,
+    /// Ask one saved prompt about this meeting and keep the answer. The target
+    /// is the prompt's id.
+    RunPrompt,
 }
 
 impl MeetingAutomationKind {
     /// Every kind, in the order the settings surface lists them.
-    pub const ALL: [Self; 3] = [Self::Reminders, Self::Shortcut, Self::Webhook];
+    pub const ALL: [Self; 4] = [
+        Self::Reminders,
+        Self::Shortcut,
+        Self::Webhook,
+        Self::RunPrompt,
+    ];
 
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Reminders => "reminders",
             Self::Shortcut => "shortcut",
             Self::Webhook => "webhook",
+            Self::RunPrompt => "run_prompt",
         }
     }
 
@@ -75,17 +85,18 @@ impl MeetingAutomationKind {
             "reminders" => Some(Self::Reminders),
             "shortcut" => Some(Self::Shortcut),
             "webhook" => Some(Self::Webhook),
+            "run_prompt" => Some(Self::RunPrompt),
             _ => None,
         }
     }
 
     /// Whether this kind is unrunnable without a target string. Reminders write
     /// to a list this app names itself, so it has nothing to configure; the
-    /// other two are a Shortcut name and a URL.
+    /// others are a Shortcut name, a URL, and a prompt id.
     pub const fn needs_target(self) -> bool {
         match self {
             Self::Reminders => false,
-            Self::Shortcut | Self::Webhook => true,
+            Self::Shortcut | Self::Webhook | Self::RunPrompt => true,
         }
     }
 
@@ -127,6 +138,14 @@ impl MeetingAutomationKind {
                 Ok(Some(target.to_string()))
             }
             Self::Webhook => Ok(Some(normalized_webhook_url(target)?)),
+            // A prompt id is a uuid this app minted. Checking the shape here is
+            // what keeps a hand-edited row from reaching the store; whether the
+            // prompt still exists is the executor's question, because a prompt
+            // can be deleted long after the automation was configured.
+            Self::RunPrompt => match uuid::Uuid::parse_str(target) {
+                Ok(prompt_id) => Ok(Some(prompt_id.to_string())),
+                Err(_) => Err(MeetingAutomationFailure::TargetInvalid),
+            },
             Self::Reminders => Ok(None),
         }
     }

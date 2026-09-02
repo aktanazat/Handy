@@ -36,6 +36,7 @@ import {
   SECTIONS_CONFIG,
   type SidebarSection,
 } from "./components/sidebarSections";
+import { usePromptShellStore } from "./components/settings/meetings/promptTargets";
 import { WhatsNewGate } from "./components/whats-new";
 import { useAudioImport } from "./hooks/useAudioImport";
 import { useShellTravel } from "./hooks/useShellTravel";
@@ -451,6 +452,19 @@ const buildCommandActions = ({
     label: t("commandPalette.openRecordings"),
     icon: commandActionIcons.openRecordings,
     run: onOpenRecordings,
+  },
+  {
+    id: "action-new-prompt",
+    group: "actions",
+    label: t("commandPalette.newPrompt"),
+    icon: commandActionIcons.newPrompt,
+    /* Settings is where prompts live, and the editor opens on arrival: an
+     * action named "New prompt" that only scrolled you near one would be a
+     * second press before anything happened. */
+    run: () => {
+      onNavigate("settings");
+      usePromptShellStore.getState().requestNewPrompt();
+    },
   },
   ...(agentEnabled
     ? [

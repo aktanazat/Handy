@@ -6,6 +6,7 @@ import {
   type MeetingAutomationRoster,
   type MeetingAutomationSeries,
   type MeetingSeriesAutomation,
+  type SavedPrompt,
 } from "@/bindings";
 import {
   Microlabel,
@@ -15,6 +16,13 @@ import {
   SettingsSection,
 } from "@/components/settings/rows";
 import { Input } from "@/components/vg/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
 import { Switch } from "@/components/vg/switch";
 import { meetingErrorKey } from "./meetingUtils";
 
@@ -34,7 +42,7 @@ import { meetingErrorKey } from "./meetingUtils";
  * series fences this one. A rejection is not an error to apologise for — it is
  * "read again", which is exactly what `refresh` does. */
 
-const KINDS = ["reminders", "shortcut", "webhook"] as const;
+const KINDS = ["reminders", "shortcut", "webhook", "run_prompt"] as const;
 
 /** The `target` a row currently holds, or the empty string for none. */
 const targetOf = (
@@ -64,6 +72,7 @@ export const MeetingAutomations: React.FC = () => {
   const { t } = useTranslation();
   const [roster, setRoster] = useState<MeetingAutomationRoster | null>(null);
   const [drafts, setDrafts] = useState<Drafts>({});
+  const [prompts, setPrompts] = useState<SavedPrompt[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,12 +81,18 @@ export const MeetingAutomations: React.FC = () => {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await commands.meetingAutomationRoster();
+      // The prompt list rides along because one kind points at a prompt, and
+      // a row offering a picker of ids nobody can read is not a picker.
+      const [result, promptList] = await Promise.all([
+        commands.meetingAutomationRoster(),
+        commands.savedPromptList(),
+      ]);
       if (result.status === "error") {
         setError(t(meetingErrorKey(result.error)));
         return;
       }
       setRoster(result.data);
+      setPrompts(promptList.status === "ok" ? promptList.data.prompts : []);
       setDrafts({});
       setError(null);
     } catch {
@@ -169,6 +184,7 @@ export const MeetingAutomations: React.FC = () => {
               key={kind}
               kind={kind}
               series={series}
+              prompts={prompts}
               draft={drafts[draftKey(series.series_key, kind)]}
               busy={saving === draftKey(series.series_key, kind)}
               onDraft={(value) =>
@@ -206,12 +222,14 @@ const LABEL_KEYS = {
   reminders: "settings.meetings.automations.reminders",
   shortcut: "settings.meetings.automations.shortcut",
   webhook: "settings.meetings.automations.webhook",
+  run_prompt: "settings.meetings.automations.runPrompt",
 } as const;
 
 const HINT_KEYS = {
   reminders: "settings.meetings.automations.remindersHint",
   shortcut: "settings.meetings.automations.shortcutHint",
   webhook: "settings.meetings.automations.webhookHint",
+  run_prompt: "settings.meetings.automations.runPromptHint",
 } as const;
 
 const PLACEHOLDER_KEYS = {
@@ -222,11 +240,13 @@ const PLACEHOLDER_KEYS = {
 const BLOCKED_KEYS = {
   shortcut: "settings.meetings.automations.needsTarget",
   webhook: "settings.meetings.automations.needsUrl",
+  run_prompt: "settings.meetings.automations.needsPrompt",
 } as const;
 
 interface AutomationRowProps {
   kind: MeetingAutomationKind;
   series: MeetingAutomationSeries;
+  prompts: SavedPrompt[];
   draft: string | undefined;
   busy: boolean;
   onDraft: (value: string) => void;
@@ -240,6 +260,7 @@ interface AutomationRowProps {
 const AutomationRow: React.FC<AutomationRowProps> = ({
   kind,
   series,
+  prompts,
   draft,
   busy,
   onDraft,
@@ -251,10 +272,13 @@ const AutomationRow: React.FC<AutomationRowProps> = ({
   const value = draft ?? saved;
   const enabled = isEnabled(series, kind);
   /* The kind of thing this row addresses, or null for `reminders` — the one
-   * kind with nothing to point at. Carrying the narrowed kind rather than a
-   * boolean is what lets the key lookups below stay lookups. */
+   * kind with nothing to point at. `typedKind` narrows again to the two whose
+   * target is a string the operator types; the fourth is a prompt they pick.
+   * Carrying the narrowed kinds rather than booleans is what lets the key
+   * lookups below stay lookups. */
   const targetKind = kind === "reminders" ? null : kind;
-  const dirty = targetKind !== null && value.trim() !== saved.trim();
+  const typedKind = targetKind === "run_prompt" ? null : targetKind;
+  const dirty = typedKind !== null && value.trim() !== saved.trim();
   const blocked = targetKind !== null && value.trim() === "";
 
   /* Enter and blur are the same act: Enter blurs the field, and leaving it is
@@ -277,19 +301,41 @@ const AutomationRow: React.FC<AutomationRowProps> = ({
           : undefined
       }
     >
-      {targetKind !== null ? (
+      {typedKind !== null ? (
         <Input
           id={fieldId}
           className="w-56"
           value={value}
           disabled={busy}
-          placeholder={t(PLACEHOLDER_KEYS[targetKind])}
+          placeholder={t(PLACEHOLDER_KEYS[typedKind])}
           onChange={(changed) => onDraft(changed.target.value)}
           onBlur={commit}
           onKeyDown={(event) => {
             if (event.key === "Enter") event.currentTarget.blur();
           }}
         />
+      ) : null}
+      {/* A pick is a decision, so it writes on the spot — unlike a URL, which
+          is half-typed for most of the time it exists. */}
+      {kind === "run_prompt" ? (
+        <Select
+          value={value === "" ? undefined : value}
+          disabled={busy || prompts.length === 0}
+          onValueChange={(next) => onWrite(enabled, next)}
+        >
+          <SelectTrigger id={fieldId} size="sm" className="w-56">
+            <SelectValue
+              placeholder={t("settings.meetings.automations.promptPlaceholder")}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {prompts.map((prompt) => (
+              <SelectItem key={prompt.prompt_id} value={prompt.prompt_id}>
+                {prompt.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : null}
       <Switch
         checked={enabled}

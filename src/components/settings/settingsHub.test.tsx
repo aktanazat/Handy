@@ -216,7 +216,7 @@ describe("Advanced", () => {
   });
 });
 
-test("the whole non-debug surface stays at thirty-four rows or under", () => {
+test("the whole non-debug surface stays at thirty-five rows or under", () => {
   const total =
     countRows(paint(<EssentialsSettings onOpenModes={() => {}} />)) +
     countRows(
@@ -224,13 +224,17 @@ test("the whole non-debug surface stays at thirty-four rows or under", () => {
     ) +
     UNRENDERABLE_ADVANCED_ROWS;
 
-  /* Thirty-four is the round-3 ceiling. Round 2 held the page at thirty;
-   * the round-3 consensus (DECISIONS-3.md §7, 2026-08-31) then added four
-   * consented surfaces — remote meeting intelligence (D14), external access
-   * for the CLI and MCP server (D15), after-meeting automations (D22), and
-   * the per-series calendar controls (D28) — so the number moved by
-   * decision, not by drift. Settings carried about seventy rows across
-   * seven tabs before the restructure; the next row added here still has
-   * to displace one or argue with this comment. */
-  expect(total).toBeLessThan(35);
+  /* Thirty-five is the ceiling after the 2026-09-01 batch. Round 2 held the
+   * page at thirty; the round-3 consensus (DECISIONS-3.md §7, 2026-08-31)
+   * then added four consented surfaces — remote meeting intelligence (D14),
+   * external access for the CLI and MCP server (D15), after-meeting
+   * automations (D22), and the per-series calendar controls (D28) — and the
+   * batch that gave the external surface its first write added the one grant
+   * that answers it: External mutations, a switch a reader must be able to
+   * see, because letting a script read the corpus and letting it close a loop
+   * are different answers. The saved-prompt library added no row: each prompt
+   * is a disclosure. Settings carried about seventy rows across seven tabs
+   * before the restructure; the next row added here still has to displace
+   * one or argue with this comment. */
+  expect(total).toBeLessThan(36);
 });

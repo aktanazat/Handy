@@ -114,7 +114,7 @@ describe("meeting automations settings", () => {
 
     expect(locales.length).toBe(24);
     expect(wrong).toEqual([]);
-    expect(expected.length).toBe(19);
+    expect(expected.length).toBe(23);
   });
 
   test("the count and date placeholders survive translation", () => {

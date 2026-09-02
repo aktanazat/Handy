@@ -13,6 +13,7 @@ pub mod meeting;
 pub mod models;
 pub mod people;
 pub mod persona;
+pub mod prompts;
 pub mod query;
 pub mod snippets;
 pub mod transcription;

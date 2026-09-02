@@ -1698,6 +1698,10 @@
         "webhook": "Send to a webhook",
         "webhookHint": "Sends the meeting export as JSON. Use only your own machine or tailnet, as with the server.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "runPrompt": "Run a saved prompt",
+        "runPromptHint": "Asks one of your saved prompts about the meeting and keeps the answer with it.",
+        "promptPlaceholder": "Pick a prompt",
+        "needsPrompt": "Pick a prompt first",
         "needsTarget": "Add a name first",
         "needsUrl": "Add an address first",
         "rejected": "Another window changed these. Read again and retry.",
@@ -1753,6 +1757,8 @@
     "importAudio": "Import audio",
     "openRecordings": "Open recordings folder",
     "openAgent": "Open agent",
+    "runPrompt": "Run a prompt",
+    "newPrompt": "New prompt",
     "esc": "esc",
     "search": {
       "meetings": "Meetings",
@@ -1761,6 +1767,52 @@
       "loops": "Open loops",
       "empty": "Nothing matched “{{query}}”.",
       "unavailable": "Search is unavailable right now."
+    }
+  },
+  "prompts": {
+    "title": "Prompts",
+    "description": "Questions you can ask again. Run one from the command palette, or after a meeting from a series' automations.",
+    "loading": "Reading your prompts…",
+    "empty": "No prompts yet.",
+    "new": "New prompt",
+    "editing": "Edit prompt",
+    "editorHint": "The prompt is answered only from what Sona already holds about the record you run it on.",
+    "name": "Name",
+    "body": "Prompt",
+    "bodyPlaceholder": "List the decisions and who owns each one.",
+    "output": "Answer",
+    "outputText": "Text",
+    "outputSchema": "JSON matching a schema",
+    "schema": "Schema",
+    "schemaPlaceholder": "{\"type\":\"object\",\"required\":[\"decisions\"],\"properties\":{\"decisions\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+    "targetLabel": "About",
+    "save": "Save",
+    "edit": "Edit {{name}}",
+    "delete": "Delete {{name}}",
+    "invalid": "A prompt needs a name, a prompt, and a schema that is JSON.",
+    "rejected": "Another window changed these. Read again and retry.",
+    "saveFailed": "That did not save.",
+    "target": {
+      "meeting": "A meeting",
+      "person": "A person",
+      "series": "A series"
+    },
+    "run": {
+      "saved": "{{name}} ran. The answer is under Prompt results.",
+      "missing": "That prompt is gone, or there is nothing to ask about yet.",
+      "failed": "That prompt could not run."
+    },
+    "results": {
+      "title": "Prompt results",
+      "rerun": "Run {{name}} again",
+      "deleted": "Deleted prompt"
+    },
+    "failure": {
+      "modelUnavailable": "No model was available to answer this.",
+      "modelUnreachable": "Your server could not be reached.",
+      "modelFailed": "The model did not return a usable answer.",
+      "schemaMismatch": "The answer did not match the schema.",
+      "noEvidence": "There was nothing recorded to answer from."
     }
   },
   "accessibility": {

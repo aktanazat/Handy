@@ -1,9 +1,9 @@
 import React from "react";
 import { useCommandState } from "cmdk";
-import { MessageSquare, type LucideIcon } from "lucide-react";
+import { MessageSquare, Sparkles, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { type QueryRow } from "@/bindings";
+import { commands, type QueryRow, type SavedPrompt } from "@/bindings";
 import {
   Command,
   CommandEmpty,
@@ -40,6 +40,11 @@ import {
   SEARCH_MIN_CHARS,
   type AskGate,
 } from "./commandPaletteSearch";
+import {
+  promptFailureKeys,
+  runSavedPrompt,
+  usePromptShellStore,
+} from "./settings/meetings/promptTargets";
 
 /* The command palette: cmdk inside the shared dialog, and nothing else.
  *
@@ -187,6 +192,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
    * would stay on whichever command was matched while the corpus answered, and
    * Enter would run it instead of opening the row the reader is looking at. */
   const [selected, setSelected] = React.useState("");
+  const [prompts, setPrompts] = React.useState<readonly SavedPrompt[]>([]);
   const requestRef = React.useRef(0);
   /* Read once per render and handed down, so every row on one paint measures
    * "2 minutes ago" from the same instant. A palette is open for seconds; a
@@ -214,6 +220,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         ? t("commandPalette.search.empty", { query: query.trim() })
         : null;
   const asking = canAsk(query, panel);
+  /* Prompts are offered only while a record has said what it is: a prompt is
+   * asked *about* something, and the palette is the one surface with no record
+   * of its own. See `promptTargets`. */
+  const promptTarget = usePromptShellStore((state) => state.target);
 
   React.useEffect(() => {
     if (seed === null) return;
@@ -227,6 +237,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     setQuery("");
     setSearch({ status: "idle" });
   }, [open]);
+
+  /* Read on open rather than once at mount, so a prompt written a minute ago in
+   * Settings is offered by the next press of the chord. */
+  React.useEffect(() => {
+    if (!open || promptTarget === null) return;
+    void commands.savedPromptList().then((result) => {
+      setPrompts(result.status === "ok" ? result.data.prompts : []);
+    });
+  }, [open, promptTarget]);
 
   React.useEffect(() => {
     const question = query.trim();
@@ -271,6 +290,25 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
        * looking in the wrong place for a switch they own. */
       if (outcome === "refused") toast.error(t("chat.ask.consentRequired"));
       else if (outcome === "failed") toast.error(t("chat.ask.error"));
+    });
+  };
+
+  /* Run, then say what came back. The answer lands in the record's own Prompt
+   * results section, so the toast names the outcome rather than repeating it —
+   * and a run that produced nothing still says which absence it was, because
+   * nothing retries. */
+  const run = (prompt: SavedPrompt) => {
+    if (promptTarget === null) return;
+    onOpenChange(false);
+    void runSavedPrompt(prompt.prompt_id, promptTarget).then((outcome) => {
+      if (outcome.status === "missing") toast.error(t("prompts.run.missing"));
+      else if (outcome.status === "failed")
+        toast.error(t("prompts.run.failed"));
+      else if (outcome.run.result.kind === "failed") {
+        toast.error(t(promptFailureKeys[outcome.run.result.reason]));
+      } else {
+        toast.success(t("prompts.run.saved", { name: prompt.name }));
+      }
     });
   };
 
@@ -366,6 +404,29 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 })}
               </CommandGroup>
             ))}
+            {/* Run a prompt: one row per saved prompt, offered only while a
+                record has said what it is. A section rather than a mode — a
+                picker you have to enter is a second keystroke before the
+                first letter, and cmdk already filters these by name. */}
+            {promptTarget !== null && prompts.length > 0 && (
+              <CommandGroup
+                heading={t("commandPalette.runPrompt")}
+                className="p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-[13px] [&_[cmdk-group-heading]]:leading-5 [&_[cmdk-group-heading]]:text-gray-900"
+              >
+                {prompts.map((prompt) => (
+                  <CommandItem
+                    key={prompt.prompt_id}
+                    value={`prompt-run:${prompt.prompt_id}`}
+                    keywords={[prompt.name]}
+                    onSelect={() => run(prompt)}
+                    className="min-h-9 gap-2.5 rounded-md px-2 py-2 text-[13px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300"
+                  >
+                    <Sparkles aria-hidden="true" className="size-4" />
+                    <span className="min-w-0 truncate">{prompt.name}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
             {results.map((section) => (
               <CommandGroup
                 key={section.kind}

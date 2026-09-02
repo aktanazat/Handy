@@ -467,6 +467,14 @@ impl MeetingSessionManager {
         self.processing.set_transcription_manager(manager);
     }
 
+    /// The generation service, for the sibling modules that write text through
+    /// it — see [`super::prompts`]. Read-only: the slots inside it are set from
+    /// here and from launch, and a second setter would be a second answer to
+    /// which engine this app has.
+    pub(super) fn processing(&self) -> &MeetingProcessingService {
+        &self.processing
+    }
+
     fn acquire_keep_awake(&self) {
         self.keep_awake
             .lock()

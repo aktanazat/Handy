@@ -1623,6 +1623,11 @@ pub fn run(cli_args: CliArgs) {
             commands::automations::meeting_series_automation_set,
             commands::automations::meeting_automation_roster,
             commands::automations::meeting_automation_runs,
+            commands::prompts::saved_prompt_list,
+            commands::prompts::saved_prompt_save,
+            commands::prompts::saved_prompt_delete,
+            commands::prompts::saved_prompt_run,
+            commands::prompts::saved_prompt_runs,
         ])
         .events(collect_events![
             upstream_import::UpstreamImportProgressEvent,

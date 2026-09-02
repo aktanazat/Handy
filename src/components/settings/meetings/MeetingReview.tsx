@@ -52,6 +52,7 @@ import {
   type MeetingAnalytics,
   type MeetingAnalyticsSnapshot,
 } from "./meetingAnalytics";
+import { useOpenPromptTarget } from "./promptTargets";
 
 /* The review surface holds five jobs: read the transcript, fix it, read what
  * was generated from it, ask the meeting a question, and get the record out.
@@ -205,6 +206,8 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
    * regeneration or a finished processing pass. */
   const sessionId = snapshot.session.session_id;
   const revision = snapshot.session.revision;
+  /* ⌘K offers this meeting's saved prompts for as long as it is on screen. */
+  useOpenPromptTarget("meeting", sessionId);
   const loadAnalytics = useCallback(async () => {
     try {
       setAnalytics(await getMeetingAnalytics(sessionId));

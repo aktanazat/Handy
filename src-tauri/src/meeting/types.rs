@@ -47,6 +47,8 @@ meeting_id!(MeetingExportReceiptId);
 meeting_id!(MeetingQuestionId);
 meeting_id!(MeetingArtifactId);
 meeting_id!(MeetingDiarizationGenerationId);
+meeting_id!(SavedPromptId);
+meeting_id!(PromptRunId);
 
 /// The title a recording with no calendar event and no recognised app gets
 /// before anything has been read out of it. One constant because two places
@@ -678,6 +680,8 @@ pub enum MeetingCommandKind {
     FollowUpDraft,
     SeriesAutomationSet,
     SeriesRemoteOptOutSet,
+    SavedPromptSave,
+    SavedPromptDelete,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]

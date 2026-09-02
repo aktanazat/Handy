@@ -19,6 +19,8 @@ pub mod ledger;
 pub mod loop_types;
 pub mod people_types;
 pub mod processing;
+pub mod prompt_types;
+pub mod prompts;
 pub mod relay_generator;
 pub mod series;
 pub mod series_types;

@@ -18,6 +18,7 @@ pub(crate) mod loops;
 #[cfg(test)]
 mod loops_tests;
 mod people;
+pub(crate) mod prompts;
 pub(crate) mod query_plane;
 #[cfg(test)]
 mod remote_intelligence_tests;
@@ -1246,6 +1247,121 @@ static MIGRATIONS: &[M] = &[
         ALTER TABLE persons ADD COLUMN summary TEXT;
         ALTER TABLE persons ADD COLUMN summary_generated_at_utc_ms INTEGER;
         ALTER TABLE persons ADD COLUMN summary_model_id TEXT;
+        ",
+    ),
+    // Saved prompts: a question the operator wrote once, and every answer it
+    // has produced.
+    //
+    // `saved_prompts` is a preference table like the series ones — fenced on
+    // one shared revision, written under an `OperationReceipt`. The three rows
+    // seeded here are ordinary rows with fixed ids, editable and deletable:
+    // there is no built-in prompt whose behaviour a reader cannot inspect, and
+    // the ids are fixed only so a re-run of this migration cannot double them.
+    //
+    // `saved_prompt_runs` is the run log, and it *is* the receipt for one
+    // generation rather than a copy of one — the same rule
+    // `meeting_automation_runs` follows. Two deletions reach it. Deleting the
+    // prompt takes its answers with it, because an answer is derived from the
+    // prompt and an orphan run has no name to show and no way to be re-run.
+    // Deleting the meeting a run was anchored to takes it as well, which is
+    // what `anchor_session_id` is for: a run quotes words that live in this
+    // database and must not outlive the retention sweep that reaches them.
+    // A person or series run is anchored to the newest meeting behind that
+    // noun, so it is cut on the conservative side of the same rule.
+    M::up(
+        "
+        CREATE TABLE saved_prompt_state (
+            singleton INTEGER PRIMARY KEY NOT NULL CHECK (singleton = 1),
+            revision INTEGER NOT NULL CHECK (revision >= 0)
+        );
+        INSERT INTO saved_prompt_state(singleton, revision) VALUES (1, 0);
+        CREATE TABLE saved_prompts (
+            prompt_id TEXT PRIMARY KEY NOT NULL,
+            name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+            body TEXT NOT NULL CHECK (length(trim(body)) > 0),
+            output_kind TEXT NOT NULL CHECK (output_kind IN ('text', 'schema')),
+            json_schema TEXT,
+            target TEXT NOT NULL CHECK (target IN ('meeting', 'person', 'series')),
+            created_at_utc_ms INTEGER NOT NULL,
+            updated_at_utc_ms INTEGER NOT NULL,
+            CHECK ((output_kind = 'schema') = (json_schema IS NOT NULL))
+        );
+        INSERT INTO saved_prompts (
+            prompt_id, name, body, output_kind, json_schema, target,
+            created_at_utc_ms, updated_at_utc_ms
+        )
+        SELECT prompt_id, name, body, 'text', NULL, 'meeting', seeded, seeded
+          FROM (SELECT CAST(strftime('%s', 'now') AS INTEGER) * 1000 AS seeded)
+          JOIN (
+            SELECT '5a7ed01d-0000-4000-8000-000000000001' AS prompt_id,
+                   'Decisions with owners' AS name,
+                   'List the decisions this meeting reached. Name who owns each one, and quote the words it was decided in. If nothing was decided, say so.' AS body
+            UNION ALL SELECT '5a7ed01d-0000-4000-8000-000000000002',
+                   'Risks and open questions',
+                   'List the risks this meeting raised and the questions it left open. One sentence each. Leave out anything that was settled.'
+            UNION ALL SELECT '5a7ed01d-0000-4000-8000-000000000003',
+                   'Customer asks',
+                   'List what the customer asked for, in their own words where you can. Mark anything that was already promised to them.'
+          );
+        CREATE TABLE saved_prompt_runs (
+            run_id TEXT PRIMARY KEY NOT NULL,
+            prompt_id TEXT NOT NULL REFERENCES saved_prompts(prompt_id) ON DELETE CASCADE,
+            target_kind TEXT NOT NULL CHECK (target_kind IN ('meeting', 'person', 'series')),
+            target_id TEXT NOT NULL,
+            anchor_session_id TEXT NOT NULL REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            artifact_id TEXT,
+            model_id TEXT NOT NULL,
+            model_version TEXT NOT NULL,
+            produced_at_utc_ms INTEGER NOT NULL,
+            result_kind TEXT NOT NULL CHECK (result_kind IN ('text', 'json', 'failed')),
+            result TEXT NOT NULL
+        );
+        CREATE INDEX saved_prompt_runs_target_idx
+            ON saved_prompt_runs(target_kind, target_id, produced_at_utc_ms DESC);
+        CREATE INDEX saved_prompt_runs_session_idx
+            ON saved_prompt_runs(anchor_session_id);
+        ",
+    ),
+    // D22 gains a fourth kind. SQLite cannot alter a `CHECK`, so both tables
+    // that name the kinds are rebuilt; only the allowed-value list changes.
+    // Nothing is backfilled — absent still means off, everywhere.
+    M::up(
+        "
+        CREATE TABLE meeting_series_automations_rebuilt (
+            series_key TEXT NOT NULL CHECK (length(trim(series_key)) > 0),
+            kind TEXT NOT NULL CHECK (kind IN ('reminders', 'shortcut', 'webhook', 'run_prompt')),
+            enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)),
+            target TEXT,
+            updated_at_utc_ms INTEGER NOT NULL,
+            PRIMARY KEY (series_key, kind)
+        );
+        INSERT INTO meeting_series_automations_rebuilt
+        SELECT * FROM meeting_series_automations;
+        DROP TABLE meeting_series_automations;
+        ALTER TABLE meeting_series_automations_rebuilt
+            RENAME TO meeting_series_automations;
+
+        DROP INDEX meeting_automation_runs_session_idx;
+        CREATE TABLE meeting_automation_runs_rebuilt (
+            artifact_id TEXT NOT NULL,
+            kind TEXT NOT NULL CHECK (kind IN ('reminders', 'shortcut', 'webhook', 'run_prompt')),
+            session_id TEXT NOT NULL REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            series_key TEXT NOT NULL,
+            state TEXT NOT NULL CHECK (state IN ('started', 'committed', 'failed')),
+            failure TEXT,
+            detail TEXT,
+            effects INTEGER NOT NULL CHECK (effects >= 0),
+            started_at_utc_ms INTEGER NOT NULL,
+            finished_at_utc_ms INTEGER,
+            PRIMARY KEY (artifact_id, kind)
+        );
+        INSERT INTO meeting_automation_runs_rebuilt
+        SELECT * FROM meeting_automation_runs;
+        DROP TABLE meeting_automation_runs;
+        ALTER TABLE meeting_automation_runs_rebuilt
+            RENAME TO meeting_automation_runs;
+        CREATE INDEX meeting_automation_runs_session_idx
+            ON meeting_automation_runs(session_id, started_at_utc_ms DESC);
         ",
     ),
 ];
@@ -10108,6 +10224,8 @@ id_into_uuid!(
     MeetingQuestionId,
     MeetingArtifactId,
     MeetingDiarizationGenerationId,
+    SavedPromptId,
+    PromptRunId,
 );
 
 fn encode_json<T: Serialize + ?Sized>(value: &T) -> Result<String, StoreError> {

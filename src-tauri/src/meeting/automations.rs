@@ -48,15 +48,18 @@ use super::automation_types::{
 };
 use super::export;
 use super::loop_types::MeetingLoopRow;
+use super::processing::MeetingProcessingService;
+use super::prompt_types::PromptRunResult;
 use super::store::{MeetingStore, StoreError};
 use super::types::{
     MeetingActionItem, MeetingArtifactId, MeetingArtifactState, MeetingExportFormat,
-    MeetingSessionId,
+    MeetingSessionId, SavedPromptId,
 };
 use chrono::{DateTime, Datelike, Days, Local, NaiveDate, Utc};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::AppHandle;
+use uuid::Uuid;
 
 /// How long any one effect may take. One bound for all three, because the number
 /// the operator would care about is "how long after a meeting can this app still
@@ -159,22 +162,39 @@ pub(crate) trait AutomationEffects: Send + Sync {
 /// build with no `AppHandle` — which is every test — the pass runs inline, the
 /// same convention `MeetingProcessingService::submit` uses, so a test observes
 /// the whole thing without a scheduler.
+///
+/// The generation service travels with the store because one kind — the saved
+/// prompt — asks a model rather than the world outside the process, and the
+/// service is the one place that decides which model a meeting may use.
 pub(crate) fn after_meeting_finalized(
     store: Arc<MeetingStore>,
     app: Option<AppHandle>,
+    processing: MeetingProcessingService,
     session_id: MeetingSessionId,
 ) {
     if app.is_none() {
         report(
             session_id,
-            run_for_meeting(&store, session_id, &SystemEffects, now_utc_ms()),
+            run_for_meeting(
+                &store,
+                session_id,
+                &SystemEffects,
+                &processing,
+                now_utc_ms(),
+            ),
         );
         return;
     }
     tauri::async_runtime::spawn_blocking(move || {
         report(
             session_id,
-            run_for_meeting(&store, session_id, &SystemEffects, now_utc_ms()),
+            run_for_meeting(
+                &store,
+                session_id,
+                &SystemEffects,
+                &processing,
+                now_utc_ms(),
+            ),
         );
     });
 }
@@ -209,6 +229,7 @@ pub(crate) fn run_for_meeting(
     store: &MeetingStore,
     session_id: MeetingSessionId,
     effects: &dyn AutomationEffects,
+    processing: &MeetingProcessingService,
     started_at_utc_ms: i64,
 ) -> Vec<MeetingAutomationRunReceipt> {
     let plans = match plans_for_meeting(store, session_id) {
@@ -220,7 +241,7 @@ pub(crate) fn run_for_meeting(
     };
     let mut receipts = Vec::new();
     for plan in plans {
-        match run_plan(store, &plan, effects, started_at_utc_ms) {
+        match run_plan(store, &plan, effects, processing, started_at_utc_ms) {
             Ok(Some(receipt)) => receipts.push(receipt),
             Ok(None) => {}
             Err(error) => log::warn!(
@@ -243,6 +264,7 @@ fn run_plan(
     store: &MeetingStore,
     plan: &AutomationPlan,
     effects: &dyn AutomationEffects,
+    processing: &MeetingProcessingService,
     started_at_utc_ms: i64,
 ) -> Result<Option<MeetingAutomationRunReceipt>, StoreError> {
     let Some(_claim) = store.claim_automation_run(
@@ -255,7 +277,7 @@ fn run_plan(
     else {
         return Ok(None);
     };
-    let outcome = perform(plan, effects);
+    let outcome = perform(store, plan, effects, processing);
     store
         .finish_automation_run(
             plan.artifact_id,
@@ -278,7 +300,18 @@ fn run_plan(
 /// older than the policy that would refuse it today, and the moment a target
 /// stops being acceptable is the moment it must stop being used. A refusal here
 /// is a receipt, not a panic and not a silent skip.
-fn perform(plan: &AutomationPlan, effects: &dyn AutomationEffects) -> EffectOutcome {
+///
+/// Three of the four kinds touch the world outside this process and never read
+/// the store; the fourth asks a model and writes its answer into a
+/// `saved_prompt_runs` row, which is why the store and the generation service
+/// reach this far. It is still one bounded attempt with no retry: the prompt
+/// run is written once, by the same claim this pass already holds.
+fn perform(
+    store: &MeetingStore,
+    plan: &AutomationPlan,
+    effects: &dyn AutomationEffects,
+    processing: &MeetingProcessingService,
+) -> EffectOutcome {
     let kind = plan.automation.kind;
     let target = match kind.normalize_target(plan.automation.target.as_deref()) {
         Ok(target) => target,
@@ -307,6 +340,37 @@ fn perform(plan: &AutomationPlan, effects: &dyn AutomationEffects) -> EffectOutc
                 effects.run_shortcut(&target, export)
             } else {
                 effects.post_webhook(&target, export)
+            }
+        }
+        MeetingAutomationKind::RunPrompt => {
+            let Some(prompt_id) = target
+                .as_deref()
+                .and_then(|target| Uuid::parse_str(target).ok())
+                .map(SavedPromptId::from_uuid)
+            else {
+                return EffectOutcome::failed(MeetingAutomationFailure::TargetMissing, None);
+            };
+            let Some(run) = super::prompts::run_prompt_for_meeting(
+                store,
+                processing,
+                prompt_id,
+                plan.session_id,
+                now_utc_ms(),
+            ) else {
+                // The prompt was deleted after the automation was configured.
+                // That is a configuration this pass cannot run, not a
+                // generation that failed, and the row says which.
+                return EffectOutcome::failed(
+                    MeetingAutomationFailure::TargetInvalid,
+                    Some("the saved prompt no longer exists".to_string()),
+                );
+            };
+            match run.result {
+                PromptRunResult::Failed { reason } => EffectOutcome::failed(
+                    MeetingAutomationFailure::Rejected,
+                    Some(reason.as_str().to_string()),
+                ),
+                _ => EffectOutcome::committed(1, None),
             }
         }
     }
@@ -345,7 +409,12 @@ fn plans_for_meeting(
         .collect::<Vec<_>>();
     let export_json = kinds
         .iter()
-        .any(|kind| *kind != MeetingAutomationKind::Reminders)
+        .any(|kind| {
+            matches!(
+                kind,
+                MeetingAutomationKind::Shortcut | MeetingAutomationKind::Webhook
+            )
+        })
         .then(|| {
             export::render(MeetingExportFormat::Json, &review)
                 .ok()
@@ -448,11 +517,10 @@ fn due_day_for(
 /// not more arms here.
 fn due_day(due_text: &str, meeting_day: NaiveDate) -> Option<NaiveDate> {
     let lowered = due_text.to_lowercase();
-    let mut words = lowered
+    let words = lowered
         .split(|character: char| !character.is_ascii_alphanumeric() && character != '-')
-        .filter(|word| !word.is_empty())
-        .peekable();
-    while let Some(word) = words.next() {
+        .filter(|word| !word.is_empty());
+    for word in words {
         if let Ok(date) = NaiveDate::parse_from_str(word, "%Y-%m-%d") {
             return Some(date);
         }

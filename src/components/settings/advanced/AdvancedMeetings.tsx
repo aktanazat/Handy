@@ -7,6 +7,7 @@ import {
 } from "../meetings/MeetingDetectionSettings";
 import { MeetingAutomations } from "../meetings/MeetingAutomations";
 import { MeetingDigestSettings } from "../meetings/MeetingDigestSettings";
+import { MeetingPrompts } from "../meetings/MeetingPrompts";
 import { MeetingRetentionSettings } from "../meetings/MeetingRetention";
 import { MeetingRemoteIntelligence } from "../meetings/MeetingRemoteIntelligence";
 import { MeetingTrackersSettings } from "../meetings/MeetingTrackersSettings";
@@ -31,6 +32,7 @@ export const AdvancedMeetings: React.FC = () => {
       <MeetingDetectionState />
       <MeetingRemoteIntelligence />
       <MeetingAutomations />
+      <MeetingPrompts />
       <MeetingTrackersSettings />
     </>
   );

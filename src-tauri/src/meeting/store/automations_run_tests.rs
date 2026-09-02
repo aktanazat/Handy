@@ -16,12 +16,10 @@
 use super::workflow_core_tests::{meeting, store};
 use super::*;
 use crate::meeting::automation_types::{
-    MeetingAutomationFailure, MeetingAutomationKind, MeetingAutomationRunState,
-    MeetingSeriesAutomationSetRequest,
+    MeetingAutomationFailure, MeetingAutomationKind, MeetingAutomationRunReceipt,
+    MeetingAutomationRunState, MeetingSeriesAutomationSetRequest,
 };
-use crate::meeting::automations::{
-    reminders_gate, run_for_meeting, AutomationEffects, EffectOutcome, ReminderItem,
-};
+use crate::meeting::automations::{reminders_gate, AutomationEffects, EffectOutcome, ReminderItem};
 use crate::meeting::detection::calendar::CalendarAccess;
 use crate::meeting::detection::machine::CalendarEventSummary;
 use crate::meeting::export::render as render_export;
@@ -41,6 +39,27 @@ use uuid::Uuid;
 const NOW: i64 = 1_700_000_000_000;
 const SERIES_KEY: &str = "weekly-pricing";
 const TAILNET_URL: &str = "http://100.99.192.40:8650/hooks/meeting";
+
+/// The executor, with a headless generation service behind it.
+///
+/// Only the `run_prompt` kind ever reaches the service, and no test in this
+/// file configures one, so a service with no engines answers every question it
+/// is asked here. The wrapper exists so the kind's arrival did not have to be
+/// spelled out at every call below.
+fn run_for_meeting(
+    store: &MeetingStore,
+    session_id: MeetingSessionId,
+    effects: &dyn AutomationEffects,
+    started_at_utc_ms: i64,
+) -> Vec<MeetingAutomationRunReceipt> {
+    crate::meeting::automations::run_for_meeting(
+        store,
+        session_id,
+        effects,
+        &crate::meeting::processing::MeetingProcessingService::new(None),
+        started_at_utc_ms,
+    )
+}
 
 /// What the effects were asked to do, in order.
 #[derive(Debug, Default)]

@@ -16,6 +16,7 @@ import { formatMeetingOffset } from "../meetingUtils";
 import { MeetingArtifactPanel } from "./MeetingArtifactPanel";
 import { FollowUpAgentAction } from "./FollowUpAgentAction";
 import { PreviouslyTogetherBand } from "./PreviouslyTogetherBand";
+import { PromptResults } from "./PromptResults";
 
 export interface InsightsTabProps {
   snapshot: MeetingReviewSnapshot;
@@ -221,6 +222,8 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
           ))
         )}
       </SettingsSection>
+
+      <PromptResults kind="meeting" id={snapshot.session.session_id} />
     </>
   );
 };

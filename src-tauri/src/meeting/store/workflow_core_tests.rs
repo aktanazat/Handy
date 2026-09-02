@@ -48,6 +48,32 @@ pub(crate) fn meeting(store: &MeetingStore, title: &str, at_utc_ms: i64) -> Meet
     id
 }
 
+/// A meeting whose row survives `review_snapshot`.
+///
+/// [`meeting`] writes bare strings into `processing_status` and
+/// `retention_policy_json`, which are JSON columns: every reader that has
+/// needed them so far reads around them, and `review_snapshot` is the one that
+/// decodes. A test whose subject reads the review record starts here instead.
+pub(crate) fn reviewable_meeting(
+    store: &MeetingStore,
+    title: &str,
+    at_utc_ms: i64,
+) -> MeetingSessionId {
+    let id = meeting(store, title, at_utc_ms);
+    store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE meeting_sessions
+                SET processing_status = '{\"kind\":\"succeeded\"}',
+                    retention_policy_json = '{\"kind\":\"forever\"}'
+              WHERE id = ?1",
+            params![id.uuid().to_string()],
+        )
+        .unwrap();
+    id
+}
+
 pub(super) fn person(
     store: &MeetingStore,
     name: &str,
