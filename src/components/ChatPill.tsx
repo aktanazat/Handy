@@ -157,9 +157,12 @@ export const ChatPill: React.FC<ChatPillProps> = ({
        * Dimmed type rather than opacity, like every disabled settings row. */
       aria-disabled={paired ? undefined : true}
       onClick={paired && !open ? onOpen : undefined}
+      /* No focus classes of its own: base.css paints the shell's
+       * --focus-outline on every button's :focus-visible, and the kit's
+       * translucent ring was the one place in the chrome that differed. */
       className={cn(
         PLACEMENT,
-        "inline-flex h-[28px] items-center gap-1.5 rounded-full border border-gray-alpha-400 bg-raised ps-2.5 pe-3 text-[13px] leading-[18px] transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "inline-flex h-[28px] items-center gap-1.5 rounded-full border border-gray-alpha-400 bg-raised ps-2.5 pe-3 text-[13px] leading-[18px] transition-colors",
         paired ? "text-gray-1000 hover:bg-gray-alpha-100" : "text-gray-800",
         open && "pointer-events-none",
       )}

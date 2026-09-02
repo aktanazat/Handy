@@ -74,8 +74,10 @@ describe("the chat pill's three states", () => {
     expect(markup).toContain("border-gray-alpha-400");
     expect(markup).toContain("bg-raised");
     expect(markup).toContain("hover:bg-gray-alpha-100");
-    // The kit's focus ring, not one of its own.
-    expect(markup).toContain("focus-visible:ring-[3px]");
+    /* The shell's --focus-outline from base.css, which any focus class of
+     * the pill's own — the kit's ring, or outline-none — would replace. */
+    expect(markup).not.toContain("focus-visible:");
+    expect(markup).not.toContain("outline-none");
   });
 
   /* Open, the pill stays mounted solely for the shell-owned opacity transition.
