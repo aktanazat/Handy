@@ -3047,6 +3047,14 @@ detection_silence_stop_minutes?: number;
  */
 detection_meeting_apps?: string[];
 /**
+ * Bundle IDs the operator has granted standing consent to record without
+ * a prompt. Empty on install and never seeded: this is the one setting
+ * that turns a notice into a recording, so it only ever holds what
+ * somebody switched on. An entry that is not also in
+ * `detection_meeting_apps` grants nothing, because nothing detects it.
+ */
+detection_auto_record_apps?: string[];
+/**
  * Whether the evening digest raises one native notification on days with
  * activity. Off on install: an unasked-for notification is the one thing a
  * quiet app must never do.
@@ -3491,6 +3499,10 @@ export type DetectionPromptKind =
  */
 { kind: "BrowserCall"; bundleId: string; appName: string } |
 /**
+ * A call app is in call — "{App} call detected".
+ */
+{ kind: "AppCall"; bundleId: string; appName: string } |
+/**
  * §5.3 case 6, behind the opt-in toggle — no app identity to name.
  */
 { kind: "UnknownMicSource" }
@@ -3503,7 +3515,12 @@ export type DetectionPromptRetractionReason = "trigger_app_quit" | "event_ended"
  * together — turning the calendar path on while detection itself is off is not
  * a state the UI should be able to produce halfway through.
  */
-export type DetectionSettings = { enabled: boolean; calendarEnabled: boolean; anyMicActivity: boolean; autoStartOnOpenPane: boolean; silenceStopMinutes: number; meetingApps: string[] }
+export type DetectionSettings = { enabled: boolean; calendarEnabled: boolean; anyMicActivity: boolean; autoStartOnOpenPane: boolean; silenceStopMinutes: number; meetingApps: string[];
+/**
+ * Bundle IDs that record without a prompt. A subset of `meeting_apps` in
+ * practice: an entry detection does not watch grants nothing.
+ */
+autoRecordApps: string[] }
 /**
  * Everything the operator can see about what detection is doing. Emitted on
  * change, and readable on demand through `detection_status_get`.
@@ -4325,6 +4342,11 @@ export type MeetingQuestionResult = { receipt: OperationReceipt; snapshot: Meeti
 export type MeetingQuestionScope = { kind: "this_meeting" } | { kind: "explicit_series"; session_ids: MeetingSessionId[] }
 export type MeetingReasonCode = "consent_missing" | "consent_stale" | "stale_revision" | "capture_lease_busy" | "source_unavailable" | "source_start_failed" | "source_gap" | "storage_unavailable" | "storage_failure" | "local_model_unavailable" | "recovery_required" | "deleted" | "invalid_transition" | "duplicate_operation"
 /**
+ * Shown while a call Sona started by itself is recording, so an auto-start is
+ * never something the operator has to discover afterwards.
+ */
+export type MeetingRecordingCard = { sessionId: MeetingSessionId; bundleId: string; appName: string; startedAtUtcMs: number }
+/**
  * Save the notes layer and regenerate the meeting's notes from it in one
  * step, so the user cannot end up regenerating against a stale draft.
  */
@@ -4337,8 +4359,14 @@ export type MeetingRetentionPolicy = { kind: "forever" } | { kind: "delete_after
 export type MeetingRetentionSetRequest = { operation_id: MeetingOperationId; expected_revision: number; policy: MeetingRetentionPolicy }
 export type MeetingRetentionSnapshot = { policy: MeetingRetentionPolicy; revision: number }
 export type MeetingReviewSnapshot = { session: MeetingSessionSnapshot; tracks: MeetingTrackSnapshot[]; gaps: SourceGap[]; speakers: MeetingSpeaker[]; transcript: EffectiveTranscriptSegment[]; notes: ManualNote[]; artifacts: MeetingArtifactRevision[]; questions: MeetingAnswer[]; diarization: MeetingDiarizationSnapshot; can_export: boolean; remote_cancellation_pending: boolean }
-export type MeetingRitual = { kind: "prep"; card: MeetingPrepCard } | { kind: "wrap"; card: MeetingWrapCard }
-export type MeetingRitualAction = "prep_record_when_starts" | "prep_open_brief" | "prep_dismiss" | "wrap_open_notes" | "wrap_follow_up_copied" | "wrap_done"
+export type MeetingRitual = { kind: "prep"; card: MeetingPrepCard } | { kind: "wrap"; card: MeetingWrapCard } | { kind: "recording"; card: MeetingRecordingCard }
+export type MeetingRitualAction = "prep_record_when_starts" | "prep_open_brief" | "prep_dismiss" | "wrap_open_notes" | "wrap_follow_up_copied" | "wrap_done" | "recording_stop" |
+/**
+ * Stop, and take this application off the auto-record list. One gesture,
+ * because an operator who wants the recording to end also wants the reason
+ * it started to end.
+ */
+"recording_forget_app"
 export type MeetingRitualEvent = { eventSchemaVersion: number; ritualId: string; ritual: MeetingRitual; notificationTitle: string; delivery: DetectionPromptDelivery }
 export type MeetingRitualRetractedEvent = { eventSchemaVersion: number; ritualId: string }
 export type MeetingSearchHit = { session_id: MeetingSessionId; kind: CitationKind; entity_id: string; start_offset_ns: number | null; end_offset_ns: number | null; excerpt: string }
@@ -5142,6 +5170,14 @@ export type StopTrigger =
  * Sona is not itself the process holding the device.
  */
 "input_device_idle" |
+/**
+ * The call this capture was started for ended: its app stopped playing
+ * through the default output device. `InputDeviceIdle` cannot express
+ * this — Sona's own capture keeps the input device raised for the whole
+ * meeting — and a call app stays open long after a call hangs up, so
+ * `TriggerAppExited` cannot either.
+ */
+"call_ended" |
 /**
  * §5.5 condition 2.
  */

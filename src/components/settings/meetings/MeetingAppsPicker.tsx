@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Trash2 } from "lucide-react";
+import { Switch } from "@/components/vg/switch";
 import { Notice, SettingsField } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
 import { Checkbox } from "@/components/vg/checkbox";
@@ -25,15 +26,21 @@ import { useDetectionEditor } from "./MeetingDetectionSettings";
  * identifiers for the same product (meeting_macos.rs), so a list carrying one
  * of those still reads as that app being on rather than as a stray entry.
  *
- * FaceTime is recognised by the observer but is not in the shipped allowlist,
- * so its box starts empty. Browsers are absent on purpose: the browser path is
- * a frontmost-tab reading, not an allowlist entry, which is what the caption
- * under the list says. */
+ * FaceTime and Phone are the two call apps: they never carry a calendar event,
+ * their meetings are calls, and they are the only apps whose standing grant
+ * anything reads. The backend consults `detection_auto_record_apps` for a
+ * `CallSignal` alone (apps.rs CALL_APP_BUNDLE_IDS), so a grant stored for
+ * Zoom would round-trip, read back as on, and record nothing. `call` is what
+ * keeps the switch off the rows it cannot affect. Browsers are absent on
+ * purpose: the browser path is a frontmost-tab reading, not an allowlist
+ * entry, which is what the caption under the list says. */
 interface KnownMeetingApp {
   /** Names the translation key and the checkbox id; never shown raw. */
   id: string;
   writes: readonly string[];
   matches: readonly string[];
+  /** True for the apps `detection_auto_record_apps` is read for. */
+  call?: true;
 }
 
 const KNOWN_MEETING_APPS: readonly KnownMeetingApp[] = [
@@ -56,6 +63,13 @@ const KNOWN_MEETING_APPS: readonly KnownMeetingApp[] = [
     id: "facetime",
     writes: ["com.apple.facetime"],
     matches: ["com.apple.facetime"],
+    call: true,
+  },
+  {
+    id: "phone",
+    writes: ["com.apple.mobilephone"],
+    matches: ["com.apple.mobilephone"],
+    call: true,
   },
   {
     id: "slack",
@@ -192,8 +206,21 @@ export const MeetingAppsPicker: React.FC = () => {
     (bundleId) => !KNOWN_BUNDLE_IDS.includes(bundleId),
   );
 
+  const autoRecordApps = settings?.autoRecordApps ?? [];
+
   const write = (next: readonly string[]) =>
     void patch({ meetingApps: [...next] });
+
+  /* Un-listing an app takes its standing grant with it. A grant naming an app
+   * detection no longer watches authorizes nothing, and leaving it behind
+   * would bring auto-recording back the moment the box was ticked again. */
+  const dropApp = (bundleIds: readonly string[]) =>
+    void patch({
+      meetingApps: meetingApps.filter((entry) => !bundleIds.includes(entry)),
+      autoRecordApps: autoRecordApps.filter(
+        (entry) => !bundleIds.includes(entry),
+      ),
+    });
 
   return (
     /* No `controlId`: the control is a list of checkboxes, and a `<label for>`
@@ -211,6 +238,9 @@ export const MeetingAppsPicker: React.FC = () => {
             running.includes(bundleId),
           );
           const name = t("settingsV2.apps.names." + app.id);
+          const autoRecord = app.matches.some((bundleId) =>
+            autoRecordApps.includes(bundleId),
+          );
           return (
             <li key={app.id} className="flex items-center gap-2.5">
               <Checkbox
@@ -218,18 +248,14 @@ export const MeetingAppsPicker: React.FC = () => {
                 checked={checked}
                 disabled={disabled}
                 onCheckedChange={(next) =>
-                  write(
-                    next === true
-                      ? [
-                          ...meetingApps,
-                          ...app.writes.filter(
-                            (bundleId) => !meetingApps.includes(bundleId),
-                          ),
-                        ]
-                      : meetingApps.filter(
-                          (bundleId) => !app.matches.includes(bundleId),
+                  next === true
+                    ? write([
+                        ...meetingApps,
+                        ...app.writes.filter(
+                          (bundleId) => !meetingApps.includes(bundleId),
                         ),
-                  )
+                      ])
+                    : dropApp(app.matches)
                 }
               />
               <label
@@ -245,6 +271,37 @@ export const MeetingAppsPicker: React.FC = () => {
                   {t("settingsV2.apps.runningNow")}
                 </span>
               ) : null}
+              {app.call ? (
+                <>
+                  <label
+                    htmlFor={"detection-auto-" + app.id}
+                    className="ml-auto text-[13px] text-gray-900"
+                  >
+                    {t("settingsV2.apps.autoRecord")}
+                  </label>
+                  <Switch
+                    id={"detection-auto-" + app.id}
+                    checked={autoRecord}
+                    disabled={disabled || !checked}
+                    onCheckedChange={(next) =>
+                      void patch({
+                        autoRecordApps:
+                          next === true
+                            ? [
+                                ...autoRecordApps,
+                                ...app.writes.filter(
+                                  (bundleId) =>
+                                    !autoRecordApps.includes(bundleId),
+                                ),
+                              ]
+                            : autoRecordApps.filter(
+                                (bundleId) => !app.matches.includes(bundleId),
+                              ),
+                      })
+                    }
+                  />
+                </>
+              ) : null}
             </li>
           );
         })}
@@ -254,9 +311,7 @@ export const MeetingAppsPicker: React.FC = () => {
               id={"detection-app-" + bundleId}
               checked
               disabled={disabled}
-              onCheckedChange={() =>
-                write(meetingApps.filter((entry) => entry !== bundleId))
-              }
+              onCheckedChange={() => dropApp([bundleId])}
             />
             <label
               htmlFor={"detection-app-" + bundleId}
@@ -276,21 +331,26 @@ export const MeetingAppsPicker: React.FC = () => {
               className="ml-auto text-red-900"
               aria-label={t("settingsV2.apps.remove", { app: bundleId })}
               disabled={disabled}
-              onClick={() =>
-                write(meetingApps.filter((entry) => entry !== bundleId))
-              }
+              onClick={() => dropApp([bundleId])}
             >
               <Trash2 aria-hidden="true" />
             </Button>
           </li>
         ))}
       </ul>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mt-3 flex flex-col gap-1.5">
         {/* Said once, for the list: a call in a browser tab is noticed without
          * anything being listed here, so its absence is not a gap. */}
         <Notice tone="muted" live={false}>
           {t("settingsV2.apps.browsersAutomatic")}
         </Notice>
+        {/* Consent law is the one thing a switch labelled "Record
+         * automatically" cannot say for itself. */}
+        <Notice tone="muted" live={false}>
+          {t("settingsV2.apps.autoRecordConsent")}
+        </Notice>
+      </div>
+      <div className="mt-3 flex justify-end">
         <Button
           type="button"
           variant="outline"

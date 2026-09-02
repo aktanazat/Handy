@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
 import en from "@/i18n/locales/en/translation.json";
-import { PrepCard, WrapCard } from "./ConsentPanel";
+import { PrepCard, RecordingCard, WrapCard } from "./ConsentPanel";
 
 const i18n = createInstance();
 void i18n.init({ lng: "en", resources: { en: { translation: en } } });
@@ -80,5 +80,30 @@ describe("meeting ritual cards", () => {
     );
     expect(i18n.t("consentPanel.announceInChat")).toBe("Announce in chat");
     expect(i18n.t("consentPanel.announceRefused")).not.toContain("{{");
+  });
+
+  /* The card an operator sees for a recording nobody asked for out loud. It
+   * has to say what is being recorded, for how long, and offer both ways out —
+   * ending this recording, and ending the standing grant behind it. */
+  test("RECORDING names the app, the elapsed time, and both ways out", () => {
+    const markup = renderToStaticMarkup(
+      <RecordingCard
+        card={{
+          sessionId: "00000000-0000-0000-0000-000000000030",
+          bundleId: "com.apple.facetime",
+          appName: "FaceTime",
+          startedAtUtcMs: 1_000_000,
+        }}
+        now={1_125_000}
+        onAction={noop}
+        t={i18n.t}
+      />,
+    );
+
+    expect(markup).toContain("Recording started");
+    expect(markup).toContain("FaceTime");
+    expect(markup).toContain("2:05");
+    expect(markup).toContain("Stop");
+    expect(markup).toContain("Don&#x27;t record this app automatically");
   });
 });

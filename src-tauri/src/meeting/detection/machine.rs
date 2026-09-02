@@ -19,6 +19,7 @@
 //!    meeting capture both raise it. Reading that as a meeting would make every
 //!    push-to-talk run prompt "meeting detected".
 
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -151,10 +152,41 @@ pub enum AppSignal {
     },
 }
 
+/// A running application whose meetings are calls: FaceTime and Phone.
+///
+/// Separate from `AppSignal` because the two dimensions answer different
+/// questions and must not shadow each other. A call app never carries a
+/// calendar event, its microphone is often an AirPods-class Bluetooth device
+/// that the input-device property under-reports, and it is the only dimension
+/// with a standing per-application grant. Folding it into `AppSignal` would
+/// mean one of Zoom-is-open and FaceTime-is-open silently losing to the other.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CallSignal {
+    /// No allowlisted call application is running.
+    Absent,
+    Running {
+        bundle_id: String,
+        display_name: String,
+        /// True when this app currently receives key events. Load-bearing:
+        /// neither clause of `call_is_live` holds without it.
+        frontmost: bool,
+    },
+}
+
 /// State of the default input device, as reported by CoreAudio's
 /// `kAudioDevicePropertyDeviceIsRunningSomewhere`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MicSignal {
+    Idle,
+    Active,
+}
+
+/// State of the default *output* device, as reported by the same CoreAudio
+/// `kAudioDevicePropertyDeviceIsRunningSomewhere` the microphone dimension
+/// reads. Only the call path consults it: a live call plays the other side
+/// through the default output, and an idle FaceTime plays nothing.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OutputSignal {
     Idle,
     Active,
 }
@@ -193,12 +225,18 @@ pub struct DetectionInputs {
     pub now_utc_ms: i64,
     pub calendar: CalendarSignal,
     pub app: AppSignal,
+    /// The call dimension, evaluated before the calendar and the ad-hoc paths.
+    pub call: CallSignal,
     pub mic: MicSignal,
+    pub output: OutputSignal,
     pub screen_recording: ScreenRecordingPermission,
     pub browser_title: BrowserTitleEvidence,
     /// True only when the session layer found a live standing grant for this
     /// event's series. A visible countdown is context, never consent.
     pub standing_series_consent: bool,
+    /// True only when the operator's auto-record list names the call app in
+    /// `call`. The grant is a stored setting, not something detection decides.
+    pub standing_app_consent: bool,
     pub recent_capture: Option<RecentCapture>,
     /// True when Sona itself holds the default input device — its own dictation
     /// run or the microphone lane of its own meeting capture.
@@ -272,6 +310,9 @@ pub enum PromptKind {
     /// §5.3 case 7 — "Call detected in {Browser}".
     #[serde(rename_all = "camelCase")]
     BrowserCall { bundle_id: String, app_name: String },
+    /// A call app is in call — "{App} call detected".
+    #[serde(rename_all = "camelCase")]
+    AppCall { bundle_id: String, app_name: String },
     /// §5.3 case 6, behind the opt-in toggle — no app identity to name.
     UnknownMicSource,
 }
@@ -286,17 +327,25 @@ impl PromptKind {
             Self::AppMeeting { app_name, .. } => format!("{app_name} meeting detected"),
             Self::AppHuddle { app_name, .. } => format!("{app_name} huddle detected"),
             Self::BrowserCall { app_name, .. } => format!("Call detected in {app_name}"),
+            Self::AppCall { app_name, .. } => format!("{app_name} call detected"),
             Self::UnknownMicSource => "Microphone activity detected".to_string(),
         }
     }
 
     /// Title proposed for the meeting the prompt would create.
-    pub fn proposed_meeting_title(&self) -> String {
+    ///
+    /// `now_local` is passed in rather than read here: this module decides, it
+    /// never observes. A call is stamped with the time it started because a
+    /// person has several a day and "FaceTime call" alone does not tell two of
+    /// them apart, while every other kind already carries a distinguishing
+    /// name.
+    pub fn proposed_meeting_title(&self, now_local: DateTime<Local>) -> String {
         match self {
             Self::CalendarEvent { event_title, .. } => event_title.clone(),
             Self::AppMeeting { app_name, .. } | Self::AppHuddle { app_name, .. } => {
                 format!("{app_name} meeting")
             }
+            Self::AppCall { app_name, .. } => call_meeting_title(app_name, now_local),
             Self::BrowserCall { app_name, .. } => format!("Call in {app_name}"),
             Self::UnknownMicSource => crate::meeting::types::MANUAL_DEFAULT_TITLE.to_string(),
         }
@@ -307,10 +356,20 @@ impl PromptKind {
         match self {
             Self::AppMeeting { bundle_id, .. }
             | Self::AppHuddle { bundle_id, .. }
+            | Self::AppCall { bundle_id, .. }
             | Self::BrowserCall { bundle_id, .. } => Some(bundle_id),
             Self::CalendarEvent { .. } | Self::UnknownMicSource => None,
         }
     }
+}
+
+/// The name an auto-recorded call carries: "FaceTime call, 3:15 PM".
+///
+/// English, like `MANUAL_DEFAULT_TITLE`, because this is stored meeting data
+/// rather than rendered copy — the operator can rename it, and the i18next
+/// catalog is not reachable from the store.
+pub fn call_meeting_title(app_name: &str, started_local: DateTime<Local>) -> String {
+    format!("{app_name} call, {}", started_local.format("%-I:%M %p"))
 }
 
 /// Why detection stayed quiet. Carried into the status event so the operator can
@@ -355,6 +414,12 @@ pub enum DetectionOutcome {
         event_key: String,
         event_title: String,
     },
+    /// A call app the operator's auto-record list names went in call. The
+    /// session layer re-reads the list when it writes the receipt.
+    AutoStartCall {
+        bundle_id: String,
+        app_name: String,
+    },
     /// §5.3 cases 3, 5, 6, 7 — raise a notification and wait for a click.
     Prompt(PromptKind),
     /// §5.3 case 8 — attach this activity to the capture already open.
@@ -380,9 +445,18 @@ pub fn evaluate(inputs: &DetectionInputs, policy: &DetectionPolicy) -> Detection
         return cross_link_or_suppress(inputs, policy);
     }
 
-    // The calendar path runs first because a scheduled event is stronger
-    // evidence than an app being open, and because case 1's countdown must win
-    // over any ad-hoc prompt for the same moment.
+    // The call path runs before the calendar because a call that is provably
+    // live outranks an event that may not be happening, and because a call app
+    // never carries a calendar event for it to displace. It falls through when
+    // a call app is merely open, so a Zoom meeting beside an idle FaceTime is
+    // still case 5.
+    if let Some(outcome) = call_path(inputs) {
+        return outcome;
+    }
+
+    // The calendar path runs before the ad-hoc one because a scheduled event is
+    // stronger evidence than an app being open, and because case 1's countdown
+    // must win over any ad-hoc prompt for the same moment.
     let calendar_reason = match calendar_path(inputs, policy) {
         CalendarPath::Decided(outcome) => return outcome,
         CalendarPath::Ineligible(reason) => reason,
@@ -397,6 +471,117 @@ pub fn evaluate(inputs: &DetectionInputs, policy: &DetectionPolicy) -> Detection
         (Some(reason), DetectionOutcome::Suppress(_)) => DetectionOutcome::Suppress(reason),
         (_, outcome) => outcome,
     }
+}
+
+/// Whether a call app is in a call right now.
+///
+/// **The rule.** A call app is in call when it is running **and frontmost**,
+/// and either
+///
+/// * the default *input* device reports `IsRunningSomewhere` **and no other
+///   allowlisted meeting app is running**, or
+/// * the default *output* device reports it.
+///
+/// Both clauses are qualified because both properties are device-global. They
+/// say that some process is holding a device; they never say which, and this
+/// module does not guess.
+///
+/// **The input clause** is the same signal every other app uses, and it is the
+/// one that under-reports: AirPods-class Bluetooth microphones frequently do
+/// not raise it, which is why call apps need a second signal at all. Its own
+/// qualifier is attribution — a running Zoom is a perfectly good explanation
+/// for a live microphone, and preferring a backgrounded FaceTime over it would
+/// trade a meeting Sona can detect for a call nobody is on. That qualifier
+/// only names what the allowlist names, though: a Meet tab in a frontmost
+/// browser, Discord, Voice Memos, and every other process that holds the
+/// microphone is not an `AppSignal::Known`, and on the qualifier alone their
+/// microphone would be handed to whichever call app happened to be open
+/// behind them — a standing grant for FaceTime recording a call FaceTime
+/// never carried. Frontmost is what closes that: a call app the operator is
+/// not looking at explains nothing.
+///
+/// **The output clause's false-positive envelope** is music, a video, or any
+/// other playback while the call app happens to be open — an idle FaceTime
+/// plays nothing, but Spotify behind it plays plenty. The frontmost qualifier
+/// is what bounds it: background audio while the operator works in another
+/// window never reaches this rule, so the residue is "the operator is looking
+/// at FaceTime, with no call, while audio plays". A prompt is the outcome there
+/// unless they also granted standing consent for that app, and the recording
+/// card offers Stop and a one-click revocation of the grant.
+///
+/// **Why frontmost rather than "recently launched".** Both bound the same
+/// clauses. Frontmost is the stronger of the two for the case this exists for:
+/// an inbound call — including an iPhone call relayed to the Mac — rings
+/// through the output device while the call app sits in the background, and
+/// answering it is what activates the app. Frontmost therefore declines to
+/// record a ringing phone and starts the moment it is answered, while
+/// "launched less than a tick ago" would record the ring and would also admit
+/// the worst false positive on offer: an app launched at login with music
+/// playing. Frontmost also needs no launch timestamp, which the app dimension
+/// does not carry. What it costs is the call the operator answered and then
+/// left in the background before a tick saw it; manual start stays primary.
+///
+/// Reads the signals rather than `DetectionInputs` because the tick needs
+/// this answer before it has collected the rest of the inputs, and the two
+/// callers must not derive it two ways.
+pub fn call_is_live(
+    call: &CallSignal,
+    app: &AppSignal,
+    mic: MicSignal,
+    output: OutputSignal,
+) -> bool {
+    let CallSignal::Running {
+        frontmost: true, ..
+    } = call
+    else {
+        return false;
+    };
+    let other_meeting_app_running = matches!(app, AppSignal::Known { .. });
+    (mic == MicSignal::Active && !other_meeting_app_running) || output == OutputSignal::Active
+}
+
+/// Whether the evidence for a call that was already attributed is still
+/// there. The boundary a claimed call and a pending call prompt live inside.
+///
+/// Looser than `call_is_live` on purpose. Attribution needs the call app in
+/// front, because a backgrounded one explains nothing about a microphone the
+/// allowlist cannot name. But once a call *has* been attributed, the operator
+/// switching to Notes must not end it: the prompt would retract, the claim
+/// would re-arm, and switching back would raise a second prompt for the same
+/// call. So a held microphone keeps the boundary open whoever holds it, and
+/// playback keeps it open only while the app is in front, since music behind
+/// a backgrounded call app is not the call continuing.
+pub fn call_evidence(call: &CallSignal, mic: MicSignal, output: OutputSignal) -> bool {
+    let CallSignal::Running { frontmost, .. } = call else {
+        return false;
+    };
+    mic == MicSignal::Active || (output == OutputSignal::Active && *frontmost)
+}
+
+/// The call dimension. `None` means it had nothing to say and the rest of the
+/// table still applies.
+fn call_path(inputs: &DetectionInputs) -> Option<DetectionOutcome> {
+    let CallSignal::Running {
+        bundle_id,
+        display_name,
+        ..
+    } = &inputs.call
+    else {
+        return None;
+    };
+    if !call_is_live(&inputs.call, &inputs.app, inputs.mic, inputs.output) {
+        return None;
+    }
+    if inputs.standing_app_consent {
+        return Some(DetectionOutcome::AutoStartCall {
+            bundle_id: bundle_id.clone(),
+            app_name: display_name.clone(),
+        });
+    }
+    Some(DetectionOutcome::Prompt(PromptKind::AppCall {
+        bundle_id: bundle_id.clone(),
+        app_name: display_name.clone(),
+    }))
 }
 
 /// Outcome of consulting the calendar half of the table.
@@ -589,10 +774,63 @@ pub struct StopInputs {
     /// is the process keeping it raised.
     pub self_holds_input_device: bool,
     pub device_running_somewhere: bool,
+    /// What the default *output* device has done during this capture. Present
+    /// only for a capture a call app triggered, where it is the one liveness
+    /// signal Sona's own microphone does not pollute.
+    pub call_output: Option<CallOutputWatch>,
     /// True while the process that triggered this capture is still running.
     pub trigger_app_running: bool,
     /// Set once the host crossed a sleep boundary during this capture.
     pub slept_since_start: bool,
+}
+
+/// How long the default output device must stay idle, after having played
+/// during a call capture, before the silence reads as a hangup.
+///
+/// A hangup releases the device for good. A default-output change — AirPods
+/// connecting mid-call — releases it for as long as the call's stream takes to
+/// move to the new device, and the monitor re-registers on that device and
+/// seeds the level from it before the stream has necessarily arrived. One
+/// tick's reading is therefore not a hangup; ten seconds of readings is well
+/// past any device swap and still short next to a tick.
+pub const CALL_HANGUP_GRACE_MS: i64 = 10_000;
+
+/// What the default output device has done since a call capture started,
+/// folded in one tick at a time.
+///
+/// The level alone is not a hangup, for two reasons this carries. The output
+/// is evidence only once it has played during this capture: a listener that
+/// failed to register reads idle forever (`input_device` treats that as
+/// degradation, not failure), and a call routed to a device other than the
+/// default never touches it, so a capture the microphone clause admitted
+/// would otherwise be stopped by a signal that was never watching it. And an
+/// idle reading is a hangup only once it has lasted `CALL_HANGUP_GRACE_MS`.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct CallOutputWatch {
+    played: bool,
+    idle_since_utc_ms: Option<i64>,
+}
+
+impl CallOutputWatch {
+    pub fn observe(&mut self, output: OutputSignal, now_utc_ms: i64) {
+        match output {
+            OutputSignal::Active => {
+                self.played = true;
+                self.idle_since_utc_ms = None;
+            }
+            OutputSignal::Idle => {
+                if self.played && self.idle_since_utc_ms.is_none() {
+                    self.idle_since_utc_ms = Some(now_utc_ms);
+                }
+            }
+        }
+    }
+
+    /// True once the output has played and then stayed idle for the grace.
+    pub fn hung_up(&self, now_utc_ms: i64) -> bool {
+        self.idle_since_utc_ms
+            .is_some_and(|since| now_utc_ms.saturating_sub(since) >= CALL_HANGUP_GRACE_MS)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -624,6 +862,13 @@ pub enum StopTrigger {
     /// §5.5 condition 3 proper: the input device went idle. Only meaningful when
     /// Sona is not itself the process holding the device.
     InputDeviceIdle,
+    /// The call this capture was started for ended: its app stopped playing
+    /// through the default output device and stayed silent past
+    /// `CALL_HANGUP_GRACE_MS`. `InputDeviceIdle` cannot express this — Sona's
+    /// own capture keeps the input device raised for the whole meeting — and a
+    /// call app stays open long after a call hangs up, so `TriggerAppExited`
+    /// cannot either.
+    CallEnded,
     /// §5.5 condition 2.
     Silence,
 }
@@ -635,6 +880,7 @@ impl StopTrigger {
             Self::EventEnd => "event_end",
             Self::TriggerAppExited => "trigger_app_exited",
             Self::InputDeviceIdle => "input_device_idle",
+            Self::CallEnded => "call_ended",
             Self::Silence => "silence",
         }
     }
@@ -654,6 +900,15 @@ pub fn evaluate_stop(inputs: &StopInputs, policy: &StopPolicy) -> Option<StopTri
     }
     if !inputs.trigger_app_running {
         return Some(StopTrigger::TriggerAppExited);
+    }
+    // Before the input-device rule, which cannot fire during a Sona capture:
+    // Sona's own microphone is what keeps that device raised. The output
+    // device is the call's own, and hanging up releases it.
+    if inputs
+        .call_output
+        .is_some_and(|output| output.hung_up(inputs.now_utc_ms))
+    {
+        return Some(StopTrigger::CallEnded);
     }
     if !inputs.self_holds_input_device && !inputs.device_running_somewhere {
         return Some(StopTrigger::InputDeviceIdle);
@@ -704,6 +959,7 @@ pub fn classify_reactivation(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeZone;
 
     const NOW: i64 = 1_700_000_000_000;
 
@@ -727,13 +983,36 @@ mod tests {
             now_utc_ms: NOW,
             calendar: CalendarSignal::Absent,
             app: AppSignal::Absent,
+            call: CallSignal::Absent,
             mic: MicSignal::Idle,
+            output: OutputSignal::Idle,
             screen_recording: ScreenRecordingPermission::NotGranted,
             browser_title: BrowserTitleEvidence::Unreadable,
             standing_series_consent: false,
+            standing_app_consent: false,
             recent_capture: None,
             self_holds_input_device: false,
             capture_active: false,
+        }
+    }
+
+    fn facetime(frontmost: bool) -> CallSignal {
+        CallSignal::Running {
+            bundle_id: "com.apple.facetime".to_string(),
+            display_name: "FaceTime".to_string(),
+            frontmost,
+        }
+    }
+
+    /// A live FaceTime call the operator granted standing consent to, detected
+    /// the way an AirPods call actually is: the microphone property never rises,
+    /// only the output device does.
+    fn granted_call_on_output_only() -> DetectionInputs {
+        DetectionInputs {
+            call: facetime(true),
+            output: OutputSignal::Active,
+            standing_app_consent: true,
+            ..inputs()
         }
     }
 
@@ -1415,6 +1694,7 @@ mod tests {
             last_voiced_utc_ms: Some(NOW),
             self_holds_input_device: true,
             device_running_somewhere: true,
+            call_output: None,
             trigger_app_running: true,
             slept_since_start: false,
         }
@@ -1605,5 +1885,419 @@ mod tests {
         let boundary = classify_reactivation(&previous_capture(), NOW + 1_000, None);
 
         assert_eq!(boundary, ReactivationBoundary::NewMeeting);
+    }
+
+    /* The case the second signal exists for: an AirPods call, where the
+     * device-in-use property on the input side never rises at all. */
+    #[test]
+    fn a_call_is_live_on_the_output_signal_alone() {
+        let outcome = evaluate(&granted_call_on_output_only(), &DetectionPolicy::default());
+
+        assert_eq!(
+            outcome,
+            DetectionOutcome::AutoStartCall {
+                bundle_id: "com.apple.facetime".to_string(),
+                app_name: "FaceTime".to_string(),
+            }
+        );
+    }
+
+    /* The output clause's whole false-positive envelope, and its bound: music
+     * behind a call app is audio on the same device, so the only thing keeping
+     * Spotify from starting a recording is that FaceTime is not in front. */
+    #[test]
+    fn playback_behind_a_backgrounded_call_app_is_not_a_call() {
+        let background = DetectionInputs {
+            call: facetime(false),
+            ..granted_call_on_output_only()
+        };
+
+        assert_eq!(
+            evaluate(&background, &DetectionPolicy::default()),
+            DetectionOutcome::Suppress(SuppressReason::NoQualifyingSignal)
+        );
+    }
+
+    #[test]
+    fn a_call_app_with_neither_signal_is_not_a_call() {
+        let idle = DetectionInputs {
+            call: facetime(true),
+            standing_app_consent: true,
+            ..inputs()
+        };
+
+        assert_eq!(
+            evaluate(&idle, &DetectionPolicy::default()),
+            DetectionOutcome::Suppress(SuppressReason::NoQualifyingSignal)
+        );
+    }
+
+    /* The wired case: the microphone property rises, the output has not been
+     * seen yet, and the operator is looking at the call. */
+    #[test]
+    fn a_bluetooth_headset_still_leaves_the_microphone_clause_working() {
+        let wired = DetectionInputs {
+            call: facetime(true),
+            mic: MicSignal::Active,
+            standing_app_consent: true,
+            ..inputs()
+        };
+
+        assert_eq!(
+            evaluate(&wired, &DetectionPolicy::default()),
+            DetectionOutcome::AutoStartCall {
+                bundle_id: "com.apple.facetime".to_string(),
+                app_name: "FaceTime".to_string(),
+            }
+        );
+    }
+
+    /* The input property is device-global and the allowlist cannot name every
+     * process that raises it. A Meet tab in a frontmost browser does, with
+     * FaceTime idle behind it; a standing grant for FaceTime must not turn
+     * that into a recording of somebody else's call. */
+    #[test]
+    fn a_backgrounded_call_app_does_not_claim_a_browser_calls_microphone() {
+        let meet_in_chrome = DetectionInputs {
+            call: facetime(false),
+            app: chrome(),
+            mic: MicSignal::Active,
+            screen_recording: ScreenRecordingPermission::Granted,
+            browser_title: BrowserTitleEvidence::MeetingMatch,
+            standing_app_consent: true,
+            ..inputs()
+        };
+
+        assert_eq!(
+            evaluate(&meet_in_chrome, &DetectionPolicy::default()),
+            DetectionOutcome::Prompt(PromptKind::BrowserCall {
+                bundle_id: "com.google.chrome".to_string(),
+                app_name: "Chrome".to_string(),
+            })
+        );
+    }
+
+    /* Discord, Voice Memos, a DAW: case 6 owns an unattributed microphone, and
+     * its opt-in must keep owning it with a call app open in the background.
+     * Off, the episode is suppressed; on, it prompts as the unknown source it
+     * is, never as a call. */
+    #[test]
+    fn a_backgrounded_call_app_does_not_claim_an_unattributed_microphone() {
+        let voice_memo = DetectionInputs {
+            call: facetime(false),
+            mic: MicSignal::Active,
+            standing_app_consent: true,
+            ..inputs()
+        };
+        let any_mic = DetectionPolicy {
+            any_mic_activity: true,
+            ..DetectionPolicy::default()
+        };
+
+        assert_eq!(
+            evaluate(&voice_memo, &DetectionPolicy::default()),
+            DetectionOutcome::Suppress(SuppressReason::UnknownMicSource)
+        );
+        assert_eq!(
+            evaluate(&voice_memo, &any_mic),
+            DetectionOutcome::Prompt(PromptKind::UnknownMicSource)
+        );
+    }
+
+    /* The call path runs ahead of the calendar path, so a backgrounded call
+     * app that counted as live would consume a started event's decision too:
+     * a series with standing consent would record nothing. */
+    #[test]
+    fn a_backgrounded_call_app_does_not_displace_a_started_event() {
+        let scheduled = DetectionInputs {
+            calendar: CalendarSignal::Started { event: event(3) },
+            call: facetime(false),
+            mic: MicSignal::Active,
+            standing_series_consent: true,
+            standing_app_consent: true,
+            ..inputs()
+        };
+
+        assert_eq!(
+            evaluate(&scheduled, &calendar_policy()),
+            DetectionOutcome::AutoStart {
+                event_key: "event-1".to_string(),
+                event_title: "Quarterly planning".to_string(),
+            }
+        );
+    }
+
+    /* Attribution needs the app in front; the boundary of a call already
+     * attributed does not. Switching to Notes mid-call keeps the claim and the
+     * pending prompt; music behind a backgrounded call app does not. */
+    #[test]
+    fn a_claimed_call_survives_the_operator_switching_away() {
+        assert!(!call_is_live(
+            &facetime(false),
+            &AppSignal::Absent,
+            MicSignal::Active,
+            OutputSignal::Idle,
+        ));
+        assert!(call_evidence(
+            &facetime(false),
+            MicSignal::Active,
+            OutputSignal::Idle
+        ));
+        assert!(!call_evidence(
+            &facetime(false),
+            MicSignal::Idle,
+            OutputSignal::Active
+        ));
+        assert!(call_evidence(
+            &facetime(true),
+            MicSignal::Idle,
+            OutputSignal::Active
+        ));
+        assert!(!call_evidence(
+            &CallSignal::Absent,
+            MicSignal::Active,
+            OutputSignal::Active
+        ));
+    }
+
+    /* Safety rule: an app the operator never put on the auto-record list is
+     * offered, never taken. */
+    #[test]
+    fn a_call_app_without_a_standing_grant_prompts_instead_of_starting() {
+        let ungranted = DetectionInputs {
+            standing_app_consent: false,
+            ..granted_call_on_output_only()
+        };
+
+        assert_eq!(
+            evaluate(&ungranted, &DetectionPolicy::default()),
+            DetectionOutcome::Prompt(PromptKind::AppCall {
+                bundle_id: "com.apple.facetime".to_string(),
+                app_name: "FaceTime".to_string(),
+            })
+        );
+    }
+
+    /* Safety rule: the master toggle. */
+    #[test]
+    fn disabled_detection_never_auto_records_a_call() {
+        let policy = DetectionPolicy {
+            enabled: false,
+            ..DetectionPolicy::default()
+        };
+
+        assert_eq!(
+            evaluate(&granted_call_on_output_only(), &policy),
+            DetectionOutcome::Suppress(SuppressReason::DetectionDisabled)
+        );
+    }
+
+    /* Safety rule: a dictation run holds the same device a call would, and the
+     * output clause cannot tell a call from Sona's own start chime. */
+    #[test]
+    fn sonas_own_microphone_never_auto_records_a_call() {
+        let dictating = DetectionInputs {
+            mic: MicSignal::Active,
+            self_holds_input_device: true,
+            ..granted_call_on_output_only()
+        };
+
+        assert_eq!(
+            evaluate(&dictating, &DetectionPolicy::default()),
+            DetectionOutcome::Suppress(SuppressReason::SonaHoldsInputDevice)
+        );
+    }
+
+    /* Safety rule: a capture already running is never joined by a second one. */
+    #[test]
+    fn a_live_capture_never_auto_records_a_call_beside_it() {
+        let capturing = DetectionInputs {
+            capture_active: true,
+            ..granted_call_on_output_only()
+        };
+
+        assert_eq!(
+            evaluate(&capturing, &DetectionPolicy::default()),
+            DetectionOutcome::Suppress(SuppressReason::CaptureAlreadyActive)
+        );
+    }
+
+    /* A call app that is merely open must not consume the decision, and it must
+     * not claim a microphone another running meeting app explains just as well:
+     * the property is device-global, so a backgrounded FaceTime is a guess and
+     * Zoom is a reading. */
+    #[test]
+    fn an_idle_call_app_does_not_shadow_the_ad_hoc_path() {
+        let both = DetectionInputs {
+            call: facetime(false),
+            app: zoom(),
+            mic: MicSignal::Active,
+            output: OutputSignal::Active,
+            standing_app_consent: true,
+            ..inputs()
+        };
+
+        assert_eq!(
+            evaluate(&both, &DetectionPolicy::default()),
+            DetectionOutcome::Prompt(PromptKind::AppMeeting {
+                bundle_id: "us.zoom.xos".to_string(),
+                app_name: "Zoom".to_string(),
+            })
+        );
+    }
+
+    /* Bringing the call app to the front resolves the same ambiguity the other
+     * way: now the operator is looking at the call. */
+    #[test]
+    fn a_frontmost_call_app_wins_over_a_running_meeting_app() {
+        let both = DetectionInputs {
+            call: facetime(true),
+            app: zoom(),
+            mic: MicSignal::Active,
+            output: OutputSignal::Active,
+            standing_app_consent: true,
+            ..inputs()
+        };
+
+        assert_eq!(
+            evaluate(&both, &DetectionPolicy::default()),
+            DetectionOutcome::AutoStartCall {
+                bundle_id: "com.apple.facetime".to_string(),
+                app_name: "FaceTime".to_string(),
+            }
+        );
+    }
+
+    /* `InputDeviceIdle` cannot fire during a capture — Sona's own microphone is
+     * what keeps that device raised — and a call app stays open after a hangup,
+     * so neither existing trigger can end a call. */
+    fn call_recording() -> StopInputs {
+        StopInputs {
+            now_utc_ms: NOW,
+            linked_event_end_utc_ms: None,
+            last_voiced_utc_ms: None,
+            self_holds_input_device: false,
+            device_running_somewhere: true,
+            call_output: Some(CallOutputWatch::default()),
+            trigger_app_running: true,
+            slept_since_start: false,
+        }
+    }
+
+    #[test]
+    fn a_call_capture_ends_when_the_output_device_goes_quiet() {
+        let policy = StopPolicy::default();
+        let mut output = CallOutputWatch::default();
+        output.observe(OutputSignal::Active, NOW);
+        let playing = StopInputs {
+            call_output: Some(output),
+            ..call_recording()
+        };
+
+        assert_eq!(evaluate_stop(&playing, &policy), None);
+
+        output.observe(OutputSignal::Idle, NOW + 1_000);
+        let hung_up = StopInputs {
+            now_utc_ms: NOW + 1_000 + CALL_HANGUP_GRACE_MS,
+            call_output: Some(output),
+            ..call_recording()
+        };
+
+        assert_eq!(evaluate_stop(&hung_up, &policy), Some(StopTrigger::CallEnded));
+    }
+
+    /* AirPods connecting mid-call: the default output changes, the monitor
+     * re-registers and seeds the level before the call's stream has moved, and
+     * one tick reads idle. That is a gap, not a hangup. */
+    #[test]
+    fn an_output_gap_shorter_than_the_grace_is_not_a_hangup() {
+        let policy = StopPolicy::default();
+        let mut output = CallOutputWatch::default();
+        output.observe(OutputSignal::Active, NOW);
+        output.observe(OutputSignal::Idle, NOW + 1_000);
+        let gap = StopInputs {
+            now_utc_ms: NOW + CALL_HANGUP_GRACE_MS,
+            call_output: Some(output),
+            ..call_recording()
+        };
+
+        assert_eq!(evaluate_stop(&gap, &policy), None);
+
+        // The stream reaches the new device; the clock starts over.
+        output.observe(OutputSignal::Active, NOW + 3_000);
+        let moved = StopInputs {
+            now_utc_ms: NOW + 60_000,
+            call_output: Some(output),
+            ..call_recording()
+        };
+
+        assert_eq!(evaluate_stop(&moved, &policy), None);
+    }
+
+    /* The start rule admits a call on the microphone clause with the output
+     * idle: a call routed to a non-default speaker, or an output listener
+     * that never registered. The stop rule must degrade the same way, or the
+     * capture it admits ends on the next tick. */
+    #[test]
+    fn a_call_that_never_played_through_the_default_output_is_not_ended_by_it() {
+        assert!(call_is_live(
+            &facetime(true),
+            &AppSignal::Absent,
+            MicSignal::Active,
+            OutputSignal::Idle,
+        ));
+
+        let mut output = CallOutputWatch::default();
+        output.observe(OutputSignal::Idle, NOW);
+        let silent = StopInputs {
+            now_utc_ms: NOW + 10 * CALL_HANGUP_GRACE_MS,
+            call_output: Some(output),
+            ..call_recording()
+        };
+
+        assert_eq!(evaluate_stop(&silent, &StopPolicy::default()), None);
+    }
+
+    #[test]
+    fn a_quiet_output_device_never_stops_a_capture_no_call_started() {
+        let meeting = StopInputs {
+            call_output: None,
+            ..call_recording()
+        };
+
+        assert_eq!(evaluate_stop(&meeting, &StopPolicy::default()), None);
+    }
+
+    #[test]
+    fn a_call_is_titled_with_the_app_and_the_time_it_started() {
+        let started = Local
+            .with_ymd_and_hms(2026, 3, 14, 15, 15, 0)
+            .single()
+            .expect("an unambiguous local instant");
+
+        assert_eq!(
+            PromptKind::AppCall {
+                bundle_id: "com.apple.facetime".to_string(),
+                app_name: "FaceTime".to_string(),
+            }
+            .proposed_meeting_title(started),
+            "FaceTime call, 3:15 PM"
+        );
+    }
+
+    #[test]
+    fn the_call_prompt_wire_shape_matches_the_rest_of_the_union() {
+        assert_eq!(
+            serde_json::to_value(PromptKind::AppCall {
+                bundle_id: "com.apple.mobilephone".to_string(),
+                app_name: "Phone".to_string(),
+            })
+            .expect("prompt serializes"),
+            serde_json::json!({
+                "kind": "AppCall",
+                "bundleId": "com.apple.mobilephone",
+                "appName": "Phone",
+            })
+        );
     }
 }

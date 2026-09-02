@@ -52,6 +52,7 @@ const promptAppName = (prompt: DetectionPromptKind): string | null => {
   switch (prompt.kind) {
     case "AppMeeting":
     case "AppHuddle":
+    case "AppCall":
     case "BrowserCall":
       return prompt.appName;
     case "CalendarEvent":

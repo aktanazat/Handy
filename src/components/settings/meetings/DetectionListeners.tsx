@@ -148,6 +148,15 @@ export const promptTitle = (
       }
       break;
     }
+    case "AppCall": {
+      const app = named(prompt.appName);
+      if (app !== null) {
+        return t("meetings.detection.prompt.call", "{{app}} call detected", {
+          app,
+        });
+      }
+      break;
+    }
     case "AppHuddle": {
       const app = named(prompt.appName);
       if (app !== null) {

@@ -10,6 +10,7 @@ import {
   type DetectionStatus,
   type MeetingConsentPanelSessionState,
   type MeetingPrepCard,
+  type MeetingRecordingCard,
   type MeetingRitualAction,
   type MeetingRitualEvent,
   type MeetingWrapCard,
@@ -216,6 +217,53 @@ export function WrapCard({ card, copied, onAction, onCopy, t }: WrapCardProps) {
   );
 }
 
+type RecordingCardProps = {
+  card: MeetingRecordingCard;
+  onAction: (action: MeetingRitualAction) => void;
+  t: TFunction;
+  now: number;
+};
+
+/* What an auto-started call looks like while it runs.
+ *
+ * The two actions are the whole point of the card: an operator who did not ask
+ * for this recording out loud can end it, and can end the standing grant that
+ * produced it, without going to Settings first. */
+export function RecordingCard({ card, onAction, t, now }: RecordingCardProps) {
+  return (
+    <main className={panelClass} data-testid="recording-card">
+      <div className="flex items-center gap-2">
+        <span className="size-2 rounded-full bg-red-700" aria-hidden="true" />
+        <strong className="text-sm font-semibold">
+          {t("consentPanel.recordingStarted")}
+        </strong>
+        <span className="ml-auto text-sm tabular-nums text-gray-900">
+          {elapsedLabel(card.startedAtUtcMs, now)}
+        </span>
+      </div>
+      <p className="truncate text-base font-medium">{card.appName}</p>
+      <div className="mt-auto flex items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => onAction("recording_forget_app")}
+        >
+          {t("consentPanel.forgetApp")}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onAction("recording_stop")}
+        >
+          {t("consentPanel.stop")}
+        </Button>
+      </div>
+    </main>
+  );
+}
+
 export default function ConsentPanel() {
   const { t } = useTranslation();
   const [prompt, setPrompt] = useState<DetectionPromptEvent | null>(null);
@@ -243,7 +291,18 @@ export default function ConsentPanel() {
     setActive(result.data);
     if (result.data !== null) {
       setPrompt(null);
-      setRitual(null);
+      /* The recording card is *about* the active session, so an active session
+       * is not a reason to drop it. A *different* active session is: the card's
+       * capture ended and the operator started another, and Stop on the stale
+       * card would name a capture that is gone. Its own retraction event ends
+       * it otherwise. */
+      const activeSessionId = result.data.snapshot.session_id;
+      setRitual((current) =>
+        current?.ritual.kind === "recording" &&
+        current.ritual.card.sessionId === activeSessionId
+          ? current
+          : null,
+      );
     }
   }, []);
 
@@ -260,7 +319,7 @@ export default function ConsentPanel() {
     void commands
       .meetingAnnounceDisclosure(sessionId, line)
       .then(() => refreshActive())
-      .catch((error: unknown) => {
+      .catch((error) => {
         console.error("Could not announce the recording", error);
       });
   }, [active, refreshActive, t]);
@@ -305,7 +364,13 @@ export default function ConsentPanel() {
           );
           return;
         }
-        if (activeRef.current !== null && activeRef.current !== undefined)
+        /* Same exception as `refreshActive`: the recording card names the
+         * capture that is running, so it is delivered during one by design. */
+        if (
+          event.payload.ritual.kind !== "recording" &&
+          activeRef.current !== null &&
+          activeRef.current !== undefined
+        )
           return;
         setPrompt(null);
         setCopied(false);
@@ -333,7 +398,12 @@ export default function ConsentPanel() {
   }, [refreshActive]);
 
   useEffect(() => {
-    if (active === null && ritual?.ritual.kind !== "prep") return;
+    if (
+      active === null &&
+      ritual?.ritual.kind !== "prep" &&
+      ritual?.ritual.kind !== "recording"
+    )
+      return;
     const timer = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(timer);
   }, [active, ritual]);
@@ -358,6 +428,8 @@ export default function ConsentPanel() {
   const title = useMemo(() => {
     if (prompt === null) return "";
     switch (prompt.prompt.kind) {
+      case "AppCall":
+        return t("consentPanel.appCallTitle", { app: prompt.prompt.appName });
       case "CalendarEvent":
         return t("consentPanel.calendarTitle", {
           title: prompt.prompt.eventTitle,
@@ -463,6 +535,20 @@ export default function ConsentPanel() {
     setActive({ ...active, standing_series_key: null });
   };
 
+  /* Ahead of the generic pill below: this card names the app whose standing
+   * grant started the capture, and offers to take that grant back. The pill
+   * knows neither. */
+  if (ritual?.ritual.kind === "recording") {
+    return (
+      <RecordingCard
+        card={ritual.ritual.card}
+        onAction={(action) => void ritualAction(action)}
+        t={t}
+        now={now}
+      />
+    );
+  }
+
   if (active !== null) {
     return (
       <main className={panelClass}>
@@ -479,7 +565,7 @@ export default function ConsentPanel() {
           {active.snapshot.title}
         </p>
         {/* A disclosure the target would not take is worth saying once, quietly:
-          * the recording is running either way, and the room was not told. */}
+         * the recording is running either way, and the room was not told. */}
         {active.disclosure.kind === "attempted" &&
         active.disclosure.receipt.outcome === "definitely_not_dispatched" ? (
           <p

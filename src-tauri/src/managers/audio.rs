@@ -1065,6 +1065,12 @@ impl AudioRecordingManager {
     /// lock-free mirror read by `is_recording()`) from the new value itself,
     /// so the two can never drift: a new `RecordingState` variant only needs
     /// its active-set membership decided here, once.
+    ///
+    /// It is also where meeting detection learns that Sona itself is the
+    /// process holding the input device. CoreAudio's device-in-use property is
+    /// device-global, so without this a dictation run reads as somebody being
+    /// on a call — which for an application on the auto-record list would start
+    /// a recording of nothing.
     fn set_state(&self, guard: &mut RecordingState, new_state: RecordingState) {
         *guard = new_state;
         let active = matches!(
@@ -1074,6 +1080,17 @@ impl AudioRecordingManager {
         if self.recording_active.swap(active, Ordering::SeqCst) != active {
             if let Some(manager) = self.app_handle.try_state::<Arc<TranscriptionManager>>() {
                 manager.signal_idle_watcher();
+            }
+            if let Some(detection) = self
+                .app_handle
+                .try_state::<Arc<crate::meeting::detection::DetectionRuntime>>()
+            {
+                let lease = detection.self_lease();
+                if active {
+                    lease.acquire();
+                } else {
+                    lease.release();
+                }
             }
         }
     }

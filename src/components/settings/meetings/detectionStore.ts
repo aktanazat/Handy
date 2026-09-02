@@ -51,6 +51,7 @@ export type DetectionStopTrigger =
   | "event_end"
   | "trigger_app_exited"
   | "input_device_idle"
+  | "call_ended"
   | "silence";
 
 export interface DetectionSettings {
@@ -60,6 +61,9 @@ export interface DetectionSettings {
   autoStartOnOpenPane: boolean;
   silenceStopMinutes: number;
   meetingApps: string[];
+  /* Bundle IDs that record without a prompt. Empty until the operator turns a
+   * switch on: this is the one setting that turns a notice into a recording. */
+  autoRecordApps: string[];
 }
 
 /** How one participant answered, when EventKit reports an answer at all. */
@@ -134,6 +138,7 @@ const promptSubject = (entry: DetectionPromptEvent): string => {
     case "AppMeeting":
     case "AppHuddle":
     case "BrowserCall":
+    case "AppCall":
       return `app:${prompt.bundleId}`;
     case "UnknownMicSource":
       return "mic";
@@ -179,19 +184,26 @@ export const useDetectionStore = create<DetectionStore>()((set, get) => ({
   setStatus: (status) =>
     set((state) => ({
       status,
-      /* An offer to record a call is live only while something holds the
+      /* An offer to record a meeting is live only while something holds the
        * microphone. The device going idle is the same signal detection's own
        * auto-stop reads as `input_device_idle` and the same moment the backend
        * re-arms the app's claim, so an unanswered ad-hoc prompt from that
-       * episode is a stale offer rather than a pending one. Calendar prompts
-       * outlive the device deliberately: they are raised at T-60s, before
-       * anyone has opened a microphone. Statuses arrive on change only, so
-       * this is one prune per episode, and the untouched case keeps the array
-       * identity the prompt subscription compares on. */
+       * episode is a stale offer rather than a pending one.
+       *
+       * Two kinds outlive the device deliberately, and the backend retracts
+       * both by their own boundary. Calendar prompts are raised at T-60s,
+       * before anyone has opened a microphone. Call prompts are raised for a
+       * FaceTime or Phone call, which on a Bluetooth headset may never raise
+       * the input device at all — pruning those here would erase the offer on
+       * the tick that made it. Statuses arrive on change only, so this is one
+       * prune per episode, and the untouched case keeps the array identity the
+       * prompt subscription compares on. */
       prompts: status.inputDeviceActive
         ? state.prompts
         : state.prompts.filter(
-            (entry) => entry.prompt.kind === "CalendarEvent",
+            (entry) =>
+              entry.prompt.kind === "CalendarEvent" ||
+              entry.prompt.kind === "AppCall",
           ),
     })),
   addPrompt: (prompt) =>

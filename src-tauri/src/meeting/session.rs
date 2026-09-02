@@ -8,8 +8,8 @@ use super::detection::machine::CalendarEventSummary;
 use super::export;
 use super::follow_up::{
     body_fits, follow_up_prompt, mailto_url, recipient_addresses, FollowUpEvidence,
-    MeetingFollowUpDraft, MeetingFollowUpMail, MeetingFollowUpMailBody,
-    MeetingFollowUpMailRequest, MeetingFollowUpSource, FOLLOW_UP_MAX_TOKENS,
+    MeetingFollowUpDraft, MeetingFollowUpMail, MeetingFollowUpMailBody, MeetingFollowUpMailRequest,
+    MeetingFollowUpSource, FOLLOW_UP_MAX_TOKENS,
 };
 use super::import_formats::{read_transcript_export, resolve_spans, ImportedSegment};
 use super::keep_awake::MeetingKeepAwake;
@@ -21,8 +21,7 @@ use super::loop_types::{
 use super::people_types::{PersonDetailResult, PersonId, PersonLinkConfidence};
 use super::processing::{
     write_relationship_summary, LiveTranscript, LiveTranscriptWorker, MeetingProcessingService,
-    ProcessingOrigin,
-    QuestionGenerationRequest,
+    ProcessingOrigin, QuestionGenerationRequest,
 };
 use super::store::{
     InterruptedRecovery, MeetingStore, MeetingTrackWriter, RecoveredMeeting, SegmentEdit,
@@ -1141,9 +1140,11 @@ impl MeetingSessionManager {
         };
         if remember_for_series {
             if let Some(event) = calendar_event {
-                if let Err(error) =
-                    store.remember_series_announce(&event.series_key, announce_in_chat, utc_now_ms())
-                {
+                if let Err(error) = store.remember_series_announce(
+                    &event.series_key,
+                    announce_in_chat,
+                    utc_now_ms(),
+                ) {
                     log::warn!("A series could not remember its announce decision: {error:?}");
                 }
             }
@@ -1151,7 +1152,8 @@ impl MeetingSessionManager {
         if !announce_in_chat {
             return;
         }
-        if let Err(error) = store.request_session_disclosure(session_id, notetaker(calendar_event, title))
+        if let Err(error) =
+            store.request_session_disclosure(session_id, notetaker(calendar_event, title))
         {
             log::warn!("Meeting {session_id:?} could not arm its disclosure: {error:?}");
         }
@@ -1231,9 +1233,7 @@ impl MeetingSessionManager {
         // the meeting the operator is not sitting in front of is the one where a
         // silent recording would be least expected.
         if result.snapshot.phase == MeetingPhase::CapturingRecording {
-            let announce = self
-                .series_announces_in_chat(&standing.series_key)
-                .await;
+            let announce = self.series_announces_in_chat(&standing.series_key).await;
             self.arm_disclosure(
                 result.snapshot.session_id,
                 &result.snapshot.title,
@@ -1256,6 +1256,52 @@ impl MeetingSessionManager {
                 .unwrap_or(false),
             Err(_) => false,
         }
+    }
+
+    /// Starts a call the operator granted standing consent to, citing that
+    /// grant on the receipt.
+    ///
+    /// The sibling of `start_from_standing_series`, and deliberately not a
+    /// second implementation of it: both build a `MeetingConsentInput` from a
+    /// grant somebody already gave, both go through `create_detection_preflight`
+    /// and `start_with_provenance`, and neither can start anything the consent
+    /// screen would have refused. The one difference is where the grant lives.
+    /// A series grant is a store row, so `start_with_plan_and_consent`
+    /// revalidates it inside the start transaction; an app grant is a settings
+    /// entry, which no SQL transaction can read, so `bundle_id` arrives here
+    /// already checked against the live setting by the only caller that has it.
+    /// The window that leaves open is one tick of the operator switching the
+    /// grant off mid-call, and the recording card's own "Don't record this app
+    /// automatically" is the recovery.
+    pub(crate) async fn start_from_standing_app(
+        &self,
+        context: &MeetingDetectionStartContext,
+        bundle_id: String,
+    ) -> Result<MeetingMutationResult, MeetingCommandError> {
+        let consent = MeetingConsentInput {
+            policy_version: crate::meeting::types::MEETING_CONSENT_POLICY_VERSION,
+            microphone_acknowledged: true,
+            system_audio_acknowledged: true,
+            known_missing_sources_acknowledged: Vec::new(),
+            degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+            destination: ProcessingDestination::Local,
+            remote_acknowledgement: None,
+        };
+        let preflight = self
+            .create_detection_preflight(context, MeetingOperationId::new(), &consent)
+            .await?;
+        let start = self
+            .start_with_provenance(
+                MeetingStartRequest {
+                    operation_id: MeetingOperationId::new(),
+                    session_id: preflight.snapshot.session_id,
+                    expected_revision: preflight.snapshot.revision,
+                    consent,
+                },
+                MeetingConsentProvenance::StandingApp { bundle_id },
+            )
+            .await;
+        self.finish_detection_start(&preflight.snapshot, start)
     }
 
     fn finish_detection_start(
@@ -1371,7 +1417,9 @@ impl MeetingSessionManager {
             .map_err(map_store_error)?
             .and_then(|consent| match consent.provenance {
                 MeetingConsentProvenance::StandingSeries { series_key, .. } => Some(series_key),
-                MeetingConsentProvenance::Direct => None,
+                MeetingConsentProvenance::StandingApp { .. } | MeetingConsentProvenance::Direct => {
+                    None
+                }
             });
         let disclosure = store
             .session_disclosure(snapshot.session_id)
@@ -1922,10 +1970,7 @@ impl MeetingSessionManager {
         request: ImportRecordingRequest,
     ) -> Result<MeetingSessionSnapshot, MeetingCommandError> {
         let media = validate_media_path(&request.path).map_err(|error| {
-            log::warn!(
-                "Meeting import refused {}: {error}",
-                request.path.display()
-            );
+            log::warn!("Meeting import refused {}: {error}", request.path.display());
             MeetingCommandError::ImportUnreadable
         })?;
         let store = self.store().await?;
@@ -1992,11 +2037,11 @@ impl MeetingSessionManager {
                     .unwrap_or_else(utc_now_ms),
             )
             .await?;
-        let track_id = match self.create_import_track(&store, session_id, &RecordingOrigin::LocalFile)
-        {
-            Ok(track_id) => track_id,
-            Err(error) => return Err(self.abandon_import(session_id, error).await),
-        };
+        let track_id =
+            match self.create_import_track(&store, session_id, &RecordingOrigin::LocalFile) {
+                Ok(track_id) => track_id,
+                Err(error) => return Err(self.abandon_import(session_id, error).await),
+            };
         let snapshot = match self
             .seal_imported_capture(&store, session_id, Some(duration_ns))
             .await
@@ -2090,7 +2135,8 @@ impl MeetingSessionManager {
         let attempt_number = store
             .next_plan_attempt(session_id)
             .map_err(map_store_error)?;
-        let mut plan = self.build_plan(session_id, 0, attempt_number, &preflight, &consent, store)?;
+        let mut plan =
+            self.build_plan(session_id, 0, attempt_number, &preflight, &consent, store)?;
         // The imported audio's own zero, so a stamp on a record maps back to
         // when the recording was made rather than when it was read off disk.
         plan.session_clock_anchor.wall_start_utc_ms = recorded_at_utc_ms;
@@ -2186,10 +2232,20 @@ impl MeetingSessionManager {
             .open_capture_window(session_id, 0)
             .map_err(map_store_error)?;
         for (allowed_from, next_phase, event_kind) in [
-            (MeetingPhase::Starting, MeetingPhase::CapturingRecording, "capture_started"),
-            (MeetingPhase::CapturingRecording, MeetingPhase::Stopping, "stop_requested"),
+            (
+                MeetingPhase::Starting,
+                MeetingPhase::CapturingRecording,
+                "capture_started",
+            ),
+            (
+                MeetingPhase::CapturingRecording,
+                MeetingPhase::Stopping,
+                "stop_requested",
+            ),
         ] {
-            let snapshot = store.session_snapshot(session_id).map_err(map_store_error)?;
+            let snapshot = store
+                .session_snapshot(session_id)
+                .map_err(map_store_error)?;
             store
                 .transition(StoreTransition {
                     operation_id: None,
@@ -2205,7 +2261,9 @@ impl MeetingSessionManager {
                 })
                 .map_err(map_store_error)?;
         }
-        let stopping = store.session_snapshot(session_id).map_err(map_store_error)?;
+        let stopping = store
+            .session_snapshot(session_id)
+            .map_err(map_store_error)?;
         store
             .close_open_capture_window(
                 session_id,
@@ -3976,8 +4034,7 @@ fn decode_into_track(
                 host_monotonic_anchor_ns: Some(0),
                 sample_rate_hz: IMPORT_AUDIO_FORMAT.sample_rate_hz,
                 channels: IMPORT_AUDIO_FORMAT.channels,
-                frame_count: u32::try_from(frame.len())
-                    .map_err(|_| AudioImportError::decode())?,
+                frame_count: u32::try_from(frame.len()).map_err(|_| AudioImportError::decode())?,
                 discontinuity_flags: PacketDiscontinuityFlags::default(),
             };
             match writer.accept_with_bridge(packet, frame, bridge) {
@@ -5522,7 +5579,9 @@ mod tests {
         let mut writer = hound::WavWriter::create(path, specification).expect("create wav");
         for index in 0..samples {
             let phase = index as f32 / 16_000.0 * std::f32::consts::TAU * 220.0;
-            writer.write_sample(phase.sin() * 0.4).expect("write sample");
+            writer
+                .write_sample(phase.sin() * 0.4)
+                .expect("write sample");
         }
         writer.finalize().expect("finalize wav");
     }
@@ -5607,11 +5666,7 @@ mod tests {
     fn an_imported_transcript_reaches_review_with_its_speakers() {
         let (files, manager) = importing_manager();
         let path = files.path().join("otter_export.txt");
-        std::fs::write(
-            &path,
-            include_str!("fixtures/otter_export.txt"),
-        )
-        .unwrap();
+        std::fs::write(&path, include_str!("fixtures/otter_export.txt")).unwrap();
 
         let snapshot = tauri::async_runtime::block_on(manager.import_transcript(path))
             .expect("the transcript imports");
@@ -5918,9 +5973,7 @@ mod tests {
             .expect("a started microphone track");
         let samples = vec![0.4_f32; FRAMES as usize];
         {
-            let mut guard = lane
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let mut guard = lane.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
             let lane = guard.as_mut().expect("the source was handed a lane");
             for sequence in 0..PACKETS {
                 let offset_ns = i64::try_from(sequence).unwrap() * 100_000_000;
@@ -5960,7 +6013,10 @@ mod tests {
         panic!("the ingest worker never committed a durable record");
     }
 
-    fn line_engine(busy: &Arc<AtomicBool>, calls: &Arc<std::sync::atomic::AtomicUsize>) -> Arc<LineEngine> {
+    fn line_engine(
+        busy: &Arc<AtomicBool>,
+        calls: &Arc<std::sync::atomic::AtomicUsize>,
+    ) -> Arc<LineEngine> {
         Arc::new(LineEngine {
             line: "We left pricing open.",
             busy: Arc::clone(busy),
@@ -5988,7 +6044,10 @@ mod tests {
 
         assert_eq!(recap.state, MeetingCatchUpState::Ready);
         assert_eq!(recap.bullets, vec![RECAP_BULLET.to_string()]);
-        assert!(recap.provisional, "a recap of a running capture is provisional");
+        assert!(
+            recap.provisional,
+            "a recap of a running capture is provisional"
+        );
         assert_eq!(recap.segment_count, 1);
         assert!(
             recap.through_offset_ns.is_some_and(|offset| offset > 0),
@@ -6159,7 +6218,10 @@ mod tests {
             result.answer.provisional,
             "an answer read from a running capture says so"
         );
-        assert!(result.answer.through_offset_ns.is_some_and(|offset| offset > 0));
+        assert!(result
+            .answer
+            .through_offset_ns
+            .is_some_and(|offset| offset > 0));
         assert_eq!(result.receipt.result, OperationResult::Committed);
         assert!(
             store

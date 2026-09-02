@@ -1251,6 +1251,13 @@ pub struct AppSettings {
     /// with that ID is actually running.
     #[serde(default = "default_detection_meeting_apps")]
     pub detection_meeting_apps: Vec<String>,
+    /// Bundle IDs the operator has granted standing consent to record without
+    /// a prompt. Empty on install and never seeded: this is the one setting
+    /// that turns a notice into a recording, so it only ever holds what
+    /// somebody switched on. An entry that is not also in
+    /// `detection_meeting_apps` grants nothing, because nothing detects it.
+    #[serde(default)]
+    pub detection_auto_record_apps: Vec<String>,
     /// Whether the evening digest raises one native notification on days with
     /// activity. Off on install: an unasked-for notification is the one thing a
     /// quiet app must never do.
@@ -1318,8 +1325,16 @@ fn default_detection_silence_stop_minutes() -> u32 {
     15
 }
 
+/// What a store that predates the field is read with: the meeting apps, and
+/// not the two call apps. The 1.1.0 note tells an upgrader that FaceTime and
+/// Phone detection stays off until they tick it, and a serde default is the
+/// only path that could switch it on for them. A fresh install seeds the full
+/// list in `get_default_settings`.
 fn default_detection_meeting_apps() -> Vec<String> {
     crate::meeting::detection::apps::default_meeting_app_bundle_ids()
+        .into_iter()
+        .filter(|bundle_id| !crate::meeting::detection::apps::is_call_app_bundle_id(bundle_id))
+        .collect()
 }
 
 /// 18:00 local, the default digest hour.
@@ -1873,7 +1888,8 @@ pub fn get_default_settings() -> AppSettings {
         detection_any_mic_activity: false,
         detection_auto_start_on_open_pane: false,
         detection_silence_stop_minutes: default_detection_silence_stop_minutes(),
-        detection_meeting_apps: default_detection_meeting_apps(),
+        detection_meeting_apps: crate::meeting::detection::apps::default_meeting_app_bundle_ids(),
+        detection_auto_record_apps: Vec::new(),
         meeting_digest_enabled: false,
         meeting_digest_minute_of_day: default_meeting_digest_minute_of_day(),
         meeting_remote_intelligence_enabled: false,
@@ -2756,6 +2772,28 @@ mod tests {
         assert!(settings.filler_word_removal_enabled);
         // Bindings default to empty; the load path merges the real defaults in.
         assert!(settings.bindings.is_empty());
+    }
+
+    /// The 1.1.0 note promises an upgrader that FaceTime and Phone detection
+    /// stays off until they tick it. A store written before the field existed
+    /// is the upgrader's store, and the serde default is what it reads as.
+    #[test]
+    fn a_store_without_meeting_apps_leaves_the_call_apps_unticked() {
+        let settings: AppSettings = serde_json::from_value(serde_json::json!({}))
+            .expect("a store without the field deserializes");
+
+        let apps = settings.detection_meeting_apps;
+        assert!(apps.iter().any(|app| app == "us.zoom.xos"));
+        assert!(!apps.iter().any(|app| app == "com.apple.facetime"));
+        assert!(!apps.iter().any(|app| app == "com.apple.mobilephone"));
+    }
+
+    #[test]
+    fn a_fresh_install_ticks_the_call_apps() {
+        let apps = get_default_settings().detection_meeting_apps;
+
+        assert!(apps.iter().any(|app| app == "com.apple.facetime"));
+        assert!(apps.iter().any(|app| app == "com.apple.mobilephone"));
     }
 
     #[test]

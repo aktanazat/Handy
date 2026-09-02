@@ -17,7 +17,7 @@
 //! for the browser evidence in case 7 rather than building a second window-title
 //! reader.
 
-use super::machine::{AppSignal, BrowserTitleEvidence};
+use super::machine::{AppSignal, BrowserTitleEvidence, CallSignal};
 use crate::meeting::suggestions::{MeetingProvider, MeetingSuggestion};
 
 /// The brief's §5.2 table. Community-sourced, so it seeds a settings-editable
@@ -35,7 +35,33 @@ pub const DEFAULT_MEETING_APP_BUNDLE_IDS: &[&str] = &[
     "com.tinyspeck.slackmacgap",
     // Cisco Webex. Other Webex components ship under separate IDs.
     "com.webex.meetingmanager",
+    // FaceTime. A call app: see `CALL_APP_BUNDLE_IDS`.
+    "com.apple.facetime",
+    // Phone, which is where an iPhone call relayed to the Mac lands on
+    // macOS 26. Also a call app.
+    "com.apple.mobilephone",
 ];
+
+/// The subset of the allowlist whose meetings are calls rather than scheduled
+/// meetings, and which therefore read a second audio signal.
+///
+/// Three things separate these from Zoom and Teams, and all three follow from
+/// what they are:
+///
+/// * **No calendar event ever names them.** Nobody schedules a FaceTime call
+///   into a shared invitation, so the calendar path has nothing to contribute
+///   and the call path runs ahead of it.
+/// * **Their microphone is usually Bluetooth.** AirPods-class headsets are the
+///   default answer for a call, and they under-report through
+///   `kAudioDevicePropertyDeviceIsRunningSomewhere` — the known false negative
+///   named in `input_device`'s module doc. A call app that only had the input
+///   signal would be detected on the built-in microphone and nowhere else.
+/// * **They play the other side out loud.** That gives a second, independent
+///   signal on the default output device, which `machine::call_is_live` reads.
+///
+/// Both identifiers were read off `/System/Applications` on macOS 26; the
+/// registry stores them lowercased, as `WorkspaceApps` reports them.
+pub const CALL_APP_BUNDLE_IDS: &[&str] = &["com.apple.facetime", "com.apple.mobilephone"];
 
 /// Browsers whose frontmost tab may be a meeting. Google Meet has no native
 /// macOS app at all, so the browser path is the only way to see it.
@@ -100,17 +126,16 @@ pub fn normalize_allowlist(entries: &[String]) -> Vec<String> {
 /// The runtime validation the brief asks for: an allowlist entry only becomes a
 /// signal when a process with that bundle ID is actually running. A stale or
 /// renamed ID contributes nothing instead of poisoning the decision.
+///
+/// Call apps are excluded here and reported by `call_signal` instead. They are
+/// on the same allowlist but answer a different question, and letting a
+/// backgrounded FaceTime win `max_by_key` over a running Zoom would trade a
+/// meeting Sona can detect for a call that is not happening.
 pub fn app_signal(running: &[RunningApp], allowlist: &[String]) -> AppSignal {
-    let matches_allowlist = |app: &RunningApp| {
-        allowlist
-            .iter()
-            .any(|bundle_id| bundle_id == &app.bundle_id)
-    };
-
     // Frontmost wins so the prompt names the app the operator is looking at.
     let known = running
         .iter()
-        .filter(|app| matches_allowlist(app))
+        .filter(|app| !is_call_app_bundle_id(&app.bundle_id) && in_allowlist(allowlist, app))
         .max_by_key(|app| app.frontmost);
     if let Some(app) = known {
         return AppSignal::Known {
@@ -145,6 +170,53 @@ pub fn is_app_running(running: &[RunningApp], bundle_id: &str) -> bool {
     running
         .iter()
         .any(|app| app.bundle_id.eq_ignore_ascii_case(bundle_id))
+}
+
+fn in_allowlist(allowlist: &[String], app: &RunningApp) -> bool {
+    allowlist
+        .iter()
+        .any(|bundle_id| bundle_id == &app.bundle_id)
+}
+
+/// The call dimension: the allowlisted call application to attribute a call to,
+/// preferring the frontmost one so the card names the app the operator is
+/// looking at. Whether it is *in* a call is `machine::call_is_live`'s decision,
+/// not this layer's — this only reports what is running.
+pub fn call_signal(running: &[RunningApp], allowlist: &[String]) -> CallSignal {
+    let call = running
+        .iter()
+        .filter(|app| is_call_app_bundle_id(&app.bundle_id) && in_allowlist(allowlist, app))
+        .max_by_key(|app| app.frontmost);
+    match call {
+        Some(app) => CallSignal::Running {
+            bundle_id: app.bundle_id.clone(),
+            display_name: app.display_name.clone(),
+            frontmost: app.frontmost,
+        },
+        None => CallSignal::Absent,
+    }
+}
+
+pub fn is_call_app_bundle_id(bundle_id: &str) -> bool {
+    CALL_APP_BUNDLE_IDS
+        .iter()
+        .any(|candidate| bundle_id.eq_ignore_ascii_case(candidate))
+}
+
+/// Whether the operator's auto-record list names `bundle_id`. The one owner of
+/// the case rule: `write_settings` normalizes the list on the way in, and this
+/// normalizes again on the way out so a hand-edited store cannot differ.
+pub fn grants_auto_record(settings: &crate::settings::AppSettings, bundle_id: &str) -> bool {
+    normalize_allowlist(&settings.detection_auto_record_apps)
+        .iter()
+        .any(|granted| granted.eq_ignore_ascii_case(bundle_id))
+}
+
+/// Takes `bundle_id` off the auto-record list, under the same case rule.
+pub fn revoke_auto_record(settings: &mut crate::settings::AppSettings, bundle_id: &str) {
+    settings
+        .detection_auto_record_apps
+        .retain(|granted| !granted.trim().eq_ignore_ascii_case(bundle_id));
 }
 
 /// Browser-tab evidence for §5.3 case 7, read off the live suggestion offers the
@@ -415,6 +487,89 @@ mod tests {
         assert_eq!(
             browser_title_evidence(&[app_only], "com.google.chrome"),
             BrowserTitleEvidence::NoMatch
+        );
+    }
+
+    #[test]
+    fn the_call_apps_ship_in_the_default_allowlist() {
+        let defaults = default_meeting_app_bundle_ids();
+
+        for expected in CALL_APP_BUNDLE_IDS {
+            assert!(
+                defaults.iter().any(|bundle_id| bundle_id == expected),
+                "{expected} must seed the allowlist, or the call path can never run"
+            );
+            assert_eq!(
+                *expected,
+                expected.to_ascii_lowercase(),
+                "the registry stores what WorkspaceApps reports, which is lowercased"
+            );
+        }
+    }
+
+    #[test]
+    fn a_call_app_reports_on_the_call_dimension_and_not_the_app_one() {
+        let running = [app("com.apple.facetime", "FaceTime", true)];
+        let allowlist = default_meeting_app_bundle_ids();
+
+        assert_eq!(app_signal(&running, &allowlist), AppSignal::Absent);
+        assert_eq!(
+            call_signal(&running, &allowlist),
+            CallSignal::Running {
+                bundle_id: "com.apple.facetime".to_string(),
+                display_name: "FaceTime".to_string(),
+                frontmost: true,
+            }
+        );
+    }
+
+    /* A backgrounded FaceTime used to be able to win `max_by_key` over a
+     * running Zoom once it joined the shipped allowlist, which would have
+     * silently traded a detectable meeting for a call that is not happening. */
+    #[test]
+    fn an_open_call_app_does_not_shadow_a_running_meeting_app() {
+        let running = [
+            app("com.apple.facetime", "FaceTime", false),
+            app("us.zoom.xos", "Zoom", false),
+        ];
+
+        assert_eq!(
+            app_signal(&running, &default_meeting_app_bundle_ids()),
+            AppSignal::Known {
+                bundle_id: "us.zoom.xos".to_string(),
+                display_name: "Zoom".to_string(),
+                frontmost: false,
+            }
+        );
+    }
+
+    #[test]
+    fn a_call_app_removed_from_the_allowlist_stops_being_a_call_signal() {
+        let running = [app("com.apple.mobilephone", "Phone", true)];
+
+        assert_eq!(
+            call_signal(&running, &["us.zoom.xos".to_string()]),
+            CallSignal::Absent
+        );
+    }
+
+    #[test]
+    fn the_frontmost_call_app_names_the_card() {
+        let signal = call_signal(
+            &[
+                app("com.apple.facetime", "FaceTime", false),
+                app("com.apple.mobilephone", "Phone", true),
+            ],
+            &default_meeting_app_bundle_ids(),
+        );
+
+        assert_eq!(
+            signal,
+            CallSignal::Running {
+                bundle_id: "com.apple.mobilephone".to_string(),
+                display_name: "Phone".to_string(),
+                frontmost: true,
+            }
         );
     }
 }

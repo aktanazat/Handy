@@ -62,7 +62,7 @@ use calendar::{CalendarAccess, CalendarSource};
 use input_device::{InputDeviceLevel, InputDeviceObserver, InputDeviceState, SelfInputDeviceLease};
 use machine::{
     evaluate, evaluate_stop, CalendarEventSummary, CalendarSignal, DetectionInputs,
-    DetectionOutcome, DetectionPolicy, MicSignal, PromptKind, RecentCapture,
+    DetectionOutcome, DetectionPolicy, MicSignal, OutputSignal, PromptKind, RecentCapture,
     ScreenRecordingPermission, StopInputs, StopPolicy, StopTrigger, SuppressReason,
 };
 use notify::{
@@ -159,11 +159,23 @@ pub struct MeetingWrapCard {
     pub waiting_on_names: Vec<String>,
 }
 
+/// Shown while a call Sona started by itself is recording, so an auto-start is
+/// never something the operator has to discover afterwards.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MeetingRecordingCard {
+    pub session_id: MeetingSessionId,
+    pub bundle_id: String,
+    pub app_name: String,
+    pub started_at_utc_ms: i64,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 #[serde(tag = "kind", content = "card", rename_all = "snake_case")]
 pub enum MeetingRitual {
     Prep(MeetingPrepCard),
     Wrap(MeetingWrapCard),
+    Recording(MeetingRecordingCard),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
@@ -175,6 +187,11 @@ pub enum MeetingRitualAction {
     WrapOpenNotes,
     WrapFollowUpCopied,
     WrapDone,
+    RecordingStop,
+    /// Stop, and take this application off the auto-record list. One gesture,
+    /// because an operator who wants the recording to end also wants the reason
+    /// it started to end.
+    RecordingForgetApp,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
@@ -230,6 +247,9 @@ pub struct DetectionSettings {
     pub auto_start_on_open_pane: bool,
     pub silence_stop_minutes: u32,
     pub meeting_apps: Vec<String>,
+    /// Bundle IDs that record without a prompt. A subset of `meeting_apps` in
+    /// practice: an entry detection does not watch grants nothing.
+    pub auto_record_apps: Vec<String>,
 }
 
 impl DetectionSettings {
@@ -241,6 +261,7 @@ impl DetectionSettings {
             auto_start_on_open_pane: settings.detection_auto_start_on_open_pane,
             silence_stop_minutes: settings.detection_silence_stop_minutes,
             meeting_apps: settings.detection_meeting_apps.clone(),
+            auto_record_apps: settings.detection_auto_record_apps.clone(),
         }
     }
 }
@@ -285,6 +306,10 @@ pub enum DetectionPromptRetractionReason {
     TriggerAppQuit,
     EventEnded,
     MicEpisodeEnded,
+    /// A call prompt's call is no longer live. Its episode is the call, not
+    /// the microphone: the call it offered to record may never have raised
+    /// the input device at all.
+    CallEnded,
     Resolved,
 }
 
@@ -336,7 +361,34 @@ struct TrackedCapture {
     session_id: MeetingSessionId,
     trigger_bundle_id: Option<String>,
     event_end_utc_ms: Option<i64>,
+    /// What the default output device has done since a call app's capture
+    /// started. `None` for every other capture, whose stop rules do not read
+    /// the output at all.
+    call_output: Option<machine::CallOutputWatch>,
 }
+
+impl TrackedCapture {
+    fn new(
+        session_id: MeetingSessionId,
+        trigger_bundle_id: Option<String>,
+        event_end_utc_ms: Option<i64>,
+    ) -> Self {
+        let call_output = trigger_bundle_id
+            .as_deref()
+            .is_some_and(apps::is_call_app_bundle_id)
+            .then(machine::CallOutputWatch::default);
+        Self {
+            session_id,
+            trigger_bundle_id,
+            event_end_utc_ms,
+            call_output,
+        }
+    }
+}
+
+/// Above every prompt. The recording card is raised while a capture holds the
+/// panel, and nothing raised during that capture may take the panel from it.
+const RECORDING_CARD_PRIORITY: u8 = 14;
 
 #[derive(Default)]
 struct RuntimeState {
@@ -351,12 +403,101 @@ struct RuntimeState {
     /// Cleared when the device goes idle, so a second meeting in the same app
     /// prompts again.
     prompted_apps: HashSet<String>,
+    /// Bundle IDs the call path has already acted on for the call in progress.
+    /// Cleared when no call is live, which is a different boundary from
+    /// `prompted_apps`: a call detected on the output signal alone never raises
+    /// the input device, so the microphone episode that clears that set never
+    /// begins and an auto-start would otherwise re-fire every tick.
+    acted_calls: HashSet<String>,
     /// Last emitted status, so the event fires on change rather than on a timer.
     last_status: Option<DetectionStatus>,
     tracked: Option<TrackedCapture>,
     recent: Option<RecentCapture>,
     /// Set when a tick observes a sleep boundary.
     slept: bool,
+}
+
+impl RuntimeState {
+    /// Claims the call in progress for `bundle_id`, reporting whether this is
+    /// the first claim. False means a later tick inside the same call, which
+    /// must not act again.
+    fn claim_call(&mut self, bundle_id: &str) -> bool {
+        self.acted_calls.insert(bundle_id.to_string())
+    }
+
+    /// Releases every call claim. The tick calls this whenever no call is live,
+    /// which is what re-arms the path for the next one.
+    fn release_calls(&mut self) {
+        self.acted_calls.clear();
+    }
+
+    /// Folds this tick's output level into the tracked call capture and hands
+    /// back the watch for the stop rule to read. `None` when `session_id` is
+    /// not the tracked capture or that capture is not a call's.
+    fn observe_call_output(
+        &mut self,
+        session_id: MeetingSessionId,
+        output: OutputSignal,
+        now_utc_ms: i64,
+    ) -> Option<machine::CallOutputWatch> {
+        let watch = self
+            .tracked
+            .as_mut()
+            .filter(|tracked| tracked.session_id == session_id)?
+            .call_output
+            .as_mut()?;
+        watch.observe(output, now_utc_ms);
+        Some(*watch)
+    }
+
+    /// Raises the recording card for the tracked capture into the panel slot.
+    /// `None` when the capture the card names is no longer the tracked one —
+    /// a start that lost a race against its own stop, which must show nothing.
+    ///
+    /// Raised as panel-eligible although a capture is running: the capture
+    /// owns the panel, and this card is the capture's. Every prompt in the
+    /// slot was made ineligible by `begin_capture`, so the card never displaces
+    /// one; the priority only says that nothing may displace the card.
+    fn raise_recording_card(
+        &mut self,
+        ritual_id: String,
+        card: MeetingRecordingCard,
+    ) -> Option<Vec<PanelCommand<PendingPanel>>> {
+        self.tracked
+            .as_ref()
+            .filter(|tracked| tracked.session_id == card.session_id)?;
+        let pending = PendingPanel::Ritual(PendingRitual {
+            notification_title: format!("{} call — recording", card.app_name),
+            ritual: MeetingRitual::Recording(card),
+            idle_generation: 0,
+        });
+        Some(
+            self.panel
+                .raise(ritual_id, pending, RECORDING_CARD_PRIORITY, true),
+        )
+    }
+
+    /// The pending recording card that names `session_id`, by ritual id.
+    fn recording_card_id(&self, session_id: MeetingSessionId) -> Option<String> {
+        self.panel.iter().find_map(|(ritual_id, pending)| match pending {
+            PendingPanel::Ritual(PendingRitual {
+                ritual: MeetingRitual::Recording(card),
+                ..
+            }) if card.session_id == session_id => Some(ritual_id.to_string()),
+            _ => None,
+        })
+    }
+
+    /// Stops tracking `session_id` and hands back what was tracked, or `None`
+    /// when that was not the tracked capture. A stop for some other session is
+    /// how a stale receipt arrives, and it must change nothing.
+    fn end_tracked(&mut self, session_id: MeetingSessionId) -> Option<TrackedCapture> {
+        let tracked = self
+            .tracked
+            .take_if(|tracked| tracked.session_id == session_id)?;
+        self.slept = false;
+        Some(tracked)
+    }
 }
 
 /// Wakes the tick thread early. The ad-hoc path must fire on the input-device
@@ -656,6 +797,7 @@ impl DetectionRuntime {
         let settings = crate::settings::get_settings(&self.app);
         let policy = policy_from_settings(&settings);
         let mic = self.input.mic_signal();
+        let output = self.input.output_signal();
         let sona_holds = self.self_lease.is_held();
 
         // The calendar query only runs when the sub-toggle is on, so an operator
@@ -693,6 +835,19 @@ impl DetectionRuntime {
             })
             .map(|app| app.bundle_id.clone())
             .collect::<Vec<_>>();
+        let app_signal = apps::app_signal(&running, &allowlist);
+        let call = apps::call_signal(&running, &allowlist);
+        // Whether a call is happening, decided once per tick: it decides
+        // whether the tick is inert, and the decision table asks the same
+        // function from the same inputs. The once-per-call claim and a pending
+        // call prompt live inside the call's *evidence* instead, which does
+        // not need the app in front: the operator switching away mid-call must
+        // not re-arm the claim or retract the prompt.
+        let call_live = machine::call_is_live(&call, &app_signal, mic, output);
+        let call_evidence = machine::call_evidence(&call, mic, output);
+        if !call_evidence {
+            self.lock().release_calls();
+        }
 
         // Nothing to decide: skip the store reads entirely — the capture
         // snapshot, the suggestion list, and the decision table. This is the
@@ -708,9 +863,9 @@ impl DetectionRuntime {
         // precisely on the idle path — as is
         // `input_device_reporting_suspect`, which is derived from it and was
         // therefore never able to fire here either.
-        self.retract_stale_prompts(now_utc_ms, &running, mic);
+        self.retract_stale_prompts(now_utc_ms, &running, mic, call_evidence);
 
-        let inert = mic == MicSignal::Idle && calendar == CalendarSignal::Absent;
+        let inert = mic == MicSignal::Idle && calendar == CalendarSignal::Absent && !call_live;
         if inert && tracked.is_none() {
             self.publish_status(&settings, mic, sona_holds, None, None, running_allowlisted);
             return;
@@ -732,11 +887,11 @@ impl DetectionRuntime {
                 active.as_ref(),
                 &running,
                 mic,
+                output,
                 sona_holds,
             );
         }
 
-        let app_signal = apps::app_signal(&running, &allowlist);
         let browser_title = match &app_signal {
             machine::AppSignal::Browser { bundle_id, .. } => apps::browser_title_evidence(
                 &self
@@ -771,15 +926,24 @@ impl DetectionRuntime {
             }
             _ => false,
         };
+        let standing_app_consent = match &call {
+            machine::CallSignal::Running { bundle_id, .. } => {
+                apps::grants_auto_record(&settings, bundle_id)
+            }
+            machine::CallSignal::Absent => false,
+        };
 
         let inputs = DetectionInputs {
             now_utc_ms,
             calendar,
             app: app_signal,
+            call,
             mic,
+            output,
             screen_recording: self.screen_recording(),
             browser_title,
             standing_series_consent,
+            standing_app_consent,
             recent_capture: self.lock().recent.clone(),
             self_holds_input_device: sona_holds,
             capture_active: active.is_some(),
@@ -879,6 +1043,15 @@ impl DetectionRuntime {
                 }
                 (None, None)
             }
+            DetectionOutcome::AutoStartCall {
+                bundle_id,
+                app_name,
+            } => {
+                if self.claim_call(&bundle_id) {
+                    self.start_call_recording(bundle_id, app_name);
+                }
+                (None, None)
+            }
             DetectionOutcome::Prompt(prompt) => {
                 if self.claim_prompt(&prompt) {
                     self.raise(prompt, event_end_utc_ms, calendar_event);
@@ -895,11 +1068,16 @@ impl DetectionRuntime {
         }
     }
 
-    /// One prompt per calendar event, and one per app per input-device episode.
-    /// A 15s tick without this becomes a notification storm.
+    /// One prompt per calendar event, one per app per input-device episode, and
+    /// one per call. A 15s tick without this becomes a notification storm.
+    ///
+    /// A call prompt claims the call boundary rather than the microphone
+    /// episode: a call detected on the output signal alone never raises the
+    /// input device, so the episode that clears `prompted_apps` never starts.
     fn claim_prompt(&self, prompt: &PromptKind) -> bool {
         match prompt {
             PromptKind::CalendarEvent { event_key, .. } => self.claim_event(event_key),
+            PromptKind::AppCall { bundle_id, .. } => self.claim_call(bundle_id),
             PromptKind::AppMeeting { bundle_id, .. }
             | PromptKind::AppHuddle { bundle_id, .. }
             | PromptKind::BrowserCall { bundle_id, .. } => {
@@ -913,6 +1091,53 @@ impl DetectionRuntime {
 
     fn claim_event(&self, event_key: &str) -> bool {
         self.lock().prompted_events.insert(event_key.to_string())
+    }
+
+    /// One decision per call, not per tick. Released by the tick that observes
+    /// the call is no longer live.
+    fn claim_call(&self, bundle_id: &str) -> bool {
+        self.lock().claim_call(bundle_id)
+    }
+
+    /// The standing-app half of the auto-start path. The grant is re-read from
+    /// settings here, on the async side of the claim, because the tick that
+    /// decided may be up to a tick old by the time this runs.
+    fn start_call_recording(self: &Arc<Self>, bundle_id: String, app_name: String) {
+        let runtime = Arc::clone(self);
+        tauri::async_runtime::spawn(async move {
+            let granted = apps::grants_auto_record(
+                &crate::settings::get_settings(&runtime.app),
+                &bundle_id,
+            );
+            if !granted {
+                return;
+            }
+            let context = crate::meeting::session::MeetingDetectionStartContext {
+                prompt_id: format!("auto-call:{bundle_id}"),
+                title: machine::call_meeting_title(&app_name, chrono::Local::now()),
+                trigger_bundle_id: Some(bundle_id.clone()),
+                event_end_utc_ms: None,
+                calendar_event: None,
+            };
+            match runtime
+                .meetings
+                .start_from_standing_app(&context, bundle_id.clone())
+                .await
+            {
+                Ok(result) if result.snapshot.phase == MeetingPhase::CapturingRecording => {
+                    runtime.track_started(&context, &result.snapshot);
+                    runtime.present_recording_card(&result.snapshot, bundle_id, app_name);
+                    runtime
+                        .meetings
+                        .record_auto_record_started(&context.prompt_id, result.snapshot.session_id)
+                        .await;
+                }
+                Ok(_) => {}
+                Err(error) => {
+                    log::warn!("Standing-app call recording could not start: {error:?}");
+                }
+            }
+        });
     }
 
     fn schedule_calendar_briefing(self: &Arc<Self>, event: CalendarEventSummary, now_utc_ms: i64) {
@@ -1196,6 +1421,7 @@ impl DetectionRuntime {
         now_utc_ms: i64,
         running: &[RunningApp],
         mic: MicSignal,
+        call_evidence: bool,
     ) {
         let retract = self
             .lock()
@@ -1203,6 +1429,11 @@ impl DetectionRuntime {
             .iter()
             .filter_map(|(prompt_id, pending)| match pending {
                 PendingPanel::Prompt(pending) => {
+                    // A call prompt's episode is the call, not the microphone:
+                    // the call it offers to record may never raise the input
+                    // device at all, so the microphone rule below would retract
+                    // it on the tick that raised it.
+                    let call_prompt = matches!(pending.prompt, PromptKind::AppCall { .. });
                     let reason = if pending
                         .event_end_utc_ms
                         .is_some_and(|end| now_utc_ms >= end)
@@ -1214,6 +1445,8 @@ impl DetectionRuntime {
                         .is_some_and(|bundle_id| !apps::is_app_running(running, bundle_id))
                     {
                         Some(DetectionPromptRetractionReason::TriggerAppQuit)
+                    } else if call_prompt {
+                        (!call_evidence).then_some(DetectionPromptRetractionReason::CallEnded)
                     } else if mic == MicSignal::Idle
                         && !matches!(pending.prompt, PromptKind::CalendarEvent { .. })
                     {
@@ -1424,7 +1657,7 @@ impl DetectionRuntime {
         let pending = self.finish_prompt(prompt_id, DetectionPromptRetractionReason::Resolved)?;
         Some(crate::meeting::session::MeetingDetectionStartContext {
             prompt_id: prompt_id.to_string(),
-            title: pending.prompt.proposed_meeting_title(),
+            title: pending.prompt.proposed_meeting_title(chrono::Local::now()),
             trigger_bundle_id: pending.prompt.bundle_id().map(str::to_string),
             event_end_utc_ms: pending.event_end_utc_ms,
             calendar_event: pending.calendar_event,
@@ -1603,7 +1836,65 @@ impl DetectionRuntime {
                 self.finish_ritual(ritual_id);
                 true
             }
+            (
+                MeetingRitual::Recording(card),
+                MeetingRitualAction::RecordingStop | MeetingRitualAction::RecordingForgetApp,
+            ) => self.respond_recording(card.clone(), action).await,
             _ => false,
+        }
+    }
+
+    /// Both actions on the recording card end the capture; the second also
+    /// takes back the standing grant that started it. Revoking first means an
+    /// operator whose stop fails still does not get auto-recorded again.
+    async fn respond_recording(
+        self: &Arc<Self>,
+        card: MeetingRecordingCard,
+        action: MeetingRitualAction,
+    ) -> bool {
+        match action {
+            MeetingRitualAction::RecordingStop => {}
+            MeetingRitualAction::RecordingForgetApp => {
+                crate::settings::update_settings(&self.app, |settings| {
+                    apps::revoke_auto_record(settings, &card.bundle_id);
+                });
+                self.wakeup.wake();
+            }
+            _ => return false,
+        }
+        // The card names one capture. Whatever is active now may be a later
+        // one the operator started from the tray after this card's capture
+        // ended by a route that never reached `track_ended`; the click must
+        // not stop that.
+        let Some(active) = self
+            .active_capture()
+            .await
+            .filter(|active| active.session_id == card.session_id)
+        else {
+            // Already stopped by some other route; the card has nothing left to
+            // end, and `track_ended` retracts it.
+            self.track_ended(card.session_id);
+            return true;
+        };
+        let stopped = self
+            .meetings
+            .stop(crate::meeting::session::MeetingMutationRequest {
+                operation_id: MeetingOperationId::new(),
+                session_id: active.session_id,
+                expected_revision: active.revision,
+            })
+            .await;
+        match stopped {
+            Ok(_) => {
+                // No auto-stop event: a click on this card is a manual stop,
+                // and `StopTrigger` deliberately has no variant for one.
+                self.track_ended(active.session_id);
+                true
+            }
+            Err(error) => {
+                log::warn!("The recording card could not stop the capture: {error:?}");
+                false
+            }
         }
     }
 
@@ -1649,16 +1940,20 @@ impl DetectionRuntime {
     ) {
         let trigger_bundle_id = context.trigger_bundle_id.clone();
         let mut state = self.lock();
-        state.tracked = Some(TrackedCapture {
-            session_id: snapshot.session_id,
-            trigger_bundle_id: trigger_bundle_id.clone(),
-            event_end_utc_ms: context.event_end_utc_ms,
-        });
+        state.tracked = Some(TrackedCapture::new(
+            snapshot.session_id,
+            trigger_bundle_id.clone(),
+            context.event_end_utc_ms,
+        ));
         state.recent = Some(RecentCapture {
             session_id: snapshot.session_id.uuid().to_string(),
             trigger_bundle_id,
             started_utc_ms: utc_now_ms(),
         });
+        // A capture that ended by a route `track_ended` never heard about is
+        // still tracked here, and its recording card is still in the slot.
+        // `begin_capture` discards every ritual, that card included, and the
+        // retraction below is what takes it off the panel.
         let capture = state.panel.begin_capture(PendingPanel::is_prompt);
         for (ritual_id, pending) in capture.discarded {
             if matches!(pending, PendingPanel::Ritual(_)) {
@@ -1672,19 +1967,47 @@ impl DetectionRuntime {
         self.apply_panel_commands(&mut state, capture.commands);
     }
 
+    /// Raises the auto-record card into the panel `begin_capture` just took
+    /// for the capture.
+    ///
+    /// Through `PanelSlot` like every other presentation, so the card gets the
+    /// same delivery pipeline: `show_panel`'s result is checked, an
+    /// unacknowledged panel times out into a native notification, and a panel
+    /// that never showed falls back at once. A recording nobody asked for out
+    /// loud is the one presentation that must never go undelivered.
+    /// `track_ended` finishes it; a capture that replaces this one discards
+    /// it through `begin_capture`.
+    fn present_recording_card(
+        self: &Arc<Self>,
+        snapshot: &MeetingSessionSnapshot,
+        bundle_id: String,
+        app_name: String,
+    ) {
+        let card = MeetingRecordingCard {
+            session_id: snapshot.session_id,
+            bundle_id,
+            app_name,
+            started_at_utc_ms: snapshot.started_at_utc_ms.unwrap_or_else(utc_now_ms),
+        };
+        let mut state = self.lock();
+        let Some(commands) = state.raise_recording_card(Uuid::new_v4().to_string(), card) else {
+            return;
+        };
+        self.apply_panel_commands(&mut state, commands);
+    }
+
     pub fn track_ended(self: &Arc<Self>, session_id: MeetingSessionId) {
         let mut state = self.lock();
-        if state
-            .tracked
-            .as_ref()
-            .is_none_or(|tracked| tracked.session_id != session_id)
-        {
+        if state.end_tracked(session_id).is_none() {
             return;
         }
-        state.tracked = None;
-        state.slept = false;
         let commands = state.panel.end_capture();
         self.apply_panel_commands(&mut state, commands);
+        let card = state.recording_card_id(session_id);
+        drop(state);
+        if let Some(ritual_id) = card {
+            self.finish_ritual(&ritual_id);
+        }
     }
 
     /// The one place detection touches capture, and it touches only the entry
@@ -1702,7 +2025,7 @@ impl DetectionRuntime {
         now_utc_ms: i64,
         calendar_event: Option<CalendarEventSummary>,
     ) {
-        let title = prompt.proposed_meeting_title();
+        let title = prompt.proposed_meeting_title(chrono::Local::now());
         let trigger_bundle_id = prompt.bundle_id().map(str::to_string);
         // Re-read rather than trusting the tick's snapshot: an operator can take
         // a while to answer a notification, and opening a meeting for an app that
@@ -1750,11 +2073,11 @@ impl DetectionRuntime {
         }
         {
             let mut state = self.lock();
-            state.tracked = Some(TrackedCapture {
-                session_id: snapshot.session_id,
-                trigger_bundle_id: trigger_bundle_id.clone(),
+            state.tracked = Some(TrackedCapture::new(
+                snapshot.session_id,
+                trigger_bundle_id.clone(),
                 event_end_utc_ms,
-            });
+            ));
             state.recent = Some(RecentCapture {
                 session_id: snapshot.session_id.uuid().to_string(),
                 trigger_bundle_id,
@@ -1771,6 +2094,7 @@ impl DetectionRuntime {
 
     /// §5.5, for the capture detection opened. Manual stop stays primary: this
     /// only fires on the triggers the platform actually reports.
+    #[allow(clippy::too_many_arguments)]
     fn evaluate_running_capture(
         self: &Arc<Self>,
         settings: &AppSettings,
@@ -1778,6 +2102,7 @@ impl DetectionRuntime {
         active: Option<&MeetingSessionSnapshot>,
         running: &[RunningApp],
         mic: MicSignal,
+        output: OutputSignal,
         sona_holds: bool,
     ) {
         let Some(active) = active else {
@@ -1790,9 +2115,14 @@ impl DetectionRuntime {
             self.track_ended(tracked.session_id);
             return;
         }
-        let slept = self.lock().slept;
+        let now_utc_ms = utc_now_ms();
+        let (slept, call_output) = {
+            let mut state = self.lock();
+            let call_output = state.observe_call_output(tracked.session_id, output, now_utc_ms);
+            (state.slept, call_output)
+        };
         let inputs = StopInputs {
-            now_utc_ms: utc_now_ms(),
+            now_utc_ms,
             linked_event_end_utc_ms: tracked.event_end_utc_ms,
             // No live voiced-activity clock exists in this codebase; see
             // `machine::StopInputs`. `None` keeps the silence rule inapplicable
@@ -1805,6 +2135,7 @@ impl DetectionRuntime {
                 .as_deref()
                 .is_none_or(|bundle_id| apps::is_app_running(running, bundle_id)),
             slept_since_start: slept,
+            call_output,
         };
         let policy = StopPolicy {
             silence_stop_minutes: settings.detection_silence_stop_minutes,
@@ -1875,8 +2206,16 @@ impl DetectionRuntime {
         // either nobody talking or the Bluetooth false negative; the operator
         // deserves to see which possibilities are live rather than assume
         // detection is broken.
-        let input_device_reporting_suspect =
-            !input_device_active && !running_meeting_apps.is_empty();
+        //
+        // Call apps are excluded because the caveat would be false for them:
+        // the output-device signal is the answer to that exact false negative,
+        // so a quiet microphone beside an open FaceTime is not a blind spot.
+        // Left in, it would fire for anyone who leaves FaceTime running, which
+        // is a permanent warning about a gap that is covered.
+        let input_device_reporting_suspect = !input_device_active
+            && running_meeting_apps
+                .iter()
+                .any(|bundle_id| !apps::is_call_app_bundle_id(bundle_id));
         let status = DetectionStatus {
             event_schema_version: DETECTION_EVENT_SCHEMA_VERSION,
             settings: DetectionSettings::from_app_settings(settings),
@@ -1939,6 +2278,10 @@ impl DetectionRuntime {
             settings.detection_auto_start_on_open_pane = requested.auto_start_on_open_pane;
             settings.detection_silence_stop_minutes = requested.silence_stop_minutes;
             settings.detection_meeting_apps = apps::normalize_allowlist(&requested.meeting_apps);
+            // Normalized against the same rule as the allowlist, so a grant and
+            // the entry it depends on can never differ by case or whitespace.
+            settings.detection_auto_record_apps =
+                apps::normalize_allowlist(&requested.auto_record_apps);
         });
         // Wake the loop so the next status reflects the write immediately rather
         // than at the end of the current interval.
@@ -2008,6 +2351,11 @@ fn prompt_priority(prompt: &PromptKind) -> u8 {
     match prompt {
         PromptKind::CalendarEvent { .. } => 13,
         PromptKind::AppMeeting { .. } | PromptKind::AppHuddle { .. } => 12,
+        // Level with a native meeting app: `PanelSlot::raise` keeps the
+        // incumbent on a tie, so whichever of the two arrived first holds the
+        // panel. The two cannot coexist today anyway, because
+        // `retract_stale_prompts` runs before `evaluate` on every tick.
+        PromptKind::AppCall { .. } => 12,
         PromptKind::BrowserCall { .. } => 11,
         PromptKind::UnknownMicSource => 10,
     }
@@ -2028,6 +2376,7 @@ fn prompt_panel_layout(
         PromptKind::CalendarEvent { event_key, .. } => Some(event_key.as_str()),
         PromptKind::AppMeeting { .. }
         | PromptKind::AppHuddle { .. }
+        | PromptKind::AppCall { .. }
         | PromptKind::BrowserCall { .. }
         | PromptKind::UnknownMicSource => None,
     };
@@ -2052,6 +2401,8 @@ fn ritual_panel_layout(ritual: &MeetingRitual) -> ConsentPanelLayout {
         MeetingRitual::Wrap(card) => ConsentPanelLayout::Wrap {
             loop_delta: card.follow_up_count != 0 || card.waiting_on_count != 0,
         },
+        // The pill this card replaces is the same three rows at the same width.
+        MeetingRitual::Recording(_) => ConsentPanelLayout::Recording,
     }
 }
 
@@ -2059,15 +2410,16 @@ fn ritual_is_stale(ritual: &MeetingRitual, now_utc_ms: i64) -> bool {
     matches!(ritual, MeetingRitual::Prep(card) if now_utc_ms >= card.start_utc_ms)
 }
 
-/// The four §5.5 triggers whose evidence this build actually observes. `Silence`
-/// is absent because nothing publishes live voiced activity; naming the gap here
-/// is what keeps it from looking like a bug.
+/// The five §5.5 triggers whose evidence this build actually observes.
+/// `Silence` is absent because nothing publishes live voiced activity; naming
+/// the gap here is what keeps it from looking like a bug.
 fn available_stop_triggers() -> Vec<StopTrigger> {
     vec![
         StopTrigger::SleepBoundary,
         StopTrigger::EventEnd,
         StopTrigger::TriggerAppExited,
         StopTrigger::InputDeviceIdle,
+        StopTrigger::CallEnded,
     ]
 }
 
@@ -2129,6 +2481,37 @@ impl InputDeviceObserver for WakeOnInputChange {
             self.state.lock().prompted_apps.clear();
         }
         self.wakeup.wake();
+    }
+
+    /// The output device only feeds the call path, which reads it as a level on
+    /// the next tick. Waking is the whole job: a call starting must not wait out
+    /// the remaining 15 seconds.
+    ///
+    /// The default output toggles for every process that opens a stream — an
+    /// alert sound, a paused song — so the wake is gated on what the last tick
+    /// saw: a running call app, or a call capture to stop. That reading is up
+    /// to a tick old, which is the same latency an ungated edge would have
+    /// bought a call app that launched since; `running_apps()` does not belong
+    /// on CoreAudio's thread.
+    fn output_device_changed(&self) {
+        let state = self.state.lock();
+        let call_app_seen = state
+            .last_status
+            .as_ref()
+            .is_some_and(|status| {
+                status
+                    .running_meeting_apps
+                    .iter()
+                    .any(|bundle_id| apps::is_call_app_bundle_id(bundle_id))
+            })
+            || state
+                .tracked
+                .as_ref()
+                .is_some_and(|tracked| tracked.call_output.is_some());
+        drop(state);
+        if call_app_seen {
+            self.wakeup.wake();
+        }
     }
 }
 
@@ -2363,5 +2746,174 @@ mod tests {
             }),
             i64::MAX,
         ));
+    }
+
+    fn tracked_call(session_id: MeetingSessionId) -> TrackedCapture {
+        TrackedCapture::new(session_id, Some("com.apple.facetime".to_string()), None)
+    }
+
+    /* Only a call app's capture watches the output device, and the watch folds
+     * one tick at a time on the capture it belongs to: a tick for some other
+     * session reads nothing, so a stale stop cannot end the wrong capture. */
+    #[test]
+    fn only_a_call_capture_watches_the_output_device() {
+        let session_id = MeetingSessionId::new();
+        let mut state = RuntimeState::default();
+        state.tracked = Some(TrackedCapture::new(
+            session_id,
+            Some("us.zoom.xos".to_string()),
+            None,
+        ));
+
+        assert!(state
+            .observe_call_output(session_id, OutputSignal::Active, 0)
+            .is_none());
+
+        state.tracked = Some(tracked_call(session_id));
+
+        assert!(state
+            .observe_call_output(MeetingSessionId::new(), OutputSignal::Active, 0)
+            .is_none());
+        let watch = state
+            .observe_call_output(session_id, OutputSignal::Active, 0)
+            .expect("a call capture watches its output");
+        assert!(!watch.hung_up(machine::CALL_HANGUP_GRACE_MS));
+        let watch = state
+            .observe_call_output(session_id, OutputSignal::Idle, 1_000)
+            .expect("a call capture watches its output");
+        assert!(watch.hung_up(1_000 + machine::CALL_HANGUP_GRACE_MS));
+    }
+
+    fn recording_card(session_id: MeetingSessionId) -> MeetingRecordingCard {
+        MeetingRecordingCard {
+            session_id,
+            bundle_id: "com.apple.facetime".to_string(),
+            app_name: "FaceTime".to_string(),
+            started_at_utc_ms: 1_700_000_000_000,
+        }
+    }
+
+    /* The 15s tick is what makes this load-bearing: without the claim, a call
+     * on the auto-record list would start a recording on every tick it stays
+     * live. `prompted_apps` cannot carry it, because a call detected on the
+     * output signal alone never opens a microphone episode to end. */
+    #[test]
+    fn a_call_is_acted_on_once_and_re_arms_only_when_it_ends() {
+        let mut state = RuntimeState::default();
+
+        assert!(state.claim_call("com.apple.facetime"));
+        assert!(
+            !state.claim_call("com.apple.facetime"),
+            "a later tick inside the same call must not start a second recording"
+        );
+
+        state.release_calls();
+
+        assert!(
+            state.claim_call("com.apple.facetime"),
+            "the next call is a fresh decision"
+        );
+    }
+
+    /* The card is raised while the capture holds the panel, so it must be
+     * presented rather than sent to fallback, and it must be findable by the
+     * session it names so `track_ended` can finish it. */
+    #[test]
+    fn the_recording_card_is_presented_on_the_panel_and_found_by_its_session() {
+        let session_id = MeetingSessionId::new();
+        let mut state = RuntimeState::default();
+        state.tracked = Some(tracked_call(session_id));
+        state.panel.begin_capture(PendingPanel::is_prompt);
+
+        let commands = state
+            .raise_recording_card("ritual-1".to_string(), recording_card(session_id))
+            .expect("the tracked capture takes its card");
+
+        assert!(
+            matches!(
+                commands.as_slice(),
+                [PanelCommand::PresentPanel { prompt_id, .. }] if prompt_id == "ritual-1"
+            ),
+            "the card must be presented, not sent to fallback: {commands:?}"
+        );
+        assert_eq!(
+            state.recording_card_id(session_id),
+            Some("ritual-1".to_string())
+        );
+        assert_eq!(state.recording_card_id(MeetingSessionId::new()), None);
+    }
+
+    /* A start that lost the race against its own stop: the card would otherwise
+     * be shown for a capture that is already gone, with nothing left to retract
+     * it. */
+    #[test]
+    fn a_card_for_an_untracked_capture_is_refused() {
+        let session_id = MeetingSessionId::new();
+        let mut state = RuntimeState::default();
+
+        assert!(state
+            .raise_recording_card("ritual-1".to_string(), recording_card(session_id))
+            .is_none());
+
+        state.tracked = Some(tracked_call(MeetingSessionId::new()));
+
+        assert!(state
+            .raise_recording_card("ritual-1".to_string(), recording_card(session_id))
+            .is_none());
+        assert_eq!(state.recording_card_id(session_id), None);
+    }
+
+    /* A capture that ended by a route `track_ended` never heard about leaves
+     * its card in the slot; the next capture's `begin_capture` is what takes
+     * it out, as a discarded ritual to retract. */
+    #[test]
+    fn a_replacing_capture_discards_the_previous_card() {
+        let session_id = MeetingSessionId::new();
+        let mut state = RuntimeState::default();
+        state.tracked = Some(tracked_call(session_id));
+        state.panel.begin_capture(PendingPanel::is_prompt);
+        state
+            .raise_recording_card("ritual-1".to_string(), recording_card(session_id))
+            .expect("the tracked capture takes its card");
+
+        state.tracked = Some(tracked_call(MeetingSessionId::new()));
+        let capture = state.panel.begin_capture(PendingPanel::is_prompt);
+
+        assert!(
+            capture
+                .discarded
+                .iter()
+                .any(|(ritual_id, _)| ritual_id == "ritual-1"),
+            "the stale card must be discarded for retraction"
+        );
+        assert_eq!(state.recording_card_id(session_id), None);
+    }
+
+    #[test]
+    fn a_stop_for_some_other_session_changes_nothing() {
+        let session_id = MeetingSessionId::new();
+        let mut state = RuntimeState::default();
+        state.tracked = Some(tracked_call(session_id));
+
+        assert!(state.end_tracked(MeetingSessionId::new()).is_none());
+        assert!(state.tracked.is_some());
+    }
+
+    #[test]
+    fn a_call_capture_can_report_the_trigger_that_ends_it() {
+        assert!(
+            available_stop_triggers().contains(&StopTrigger::CallEnded),
+            "the operator is told a call ending stops the recording, so it must"
+        );
+    }
+
+    #[test]
+    fn the_recording_card_reuses_the_in_session_pill_geometry() {
+        assert_eq!(
+            ritual_panel_layout(&MeetingRitual::Recording(recording_card(
+                MeetingSessionId::from_uuid(Uuid::nil())
+            ))),
+            ConsentPanelLayout::Recording
+        );
     }
 }

@@ -146,7 +146,7 @@ describe("first paint", () => {
     expect(markup).not.toContain('data-slot="settings-row"');
   });
 
-  test("the app picker offers the five known apps and says browsers are automatic", () => {
+  test("the app picker offers the six known apps and says browsers are automatic", () => {
     const markup = paint(<MeetingAppsPicker />);
 
     for (const name of [
@@ -154,15 +154,36 @@ describe("first paint", () => {
       "Microsoft Teams",
       "Webex",
       "FaceTime",
+      "Phone",
       "Slack",
     ]) {
       expect(markup).toContain(name);
     }
     expect(markup).toContain("browser");
+    /* Consent law is the one thing the auto-record switch cannot say for
+     * itself, so the list says it once. */
+    expect(markup).toContain("Record automatically");
+    expect(markup).toContain(
+      "Some places require everyone on a call to agree to recording.",
+    );
     /* The textarea this replaced is gone: no bundle identifier is printed for
      * an app the picker names. */
     expect(markup).not.toContain("us.zoom.xos");
     expect(markup.includes("__MISSING__")).toBe(false);
+  });
+
+  test("the auto-record switch is drawn only for the two apps whose grant is read", () => {
+    const markup = paint(<MeetingAppsPicker />);
+
+    /* The backend reads `detection_auto_record_apps` for a call app alone. A
+     * switch on Zoom's row would round-trip, read back as on, and record
+     * nothing: a silent failure the operator finds as a missing recording. */
+    for (const id of ["facetime", "phone"]) {
+      expect(markup).toContain('id="detection-auto-' + id + '"');
+    }
+    for (const id of ["zoom", "teams", "webex", "slack"]) {
+      expect(markup).not.toContain('id="detection-auto-' + id + '"');
+    }
   });
 
   test("what detection can see costs the page nothing with no state", () => {
@@ -179,6 +200,7 @@ describe("english catalogue", () => {
     "meetings.detection.prompt.app",
     "meetings.detection.prompt.huddle",
     "meetings.detection.prompt.browser",
+    "meetings.detection.prompt.call",
     "meetings.detection.prompt.unknown",
     "meetings.detection.prompt.calendarUntitled",
     "meetings.detection.prompt.generic",
@@ -195,6 +217,8 @@ describe("english catalogue", () => {
     "settingsV2.apps.label",
     "settingsV2.apps.browsersAutomatic",
     "settingsV2.apps.runningNow",
+    "settingsV2.apps.autoRecord",
+    "settingsV2.apps.autoRecordConsent",
     "settingsV2.apps.add",
     "settingsV2.apps.addTitle",
     "settingsV2.apps.addDescription",
@@ -206,11 +230,15 @@ describe("english catalogue", () => {
     "settingsV2.apps.names.teams",
     "settingsV2.apps.names.webex",
     "settingsV2.apps.names.facetime",
+    "settingsV2.apps.names.phone",
     "settingsV2.apps.names.slack",
     "meetings.detection.state.title",
     "meetings.detection.state.calendarDenied",
     "meetings.detection.state.notificationsDenied",
     "meetings.detection.state.bluetoothCaveat",
+    "consentPanel.appCallTitle",
+    "consentPanel.recordingStarted",
+    "consentPanel.forgetApp",
     "meetings.detection.state.noSilenceStop",
     "meetings.detection.why.disabled",
     "meetings.detection.why.sonaHoldsMic",
@@ -330,6 +358,10 @@ describe("prompts the platform would not name", () => {
       { kind: "BrowserCall", bundleId: "com.google.chrome", appName: "" },
       "Meeting detected",
     ],
+    [
+      { kind: "AppCall", bundleId: "com.apple.facetime", appName: "" },
+      "Meeting detected",
+    ],
   ];
 
   for (const [prompt, expected] of UNNAMEABLE) {
@@ -370,6 +402,7 @@ const status = (inputDeviceActive: boolean): DetectionStatus => ({
     autoStartOnOpenPane: false,
     silenceStopMinutes: 0,
     meetingApps: [],
+    autoRecordApps: [],
   },
   calendarAccess: "authorized",
   notificationAccess: "authorized",
@@ -634,6 +667,29 @@ describe("the shared write gate", () => {
 
     expect(sent).toHaveLength(0);
     expect(useDetectionStore.getState().savingSettings).toBe(false);
+  });
+
+  /* The one setting that turns a notice into a recording. It has to survive the
+   * whole-struct write intact, and it has to leave the rest of the struct
+   * alone. */
+  test("a standing grant round-trips without disturbing the allowlist", async () => {
+    const patch = seed();
+
+    await patch({ meetingApps: ["com.apple.facetime"] });
+    await patch({ autoRecordApps: ["com.apple.facetime"] });
+
+    expect(sent[1].meetingApps).toEqual(["com.apple.facetime"]);
+    expect(sent[1].autoRecordApps).toEqual(["com.apple.facetime"]);
+    expect(
+      useDetectionStore.getState().status?.settings.autoRecordApps,
+    ).toEqual(["com.apple.facetime"]);
+
+    await patch({ autoRecordApps: [] });
+
+    expect(sent[2].meetingApps).toEqual(["com.apple.facetime"]);
+    expect(
+      useDetectionStore.getState().status?.settings.autoRecordApps,
+    ).toEqual([]);
   });
 });
 

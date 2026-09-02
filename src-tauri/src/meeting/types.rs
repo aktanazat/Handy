@@ -576,7 +576,24 @@ pub enum MeetingConsentProvenance {
         series_key: String,
         granted_at_utc_ms: i64,
     },
+    /// A standing per-application grant: the operator switched "Record calls
+    /// automatically" on for this bundle ID. Unlike the series grant, which is
+    /// a row this store owns and revalidates inside the start transaction, this
+    /// one lives in application settings — so the receipt records which grant
+    /// was cited and the session layer re-reads the setting immediately before
+    /// it starts. Detection still forges nothing.
+    StandingApp { bundle_id: String },
 }
+
+/// The consent policy every acknowledgement on this machine is stamped with.
+///
+/// Every other consent row echoes the number the frontend sent
+/// (`MEETING_CONSENT_POLICY_VERSION` in MeetingStartGate.tsx), because every
+/// other acknowledgement is a click on a surface the frontend drew. A standing
+/// per-application grant is acknowledged in settings and spent later with no
+/// frontend in the loop, so the backend needs the same number in its own hand.
+/// The two must move together.
+pub const MEETING_CONSENT_POLICY_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct MeetingConsent {

@@ -2397,6 +2397,7 @@
       "prompt": {
         "calendar": "{{title}} starting",
         "app": "{{app}} meeting detected",
+        "call": "{{app}} call detected",
         "huddle": "{{app}} huddle detected",
         "browser": "Call detected in {{app}}",
         "unknown": "Microphone activity detected",
@@ -2433,7 +2434,7 @@
         "calendarDenied": "Calendar access was not granted, so only the microphone path runs.",
         "notificationsDenied": "Notifications are off for Sona, so prompts appear in the app only.",
         "bluetoothCaveat": "A meeting app is open but nothing reports using the microphone. Bluetooth headsets often do not, so start the meeting yourself if one is running.",
-        "noSilenceStop": "Recording stops when the event ends, the app quits, your Mac sleeps, or you stop it yourself. Nothing stops it for silence: that would need live transcription, which only runs after a meeting ends."
+        "noSilenceStop": "Recording stops when the event ends, the call ends, the app quits, your Mac sleeps, or you stop it yourself. Nothing stops it for silence: that would need live transcription, which only runs after a meeting ends."
       },
       "why": {
         "disabled": "Detection is off.",
@@ -3038,6 +3039,8 @@
       "label": "Meeting apps",
       "browsersAutomatic": "A call in a browser tab is noticed without being listed here.",
       "runningNow": "Running now",
+      "autoRecord": "Record automatically",
+      "autoRecordConsent": "Some places require everyone on a call to agree to recording.",
       "add": "Add an app",
       "addTitle": "Add a meeting app",
       "addDescription": "Sona needs the app ID, which you can find in the app's About window or with `osascript -e 'id of app \"Name\"'`.",
@@ -3051,6 +3054,7 @@
         "teams": "Microsoft Teams",
         "webex": "Webex",
         "facetime": "FaceTime",
+        "phone": "Phone",
         "slack": "Slack"
       }
     }
@@ -3058,6 +3062,7 @@
   "consentPanel": {
     "calendarTitle": "Record {{title}}?",
     "appTitle": "Record this {{app}} meeting?",
+    "appCallTitle": "Record this {{app}} call?",
     "genericTitle": "Record this meeting?",
     "introduction": "Sona records on this Mac and keeps you in control.",
     "seriesBrief_one": "Meeting {{nth}} with {{person}} · {{count}} open loop",
@@ -3070,8 +3075,10 @@
     "record": "Record",
     "ignore": "Ignore",
     "recording": "Recording",
+    "recordingStarted": "Recording started",
     "stop": "Stop",
     "forgetSeries": "Forget this series",
+    "forgetApp": "Don't record this app automatically",
     "wrap": {
       "label": "Wrap",
       "title": "{{title}} — saved",
