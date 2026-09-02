@@ -918,10 +918,16 @@
         "enabled": "enabled",
         "disabled": "disabled",
         "holder": "held by {{name}} (pid {{pid}})",
-        "notSupported": "Not supported on this platform.",
-        "noHolder": "No app is holding Secure Input.",
-        "status": "Status",
-        "error": "Keyboard diagnostics are unavailable."
+        "holderUnknown": "held by an app macOS did not name",
+        "verdictBlocked": "Secure Input is on and no key reached Sona. Close the app holding it, then try again.",
+        "verdictSuspicious": "Modifier keys arrived but no key presses did. Another app is likely swallowing them.",
+        "verdictNoEvents": "Nothing arrived at all. Press a few keys while the diagnostic runs.",
+        "verdictOk": "Keys reach Sona.",
+        "failed": "The diagnostic could not run: {{error}}",
+        "keyDown": "Key down",
+        "keyUp": "Key up",
+        "flagsChanged": "Modifiers",
+        "mouse": "Mouse"
       },
       "groups": {
         "capture": "Capture",
