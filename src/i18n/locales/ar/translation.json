@@ -33,6 +33,10 @@
     "people": "الأشخاص",
     "settings": "الإعدادات"
   },
+  "topNav": {
+    "capture": "التسجيل",
+    "library": "المكتبة"
+  },
   "onboarding": {
     "subtitle": "تعمل النماذج على جهاز Mac هذا وتوازن بين الدقة والسرعة.",
     "existingModelsTitle": "النماذج المتوافقة",
@@ -142,8 +146,10 @@
   },
   "modelSelector": {
     "custom": "مخصص",
+    "legacy": "قديم",
     "streaming": "البث",
     "active": "نشط",
+    "switching": "جارٍ التبديل…",
     "noModelsAvailable": "لا توجد نماذج متاحة",
     "verifying": "جارٍ التحقق من {{modelName}}…",
     "verifyingGeneric": "جارٍ التحقق…",
@@ -153,7 +159,6 @@
     "loading": "...جاري تحميل {{modelName}}",
     "loadingGeneric": "...جاري التحميل",
     "deleteModel": "حذف {{modelName}}",
-    "switching": "جارٍ التبديل…",
     "downloadSpeed": "{{speed}} ميجابايت/ث",
     "cancel": "إلغاء",
     "cancelDownload": "إلغاء التنزيل",
@@ -165,10 +170,12 @@
       "translation": "يدعم الترجمة",
       "translate": "ترجمة",
       "streaming": "يعرض النسخ المباشر أثناء التحدث"
-    },
-    "legacy": "قديم"
+    }
   },
   "settings": {
+    "modelSettings": {
+      "title": "إعدادات {{model}}"
+    },
     "general": {
       "title": "عام",
       "shortcut": {
@@ -184,11 +191,11 @@
           "cancel": {
             "name": "اختصار الإلغاء"
           },
-          "transcribe_with_post_process": {
-            "name": "اختصار المعالجة اللاحقة"
-          },
           "command": {
             "name": "اختصار الأمر"
+          },
+          "transcribe_with_post_process": {
+            "name": "اختصار المعالجة اللاحقة"
           }
         },
         "errors": {
@@ -223,6 +230,91 @@
       "commandMode": {
         "label": "وضع الأوامر الصوتية",
         "description": "استمر بالضغط على اختصار الأمر وقل ما تريد تغييره في النص الذي حددته."
+      }
+    },
+    "models": {
+      "title": "نماذج النسخ",
+      "deleteConfirm": "حذف {{modelName}}؟ استخدامه مجددًا يعني تنزيله مجددًا.",
+      "deleteActiveConfirm": "{{modelName}} هو النموذج النشط. حذفه يوقف النسخ حتى تختار نموذجًا آخر.",
+      "deleteTitle": "حذف النموذج",
+      "filters": {
+        "streaming": "عرض النماذج التي تدعم النسخ المباشر فقط",
+        "translation": "عرض النماذج التي تترجم إلى الإنجليزية فقط",
+        "allFamilies": "كل العائلات",
+        "clear": "مسح عوامل التصفية",
+        "downloadedOnly": "على القرص",
+        "downloadedOnlyHint": "إظهار النماذج المنزّلة بالفعل فقط",
+        "family": "عائلة النموذج"
+      },
+      "rescan": {
+        "label": "إعادة الفحص",
+        "tooltip": "إعادة الفحص بحثًا عن النماذج المضافة إلى مجلد النماذج أو ذاكرة Hugging Face التخزينية المؤقتة خارج Sona"
+      },
+      "noModelsMatch": "لا توجد نماذج مطابقة لهذا الفلتر.",
+      "cloud": {
+        "title": "التفريغ السحابي",
+        "providerDescription": "تبقى المفاتيح في مخزن بيانات اعتماد النظام.",
+        "providers": {
+          "deepgram": "Deepgram Nova-3",
+          "elevenLabs": "ElevenLabs Scribe v2"
+        },
+        "apiKey": {
+          "placeholder": "الصق مفتاح API"
+        },
+        "actions": {
+          "save": "حفظ المفتاح",
+          "saving": "جارٍ الحفظ…",
+          "remove": "إزالة المفتاح",
+          "removing": "جارٍ الإزالة…",
+          "verify": "تحقق",
+          "verifying": "جارٍ التحقق…"
+        },
+        "status": {
+          "checking": "جارٍ التحقق من مخزن بيانات اعتماد النظام…",
+          "notSaved": "لم يُحفظ أي مفتاح API.",
+          "saved": "تم حفظ مفتاح API. ولم يتم التحقق منه.",
+          "verified": "تم التحقق من مفتاح API.",
+          "verifyRequiresConsent": "أقرّ بالنقل في أحد الأوضاع قبل التحقق من هذا المفتاح."
+        },
+        "errors": {
+          "not_found": "لا يوجد مفتاح API محفوظ لهذا المزوّد.",
+          "unavailable": "مخزن بيانات اعتماد النظام غير متاح.",
+          "locked": "مخزن بيانات اعتماد النظام مقفل.",
+          "corrupt": "لا يمكن قراءة المفتاح المحفوظ بأمان.",
+          "invalid": "لم يقبل مخزن بيانات اعتماد النظام المفتاح.",
+          "busy": "مخزن بيانات اعتماد النظام مشغول. حاول مرة أخرى.",
+          "backend": "تعذّر على مخزن بيانات اعتماد النظام إكمال هذا الإجراء.",
+          "not_configured": "احفظ مفتاح API قبل التحقق منه.",
+          "consent_required": "أقرّ بنقل المزوّد قبل التحقق.",
+          "authentication": "رفض المزوّد مفتاح API هذا.",
+          "quota": "رفض المزوّد التحقق لأن الحساب تجاوز الحد المسموح.",
+          "network": "تعذر الوصول إلى المزوّد للتحقق.",
+          "protocol": "أرجع المزوّد استجابة تحقق غير متوقعة.",
+          "unknown_provider": "هذا المزوّد السحابي غير متوفر في هذه النسخة."
+        }
+      },
+      "actions": {
+        "activate": "استخدام",
+        "activateNamed": "استخدام {{modelName}}",
+        "download": "تنزيل",
+        "downloadNamed": "تنزيل {{modelName}}",
+        "moreFor": "إجراءات أخرى لـ {{modelName}}",
+        "retryNamed": "إعادة محاولة تنزيل {{modelName}}"
+      },
+      "emptyCatalog": "تعذر على Sona قراءة كتالوج النماذج. تلتقط إعادة الفحص النماذج الموجودة بالفعل في مجلد النماذج أو ذاكرة Hugging Face المؤقتة.",
+      "errors": {
+        "downloadFailed": "لم يبدأ التنزيل. تحقق من اتصالك وحاول مجددًا."
+      },
+      "families": {
+        "custom": "أضفتها أنت",
+        "other": "نماذج أخرى"
+      },
+      "familyCount": "{{total}} نماذج",
+      "searchByAnything": "البحث حسب الاسم أو اللغة أو القدرة",
+      "state": {
+        "activeInMemory": "نشط، في الذاكرة",
+        "downloaded": "منزّل",
+        "notDownloaded": "غير منزّل"
       }
     },
     "sound": {
@@ -409,7 +501,7 @@
       },
       "spokenEdits": {
         "enabledLabel": "تنفيذ أوامر التحرير المنطوقة",
-        "enabledDescription": "ينفّذ \"scratch that\" و\"delete last word\" و\"delete the last word\" بدلاً من كتابتها. بالإنجليزية فقط، وفقط عندما تأتي العبارة وحدها بين وقفتين: \"scratch that plan\" و\"we should scratch that\" تبقى نصًا.",
+        "enabledDescription": "تنفيذ \"scratch that\" و\"delete last word\" و\"delete the last word\" و\"capitalize that\" و\"lowercase that\" و\"quote that\" و\"make that a list\" و\"new bullet\" بدلًا من كتابتها. بالإنجليزية فقط، وفقط عندما تكون العبارة مستقلة بين وقفتين: تبقى \"scratch that plan\" و\"we should scratch that\" نصًا.",
         "toggleError": "لم يتم تغيير أوامر التحرير المنطوقة. حاول مرة أخرى."
       }
     },
@@ -480,12 +572,77 @@
         "destinationPinned": "يربط Sona هذا الإقرار بهذا العنوان والأصل بالتحديد."
       }
     },
+    "vocabulary": {
+      "replacements": {
+        "title": "الاستبدالات المنطوقة",
+        "enabledLabel": "تمكين الاستبدالات المنطوقة",
+        "spoken": "أنت تقول",
+        "written": "Sona يكتب",
+        "spokenPlaceholder": "آت",
+        "writtenPlaceholder": "@",
+        "add": "إضافة قاعدة",
+        "reset": "استعادة الافتراضيات",
+        "ruleEnabled": "تطبيق {{spoken}}",
+        "delete": "حذف {{spoken}}",
+        "loading": "جارٍ تحميل الاستبدالات",
+        "loadError": "لم يتم تحميل الاستبدالات.",
+        "matching": "تُطابَق العبارات ككلمات كاملة ولا تفرّق بين الحروف الكبيرة والصغيرة. عندما تنطبق قاعدتان على الموضع نفسه تفوز الأطول، ويُجرى الاستبدال قبل تصحيح المفردات.",
+        "errors": {
+          "duplicate": "قاعدة أخرى تستخدم هذه العبارة بالفعل.",
+          "incomplete": "أدخل العبارة المنطوقة ونصها البديل معًا."
+        },
+        "empty": {
+          "description": "أضف عبارة مثل «آت»، وسيكتب Sona الرمز @ في كل مرة تقولها."
+        },
+        "confirmDelete": {
+          "title": "حذف {{spoken}}؟",
+          "description": "لن تُعاد كتابة هذه العبارة في النصوص القادمة. النص المكتوب سابقًا لا يتغير."
+        },
+        "confirmReset": {
+          "title": "استعادة القواعد الافتراضية؟",
+          "description": "كل قاعدة أضفتها أو حرّرتها تُلغى وتعود المجموعة الأولية المرفقة."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "نماذج كتابة",
+        "placeholder": "الصق فقرة كتبتها بنفسك.",
+        "sampleLabel": "نموذج كتابة {{number}}",
+        "delete": "حذف النموذج {{number}}",
+        "add": "إضافة نموذج",
+        "wordCount": "{{words}} من {{max}} كلمة",
+        "overLimit": "{{words}} كلمة. تُستخدم أول {{max}} كلمة فقط.",
+        "privacy": "تُرسل النماذج فقط إلى حيث يذهب النص نفسه أصلًا، ولا إلى أي مكان آخر.",
+        "loading": "جارٍ تحميل النماذج",
+        "loadError": "لم يتم تحميل النماذج.",
+        "empty": {
+          "description": "الصق بضع فقرات كتبتها بنفسك، وستتبع إعادة الكتابة مفرداتك وطول جملك ودرجة الرسمية عندك."
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "إظهار الكبسولة في وضع السكون",
+      "enabledDescription": "أبقِ كبسولة صغيرة على الشاشة بين الإملاءات. انقر للبدء، وانقر بالزر الأيمن لتغيير الوضع.",
+      "positionLabel": "موضع كبسولة السكون",
+      "positionTop": "أعلى",
+      "positionBottom": "أسفل"
+    },
     "history": {
       "stats": {
         "unavailable": "إحصاءات الاستخدام غير متاحة.",
         "entries": "تسجيلات",
         "duration": "مدة التسجيل",
         "words": "كلمات"
+      },
+      "processAgain": {
+        "action": "معالجة مرة أخرى",
+        "title": "معالجة مرة أخرى",
+        "description": "مرّر هذا التسجيل عبر وضع آخر. يبقى المدخل الأصلي وتُحفظ النتيجة كمدخل جديد.",
+        "placeholder": "اختر وضعًا",
+        "confirm": "معالجة",
+        "started": "بدأت إعادة المعالجة",
+        "modeLabel": "الوضع"
       },
       "title": "السجل",
       "openFolder": "فتح مجلد التسجيلات",
@@ -549,6 +706,12 @@
           "full": "كامل"
         },
         "contextSources": "مصادر السياق",
+        "columns": {
+          "source": "المصدر",
+          "status": "الحالة",
+          "method": "الطريقة",
+          "outcome": "النتيجة"
+        },
         "contextSource": {
           "target": "التطبيق",
           "focused_field": "الحقل النشط",
@@ -593,13 +756,7 @@
           "truncated": "مقطوع",
           "no_speech_detected": "لم يُكتشف كلام"
         },
-        "realtimeFactorLabel": "فك الترميز",
-        "columns": {
-          "source": "المصدر",
-          "status": "الحالة",
-          "method": "الطريقة",
-          "outcome": "النتيجة"
-        }
+        "realtimeFactorLabel": "فك الترميز"
       },
       "correction": {
         "add": "إضافة تصحيح",
@@ -665,16 +822,7 @@
       },
       "noTextRecorded": "لم يُسجَّل أي نص لهذا العنصر.",
       "cloudHeld": "احتجز Sona نتيجة السحابة: لم يعُد شيء موثوق ولم يتوفّر أي نموذج محلي.",
-      "transcriptionEngineFailed": "فشل النسخ، لذلك لم يُسجَّل أي شيء.",
-      "processAgain": {
-        "action": "معالجة مرة أخرى",
-        "title": "معالجة مرة أخرى",
-        "description": "مرّر هذا التسجيل عبر وضع آخر. يبقى المدخل الأصلي وتُحفظ النتيجة كمدخل جديد.",
-        "placeholder": "اختر وضعًا",
-        "confirm": "معالجة",
-        "started": "بدأت إعادة المعالجة",
-        "modeLabel": "الوضع"
-      }
+      "transcriptionEngineFailed": "فشل النسخ، لذلك لم يُسجَّل أي شيء."
     },
     "debug": {
       "title": "تصحيح الأخطاء",
@@ -692,6 +840,12 @@
         "copied": "تم النسخ",
         "lineCount": "{{count}} سطر",
         "empty": "لا توجد أسطر بعد."
+      },
+      "whatsNewPreview": {
+        "title": "معاينة ملاحظة الإصدار",
+        "description": "افتح أحدث ملاحظات إصدار مضمنة دون وضع علامة عليها كمقروءة",
+        "noNotes": "لم يتم العثور على ملاحظات إصدار مضمنة",
+        "error": "لم يتم معاينة ملاحظات الإصدار. حاول مرة أخرى."
       },
       "soundTheme": {
         "label": "سمة الصوت",
@@ -764,16 +918,16 @@
         "enabled": "مُفعَّل",
         "disabled": "مُعطَّل",
         "holder": "يحتجزه {{name}} (pid {{pid}})",
-        "notSupported": "غير مدعوم على هذه المنصة.",
-        "noHolder": "لا يوجد تطبيق يستخدم الإدخال الآمن.",
-        "status": "الحالة",
-        "error": "تشخيصات لوحة المفاتيح غير متاحة."
-      },
-      "whatsNewPreview": {
-        "title": "معاينة ملاحظة الإصدار",
-        "description": "افتح أحدث ملاحظات إصدار مضمنة دون وضع علامة عليها كمقروءة",
-        "noNotes": "لم يتم العثور على ملاحظات إصدار مضمنة",
-        "error": "لم يتم معاينة ملاحظات الإصدار. حاول مرة أخرى."
+        "holderUnknown": "محجوز من قبل تطبيق لم يحدد macOS اسمه",
+        "verdictBlocked": "Secure Input مفعّل ولم يصل أي مفتاح إلى Sona. أغلق التطبيق الذي يحجزه، ثم حاول مرة أخرى.",
+        "verdictSuspicious": "وصلت مفاتيح التعديل لكن لم تصل أي ضغطات مفاتيح. من المرجح أن تطبيقًا آخر يعترضها.",
+        "verdictNoEvents": "لم يصل أي شيء على الإطلاق. اضغط بعض المفاتيح أثناء تشغيل التشخيص.",
+        "verdictOk": "المفاتيح تصل إلى Sona.",
+        "failed": "تعذر تشغيل التشخيص: {{error}}",
+        "keyDown": "ضغط مفتاح",
+        "keyUp": "تحرير مفتاح",
+        "flagsChanged": "مفاتيح التعديل",
+        "mouse": "الفأرة"
       },
       "groups": {
         "capture": "الالتقاط",
@@ -828,94 +982,6 @@
         "viewRelease": "عرض الإصدار",
         "available": "Sona {{version}} متاح.",
         "upToDate": "هذا هو أحدث إصدار."
-      }
-    },
-    "modelSettings": {
-      "title": "إعدادات {{model}}"
-    },
-    "models": {
-      "title": "نماذج النسخ",
-      "deleteConfirm": "حذف {{modelName}}؟ استخدامه مجددًا يعني تنزيله مجددًا.",
-      "deleteActiveConfirm": "{{modelName}} هو النموذج النشط. حذفه يوقف النسخ حتى تختار نموذجًا آخر.",
-      "deleteTitle": "حذف النموذج",
-      "filters": {
-        "streaming": "عرض النماذج التي تدعم النسخ المباشر فقط",
-        "translation": "عرض النماذج التي تترجم إلى الإنجليزية فقط",
-        "allFamilies": "كل العائلات",
-        "clear": "مسح عوامل التصفية",
-        "downloadedOnly": "على القرص",
-        "downloadedOnlyHint": "إظهار النماذج المنزّلة بالفعل فقط",
-        "family": "عائلة النموذج"
-      },
-      "noModelsMatch": "لا توجد نماذج مطابقة لهذا الفلتر.",
-      "rescan": {
-        "label": "إعادة الفحص",
-        "tooltip": "إعادة الفحص بحثًا عن النماذج المضافة إلى مجلد النماذج أو ذاكرة Hugging Face التخزينية المؤقتة خارج Sona"
-      },
-      "cloud": {
-        "title": "التفريغ السحابي",
-        "providerDescription": "تبقى المفاتيح في مخزن بيانات اعتماد النظام.",
-        "providers": {
-          "deepgram": "Deepgram Nova-3",
-          "elevenLabs": "ElevenLabs Scribe v2"
-        },
-        "apiKey": {
-          "placeholder": "الصق مفتاح API"
-        },
-        "actions": {
-          "save": "حفظ المفتاح",
-          "saving": "جارٍ الحفظ…",
-          "remove": "إزالة المفتاح",
-          "removing": "جارٍ الإزالة…",
-          "verify": "تحقق",
-          "verifying": "جارٍ التحقق…"
-        },
-        "status": {
-          "checking": "جارٍ التحقق من مخزن بيانات اعتماد النظام…",
-          "notSaved": "لم يُحفظ أي مفتاح API.",
-          "saved": "تم حفظ مفتاح API. ولم يتم التحقق منه.",
-          "verified": "تم التحقق من مفتاح API.",
-          "verifyRequiresConsent": "أقرّ بالنقل في أحد الأوضاع قبل التحقق من هذا المفتاح."
-        },
-        "errors": {
-          "not_found": "لا يوجد مفتاح API محفوظ لهذا المزوّد.",
-          "unavailable": "مخزن بيانات اعتماد النظام غير متاح.",
-          "locked": "مخزن بيانات اعتماد النظام مقفل.",
-          "corrupt": "لا يمكن قراءة المفتاح المحفوظ بأمان.",
-          "invalid": "لم يقبل مخزن بيانات اعتماد النظام المفتاح.",
-          "busy": "مخزن بيانات اعتماد النظام مشغول. حاول مرة أخرى.",
-          "backend": "تعذّر على مخزن بيانات اعتماد النظام إكمال هذا الإجراء.",
-          "not_configured": "احفظ مفتاح API قبل التحقق منه.",
-          "consent_required": "أقرّ بنقل المزوّد قبل التحقق.",
-          "authentication": "رفض المزوّد مفتاح API هذا.",
-          "quota": "رفض المزوّد التحقق لأن الحساب تجاوز الحد المسموح.",
-          "network": "تعذر الوصول إلى المزوّد للتحقق.",
-          "protocol": "أرجع المزوّد استجابة تحقق غير متوقعة.",
-          "unknown_provider": "هذا المزوّد السحابي غير متوفر في هذه النسخة."
-        }
-      },
-      "actions": {
-        "activate": "استخدام",
-        "activateNamed": "استخدام {{modelName}}",
-        "download": "تنزيل",
-        "downloadNamed": "تنزيل {{modelName}}",
-        "moreFor": "إجراءات أخرى لـ {{modelName}}",
-        "retryNamed": "إعادة محاولة تنزيل {{modelName}}"
-      },
-      "emptyCatalog": "تعذر على Sona قراءة كتالوج النماذج. تلتقط إعادة الفحص النماذج الموجودة بالفعل في مجلد النماذج أو ذاكرة Hugging Face المؤقتة.",
-      "errors": {
-        "downloadFailed": "لم يبدأ التنزيل. تحقق من اتصالك وحاول مجددًا."
-      },
-      "families": {
-        "custom": "أضفتها أنت",
-        "other": "نماذج أخرى"
-      },
-      "familyCount": "{{total}} نماذج",
-      "searchByAnything": "البحث حسب الاسم أو اللغة أو القدرة",
-      "state": {
-        "activeInMemory": "نشط، في الذاكرة",
-        "downloaded": "منزّل",
-        "notDownloaded": "غير منزّل"
       }
     },
     "modes": {
@@ -1009,6 +1075,10 @@
         },
         "model": {
           "label": "نموذج الذكاء الاصطناعي"
+        },
+        "spokenInstructions": {
+          "label": "التعليمات المنطوقة",
+          "description": "أنهِ الإملاء بكلمة \"Sona،\" فيتحول باقي تلك الجملة إلى تعديل يطبّقه الذكاء الاصطناعي، بدلًا من كلمات تُكتب."
         },
         "disabledNote": "شغّل تنظيف الذكاء الاصطناعي لاستخدام الإعداد المسبق والنبرة والمزوّد والنموذج أدناه."
       },
@@ -1391,11 +1461,11 @@
           },
           "codex": {
             "label": "Codex",
-            "description": "مراقبة الجلسات فقط. لا يستطيع Sona الرد على Codex بعد."
+            "description": "مراقبة جلسات Codex، والرد على طلبات الموافقة، والإجابة عند انتهاء كل دور."
           },
           "grok": {
             "label": "Grok",
-            "description": "مراقبة الجلسات فقط. لا يستطيع Sona الرد على Grok بعد."
+            "description": "مراقبة جلسات Grok، والرد على طلبات الأدوات، والإجابة عند انتهاء كل دور."
           },
           "omp": {
             "label": "OMP",
@@ -1465,7 +1535,7 @@
         "allowExact": "السماح بهذا الطلب بالتحديد",
         "denyExact": "رفض هذا الطلب بالتحديد",
         "dismiss": "تجاهل",
-        "ompPermissionObserveOnly": "طلبات موافقة OMP تُرصد فقط. وافق عليها أو ارفضها في OMP."
+        "observeOnly": "يمكن لـ Sona مراقبة هذا الطلب فقط. أجب عنه في {{agent}}."
       },
       "rules": {
         "title": "قواعد الأذونات",
@@ -1489,6 +1559,10 @@
       "externalAccess": {
         "label": "الوصول الخارجي",
         "rowDescription": "يسمح للبرامج الأخرى على جهاز Mac الخاص بك بقراءة اجتماعاتك، إملاءاتك، الأشخاص، والمهام المفتوحة عبر أداة سطر الأوامر الخاصة بـ Sona وخادم MCP. هذه الخاصية للقراءة فقط وتظل مطفأة حتى تقوم بتفعيلها."
+      },
+      "externalMutations": {
+        "label": "التعديلات الخارجية",
+        "rowDescription": "يسمح لتلك البرامج نفسها بوضع علامة الإنجاز على التزام. هذا منفصل عن الوصول الخارجي، ويبقى متوقفًا حتى تشغّله أنت: قراءة اجتماعاتك ليست كتغييرها."
       },
       "workspaceNavigation": "عرض الوكيل",
       "sonaAgent": {
@@ -1565,12 +1639,6 @@
         "skipped": "تم التخطي"
       },
       "outcomes": {
-        "continuity_zero": "لم يُنقل أي سؤال معلّق",
-        "continuity_one": "تم نقل سؤال معلّق واحد",
-        "continuity_two": "تم نقل سؤالين معلّقين",
-        "continuity_few": "تم نقل {{count}} أسئلة معلّقة",
-        "continuity_many": "تم نقل {{count}} سؤالًا معلّقًا",
-        "continuity_other": "تم نقل {{count}} سؤال معلّق",
         "personLinks_zero": "لم يتم تذكّر أي شخص",
         "personLinks_one": "تم تذكّر شخص واحد",
         "personLinks_two": "تم تذكّر شخصين",
@@ -1578,6 +1646,12 @@
         "personLinks_many": "تم تذكّر {{count}} شخصًا",
         "personLinks_other": "تم تذكّر {{count}} شخص",
         "briefing": "ملخّص اجتماعك جاهز",
+        "continuity_zero": "لم يُنقل أي سؤال معلّق",
+        "continuity_one": "تم نقل سؤال معلّق واحد",
+        "continuity_two": "تم نقل سؤالين معلّقين",
+        "continuity_few": "تم نقل {{count}} أسئلة معلّقة",
+        "continuity_many": "تم نقل {{count}} سؤالًا معلّقًا",
+        "continuity_other": "تم نقل {{count}} سؤال معلّق",
         "vocabularyCandidates_zero": "لم يتم تعلّم أي كلمة",
         "vocabularyCandidates_one": "تم تعلّم كلمة جديدة",
         "vocabularyCandidates_two": "تم تعلّم كلمتين جديدتين",
@@ -1632,62 +1706,6 @@
         "chartAria": "النشاط اليومي، {{count}} في آخر 7 أيام"
       }
     },
-    "vocabulary": {
-      "replacements": {
-        "title": "الاستبدالات المنطوقة",
-        "enabledLabel": "تمكين الاستبدالات المنطوقة",
-        "spoken": "أنت تقول",
-        "written": "Sona يكتب",
-        "spokenPlaceholder": "آت",
-        "writtenPlaceholder": "@",
-        "add": "إضافة قاعدة",
-        "reset": "استعادة الافتراضيات",
-        "ruleEnabled": "تطبيق {{spoken}}",
-        "delete": "حذف {{spoken}}",
-        "loading": "جارٍ تحميل الاستبدالات",
-        "loadError": "لم يتم تحميل الاستبدالات.",
-        "matching": "تُطابَق العبارات ككلمات كاملة ولا تفرّق بين الحروف الكبيرة والصغيرة. عندما تنطبق قاعدتان على الموضع نفسه تفوز الأطول، ويُجرى الاستبدال قبل تصحيح المفردات.",
-        "errors": {
-          "duplicate": "قاعدة أخرى تستخدم هذه العبارة بالفعل.",
-          "incomplete": "أدخل العبارة المنطوقة ونصها البديل معًا."
-        },
-        "empty": {
-          "description": "أضف عبارة مثل «آت»، وسيكتب Sona الرمز @ في كل مرة تقولها."
-        },
-        "confirmDelete": {
-          "title": "حذف {{spoken}}؟",
-          "description": "لن تُعاد كتابة هذه العبارة في النصوص القادمة. النص المكتوب سابقًا لا يتغير."
-        },
-        "confirmReset": {
-          "title": "استعادة القواعد الافتراضية؟",
-          "description": "كل قاعدة أضفتها أو حرّرتها تُلغى وتعود المجموعة الأولية المرفقة."
-        }
-      }
-    },
-    "prompts": {
-      "samples": {
-        "title": "نماذج كتابة",
-        "placeholder": "الصق فقرة كتبتها بنفسك.",
-        "sampleLabel": "نموذج كتابة {{number}}",
-        "delete": "حذف النموذج {{number}}",
-        "add": "إضافة نموذج",
-        "wordCount": "{{words}} من {{max}} كلمة",
-        "overLimit": "{{words}} كلمة. تُستخدم أول {{max}} كلمة فقط.",
-        "privacy": "تُرسل النماذج فقط إلى حيث يذهب النص نفسه أصلًا، ولا إلى أي مكان آخر.",
-        "loading": "جارٍ تحميل النماذج",
-        "loadError": "لم يتم تحميل النماذج.",
-        "empty": {
-          "description": "الصق بضع فقرات كتبتها بنفسك، وستتبع إعادة الكتابة مفرداتك وطول جملك ودرجة الرسمية عندك."
-        }
-      }
-    },
-    "hud": {
-      "enabledLabel": "إظهار الكبسولة في وضع السكون",
-      "enabledDescription": "أبقِ كبسولة صغيرة على الشاشة بين الإملاءات. انقر للبدء، وانقر بالزر الأيمن لتغيير الوضع.",
-      "positionLabel": "موضع كبسولة السكون",
-      "positionTop": "أعلى",
-      "positionBottom": "أسفل"
-    },
     "meetings": {
       "digest": {
         "title": "ملخص المساء",
@@ -1710,6 +1728,10 @@
         "webhook": "أرسل إلى webhook",
         "webhookHint": "يرسل تصدير الاجتماع كـ JSON. استخدم جهازك الخاص أو tailnet فقط، كما هو الحال مع الخادم.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "runPrompt": "تشغيل موجّه محفوظ",
+        "runPromptHint": "يطرح أحد موجّهاتك المحفوظة على الاجتماع ويحتفظ بالإجابة معه.",
+        "promptPlaceholder": "اختر موجّهًا",
+        "needsPrompt": "اختر موجّهًا أولًا",
         "needsTarget": "أضف اسمًا أولًا",
         "needsUrl": "أضف عنوانًا أولًا",
         "rejected": "غيّرت نافذة أخرى هذا. أعد القراءة ثم حاول مجددًا.",
@@ -1730,6 +1752,9 @@
         "saveFailed": "لم يُحفظ هذا التغيير. اقرأ الصف مرة أخرى وحاول مجددًا."
       }
     }
+  },
+  "whatsNew": {
+    "title": "الجديد في Sona v{{version}}"
   },
   "common": {
     "loading": "...جاري التحميل",
@@ -1760,8 +1785,11 @@
     "noResults": "لم يتم العثور على نتائج",
     "newMeeting": "اجتماع جديد",
     "importAudio": "تفريغ ملف",
+    "importMeeting": "استيراد تسجيل أو نص مفرّغ",
     "openRecordings": "فتح مجلد التسجيلات",
     "openAgent": "فتح المساعد",
+    "runPrompt": "تشغيل موجّه",
+    "newPrompt": "موجّه جديد",
     "esc": "esc",
     "search": {
       "meetings": "الاجتماعات",
@@ -1770,6 +1798,52 @@
       "loops": "الأسئلة المعلّقة",
       "empty": "لا شيء يطابق \"{{query}}\".",
       "unavailable": "البحث غير متاح الآن."
+    }
+  },
+  "prompts": {
+    "title": "الموجّهات",
+    "description": "أسئلة يمكنك طرحها مرة بعد مرة. شغّل أحدها من لوحة الأوامر، أو بعد اجتماع من أتمتة سلسلة ما.",
+    "loading": "جارٍ قراءة موجّهاتك…",
+    "empty": "لا توجد موجّهات بعد.",
+    "new": "موجّه جديد",
+    "editing": "تعديل الموجّه",
+    "editorHint": "يُجاب عن الموجّه فقط مما يحتفظ به Sona بالفعل عن السجل الذي تشغّله عليه.",
+    "name": "الاسم",
+    "body": "الموجّه",
+    "bodyPlaceholder": "اسرد القرارات ومن يملك كل واحد منها.",
+    "output": "الإجابة",
+    "outputText": "نص",
+    "outputSchema": "JSON مطابق لمخطط",
+    "schema": "المخطط",
+    "schemaPlaceholder": "{\"type\":\"object\",\"required\":[\"decisions\"],\"properties\":{\"decisions\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+    "targetLabel": "حول",
+    "save": "حفظ",
+    "edit": "تعديل {{name}}",
+    "delete": "حذف {{name}}",
+    "invalid": "يحتاج الموجّه إلى اسم وموجّه ومخطط بصيغة JSON.",
+    "rejected": "نافذة أخرى غيّرت هذه العناصر. أعد القراءة ثم حاول مجددًا.",
+    "saveFailed": "لم يتم الحفظ.",
+    "target": {
+      "meeting": "اجتماع",
+      "person": "شخص",
+      "series": "سلسلة"
+    },
+    "run": {
+      "saved": "تم تشغيل {{name}}. الإجابة موجودة ضمن نتائج الموجّهات.",
+      "missing": "هذا الموجّه لم يعد موجودًا، أو لا يوجد شيء للسؤال عنه بعد.",
+      "failed": "تعذّر تشغيل هذا الموجّه."
+    },
+    "results": {
+      "title": "نتائج الموجّهات",
+      "rerun": "تشغيل {{name}} مجددًا",
+      "deleted": "موجّه محذوف"
+    },
+    "failure": {
+      "modelUnavailable": "لم يتوفر أي نموذج للإجابة عن هذا.",
+      "modelUnreachable": "تعذّر الوصول إلى خادمك.",
+      "modelFailed": "لم يُرجع النموذج إجابة صالحة للاستخدام.",
+      "schemaMismatch": "لم تطابق الإجابة المخطط.",
+      "noEvidence": "لم يكن هناك شيء مسجّل للإجابة منه."
     }
   },
   "accessibility": {
@@ -1832,9 +1906,6 @@
       "hint": "انقر للإملاء، وانقر بالزر الأيمن للأوضاع",
       "modes": "تغيير الوضع"
     }
-  },
-  "whatsNew": {
-    "title": "الجديد في Sona v{{version}}"
   },
   "secureInput": {
     "blockedWithCulprit_one": "قد يحظر {{name}} اختصارًا واحدًا",
@@ -1912,6 +1983,28 @@
         "interrupted": "انقطعت المعالجة قبل أن تكتمل"
       }
     },
+    "start": {
+      "label": "ابدأ اجتماعًا",
+      "action": "ابدأ التسجيل",
+      "starting": "جارٍ البدء…",
+      "assurance": "يسجّل صوت جهاز Mac محليًا. لا شيء ينضم إلى المكالمة.",
+      "capture": "التسجيل",
+      "noSources": "اختر مصدرًا واحدًا على الأقل.",
+      "localOnly": "محلي فقط",
+      "retention": "يُحفظ: {{policy}}"
+    },
+    "import": {
+      "action": "استيراد",
+      "importing": "جارٍ الاستيراد…",
+      "recordingFilter": "تسجيل",
+      "transcriptFilter": "نص مفرّغ مُصدَّر"
+    },
+    "gate": {
+      "title": "لم يبدأ التسجيل",
+      "readyTitle": "جاهز للتسجيل",
+      "recordAnyway": "سجّل بدونه",
+      "recordAnywayHint": "يُوسم الاجتماع بأنه جزئي، ويُذكر المصدر الناقص فيه."
+    },
     "actions": {
       "back": "رجوع",
       "delete": "حذف الاجتماع",
@@ -1967,6 +2060,14 @@
     "recovery": {
       "title": "اجتماعات لم تكتمل",
       "finalize": "إنهاء الحفظ"
+    },
+    "trash": {
+      "title": "المحذوفة مؤخرًا",
+      "expires": "حُذف {{deleted}} · يُزال خلال {{count}} أيام",
+      "expiresToday": "حُذف {{deleted}} · يُزال اليوم",
+      "restore": "استعادة",
+      "restored": "عاد {{title}}.",
+      "restoreFailed": "تعذّرت استعادة هذا الاجتماع."
     },
     "history": {
       "title": "سجل الاجتماعات",
@@ -2038,7 +2139,8 @@
       "export_cancelled": "أُلغي التصدير. لم يُنشأ أي تصدير مكتمل.",
       "export_failed": "فشل التصدير. لم يُنشأ أي تصدير مكتمل.",
       "local_model_unavailable": "لا يتوفر نموذج محلي لهذا الاجتماع.",
-      "remote_unavailable": "الوجهة البعيدة المحددة غير متاحة."
+      "remote_unavailable": "الوجهة البعيدة المحددة غير متاحة.",
+      "import_unreadable": "لم يتمكن Sona من قراءة هذا الملف كتسجيل أو كنص مفرّغ مُصدَّر."
     },
     "discard": {
       "liveTitle": "إيقاف هذه الجلسة والتخلص منها؟",
@@ -2106,6 +2208,7 @@
       "followUp": "المتابعة",
       "artifactUnavailable": "هذه الملاحظات المولَّدة غير متاحة. يبقى النص وملاحظاتك اليدوية على هذا الـMac.",
       "actionMeta": "المسؤول: {{owner}} · الاستحقاق: {{due}}",
+      "actionDone": "وسم هذا البند بأنه منجز",
       "unassigned": "غير مُعيَّن",
       "noDueDate": "بلا تاريخ استحقاق",
       "questions": "اسأل هذا الاجتماع",
@@ -2137,8 +2240,7 @@
         "transcript": "النص"
       },
       "tabsLabel": "أقسام مراجعة الاجتماع",
-      "youAsked": "سألت",
-      "actionDone": "وسم هذا البند بأنه منجز"
+      "youAsked": "سألت"
     },
     "ledger": {
       "title": "السجل",
@@ -2266,22 +2368,6 @@
       "gapCount": "الفجوات: {{total}}",
       "required": "مطلوب"
     },
-    "start": {
-      "label": "ابدأ اجتماعًا",
-      "action": "ابدأ التسجيل",
-      "starting": "جارٍ البدء…",
-      "assurance": "يسجّل صوت جهاز Mac محليًا. لا شيء ينضم إلى المكالمة.",
-      "capture": "التسجيل",
-      "noSources": "اختر مصدرًا واحدًا على الأقل.",
-      "localOnly": "محلي فقط",
-      "retention": "يُحفظ: {{policy}}"
-    },
-    "gate": {
-      "title": "لم يبدأ التسجيل",
-      "readyTitle": "جاهز للتسجيل",
-      "recordAnyway": "سجّل بدونه",
-      "recordAnywayHint": "يُوسم الاجتماع بأنه جزئي، ويُذكر المصدر الناقص فيه."
-    },
     "analytics": {
       "title": "المحادثة",
       "noSpeech": "لم يُحوَّل أي كلام إلى نص، فلا شيء يمكن قياسه.",
@@ -2321,7 +2407,9 @@
       "catchUp": "لخّص لي ما فات",
       "catchingUp": "جارٍ التلخيص…",
       "catchUpTitle": "حتى الآن",
-      "catchUpNoTranscript": "لا شيء لتلخيصه بعد. يحوّل Sona الكلام إلى نص بعد أن تُوقف التسجيل، فيتوفر الملخص بمجرد أن يبدأ النص بالوصول.",
+      "catchUpNoTranscript": "لا شيء لتلخيصه: هذا الاجتماع ليس له نص مفرّغ.",
+      "catchUpNothingHeardYet": "لا شيء لتلخيصه بعد. ما زال Sona يلحق بما يجري في الغرفة — حاول مجددًا بعد لحظات.",
+      "catchUpAsOf": "حتى {{time}}، مؤقت",
       "catchUpUnavailable": "النموذج الموجود على الجهاز غير متاح، فلم يُكتب أي ملخص.",
       "catchUpFailed": "لم يتمكن Sona من بناء ملخص. حاول مرة أخرى.",
       "templates": {
@@ -2339,6 +2427,7 @@
       "prompt": {
         "calendar": "{{title}} يبدأ",
         "app": "تم اكتشاف اجتماع في {{app}}",
+        "call": "تم رصد مكالمة {{app}}",
         "huddle": "تم اكتشاف تجمّع في {{app}}",
         "browser": "تم اكتشاف مكالمة في {{app}}",
         "unknown": "تم اكتشاف نشاط للميكروفون",
@@ -2375,7 +2464,7 @@
         "calendarDenied": "لم يُمنح الوصول إلى التقويم، فلا يعمل سوى مسار الميكروفون.",
         "notificationsDenied": "إشعارات Sona مغلقة، فتظهر التنبيهات داخل التطبيق فقط.",
         "bluetoothCaveat": "تطبيق اجتماعات مفتوح لكن لا شيء يفيد باستخدام الميكروفون. سماعات Bluetooth كثيرًا ما لا تفيد بذلك، فابدأ الاجتماع بنفسك إن كان هناك واحد جارٍ.",
-        "noSilenceStop": "يتوقف التسجيل عند انتهاء الحدث، أو خروج التطبيق، أو نوم جهاز Mac، أو إيقافك له بنفسك. لا شيء يوقفه بسبب الصمت: ذلك يتطلب نسخًا مباشرًا، والنسخ يعمل بعد انتهاء الاجتماع."
+        "noSilenceStop": "يتوقف التسجيل عند انتهاء الحدث، أو انتهاء المكالمة، أو إغلاق التطبيق، أو دخول جهاز Mac في وضع السكون، أو عندما توقفه بنفسك. لا شيء يوقفه بسبب الصمت: فذلك يتطلب تفريغًا نصيًا مباشرًا، وهو لا يعمل إلا بعد انتهاء الاجتماع."
       },
       "why": {
         "disabled": "الاكتشاف مغلق.",
@@ -2476,7 +2565,12 @@
       "copy": "نسخ",
       "copied": "تم نسخ المسودة.",
       "copyFailed": "تعذّر نسخ المسودة.",
-      "failed": "تعذّر إنشاء مسودة متابعة لهذا الاجتماع."
+      "failed": "تعذّر إنشاء مسودة متابعة لهذا الاجتماع.",
+      "openInMail": "فتح في Mail",
+      "mailOpened": "Mail مفتوح مع المسودة.",
+      "mailClipboardNote": "رسالة المتابعة موجودة في الحافظة. الصقها هنا.",
+      "mailCopied": "كانت المسودة أطول من أن تناسب رابط بريد، لذا وُضعت في الحافظة.",
+      "mailFailed": "تعذّر فتح Mail لهذا الاجتماع."
     },
     "prep": {
       "label": "تحضير",
@@ -2514,6 +2608,16 @@
     },
     "workedFor": "عمل لمدة {{seconds}} ثانية",
     "stepSeconds": "{{seconds}} ثانية",
+    "error": {
+      "unreachable": "تعذّر على Sona الاتصال.",
+      "refused": "لم يستطع Sona قبول هذا السؤال.",
+      "failed": "لم يستطع Sona إنهاء هذه الإجابة."
+    },
+    "working": {
+      "searchedCorpus": "بحثت في اجتماعاتك وملاحظاتك",
+      "stillWaiting": "ما زال الانتظار…",
+      "cancel": "إلغاء"
+    },
     "turnState": {
       "submitting": "جارٍ الإرسال",
       "queued": "في الانتظار",
@@ -2540,20 +2644,27 @@
       "undone": "تم التراجع",
       "rejected": "لم يُطبَّق"
     },
+    "action": {
+      "resolve_loop": "وضع علامة الإنجاز على التزام",
+      "assign_loop": "تعيين مالك لالتزام",
+      "set_series_template": "استخدام قالب {{template}} لهذه السلسلة",
+      "add_vocabulary_term": "إضافة \"{{term}}\" إلى مفرداتك",
+      "rename_speaker": "إعادة تسمية متحدث إلى {{name}}",
+      "apply": "تطبيق",
+      "dismiss": "تجاهل",
+      "applied": "تم التطبيق",
+      "undo": "تراجع",
+      "dismissed": "تم التجاهل",
+      "receipt": "إيصال {{id}}"
+    },
+    "tools": {
+      "label": "السماح باستخدام الأدوات",
+      "hint": "لهذا السؤال فقط"
+    },
     "ask": {
       "row": "اسأل Sona: {{query}}",
       "error": "تعذر إرسال هذا السؤال إلى Sona.",
       "consentRequired": "طرح السؤال يرسل مقتطفات من اجتماعاتك إلى سيرفرك، فشغّل ذكاء الاجتماعات أولًا."
-    },
-    "error": {
-      "unreachable": "تعذّر على Sona الاتصال.",
-      "refused": "لم يستطع Sona قبول هذا السؤال.",
-      "failed": "لم يستطع Sona إنهاء هذه الإجابة."
-    },
-    "working": {
-      "searchedCorpus": "بحثت في اجتماعاتك وملاحظاتك",
-      "stillWaiting": "ما زال الانتظار…",
-      "cancel": "إلغاء"
     }
   },
   "overview": {
@@ -2632,6 +2743,12 @@
       "createOffer": "إنشاء عرض إقران",
       "currentOffer": "عرض الإقران",
       "approve": "الموافقة على هذا العرض",
+      "candidateOffer": "الرمز من الجهاز الذي تضيفه",
+      "candidateApprove": "الموافقة على الجهاز",
+      "candidateReading": "جارٍ التحقق…",
+      "candidateCompare": "تأكد من تطابق هذا مع الرمز الظاهر على الجهاز قبل الموافقة.",
+      "candidateInvalid": "هذا الرمز غير صالح.",
+      "candidateApproved": "تمت الموافقة على الجهاز.",
       "receivedOffer": "عرض من جهاز آخر",
       "accept": "قبول العرض"
     },
@@ -2685,10 +2802,6 @@
         "revokeConfirm": "كل من يملك هذا الرابط يفقد الوصول لحظة إبطاله."
       }
     }
-  },
-  "topNav": {
-    "capture": "التسجيل",
-    "library": "المكتبة"
   },
   "people": {
     "title": "الأشخاص",
@@ -2769,6 +2882,11 @@
       "stale": "تغيرت بيانات الأشخاص في شاشة أخرى. أعد التحميل وحاول مجددًا.",
       "operation": "تعذر تحديث الأشخاص. حاول مجددًا."
     },
+    "summary": {
+      "empty": "لا يوجد ملخص بعد.",
+      "regenerate": "إعادة الإنشاء",
+      "provenance": "كتبه {{model}} في {{date}}"
+    },
     "review": {
       "personDetails": "تفاصيل الشخص",
       "previouslyTogether": "اجتماعات سابقة معًا",
@@ -2812,7 +2930,27 @@
       "briefIOwe": "عليك: {{text}}"
     }
   },
+  "organizations": {
+    "title": "المؤسسات",
+    "detail": {
+      "people_zero": "{{count}} أشخاص",
+      "people_one": "{{count}} شخص",
+      "people_two": "{{count}} شخصان",
+      "people_few": "{{count}} أشخاص",
+      "people_many": "{{count}} شخصًا",
+      "people_other": "{{count}} شخص",
+      "peopleHere": "الأشخاص هنا",
+      "noPeople": "لا أحد هنا بعد.",
+      "recentMeetings": "الاجتماعات الأخيرة"
+    }
+  },
   "libraryV2": {
+    "recordings_zero": "لا تسجيلات",
+    "recordings_one": "تسجيل واحد",
+    "recordings_two": "تسجيلان",
+    "recordings_few": "{{count, number}} تسجيلات",
+    "recordings_many": "{{count, number}} تسجيلًا",
+    "recordings_other": "{{count, number}} تسجيل",
     "words_zero": "لا كلمات",
     "words_one": "كلمة واحدة",
     "words_two": "كلمتان",
@@ -2827,13 +2965,7 @@
       "transcribeAgain": "إعادة التفريغ",
       "delete": "حذف",
       "more": "إجراءات أخرى"
-    },
-    "recordings_zero": "لا تسجيلات",
-    "recordings_one": "تسجيل واحد",
-    "recordings_two": "تسجيلان",
-    "recordings_few": "{{count, number}} تسجيلات",
-    "recordings_many": "{{count, number}} تسجيلًا",
-    "recordings_other": "{{count, number}} تسجيل"
+    }
   },
   "meetingsV2": {
     "retention": {
@@ -2996,6 +3128,8 @@
       "label": "تطبيقات الاجتماعات",
       "browsersAutomatic": "المكالمة في علامة تبويب المتصفح تُكتشف دون إدراجها هنا.",
       "runningNow": "قيد التشغيل الآن",
+      "autoRecord": "التسجيل تلقائيًا",
+      "autoRecordConsent": "تشترط بعض الأماكن موافقة جميع المشاركين في المكالمة على التسجيل.",
       "add": "إضافة تطبيق",
       "addTitle": "إضافة تطبيق اجتماعات",
       "addDescription": "تحتاج Sona إلى معرف التطبيق، والذي يمكنك العثور عليه في نافذة 'حول' (About) الخاصة بالتطبيق أو باستخدام `osascript -e 'id of app \"Name\"'`.",
@@ -3009,6 +3143,7 @@
         "teams": "Microsoft Teams",
         "webex": "Webex",
         "facetime": "FaceTime",
+        "phone": "الهاتف",
         "slack": "Slack"
       }
     }
@@ -3016,6 +3151,7 @@
   "consentPanel": {
     "calendarTitle": "هل تسجّل {{title}}؟",
     "appTitle": "هل تسجّل اجتماع {{app}} هذا؟",
+    "appCallTitle": "هل تريد تسجيل مكالمة {{app}} هذه؟",
     "genericTitle": "أسجّل هذا الاجتماع؟",
     "introduction": "يسجّل Sona على جهاز Mac هذا، والتحكّم يبقى بيدك.",
     "seriesBrief_zero": "الاجتماع {{nth}} مع {{person}} · لا توجد حلقات مفتوحة",
@@ -3025,12 +3161,17 @@
     "seriesBrief_many": "الاجتماع {{nth}} مع {{person}} · {{count}} حلقة مفتوحة",
     "seriesBrief_other": "الاجتماع {{nth}} مع {{person}} · {{count}} حلقة مفتوحة",
     "alwaysRecord": "سجّل هذا الاجتماع دائمًا",
+    "announceInChat": "الإعلان في الدردشة",
+    "announceLine": "يدوّن Sona الملاحظات لصالح {{name}}. أخبرنا إن كنت تفضّل ألا يفعل.",
+    "announceRefused": "لم يُنشر الإفصاح: هذا التطبيق لم يقبله.",
     "assurance": "لا تبدأ إلا بعد موافقة كل من في الاجتماع على التسجيل.",
     "record": "تسجيل",
     "ignore": "تجاهل",
     "recording": "التسجيل",
+    "recordingStarted": "بدأ التسجيل",
     "stop": "إيقاف",
     "forgetSeries": "انسَ هذه السلسلة",
+    "forgetApp": "عدم تسجيل هذا التطبيق تلقائيًا",
     "wrap": {
       "label": "ختام",
       "title": "{{title}} — تم الحفظ",

@@ -33,6 +33,10 @@
     "people": "Personer",
     "settings": "Inställningar"
   },
+  "topNav": {
+    "capture": "Inspelning",
+    "library": "Bibliotek"
+  },
   "onboarding": {
     "subtitle": "Modellerna körs på den här datorn och avväger noggrannhet mot hastighet.",
     "existingModelsTitle": "Kompatibla modeller",
@@ -142,6 +146,7 @@
   },
   "modelSelector": {
     "custom": "Anpassad",
+    "legacy": "Äldre",
     "streaming": "Streaming",
     "active": "Aktiv",
     "switching": "Byter…",
@@ -165,8 +170,7 @@
       "translation": "Kan översätta till engelska",
       "translate": "Översätt till engelska",
       "streaming": "Visar transkription i realtid medan du talar"
-    },
-    "legacy": "Äldre"
+    }
   },
   "settings": {
     "modelSettings": {
@@ -187,11 +191,11 @@
           "cancel": {
             "name": "Kortkommando för att avbryta"
           },
-          "transcribe_with_post_process": {
-            "name": "Snabbkommando för efterbearbetning"
-          },
           "command": {
             "name": "Kommandogenväg"
+          },
+          "transcribe_with_post_process": {
+            "name": "Snabbkommando för efterbearbetning"
           }
         },
         "errors": {
@@ -242,11 +246,11 @@
         "downloadedOnlyHint": "Visa endast redan hämtade modeller",
         "family": "Modellfamilj"
       },
-      "noModelsMatch": "Inga modeller matchar detta filter.",
       "rescan": {
         "label": "Skanna om",
         "tooltip": "Skanna om efter modeller som lagts till i modellmappen eller Hugging Face-cachen utanför Sona"
       },
+      "noModelsMatch": "Inga modeller matchar detta filter.",
       "cloud": {
         "title": "Molntranskribering",
         "providerDescription": "Nycklarna stannar i systemets nyckelhanterare.",
@@ -497,7 +501,7 @@
       },
       "spokenEdits": {
         "enabledLabel": "Följ talade redigeringskommandon",
-        "enabledDescription": "Utför \"scratch that\", \"delete last word\" och \"delete the last word\" i stället för att skriva dem. Endast på engelska och bara när frasen står ensam mellan två pauser: \"scratch that plan\" och \"we should scratch that\" förblir text.",
+        "enabledDescription": "Utför \"scratch that\", \"delete last word\", \"delete the last word\", \"capitalize that\", \"lowercase that\", \"quote that\", \"make that a list\" och \"new bullet\" i stället för att skriva dem. Endast engelska, och bara när frasen står ensam mellan två pauser: \"scratch that plan\" och \"we should scratch that\" förblir text.",
         "toggleError": "Kunde inte ändra de talade redigeringskommandona. Försök igen."
       }
     },
@@ -568,12 +572,77 @@
         "destinationPinned": "Sona knyter bekräftelsen till exakt den här adressen och det här ursprunget."
       }
     },
+    "vocabulary": {
+      "replacements": {
+        "title": "Talade ersättningar",
+        "enabledLabel": "Aktivera talade ersättningar",
+        "spoken": "Du säger",
+        "written": "Sona skriver",
+        "spokenPlaceholder": "snabel-a",
+        "writtenPlaceholder": "@",
+        "add": "Lägg till regel",
+        "reset": "Återställ standard",
+        "ruleEnabled": "Tillämpa {{spoken}}",
+        "delete": "Ta bort {{spoken}}",
+        "loading": "Läser in ersättningar",
+        "loadError": "Kunde inte läsa in ersättningarna.",
+        "matching": "Fraser matchar hela ord och struntar i skiftläge. När två regler passar samma ställe vinner den längre, och ersättning körs före vokabulärkorrigeringen.",
+        "errors": {
+          "duplicate": "En annan regel använder redan den här frasen.",
+          "incomplete": "Ange både en talad fras och dess ersättning."
+        },
+        "empty": {
+          "description": "Lägg till en fras som snabel-a, så skriver Sona @ varje gång du säger den."
+        },
+        "confirmDelete": {
+          "title": "Ta bort {{spoken}}?",
+          "description": "Frasen skrivs inte längre om i framtida transkriberingar. Text som redan skrivits ändras inte."
+        },
+        "confirmReset": {
+          "title": "Återställa standardreglerna?",
+          "description": "Varje regel du lagt till eller ändrat förkastas och den medföljande startuppsättningen kommer tillbaka."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Skrivexempel",
+        "placeholder": "Klistra in ett stycke du skrivit själv.",
+        "sampleLabel": "Skrivexempel {{number}}",
+        "delete": "Ta bort exempel {{number}}",
+        "add": "Lägg till exempel",
+        "wordCount": "{{words}} av {{max}} ord",
+        "overLimit": "{{words}} ord. Bara de första {{max}} används.",
+        "privacy": "Exempel skickas bara dit transkriberingen själv redan går, och ingen annanstans.",
+        "loading": "Läser in exempel",
+        "loadError": "Kunde inte läsa in exemplen.",
+        "empty": {
+          "description": "Klistra in några stycken du skrivit själv, då följer omskrivningarna ditt ordval, dina meningslängder och din stilnivå."
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "Visa vilopillret",
+      "enabledDescription": "Behåll ett litet piller på skärmen mellan dikteringar. Klicka för att starta, högerklicka för att byta läge.",
+      "positionLabel": "Vilopillrets placering",
+      "positionTop": "Överkant",
+      "positionBottom": "Nederkant"
+    },
     "history": {
       "stats": {
         "unavailable": "Användningsstatistik är inte tillgänglig.",
         "entries": "inspelningar",
         "duration": "inspelningstid",
         "words": "ord"
+      },
+      "processAgain": {
+        "action": "Bearbeta igen",
+        "title": "Bearbeta igen",
+        "description": "Kör den här inspelningen genom ett annat läge. Den ursprungliga posten behålls och resultatet sparas som en ny.",
+        "placeholder": "Välj ett läge",
+        "confirm": "Bearbeta",
+        "started": "Ombearbetning startad",
+        "modeLabel": "Läge"
       },
       "title": "Historik",
       "openFolder": "Öppna mapp för inspelningar",
@@ -637,6 +706,12 @@
           "full": "Fullständig"
         },
         "contextSources": "Kontextkällor",
+        "columns": {
+          "source": "Källa",
+          "status": "Status",
+          "method": "Metod",
+          "outcome": "Resultat"
+        },
         "contextSource": {
           "target": "App",
           "focused_field": "Fokuserat fält",
@@ -681,13 +756,7 @@
           "truncated": "Avkortad",
           "no_speech_detected": "Inget tal upptäcktes"
         },
-        "realtimeFactorLabel": "Avkodning",
-        "columns": {
-          "source": "Källa",
-          "status": "Status",
-          "method": "Metod",
-          "outcome": "Resultat"
-        }
+        "realtimeFactorLabel": "Avkodning"
       },
       "correction": {
         "add": "Lägg till korrigering",
@@ -753,16 +822,7 @@
       },
       "noTextRecorded": "Ingen text registrerades för den här posten.",
       "cloudHeld": "Sona höll tillbaka molnresultatet: inget tillförlitligt kom tillbaka och ingen lokal modell var tillgänglig.",
-      "transcriptionEngineFailed": "Transkribering misslyckades, så ingenting registrerades.",
-      "processAgain": {
-        "action": "Bearbeta igen",
-        "title": "Bearbeta igen",
-        "description": "Kör den här inspelningen genom ett annat läge. Den ursprungliga posten behålls och resultatet sparas som en ny.",
-        "placeholder": "Välj ett läge",
-        "confirm": "Bearbeta",
-        "started": "Ombearbetning startad",
-        "modeLabel": "Läge"
-      }
+      "transcriptionEngineFailed": "Transkribering misslyckades, så ingenting registrerades."
     },
     "debug": {
       "title": "Felsökning",
@@ -780,6 +840,12 @@
         "copied": "Kopierad",
         "lineCount": "{{count}} rader",
         "empty": "Inga rader än."
+      },
+      "whatsNewPreview": {
+        "title": "Förhandsvisa versionsnotisen",
+        "description": "Öppna den senaste medföljande versionsinformationen utan att markera den som visad",
+        "noNotes": "Ingen medföljande versionsinformation hittades",
+        "error": "Kunde inte förhandsvisa versionsinformationen. Försök igen."
       },
       "soundTheme": {
         "label": "Ljudtema",
@@ -852,16 +918,16 @@
         "enabled": "aktiverat",
         "disabled": "inaktiverat",
         "holder": "hålls av {{name}} (pid {{pid}})",
-        "notSupported": "Ejtödsstött på den här plattformen.",
-        "noHolder": "Ingen app använder säkert inmatningsläge.",
-        "status": "Status",
-        "error": "Tangentbordsdiagnostik är ej tillgänglig."
-      },
-      "whatsNewPreview": {
-        "title": "Förhandsvisa versionsnotisen",
-        "description": "Öppna den senaste medföljande versionsinformationen utan att markera den som visad",
-        "noNotes": "Ingen medföljande versionsinformation hittades",
-        "error": "Kunde inte förhandsvisa versionsinformationen. Försök igen."
+        "holderUnknown": "hålls av en app som macOS inte namngav",
+        "verdictBlocked": "Secure Input är på och ingen tangent nådde Sona. Stäng appen som håller det, och försök sedan igen.",
+        "verdictSuspicious": "Modifieringstangenter kom fram men inga tangenttryckningar gjorde det. En annan app fångar dem troligen.",
+        "verdictNoEvents": "Ingenting kom fram alls. Tryck på några tangenter medan diagnostiken körs.",
+        "verdictOk": "Tangenter når Sona.",
+        "failed": "Diagnostiken kunde inte köras: {{error}}",
+        "keyDown": "Tangent ned",
+        "keyUp": "Tangent upp",
+        "flagsChanged": "Modifierare",
+        "mouse": "Mus"
       },
       "groups": {
         "capture": "Inspelning",
@@ -1009,6 +1075,10 @@
         },
         "model": {
           "label": "AI-modell"
+        },
+        "spokenInstructions": {
+          "label": "Talade instruktioner",
+          "description": "Avsluta en diktering med \"Sona,\" så blir resten av den meningen en redigering som AI:n utför, i stället för ord som skrivs in."
         },
         "disabledNote": "Slå på AI-rensning för att använda förinställning, ton, leverantör och modell nedan."
       },
@@ -1391,11 +1461,11 @@
           },
           "codex": {
             "label": "Codex",
-            "description": "Observera endast sessioner. Sona kan ännu inte svara Codex."
+            "description": "Följ Codex-sessioner, besvara godkännandeförfrågningar och svara när en tur avslutas."
           },
           "grok": {
             "label": "Grok",
-            "description": "Observera endast sessioner. Sona kan ännu inte svara Grok."
+            "description": "Följ Grok-sessioner, besvara verktygsförfrågningar och svara när en tur avslutas."
           },
           "omp": {
             "label": "OMP",
@@ -1465,7 +1535,7 @@
         "allowExact": "Tillåt exakt den här förfrågan",
         "denyExact": "Neka exakt den här förfrågan",
         "dismiss": "Avfärda",
-        "ompPermissionObserveOnly": "OMP-godkännandeförfrågningar observeras bara. Godkänn eller neka dem i OMP."
+        "observeOnly": "Sona kan bara se den här förfrågan. Besvara den i {{agent}}."
       },
       "rules": {
         "title": "Behörighetsregler",
@@ -1489,6 +1559,10 @@
       "externalAccess": {
         "label": "Extern åtkomst",
         "rowDescription": "Låter andra program på denna Mac läsa dina möten, diktat, personer och öppna loopar via Sonas kommandoradsverktyg och MCP-server. Det är endast för läsning och är avstängt tills du aktiverar det."
+      },
+      "externalMutations": {
+        "label": "Externa ändringar",
+        "rowDescription": "Låter samma program markera en loop som klar. Fristående från Extern åtkomst, och av tills du slår på det: att läsa dina möten är inte samma sak som att ändra dem."
       },
       "workspaceNavigation": "Agentvyer",
       "sonaAgent": {
@@ -1608,62 +1682,6 @@
         "chartAria": "Aktivitet per dag, {{count}} under de senaste 7 dagarna"
       }
     },
-    "vocabulary": {
-      "replacements": {
-        "title": "Talade ersättningar",
-        "enabledLabel": "Aktivera talade ersättningar",
-        "spoken": "Du säger",
-        "written": "Sona skriver",
-        "spokenPlaceholder": "snabel-a",
-        "writtenPlaceholder": "@",
-        "add": "Lägg till regel",
-        "reset": "Återställ standard",
-        "ruleEnabled": "Tillämpa {{spoken}}",
-        "delete": "Ta bort {{spoken}}",
-        "loading": "Läser in ersättningar",
-        "loadError": "Kunde inte läsa in ersättningarna.",
-        "matching": "Fraser matchar hela ord och struntar i skiftläge. När två regler passar samma ställe vinner den längre, och ersättning körs före vokabulärkorrigeringen.",
-        "errors": {
-          "duplicate": "En annan regel använder redan den här frasen.",
-          "incomplete": "Ange både en talad fras och dess ersättning."
-        },
-        "empty": {
-          "description": "Lägg till en fras som snabel-a, så skriver Sona @ varje gång du säger den."
-        },
-        "confirmDelete": {
-          "title": "Ta bort {{spoken}}?",
-          "description": "Frasen skrivs inte längre om i framtida transkriberingar. Text som redan skrivits ändras inte."
-        },
-        "confirmReset": {
-          "title": "Återställa standardreglerna?",
-          "description": "Varje regel du lagt till eller ändrat förkastas och den medföljande startuppsättningen kommer tillbaka."
-        }
-      }
-    },
-    "prompts": {
-      "samples": {
-        "title": "Skrivexempel",
-        "placeholder": "Klistra in ett stycke du skrivit själv.",
-        "sampleLabel": "Skrivexempel {{number}}",
-        "delete": "Ta bort exempel {{number}}",
-        "add": "Lägg till exempel",
-        "wordCount": "{{words}} av {{max}} ord",
-        "overLimit": "{{words}} ord. Bara de första {{max}} används.",
-        "privacy": "Exempel skickas bara dit transkriberingen själv redan går, och ingen annanstans.",
-        "loading": "Läser in exempel",
-        "loadError": "Kunde inte läsa in exemplen.",
-        "empty": {
-          "description": "Klistra in några stycken du skrivit själv, då följer omskrivningarna ditt ordval, dina meningslängder och din stilnivå."
-        }
-      }
-    },
-    "hud": {
-      "enabledLabel": "Visa vilopillret",
-      "enabledDescription": "Behåll ett litet piller på skärmen mellan dikteringar. Klicka för att starta, högerklicka för att byta läge.",
-      "positionLabel": "Vilopillrets placering",
-      "positionTop": "Överkant",
-      "positionBottom": "Nederkant"
-    },
     "meetings": {
       "digest": {
         "title": "Kvällssammanfattning",
@@ -1686,6 +1704,10 @@
         "webhook": "Skicka till en webhook",
         "webhookHint": "Skickar mötesexporten som JSON. Använd endast din egen maskin eller tailnet, precis som med servern.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "runPrompt": "Kör en sparad prompt",
+        "runPromptHint": "Ställer en av dina sparade prompter om mötet och sparar svaret tillsammans med det.",
+        "promptPlaceholder": "Välj en prompt",
+        "needsPrompt": "Välj en prompt först",
         "needsTarget": "Lägg till ett namn först",
         "needsUrl": "Lägg till en adress först",
         "rejected": "Ett annat fönster ändrade det här. Läs om och försök igen.",
@@ -1706,6 +1728,9 @@
         "saveFailed": "Ändringen sparades inte. Läs raden igen och försök en gång till."
       }
     }
+  },
+  "whatsNew": {
+    "title": "Nytt i Sona v{{version}}"
   },
   "common": {
     "loading": "Laddar…",
@@ -1736,8 +1761,11 @@
     "noResults": "Ingenting hittades",
     "newMeeting": "Nytt möte",
     "importAudio": "Transkribera fil",
+    "importMeeting": "Importera en inspelning eller ett transkript",
     "openRecordings": "Öppna mapp för inspelningar",
     "openAgent": "Öppna agent",
+    "runPrompt": "Kör en prompt",
+    "newPrompt": "Ny prompt",
     "esc": "esc",
     "search": {
       "meetings": "Möten",
@@ -1746,6 +1774,52 @@
       "loops": "Öppna frågor",
       "empty": "Inget matchar \"{{query}}\".",
       "unavailable": "Sökningen är inte tillgänglig just nu."
+    }
+  },
+  "prompts": {
+    "title": "Prompter",
+    "description": "Frågor du kan ställa igen. Kör en från kommandopaletten, eller efter ett möte från en series automatiseringar.",
+    "loading": "Läser dina prompter…",
+    "empty": "Inga prompter ännu.",
+    "new": "Ny prompt",
+    "editing": "Redigera prompt",
+    "editorHint": "Prompten besvaras enbart utifrån det Sona redan har om posten du kör den på.",
+    "name": "Namn",
+    "body": "Prompt",
+    "bodyPlaceholder": "Lista besluten och vem som ansvarar för varje.",
+    "output": "Svar",
+    "outputText": "Text",
+    "outputSchema": "JSON som följer ett schema",
+    "schema": "Schema",
+    "schemaPlaceholder": "{\"type\":\"object\",\"required\":[\"decisions\"],\"properties\":{\"decisions\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+    "targetLabel": "Om",
+    "save": "Spara",
+    "edit": "Redigera {{name}}",
+    "delete": "Ta bort {{name}}",
+    "invalid": "En prompt behöver ett namn, en prompt och ett schema som är JSON.",
+    "rejected": "Ett annat fönster ändrade dessa. Läs igen och försök på nytt.",
+    "saveFailed": "Det sparades inte.",
+    "target": {
+      "meeting": "Ett möte",
+      "person": "En person",
+      "series": "En serie"
+    },
+    "run": {
+      "saved": "{{name}} kördes. Svaret finns under Promptresultat.",
+      "missing": "Den prompten finns inte längre, eller så finns det inget att fråga om ännu.",
+      "failed": "Den prompten kunde inte köras."
+    },
+    "results": {
+      "title": "Promptresultat",
+      "rerun": "Kör {{name}} igen",
+      "deleted": "Borttagen prompt"
+    },
+    "failure": {
+      "modelUnavailable": "Ingen modell var tillgänglig för att besvara detta.",
+      "modelUnreachable": "Din server kunde inte nås.",
+      "modelFailed": "Modellen gav inget användbart svar.",
+      "schemaMismatch": "Svaret stämde inte med schemat.",
+      "noEvidence": "Det fanns inget inspelat att svara utifrån."
     }
   },
   "accessibility": {
@@ -1763,11 +1837,11 @@
       "macos": "Bevilja mikrofonåtkomst i Systeminställningar → Integritet och säkerhet → Mikrofon.",
       "linux": "Bevilja mikrofonåtkomst i systemets ljud- eller integritetsinställningar."
     },
+    "noInputDeviceTitle": "Ingen mikrofon hittades",
+    "noInputDevice": "Ingen ljudenhet hittades. Anslut en mikrofon och försök igen.",
     "recordingFailed": "Kunde inte starta inspelningen: {{error}}. Försök igen.",
     "modelLoadFailed": "Kunde inte läsa in {{model}}. Försök igen.",
     "modelLoadFailedUnknown": "okänd modell",
-    "noInputDeviceTitle": "Ingen mikrofon hittades",
-    "noInputDevice": "Ingen ljudenhet hittades. Anslut en mikrofon och försök igen.",
     "pasteFailedTitle": "Kunde inte klistra in transkriberingen",
     "pasteFailed": "Transcript kunde inte klistras in i den aktiva appen. Sätt markören i ett textfält och försök igen.",
     "transcriptionFailedTitle": "Kunde inte transkribera",
@@ -1808,9 +1882,6 @@
       "hint": "Klicka för att diktera, högerklicka för lägen",
       "modes": "Byt läge"
     }
-  },
-  "whatsNew": {
-    "title": "Nytt i Sona v{{version}}"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} kanske blockerar 1 kortkommando",
@@ -1888,6 +1959,28 @@
         "interrupted": "Bearbetningen avbröts i förtid"
       }
     },
+    "start": {
+      "label": "Starta ett möte",
+      "action": "Starta inspelning",
+      "starting": "Startar…",
+      "assurance": "Spelar in din Macs ljud lokalt. Ingenting ansluter till samtalet.",
+      "capture": "Inspelning",
+      "noSources": "Välj minst en källa.",
+      "localOnly": "Endast lokalt",
+      "retention": "Sparas: {{policy}}"
+    },
+    "import": {
+      "action": "Importera",
+      "importing": "Importerar…",
+      "recordingFilter": "Inspelning",
+      "transcriptFilter": "Transkriptexport"
+    },
+    "gate": {
+      "title": "Inspelningen startade inte",
+      "readyTitle": "Klar att spela in",
+      "recordAnyway": "Spela in utan den",
+      "recordAnywayHint": "Mötet markeras som ofullständigt, och den saknade källan namnges i det."
+    },
     "actions": {
       "back": "Tillbaka",
       "delete": "Ta bort mötet",
@@ -1943,6 +2036,14 @@
     "recovery": {
       "title": "Oavslutade möten",
       "finalize": "Slutför sparandet"
+    },
+    "trash": {
+      "title": "Nyligen borttagna",
+      "expires": "Borttaget {{deleted}} · försvinner om {{count}} dagar",
+      "expiresToday": "Borttaget {{deleted}} · försvinner i dag",
+      "restore": "Återställ",
+      "restored": "{{title}} är tillbaka.",
+      "restoreFailed": "Det gick inte att återställa det mötet."
     },
     "history": {
       "title": "Möteshistorik",
@@ -2014,7 +2115,8 @@
       "export_cancelled": "Exporten avbröts. Ingen färdig export skapades.",
       "export_failed": "Exporten misslyckades. Ingen färdig export skapades.",
       "local_model_unavailable": "Ingen lokal modell är tillgänglig för det här mötet.",
-      "remote_unavailable": "Den valda fjärrdestinationen är inte tillgänglig."
+      "remote_unavailable": "Den valda fjärrdestinationen är inte tillgänglig.",
+      "import_unreadable": "Sona kunde inte läsa den filen som en inspelning eller en transkriptexport."
     },
     "discard": {
       "liveTitle": "Stoppa och släng den här sessionen?",
@@ -2082,6 +2184,7 @@
       "followUp": "Uppföljning",
       "artifactUnavailable": "De här genererade anteckningarna är inte tillgängliga. Transkriptionen och dina egna anteckningar stannar på den här datorn.",
       "actionMeta": "Ansvarig: {{owner}} · Klart senast: {{due}}",
+      "actionDone": "Markera den här punkten som klar",
       "unassigned": "Ej tilldelad",
       "noDueDate": "Inget slutdatum",
       "questions": "Fråga det här mötet",
@@ -2113,8 +2216,7 @@
         "transcript": "Transkript"
       },
       "tabsLabel": "Sektioner för mötesgenomgång",
-      "youAsked": "Du frågade",
-      "actionDone": "Markera den här punkten som klar"
+      "youAsked": "Du frågade"
     },
     "ledger": {
       "title": "Register",
@@ -2242,22 +2344,6 @@
       "gapCount": "Luckor: {{total}}",
       "required": "Krävs"
     },
-    "start": {
-      "label": "Starta ett möte",
-      "action": "Starta inspelning",
-      "starting": "Startar…",
-      "assurance": "Spelar in din Macs ljud lokalt. Ingenting ansluter till samtalet.",
-      "capture": "Inspelning",
-      "noSources": "Välj minst en källa.",
-      "localOnly": "Endast lokalt",
-      "retention": "Sparas: {{policy}}"
-    },
-    "gate": {
-      "title": "Inspelningen startade inte",
-      "readyTitle": "Klar att spela in",
-      "recordAnyway": "Spela in utan den",
-      "recordAnywayHint": "Mötet markeras som ofullständigt, och den saknade källan namnges i det."
-    },
     "analytics": {
       "title": "Samtal",
       "noSpeech": "Inget tal transkriberades, så det finns inget att mäta.",
@@ -2297,7 +2383,9 @@
       "catchUp": "Sammanfatta för mig",
       "catchingUp": "Sammanfattar…",
       "catchUpTitle": "Så här långt",
-      "catchUpNoTranscript": "Inget att sammanfatta än. Sona transkriberar efter att du stoppat inspelningen, så en sammanfattning finns när transkriberingen börjar komma in.",
+      "catchUpNoTranscript": "Inget att sammanfatta: det här mötet har inget transkript.",
+      "catchUpNothingHeardYet": "Inget att sammanfatta ännu. Sona håller fortfarande på att komma i kapp med rummet — försök igen om en stund.",
+      "catchUpAsOf": "Per {{time}}, preliminärt",
       "catchUpUnavailable": "Modellen på enheten är inte tillgänglig, så ingen sammanfattning skrevs.",
       "catchUpFailed": "Sona kunde inte bygga en sammanfattning. Försök igen.",
       "templates": {
@@ -2315,6 +2403,7 @@
       "prompt": {
         "calendar": "{{title}} börjar",
         "app": "{{app}}-möte upptäckt",
+        "call": "{{app}}-samtal upptäckt",
         "huddle": "{{app}}-huddle upptäckt",
         "browser": "Samtal upptäckt i {{app}}",
         "unknown": "Mikrofonaktivitet upptäckt",
@@ -2351,7 +2440,7 @@
         "calendarDenied": "Kalenderåtkomst gavs inte, så bara mikrofonvägen körs.",
         "notificationsDenied": "Aviseringar är av för Sona, så frågor visas bara i appen.",
         "bluetoothCaveat": "En mötesapp är öppen men ingenting rapporterar mikrofonanvändning. Bluetooth-headset gör ofta inte det, så starta mötet själv om ett pågår.",
-        "noSilenceStop": "Inspelningen stoppar när händelsen tar slut, appen avslutas, din Mac somnar, eller när du stoppar den själv. Tystnad stoppar den inte: det skulle kräva livetranskription, och transkriptionen körs efter mötet."
+        "noSilenceStop": "Inspelningen stoppas när händelsen slutar, samtalet avslutas, appen avslutas, din Mac går i vila eller du stoppar den själv. Inget stoppar den på grund av tystnad: det skulle kräva transkription i realtid, som bara körs efter att ett möte har avslutats."
       },
       "why": {
         "disabled": "Detekteringen är av.",
@@ -2452,7 +2541,12 @@
       "copy": "Kopiera",
       "copied": "Utkastet kopierat.",
       "copyFailed": "Utkastet kunde inte kopieras.",
-      "failed": "Det gick inte att skriva en uppföljning för det här mötet."
+      "failed": "Det gick inte att skriva en uppföljning för det här mötet.",
+      "openInMail": "Öppna i Mail",
+      "mailOpened": "Mail är öppet med utkastet.",
+      "mailClipboardNote": "Uppföljningen finns i urklipp. Klistra in den här.",
+      "mailCopied": "Utkastet var för långt för en e-postlänk, så det finns i urklipp.",
+      "mailFailed": "Det gick inte att öppna Mail för det här mötet."
     },
     "prep": {
       "label": "Förberedelse",
@@ -2490,6 +2584,16 @@
     },
     "workedFor": "Arbetade i {{seconds}} s",
     "stepSeconds": "{{seconds}} s",
+    "error": {
+      "unreachable": "Sona kunde inte ansluta.",
+      "refused": "Sona kunde inte ta emot den frågan.",
+      "failed": "Sona kunde inte slutföra det svaret."
+    },
+    "working": {
+      "searchedCorpus": "Gick igenom dina möten och anteckningar",
+      "stillWaiting": "Väntar fortfarande…",
+      "cancel": "Avbryt"
+    },
     "turnState": {
       "submitting": "Skickar",
       "queued": "I kö",
@@ -2516,20 +2620,27 @@
       "undone": "Ångrad",
       "rejected": "Inte tillämpad"
     },
+    "action": {
+      "resolve_loop": "Markera ett åtagande som klart",
+      "assign_loop": "Ge ett åtagande en ansvarig",
+      "set_series_template": "Använd mallen {{template}} för den här serien",
+      "add_vocabulary_term": "Lägg till \"{{term}}\" i din ordlista",
+      "rename_speaker": "Byt namn på en talare till {{name}}",
+      "apply": "Tillämpa",
+      "dismiss": "Avfärda",
+      "applied": "Tillämpat",
+      "undo": "Ångra",
+      "dismissed": "Avfärdat",
+      "receipt": "Kvitto {{id}}"
+    },
+    "tools": {
+      "label": "Låt den använda verktyg",
+      "hint": "Bara för den här frågan"
+    },
     "ask": {
       "row": "Fråga Sona: {{query}}",
       "error": "Frågan kunde inte skickas till Sona.",
       "consentRequired": "En fråga skickar citat ur dina möten till din server, så slå på mötesintelligens först."
-    },
-    "error": {
-      "unreachable": "Sona kunde inte ansluta.",
-      "refused": "Sona kunde inte ta emot den frågan.",
-      "failed": "Sona kunde inte slutföra det svaret."
-    },
-    "working": {
-      "searchedCorpus": "Gick igenom dina möten och anteckningar",
-      "stillWaiting": "Väntar fortfarande…",
-      "cancel": "Avbryt"
     }
   },
   "overview": {
@@ -2600,6 +2711,12 @@
       "createOffer": "Skapa kopplingserbjudande",
       "currentOffer": "Kopplingserbjudande",
       "approve": "Godkänn det här erbjudandet",
+      "candidateOffer": "Kod från enheten du lägger till",
+      "candidateApprove": "Godkänn enhet",
+      "candidateReading": "Kontrollerar…",
+      "candidateCompare": "Kontrollera att detta stämmer med koden på enheten innan du godkänner.",
+      "candidateInvalid": "Den koden är inte giltig.",
+      "candidateApproved": "Enheten är godkänd.",
       "receivedOffer": "Erbjudande från en annan enhet",
       "accept": "Acceptera erbjudande"
     },
@@ -2653,10 +2770,6 @@
         "revokeConfirm": "Alla med den här länken förlorar åtkomst i samma stund som du återkallar den."
       }
     }
-  },
-  "topNav": {
-    "capture": "Inspelning",
-    "library": "Bibliotek"
   },
   "people": {
     "title": "Personer",
@@ -2733,6 +2846,11 @@
       "stale": "Personer ändrades på en annan skärm. Läs in igen och försök på nytt.",
       "operation": "Det gick inte att uppdatera personer. Försök igen."
     },
+    "summary": {
+      "empty": "Ingen sammanfattning ännu.",
+      "regenerate": "Skapa på nytt",
+      "provenance": "Skriven av {{model}} den {{date}}"
+    },
     "review": {
       "personDetails": "Personuppgifter",
       "previouslyTogether": "Tidigare möten tillsammans",
@@ -2762,6 +2880,16 @@
       "brief": "Väntar på {{name}}: {{text}}",
       "briefOverdue": "Försenat hos {{name}}: {{text}}",
       "briefIOwe": "Du ska: {{text}}"
+    }
+  },
+  "organizations": {
+    "title": "Organisationer",
+    "detail": {
+      "people_one": "{{count}} person",
+      "people_other": "{{count}} personer",
+      "peopleHere": "Personer här",
+      "noPeople": "Ingen här ännu.",
+      "recentMeetings": "Senaste möten"
     }
   },
   "libraryV2": {
@@ -2940,6 +3068,8 @@
       "label": "Mötesappar",
       "browsersAutomatic": "Ett samtal i en webbläsarflik upptäcks utan att stå med här.",
       "runningNow": "Körs nu",
+      "autoRecord": "Spela in automatiskt",
+      "autoRecordConsent": "På vissa platser krävs att alla i ett samtal samtycker till inspelning.",
       "add": "Lägg till en app",
       "addTitle": "Lägg till en mötesapp",
       "addDescription": "Sona behöver app-ID, som du kan hitta i appens Info-fönster eller med `osascript -e 'id of app \"Name\"'`.",
@@ -2953,6 +3083,7 @@
         "teams": "Microsoft Teams",
         "webex": "Webex",
         "facetime": "FaceTime",
+        "phone": "Telefon",
         "slack": "Slack"
       }
     }
@@ -2960,17 +3091,23 @@
   "consentPanel": {
     "calendarTitle": "Spela in {{title}}?",
     "appTitle": "Spela in det här {{app}}-mötet?",
+    "appCallTitle": "Spela in det här {{app}}-samtalet?",
     "genericTitle": "Spela in det här mötet?",
     "introduction": "Sona spelar in på den här Macen och du behåller kontrollen.",
     "seriesBrief_one": "Möte {{nth}} med {{person}} · {{count}} öppen punkt",
     "seriesBrief_other": "Möte {{nth}} med {{person}} · {{count}} öppna punkter",
     "alwaysRecord": "Spela alltid in det här mötet",
+    "announceInChat": "Meddela i chatten",
+    "announceLine": "Sona för anteckningar åt {{name}}. Säg till om du hellre slipper.",
+    "announceRefused": "Meddelandet publicerades inte: den här appen tog inte emot det.",
     "assurance": "Börja först när alla i mötet har gått med på att spelas in.",
     "record": "Spela in",
     "ignore": "Ignorera",
     "recording": "Inspelning",
+    "recordingStarted": "Inspelningen har startat",
     "stop": "Stoppa",
     "forgetSeries": "Glöm den här serien",
+    "forgetApp": "Spela inte in den här appen automatiskt",
     "wrap": {
       "label": "Avslut",
       "title": "{{title}} — sparat",

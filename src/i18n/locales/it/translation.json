@@ -33,6 +33,10 @@
     "people": "Persone",
     "settings": "Impostazioni"
   },
+  "topNav": {
+    "capture": "Registrazione",
+    "library": "Libreria"
+  },
   "onboarding": {
     "subtitle": "I modelli funzionano su questo Mac e bilanciano accuratezza e velocità.",
     "existingModelsTitle": "Modelli compatibili",
@@ -142,6 +146,7 @@
   },
   "modelSelector": {
     "custom": "Personalizzato",
+    "legacy": "Obsoleto",
     "streaming": "Streaming",
     "active": "Attivo",
     "switching": "Cambio…",
@@ -155,22 +160,77 @@
     "loadingGeneric": "Caricamento…",
     "deleteModel": "Elimina {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
-    "capabilities": {
-      "languageSelection": "Supporta più lingue di input",
-      "languageCount": "{{total}} lingue",
-      "translation": "Può tradurre in inglese",
-      "translate": "Traduci in inglese",
-      "singleLanguage": "Supporta solo questa lingua",
-      "languageOnly": "Solo {{language}}",
-      "streaming": "Mostra la trascrizione in tempo reale mentre parli"
-    },
     "cancel": "Annulla",
     "cancelDownload": "Annulla download",
-    "legacy": "Obsoleto"
+    "capabilities": {
+      "languageSelection": "Supporta più lingue di input",
+      "singleLanguage": "Supporta solo questa lingua",
+      "languageCount": "{{total}} lingue",
+      "languageOnly": "Solo {{language}}",
+      "translation": "Può tradurre in inglese",
+      "translate": "Traduci in inglese",
+      "streaming": "Mostra la trascrizione in tempo reale mentre parli"
+    }
   },
   "settings": {
     "modelSettings": {
       "title": "Impostazioni di {{model}}"
+    },
+    "general": {
+      "title": "Generale",
+      "shortcut": {
+        "title": "Scorciatoie",
+        "loading": "Caricamento delle scorciatoie…",
+        "none": "Nessuna scorciatoia configurata",
+        "notFound": "Scorciatoia non trovata",
+        "pressKeys": "Premi i tasti…",
+        "bindings": {
+          "transcribe": {
+            "name": "Scorciatoia Trascrizione"
+          },
+          "cancel": {
+            "name": "Scorciatoia Annulla"
+          },
+          "command": {
+            "name": "Scorciatoia comando"
+          },
+          "transcribe_with_post_process": {
+            "name": "Scorciatoia di post-elaborazione"
+          }
+        },
+        "errors": {
+          "restore": "Non è stato possibile ripristinare la scorciatoia originale. Riprova.",
+          "set": "Non è stato possibile impostare la scorciatoia: {{error}}",
+          "reset": "Non è stato possibile reimpostare la scorciatoia. Riprova."
+        },
+        "holdHint": "Tocca per attivare, tieni premuto per parlare. Funziona con qualsiasi scorciatoia.",
+        "recordAction": "Registra una nuova scorciatoia per {{binding}}",
+        "unset": "Non impostata"
+      },
+      "language": {
+        "title": "Lingua",
+        "searchPlaceholder": "Cerca lingue",
+        "noResults": "Nessuna lingua trovata",
+        "auto": "Automatico"
+      },
+      "pushToTalk": {
+        "label": "Premi per Parlare"
+      },
+      "appearance": {
+        "title": "Aspetto",
+        "material": {
+          "title": "Materiale",
+          "description": "Solido mantiene opache le superfici di Sona. Vetro lascia trasparire il desktop dalla barra superiore, dalla palette dei comandi e dall'HUD di registrazione.",
+          "options": {
+            "solid": "Solido",
+            "glass": "Vetro"
+          }
+        }
+      },
+      "commandMode": {
+        "label": "Modalità comando vocale",
+        "description": "Tieni premuta la scorciatoia comando e di' cosa cambiare nel testo selezionato."
+      }
     },
     "models": {
       "title": "Modelli di Trascrizione",
@@ -186,11 +246,11 @@
         "downloadedOnlyHint": "Mostra solo i modelli già scaricati",
         "family": "Famiglia di modelli"
       },
-      "noModelsMatch": "Nessun modello corrisponde a questo filtro.",
       "rescan": {
         "label": "Riscansiona",
         "tooltip": "Riscansiona per trovare modelli aggiunti alla cartella dei modelli o alla cache di Hugging Face al di fuori di Sona"
       },
+      "noModelsMatch": "Nessun modello corrisponde a questo filtro.",
       "cloud": {
         "title": "Trascrizione cloud",
         "providerDescription": "Le chiavi restano nel portachiavi di sistema.",
@@ -255,62 +315,6 @@
         "activeInMemory": "Attivo, in memoria",
         "downloaded": "Scaricato",
         "notDownloaded": "Non scaricato"
-      }
-    },
-    "general": {
-      "title": "Generale",
-      "shortcut": {
-        "title": "Scorciatoie",
-        "loading": "Caricamento delle scorciatoie…",
-        "none": "Nessuna scorciatoia configurata",
-        "notFound": "Scorciatoia non trovata",
-        "pressKeys": "Premi i tasti…",
-        "bindings": {
-          "transcribe": {
-            "name": "Scorciatoia Trascrizione"
-          },
-          "cancel": {
-            "name": "Scorciatoia Annulla"
-          },
-          "transcribe_with_post_process": {
-            "name": "Scorciatoia di post-elaborazione"
-          },
-          "command": {
-            "name": "Scorciatoia comando"
-          }
-        },
-        "errors": {
-          "restore": "Non è stato possibile ripristinare la scorciatoia originale. Riprova.",
-          "set": "Non è stato possibile impostare la scorciatoia: {{error}}",
-          "reset": "Non è stato possibile reimpostare la scorciatoia. Riprova."
-        },
-        "holdHint": "Tocca per attivare, tieni premuto per parlare. Funziona con qualsiasi scorciatoia.",
-        "recordAction": "Registra una nuova scorciatoia per {{binding}}",
-        "unset": "Non impostata"
-      },
-      "language": {
-        "title": "Lingua",
-        "searchPlaceholder": "Cerca lingue",
-        "noResults": "Nessuna lingua trovata",
-        "auto": "Automatico"
-      },
-      "pushToTalk": {
-        "label": "Premi per Parlare"
-      },
-      "appearance": {
-        "title": "Aspetto",
-        "material": {
-          "title": "Materiale",
-          "description": "Solido mantiene opache le superfici di Sona. Vetro lascia trasparire il desktop dalla barra superiore, dalla palette dei comandi e dall'HUD di registrazione.",
-          "options": {
-            "solid": "Solido",
-            "glass": "Vetro"
-          }
-        }
-      },
-      "commandMode": {
-        "label": "Modalità comando vocale",
-        "description": "Tieni premuta la scorciatoia comando e di' cosa cambiare nel testo selezionato."
       }
     },
     "sound": {
@@ -497,7 +501,7 @@
       },
       "spokenEdits": {
         "enabledLabel": "Esegui i comandi di modifica dettati",
-        "enabledDescription": "Esegue «scratch that», «delete last word» e «delete the last word» invece di scriverli. Solo in inglese e solo quando la frase è isolata tra due pause: «scratch that plan» e «we should scratch that» restano testo.",
+        "enabledDescription": "Esegue \"scratch that\", \"delete last word\", \"delete the last word\", \"capitalize that\", \"lowercase that\", \"quote that\", \"make that a list\" e \"new bullet\" invece di scriverli. Solo in inglese, e solo quando la frase è isolata tra due pause: \"scratch that plan\" e \"we should scratch that\" restano come testo.",
         "toggleError": "Non è stato possibile modificare i comandi di modifica dettati. Riprova."
       }
     },
@@ -568,12 +572,77 @@
         "destinationPinned": "Sona lega l'accettazione esattamente a questo indirizzo e a questa origine."
       }
     },
+    "vocabulary": {
+      "replacements": {
+        "title": "Sostituzioni dettate",
+        "enabledLabel": "Attiva le sostituzioni dettate",
+        "spoken": "Tu dici",
+        "written": "Sona scrive",
+        "spokenPlaceholder": "chiocciola",
+        "writtenPlaceholder": "@",
+        "add": "Aggiungi regola",
+        "reset": "Ripristina i valori predefiniti",
+        "ruleEnabled": "Applica {{spoken}}",
+        "delete": "Elimina {{spoken}}",
+        "loading": "Caricamento delle sostituzioni",
+        "loadError": "Non è stato possibile caricare le sostituzioni.",
+        "matching": "Le espressioni corrispondono a parole intere e ignorano le maiuscole. Quando due regole coprono lo stesso punto vince la più lunga, e la sostituzione precede la correzione del vocabolario.",
+        "errors": {
+          "duplicate": "Un'altra regola usa già questa espressione.",
+          "incomplete": "Inserisci sia l'espressione dettata sia la sua sostituzione."
+        },
+        "empty": {
+          "description": "Aggiungi un'espressione come chiocciola e Sona scriverà @ ogni volta che la dici."
+        },
+        "confirmDelete": {
+          "title": "Eliminare {{spoken}}?",
+          "description": "L'espressione non verrà più riscritta nelle trascrizioni future. Il testo già scritto resta invariato."
+        },
+        "confirmReset": {
+          "title": "Ripristinare le regole predefinite?",
+          "description": "Ogni regola aggiunta o modificata viene scartata e torna il set iniziale di fabbrica."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Esempi di scrittura",
+        "placeholder": "Incolla un paragrafo scritto da te.",
+        "sampleLabel": "Esempio di scrittura {{number}}",
+        "delete": "Elimina l'esempio {{number}}",
+        "add": "Aggiungi esempio",
+        "wordCount": "{{words}} di {{max}} parole",
+        "overLimit": "{{words}} parole. Vengono usate solo le prime {{max}}.",
+        "privacy": "Gli esempi vengono inviati solo dove va già la trascrizione stessa, e in nessun altro posto.",
+        "loading": "Caricamento degli esempi",
+        "loadError": "Non è stato possibile caricare gli esempi.",
+        "empty": {
+          "description": "Incolla qualche paragrafo scritto da te e le riscritture seguiranno il tuo lessico, la lunghezza delle tue frasi e il tuo registro."
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "Mostra la pillola a riposo",
+      "enabledDescription": "Tieni una piccola pillola sullo schermo tra una dettatura e l'altra. Fai clic per iniziare, clic destro per cambiare modalità.",
+      "positionLabel": "Posizione della pillola a riposo",
+      "positionTop": "In alto",
+      "positionBottom": "In basso"
+    },
     "history": {
       "stats": {
         "unavailable": "Le statistiche di utilizzo non sono disponibili.",
         "entries": "registrazioni",
         "duration": "tempo di registrazione",
         "words": "parole"
+      },
+      "processAgain": {
+        "action": "Elabora di nuovo",
+        "title": "Elabora di nuovo",
+        "description": "Ripassa questa registrazione in un'altra modalità. La voce originale resta e il risultato viene salvato come nuova voce.",
+        "placeholder": "Scegli una modalità",
+        "confirm": "Elabora",
+        "started": "Rielaborazione avviata",
+        "modeLabel": "Modalità"
       },
       "title": "Cronologia",
       "openFolder": "Apri la cartella delle registrazioni",
@@ -637,6 +706,12 @@
           "full": "Completo"
         },
         "contextSources": "Fonti di contesto",
+        "columns": {
+          "source": "Origine",
+          "status": "Stato",
+          "method": "Metodo",
+          "outcome": "Esito"
+        },
         "contextSource": {
           "target": "App",
           "focused_field": "Campo attivo",
@@ -681,13 +756,7 @@
           "truncated": "Troncata",
           "no_speech_detected": "Nessun parlato rilevato"
         },
-        "realtimeFactorLabel": "Decodifica",
-        "columns": {
-          "source": "Origine",
-          "status": "Stato",
-          "method": "Metodo",
-          "outcome": "Esito"
-        }
+        "realtimeFactorLabel": "Decodifica"
       },
       "correction": {
         "add": "Aggiungi correzione",
@@ -753,16 +822,7 @@
       },
       "noTextRecorded": "Per questa voce non è stato registrato alcun testo.",
       "cloudHeld": "Sona ha trattenuto il risultato cloud: non è tornato nulla di affidabile e non c'era alcun modello locale disponibile.",
-      "transcriptionEngineFailed": "Trascrizione fallita, quindi non è stato registrato nulla.",
-      "processAgain": {
-        "action": "Elabora di nuovo",
-        "title": "Elabora di nuovo",
-        "description": "Ripassa questa registrazione in un'altra modalità. La voce originale resta e il risultato viene salvato come nuova voce.",
-        "placeholder": "Scegli una modalità",
-        "confirm": "Elabora",
-        "started": "Rielaborazione avviata",
-        "modeLabel": "Modalità"
-      }
+      "transcriptionEngineFailed": "Trascrizione fallita, quindi non è stato registrato nulla."
     },
     "debug": {
       "title": "Debug",
@@ -780,6 +840,12 @@
         "copied": "Copiato",
         "lineCount": "{{count}} righe",
         "empty": "Ancora nessuna riga."
+      },
+      "whatsNewPreview": {
+        "title": "Anteprima della nota di rilascio",
+        "description": "Apri le note di rilascio incluse più recenti senza segnarle come viste",
+        "noNotes": "Nessuna nota di rilascio inclusa trovata",
+        "error": "Non è stato possibile mostrare le note di rilascio. Riprova."
       },
       "soundTheme": {
         "label": "Tema Sonoro",
@@ -852,16 +918,16 @@
         "enabled": "abilitato",
         "disabled": "disabilitato",
         "holder": "trattenuto da {{name}} (pid {{pid}})",
-        "notSupported": "Non supportato su questa piattaforma.",
-        "noHolder": "Nessuna app sta utilizzando l'Input Sicuro.",
-        "status": "Stato",
-        "error": "Le diagnostiche della tastiera non sono disponibili."
-      },
-      "whatsNewPreview": {
-        "title": "Anteprima della nota di rilascio",
-        "description": "Apri le note di rilascio incluse più recenti senza segnarle come viste",
-        "noNotes": "Nessuna nota di rilascio inclusa trovata",
-        "error": "Non è stato possibile mostrare le note di rilascio. Riprova."
+        "holderUnknown": "tenuto da un'app che macOS non ha indicato",
+        "verdictBlocked": "Secure Input è attivo e nessun tasto ha raggiunto Sona. Chiudi l'app che lo sta usando, poi riprova.",
+        "verdictSuspicious": "I tasti modificatori sono arrivati, ma nessuna pressione di tasti. Probabilmente un'altra app li sta intercettando.",
+        "verdictNoEvents": "Non è arrivato nulla. Premi alcuni tasti mentre la diagnostica è in esecuzione.",
+        "verdictOk": "I tasti raggiungono Sona.",
+        "failed": "Impossibile eseguire la diagnostica: {{error}}",
+        "keyDown": "Tasto premuto",
+        "keyUp": "Tasto rilasciato",
+        "flagsChanged": "Modificatori",
+        "mouse": "Mouse"
       },
       "groups": {
         "capture": "Acquisizione",
@@ -1009,6 +1075,10 @@
         },
         "model": {
           "label": "Modello IA"
+        },
+        "spokenInstructions": {
+          "label": "Istruzioni a voce",
+          "description": "Termina una dettatura con \"Sona,\" e il resto della frase diventa una modifica che l'AI applica, invece di parole da scrivere."
         },
         "disabledNote": "Attiva la pulizia con IA per usare il preset, il tono, il provider e il modello qui sotto."
       },
@@ -1391,11 +1461,11 @@
           },
           "codex": {
             "label": "Codex",
-            "description": "Osserva solo le sessioni. Sona non può ancora rispondere a Codex."
+            "description": "Osserva le sessioni di Codex, risponde alle richieste di approvazione e replica alla fine di ogni turno."
           },
           "grok": {
             "label": "Grok",
-            "description": "Osserva solo le sessioni. Sona non può ancora rispondere a Grok."
+            "description": "Osserva le sessioni di Grok, risponde alle richieste di strumenti e replica alla fine di ogni turno."
           },
           "omp": {
             "label": "OMP",
@@ -1465,7 +1535,7 @@
         "allowExact": "Consenti esattamente questa richiesta",
         "denyExact": "Nega esattamente questa richiesta",
         "dismiss": "Ignora",
-        "ompPermissionObserveOnly": "Le richieste di approvazione di OMP vengono solo osservate. Approvale o negale in OMP."
+        "observeOnly": "Sona può solo osservare questa richiesta. Rispondi in {{agent}}."
       },
       "rules": {
         "title": "Regole di autorizzazione",
@@ -1489,6 +1559,10 @@
       "externalAccess": {
         "label": "Accesso esterno",
         "rowDescription": "Consente ad altre applicazioni su questo Mac di leggere i tuoi incontri, dettature, persone e loop aperti tramite lo strumento da riga di comando di Sona e il server MCP. È in sola lettura e rimane disattivata finché non la attivi."
+      },
+      "externalMutations": {
+        "label": "Modifiche esterne",
+        "rowDescription": "Permette agli stessi programmi di segnare un impegno come concluso. È separato dall'Accesso esterno e resta disattivato finché non lo attivi: leggere le tue riunioni non è la stessa cosa che modificarle."
       },
       "workspaceNavigation": "Visualizzazioni agente",
       "sonaAgent": {
@@ -1614,62 +1688,6 @@
         "chartAria": "Attività per giorno, {{count}} negli ultimi 7 giorni"
       }
     },
-    "vocabulary": {
-      "replacements": {
-        "title": "Sostituzioni dettate",
-        "enabledLabel": "Attiva le sostituzioni dettate",
-        "spoken": "Tu dici",
-        "written": "Sona scrive",
-        "spokenPlaceholder": "chiocciola",
-        "writtenPlaceholder": "@",
-        "add": "Aggiungi regola",
-        "reset": "Ripristina i valori predefiniti",
-        "ruleEnabled": "Applica {{spoken}}",
-        "delete": "Elimina {{spoken}}",
-        "loading": "Caricamento delle sostituzioni",
-        "loadError": "Non è stato possibile caricare le sostituzioni.",
-        "matching": "Le espressioni corrispondono a parole intere e ignorano le maiuscole. Quando due regole coprono lo stesso punto vince la più lunga, e la sostituzione precede la correzione del vocabolario.",
-        "errors": {
-          "duplicate": "Un'altra regola usa già questa espressione.",
-          "incomplete": "Inserisci sia l'espressione dettata sia la sua sostituzione."
-        },
-        "empty": {
-          "description": "Aggiungi un'espressione come chiocciola e Sona scriverà @ ogni volta che la dici."
-        },
-        "confirmDelete": {
-          "title": "Eliminare {{spoken}}?",
-          "description": "L'espressione non verrà più riscritta nelle trascrizioni future. Il testo già scritto resta invariato."
-        },
-        "confirmReset": {
-          "title": "Ripristinare le regole predefinite?",
-          "description": "Ogni regola aggiunta o modificata viene scartata e torna il set iniziale di fabbrica."
-        }
-      }
-    },
-    "prompts": {
-      "samples": {
-        "title": "Esempi di scrittura",
-        "placeholder": "Incolla un paragrafo scritto da te.",
-        "sampleLabel": "Esempio di scrittura {{number}}",
-        "delete": "Elimina l'esempio {{number}}",
-        "add": "Aggiungi esempio",
-        "wordCount": "{{words}} di {{max}} parole",
-        "overLimit": "{{words}} parole. Vengono usate solo le prime {{max}}.",
-        "privacy": "Gli esempi vengono inviati solo dove va già la trascrizione stessa, e in nessun altro posto.",
-        "loading": "Caricamento degli esempi",
-        "loadError": "Non è stato possibile caricare gli esempi.",
-        "empty": {
-          "description": "Incolla qualche paragrafo scritto da te e le riscritture seguiranno il tuo lessico, la lunghezza delle tue frasi e il tuo registro."
-        }
-      }
-    },
-    "hud": {
-      "enabledLabel": "Mostra la pillola a riposo",
-      "enabledDescription": "Tieni una piccola pillola sullo schermo tra una dettatura e l'altra. Fai clic per iniziare, clic destro per cambiare modalità.",
-      "positionLabel": "Posizione della pillola a riposo",
-      "positionTop": "In alto",
-      "positionBottom": "In basso"
-    },
     "meetings": {
       "digest": {
         "title": "Riepilogo della sera",
@@ -1692,6 +1710,10 @@
         "webhook": "Invia a un webhook",
         "webhookHint": "Invia l'esportazione dell'incontro come JSON. Usa solo la tua macchina o tailnet, come con il server.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "runPrompt": "Esegui un prompt salvato",
+        "runPromptHint": "Pone uno dei tuoi prompt salvati sulla riunione e conserva la risposta insieme a essa.",
+        "promptPlaceholder": "Scegli un prompt",
+        "needsPrompt": "Scegli prima un prompt",
         "needsTarget": "Aggiungi prima un nome",
         "needsUrl": "Aggiungi prima un indirizzo",
         "rejected": "Un'altra finestra ha cambiato questo. Rileggi e riprova.",
@@ -1712,6 +1734,9 @@
         "saveFailed": "La modifica non è stata salvata. Rileggi la riga e riprova."
       }
     }
+  },
+  "whatsNew": {
+    "title": "Novità in Sona v{{version}}"
   },
   "common": {
     "loading": "Caricamento…",
@@ -1742,8 +1767,11 @@
     "noResults": "Niente trovato",
     "newMeeting": "Nuova riunione",
     "importAudio": "Trascrivi file",
+    "importMeeting": "Importa una registrazione o una trascrizione",
     "openRecordings": "Apri la cartella delle registrazioni",
     "openAgent": "Apri agente",
+    "runPrompt": "Esegui un prompt",
+    "newPrompt": "Nuovo prompt",
     "esc": "esc",
     "search": {
       "meetings": "Riunioni",
@@ -1752,6 +1780,52 @@
       "loops": "Domande aperte",
       "empty": "Niente corrisponde a \"{{query}}\".",
       "unavailable": "La ricerca non è disponibile in questo momento."
+    }
+  },
+  "prompts": {
+    "title": "Prompt",
+    "description": "Domande che puoi porre di nuovo. Eseguine uno dalla palette dei comandi, oppure dopo una riunione dalle automazioni di una serie.",
+    "loading": "Lettura dei prompt in corso…",
+    "empty": "Ancora nessun prompt.",
+    "new": "Nuovo prompt",
+    "editing": "Modifica prompt",
+    "editorHint": "Il prompt riceve risposta solo da ciò che Sona già conserva sull'elemento su cui lo esegui.",
+    "name": "Nome",
+    "body": "Prompt",
+    "bodyPlaceholder": "Elenca le decisioni e chi è responsabile di ciascuna.",
+    "output": "Risposta",
+    "outputText": "Testo",
+    "outputSchema": "JSON conforme a uno schema",
+    "schema": "Schema",
+    "schemaPlaceholder": "{\"type\":\"object\",\"required\":[\"decisions\"],\"properties\":{\"decisions\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+    "targetLabel": "Riguardo a",
+    "save": "Salva",
+    "edit": "Modifica {{name}}",
+    "delete": "Elimina {{name}}",
+    "invalid": "Un prompt richiede un nome, un prompt e uno schema in formato JSON.",
+    "rejected": "Un'altra finestra ha modificato questi elementi. Rileggi e riprova.",
+    "saveFailed": "Il salvataggio non è riuscito.",
+    "target": {
+      "meeting": "Una riunione",
+      "person": "Una persona",
+      "series": "Una serie"
+    },
+    "run": {
+      "saved": "{{name}} è stato eseguito. La risposta è sotto Risultati dei prompt.",
+      "missing": "Quel prompt non esiste più, oppure non c'è ancora nulla su cui porre domande.",
+      "failed": "Non è stato possibile eseguire quel prompt."
+    },
+    "results": {
+      "title": "Risultati dei prompt",
+      "rerun": "Esegui di nuovo {{name}}",
+      "deleted": "Prompt eliminato"
+    },
+    "failure": {
+      "modelUnavailable": "Nessun modello disponibile per rispondere.",
+      "modelUnreachable": "Non è stato possibile raggiungere il tuo server.",
+      "modelFailed": "Il modello non ha restituito una risposta utilizzabile.",
+      "schemaMismatch": "La risposta non corrisponde allo schema.",
+      "noEvidence": "Non c'era nulla di registrato da cui trarre una risposta."
     }
   },
   "accessibility": {
@@ -1814,9 +1888,6 @@
       "hint": "Clic per dettare, clic destro per le modalità",
       "modes": "Cambia modalità"
     }
-  },
-  "whatsNew": {
-    "title": "Novità in Sona v{{version}}"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} potrebbe bloccare 1 scorciatoia",
@@ -1894,6 +1965,28 @@
         "interrupted": "Elaborazione interrotta"
       }
     },
+    "start": {
+      "label": "Avvia una riunione",
+      "action": "Avvia registrazione",
+      "starting": "Avvio…",
+      "assurance": "Registra l'audio del tuo Mac in locale. Niente si unisce alla chiamata.",
+      "capture": "Acquisizione",
+      "noSources": "Scegli almeno un'origine.",
+      "localOnly": "Solo locale",
+      "retention": "Conservato: {{policy}}"
+    },
+    "import": {
+      "action": "Importa",
+      "importing": "Importazione in corso…",
+      "recordingFilter": "Registrazione",
+      "transcriptFilter": "Esportazione di trascrizione"
+    },
+    "gate": {
+      "title": "La registrazione non è partita",
+      "readyTitle": "Pronto a registrare",
+      "recordAnyway": "Registra senza di essa",
+      "recordAnywayHint": "La riunione viene contrassegnata come parziale e la fonte mancante vi resta indicata."
+    },
     "actions": {
       "back": "Indietro",
       "delete": "Elimina la riunione",
@@ -1949,6 +2042,14 @@
     "recovery": {
       "title": "Riunioni incomplete",
       "finalize": "Completa il salvataggio"
+    },
+    "trash": {
+      "title": "Eliminati di recente",
+      "expires": "Eliminata {{deleted}} · scompare tra {{count}} giorni",
+      "expiresToday": "Eliminata {{deleted}} · scompare oggi",
+      "restore": "Ripristina",
+      "restored": "{{title}} è di nuovo disponibile.",
+      "restoreFailed": "Non è stato possibile ripristinare quella riunione."
     },
     "history": {
       "title": "Cronologia riunioni",
@@ -2020,7 +2121,8 @@
       "export_cancelled": "L'esportazione è stata annullata. Non è stata creata alcuna esportazione completa.",
       "export_failed": "L'esportazione non è riuscita. Non è stata creata alcuna esportazione completa.",
       "local_model_unavailable": "Non è disponibile alcun modello locale per questa riunione.",
-      "remote_unavailable": "La destinazione remota selezionata non è disponibile."
+      "remote_unavailable": "La destinazione remota selezionata non è disponibile.",
+      "import_unreadable": "Sona non è riuscita a leggere quel file come registrazione o come esportazione di trascrizione."
     },
     "discard": {
       "liveTitle": "Interrompere e scartare questa sessione?",
@@ -2088,6 +2190,7 @@
       "followUp": "Messaggio di follow-up",
       "artifactUnavailable": "Queste note generate non sono disponibili. La trascrizione e le tue note manuali restano su questo Mac.",
       "actionMeta": "Responsabile: {{owner}} · Scadenza: {{due}}",
+      "actionDone": "Segna questa azione come completata",
       "unassigned": "Non assegnato",
       "noDueDate": "Nessuna scadenza",
       "questions": "Interroga questa riunione",
@@ -2119,8 +2222,7 @@
         "transcript": "Trascrizione"
       },
       "tabsLabel": "Sezioni di revisione della riunione",
-      "youAsked": "Hai chiesto",
-      "actionDone": "Segna questa azione come completata"
+      "youAsked": "Hai chiesto"
     },
     "ledger": {
       "title": "Registro",
@@ -2248,22 +2350,6 @@
       "gapCount": "Interruzioni: {{total}}",
       "required": "Obbligatorio"
     },
-    "start": {
-      "label": "Avvia una riunione",
-      "action": "Avvia registrazione",
-      "starting": "Avvio…",
-      "assurance": "Registra l'audio del tuo Mac in locale. Niente si unisce alla chiamata.",
-      "capture": "Acquisizione",
-      "noSources": "Scegli almeno un'origine.",
-      "localOnly": "Solo locale",
-      "retention": "Conservato: {{policy}}"
-    },
-    "gate": {
-      "title": "La registrazione non è partita",
-      "readyTitle": "Pronto a registrare",
-      "recordAnyway": "Registra senza di essa",
-      "recordAnywayHint": "La riunione viene contrassegnata come parziale e la fonte mancante vi resta indicata."
-    },
     "analytics": {
       "title": "Conversazione",
       "noSpeech": "Non è stato trascritto alcun parlato, quindi non c'è nulla da misurare.",
@@ -2303,7 +2389,9 @@
       "catchUp": "Fammi un riassunto",
       "catchingUp": "Riassunto in corso…",
       "catchUpTitle": "Finora",
-      "catchUpNoTranscript": "Non c'è ancora nulla da riassumere. Sona trascrive dopo che fermi la registrazione, quindi un riassunto sarà disponibile appena arriva la trascrizione.",
+      "catchUpNoTranscript": "Nulla da riepilogare: questa riunione non ha una trascrizione.",
+      "catchUpNothingHeardYet": "Ancora nulla da riepilogare. Sona si sta ancora mettendo al passo con la stanza: riprova tra un momento.",
+      "catchUpAsOf": "Aggiornato alle {{time}}, provvisorio",
       "catchUpUnavailable": "Il modello sul dispositivo non è disponibile, quindi non è stato scritto alcun riassunto.",
       "catchUpFailed": "Sona non ha potuto creare un riassunto. Riprova.",
       "templates": {
@@ -2321,6 +2409,7 @@
       "prompt": {
         "calendar": "{{title}} sta iniziando",
         "app": "Riunione {{app}} rilevata",
+        "call": "Chiamata {{app}} rilevata",
         "huddle": "Huddle {{app}} rilevato",
         "browser": "Chiamata rilevata in {{app}}",
         "unknown": "Attività del microfono rilevata",
@@ -2357,7 +2446,7 @@
         "calendarDenied": "L'accesso al calendario non è stato concesso, quindi funziona solo la via del microfono.",
         "notificationsDenied": "Le notifiche sono disattivate per Sona, quindi gli avvisi appaiono solo nell'app.",
         "bluetoothCaveat": "Un'app di riunione è aperta ma nulla segnala l'uso del microfono. Le cuffie Bluetooth spesso non lo fanno, quindi avvia la riunione tu se ce n'è una in corso.",
-        "noSilenceStop": "La registrazione si ferma quando l'evento finisce, l'app si chiude, il Mac va in stop o la fermi tu. Il silenzio non la ferma: servirebbe la trascrizione dal vivo, e la trascrizione parte dopo la riunione."
+        "noSilenceStop": "La registrazione si interrompe quando l'evento termina, la chiamata finisce, l'app si chiude, il Mac va in stop o la fermi tu. Nulla la interrompe per il silenzio: servirebbe la trascrizione in tempo reale, che avviene solo dopo la fine di una riunione."
       },
       "why": {
         "disabled": "Il rilevamento è disattivato.",
@@ -2458,7 +2547,12 @@
       "copy": "Copia",
       "copied": "Bozza copiata.",
       "copyFailed": "Impossibile copiare la bozza.",
-      "failed": "Impossibile scrivere un follow-up per questa riunione."
+      "failed": "Impossibile scrivere un follow-up per questa riunione.",
+      "openInMail": "Apri in Mail",
+      "mailOpened": "Mail è aperto con la bozza.",
+      "mailClipboardNote": "Il follow-up è negli appunti. Incollalo qui.",
+      "mailCopied": "La bozza era troppo lunga per un link di posta, quindi è negli appunti.",
+      "mailFailed": "Non è stato possibile aprire Mail per questa riunione."
     },
     "prep": {
       "label": "Preparazione",
@@ -2496,6 +2590,16 @@
     },
     "workedFor": "Ha lavorato {{seconds}} s",
     "stepSeconds": "{{seconds}} s",
+    "error": {
+      "unreachable": "Sona non è riuscita a connettersi.",
+      "refused": "Sona non ha potuto accettare questa domanda.",
+      "failed": "Sona non è riuscita a completare questa risposta."
+    },
+    "working": {
+      "searchedCorpus": "Ho esaminato le tue riunioni e le tue note",
+      "stillWaiting": "Sto ancora aspettando…",
+      "cancel": "Annulla"
+    },
     "turnState": {
       "submitting": "Invio",
       "queued": "In coda",
@@ -2522,20 +2626,27 @@
       "undone": "Annullato",
       "rejected": "Non applicato"
     },
+    "action": {
+      "resolve_loop": "Segna un impegno come concluso",
+      "assign_loop": "Assegna un responsabile a un impegno",
+      "set_series_template": "Usa il modello {{template}} per questa serie",
+      "add_vocabulary_term": "Aggiungi \"{{term}}\" al tuo vocabolario",
+      "rename_speaker": "Rinomina un interlocutore in {{name}}",
+      "apply": "Applica",
+      "dismiss": "Ignora",
+      "applied": "Applicato",
+      "undo": "Annulla",
+      "dismissed": "Ignorato",
+      "receipt": "Ricevuta {{id}}"
+    },
+    "tools": {
+      "label": "Consenti l'uso degli strumenti",
+      "hint": "Solo per questa domanda"
+    },
     "ask": {
       "row": "Chiedi a Sona: {{query}}",
       "error": "Impossibile inviare la domanda a Sona.",
       "consentRequired": "Una domanda invia citazioni delle tue riunioni al tuo server, quindi attiva prima l'intelligenza delle riunioni."
-    },
-    "error": {
-      "unreachable": "Sona non è riuscita a connettersi.",
-      "refused": "Sona non ha potuto accettare questa domanda.",
-      "failed": "Sona non è riuscita a completare questa risposta."
-    },
-    "working": {
-      "searchedCorpus": "Ho esaminato le tue riunioni e le tue note",
-      "stillWaiting": "Sto ancora aspettando…",
-      "cancel": "Annulla"
     }
   },
   "overview": {
@@ -2608,6 +2719,12 @@
       "createOffer": "Crea un'offerta di abbinamento",
       "currentOffer": "Offerta di abbinamento",
       "approve": "Approva questa offerta",
+      "candidateOffer": "Codice del dispositivo che stai aggiungendo",
+      "candidateApprove": "Approva dispositivo",
+      "candidateReading": "Verifica in corso…",
+      "candidateCompare": "Controlla che corrisponda al codice sul dispositivo prima di approvare.",
+      "candidateInvalid": "Il codice non è valido.",
+      "candidateApproved": "Dispositivo approvato.",
       "receivedOffer": "Offerta da un altro dispositivo",
       "accept": "Accetta l'offerta"
     },
@@ -2661,10 +2778,6 @@
         "revokeConfirm": "Chiunque abbia questo link perde l'accesso nel momento in cui lo revochi."
       }
     }
-  },
-  "topNav": {
-    "capture": "Registrazione",
-    "library": "Libreria"
   },
   "people": {
     "title": "Persone",
@@ -2742,6 +2855,11 @@
       "stale": "Le persone sono cambiate in un’altra schermata. Ricarica e riprova.",
       "operation": "Impossibile aggiornare le persone. Riprova."
     },
+    "summary": {
+      "empty": "Ancora nessun riepilogo.",
+      "regenerate": "Rigenera",
+      "provenance": "Scritto da {{model}} il {{date}}"
+    },
     "review": {
       "personDetails": "Dettagli persona",
       "previouslyTogether": "Già incontrati",
@@ -2774,6 +2892,17 @@
       "brief": "In attesa di {{name}}: {{text}}",
       "briefOverdue": "In ritardo con {{name}}: {{text}}",
       "briefIOwe": "Devi: {{text}}"
+    }
+  },
+  "organizations": {
+    "title": "Organizzazioni",
+    "detail": {
+      "people_one": "{{count}} persona",
+      "people_many": "{{count}} di persone",
+      "people_other": "{{count}} persone",
+      "peopleHere": "Persone qui",
+      "noPeople": "Ancora nessuno qui.",
+      "recentMeetings": "Riunioni recenti"
     }
   },
   "libraryV2": {
@@ -2954,6 +3083,8 @@
       "label": "App di riunione",
       "browsersAutomatic": "Una chiamata in una scheda del browser viene rilevata senza comparire qui.",
       "runningNow": "In esecuzione ora",
+      "autoRecord": "Registra automaticamente",
+      "autoRecordConsent": "In alcuni luoghi è richiesto il consenso alla registrazione di tutti i partecipanti alla chiamata.",
       "add": "Aggiungi un'app",
       "addTitle": "Aggiungi un'app di riunione",
       "addDescription": "Sona ha bisogno dell'ID dell'app, che puoi trovare nella finestra 'Informazioni' dell'app o con `osascript -e 'id of app \"Nome\"'`.",
@@ -2967,6 +3098,7 @@
         "teams": "Microsoft Teams",
         "webex": "Webex",
         "facetime": "FaceTime",
+        "phone": "Telefono",
         "slack": "Slack"
       }
     }
@@ -2974,18 +3106,24 @@
   "consentPanel": {
     "calendarTitle": "Registrare {{title}}?",
     "appTitle": "Registrare questa riunione su {{app}}?",
+    "appCallTitle": "Registrare questa chiamata {{app}}?",
     "genericTitle": "Registrare questa riunione?",
     "introduction": "Sona registra su questo Mac e il controllo resta a te.",
     "seriesBrief_one": "Riunione {{nth}} con {{person}} · {{count}} punto in sospeso",
     "seriesBrief_many": "Riunione {{nth}} con {{person}} · {{count}} di punti in sospeso",
     "seriesBrief_other": "Riunione {{nth}} con {{person}} · {{count}} punti in sospeso",
     "alwaysRecord": "Registra sempre questa riunione",
+    "announceInChat": "Annuncia in chat",
+    "announceLine": "Sona sta prendendo appunti per {{name}}. Dillo pure se preferisci di no.",
+    "announceRefused": "L'avviso non è stato pubblicato: questa app non lo ha accettato.",
     "assurance": "Inizia solo dopo che tutti i partecipanti hanno accettato di essere registrati.",
     "record": "Registra",
     "ignore": "Ignora",
     "recording": "Registrazione",
+    "recordingStarted": "Registrazione avviata",
     "stop": "Interrompi",
     "forgetSeries": "Dimentica questa serie",
+    "forgetApp": "Non registrare automaticamente questa app",
     "wrap": {
       "label": "Chiusura",
       "title": "{{title}} — salvata",

@@ -33,6 +33,10 @@
     "people": "אנשים",
     "settings": "הגדרות"
   },
+  "topNav": {
+    "capture": "הקלטה",
+    "library": "ספרייה"
+  },
   "onboarding": {
     "subtitle": "המודלים פועלים במחשב Mac זה ומאזנים בין דיוק למהירות.",
     "existingModelsTitle": "מודלים תואמים",
@@ -142,6 +146,7 @@
   },
   "modelSelector": {
     "custom": "מותאם אישית",
+    "legacy": "מדור קודם",
     "streaming": "סטרימינג",
     "active": "פעיל",
     "switching": "מחליף…",
@@ -165,8 +170,7 @@
       "translation": "יכול לתרגם לאנגלית",
       "translate": "תרגם לאנגלית",
       "streaming": "מציג תמלול חי תוך כדי דיבור"
-    },
-    "legacy": "מדור קודם"
+    }
   },
   "settings": {
     "modelSettings": {
@@ -187,11 +191,11 @@
           "cancel": {
             "name": "קיצור מקשים לביטול"
           },
-          "transcribe_with_post_process": {
-            "name": "קיצור לעיבוד משלים"
-          },
           "command": {
             "name": "קיצור הפקודה"
+          },
+          "transcribe_with_post_process": {
+            "name": "קיצור לעיבוד משלים"
           }
         },
         "errors": {
@@ -242,11 +246,11 @@
         "downloadedOnlyHint": "הצג רק מודלים שכבר הורדו",
         "family": "משפחת מודלים"
       },
-      "noModelsMatch": "אין מודלים שמתאימים לסינון הזה.",
       "rescan": {
         "label": "סריקה מחדש",
         "tooltip": "סריקה מחדש לאיתור מודלים שנוספו לתיקיית המודלים או למטמון של Hugging Face מחוץ ל-Sona"
       },
+      "noModelsMatch": "אין מודלים שמתאימים לסינון הזה.",
       "cloud": {
         "title": "תמלול בענן",
         "providerDescription": "המפתחות נשארים במחסן האישורים של המערכת.",
@@ -497,7 +501,7 @@
       },
       "spokenEdits": {
         "enabledLabel": "בצע פקודות עריכה מדוברות",
-        "enabledDescription": "מבצע \"scratch that\", \"delete last word\" ו-\"delete the last word\" במקום לכתוב אותן. באנגלית בלבד, ורק כאשר הביטוי מופיע לבדו בין שתי הפסקות: \"scratch that plan\" ו-\"we should scratch that\" יישארו טקסט.",
+        "enabledDescription": "ביצוע של \"scratch that\", \"delete last word\", \"delete the last word\", \"capitalize that\", \"lowercase that\", \"quote that\", \"make that a list\" ו-\"new bullet\" במקום כתיבתם. באנגלית בלבד, ורק כשהביטוי עומד לבדו בין שתי הפסקות: \"scratch that plan\" ו-\"we should scratch that\" נשארים כטקסט.",
         "toggleError": "לא ניתן לשנות את פקודות העריכה המדוברות. נסה שוב."
       }
     },
@@ -568,12 +572,77 @@
         "destinationPinned": "Sona מקשרת את האישור בדיוק לכתובת ולמקור האלה."
       }
     },
+    "vocabulary": {
+      "replacements": {
+        "title": "החלפות מדוברות",
+        "enabledLabel": "הפעל החלפות מדוברות",
+        "spoken": "אתה אומר",
+        "written": "Sona כותב",
+        "spokenPlaceholder": "שטרודל",
+        "writtenPlaceholder": "@",
+        "add": "הוסף כלל",
+        "reset": "שחזר ברירות מחדל",
+        "ruleEnabled": "החל {{spoken}}",
+        "delete": "מחק {{spoken}}",
+        "loading": "טוען החלפות",
+        "loadError": "לא ניתן לטעון את ההחלפות.",
+        "matching": "ביטויים מותאמים למילים שלמות ואינם מבדילים בין אותיות גדולות לקטנות. כששני כללים מתאימים לאותו מקום, הארוך מנצח, וההחלפה רצה לפני תיקון אוצר המילים.",
+        "errors": {
+          "duplicate": "כלל אחר כבר משתמש בביטוי הזה.",
+          "incomplete": "הזן גם ביטוי מדובר וגם את הטקסט שיחליף אותו."
+        },
+        "empty": {
+          "description": "הוסף ביטוי כמו \"שטרודל\", ו-Sona יכתוב @ בכל פעם שתאמר אותו."
+        },
+        "confirmDelete": {
+          "title": "למחוק את {{spoken}}?",
+          "description": "הביטוי לא ינוסח מחדש בתמלולים עתידיים. טקסט שנכתב כבר אינו משתנה."
+        },
+        "confirmReset": {
+          "title": "לשחזר את כללי ברירת המחדל?",
+          "description": "כל כלל שהוספת או ערכת נזרק, וערכת ההתחלה המצורפת חוזרת."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "דוגמאות כתיבה",
+        "placeholder": "הדבק פסקה שכתבת בעצמך.",
+        "sampleLabel": "דוגמת כתיבה {{number}}",
+        "delete": "מחק את דוגמה {{number}}",
+        "add": "הוסף דוגמה",
+        "wordCount": "{{words}} מתוך {{max}} מילים",
+        "overLimit": "{{words}} מילים. רק {{max}} הראשונות בשימוש.",
+        "privacy": "הדוגמאות נשלחות רק לאן שהתמלול עצמו נשלח כבר, ולשום מקום אחר.",
+        "loading": "טוען דוגמאות",
+        "loadError": "לא ניתן לטעון את הדוגמאות.",
+        "empty": {
+          "description": "הדבק כמה פסקאות שכתבת בעצמך, והניסוח מחדש יילך לפי אוצר המילים שלך, אורך המשפטים ומידת הרשמיות."
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "הצג את הכפתור במצב המתנה",
+      "enabledDescription": "השאר כפתור קטן על המסך בין הכתבות. לחץ כדי להתחיל, לחץ לחיצה ימנית כדי להחליף מצב.",
+      "positionLabel": "מקום הכפתור במצב המתנה",
+      "positionTop": "למעלה",
+      "positionBottom": "למטה"
+    },
     "history": {
       "stats": {
         "unavailable": "נתוני השימוש אינם זמינים.",
         "entries": "הקלטות",
         "duration": "זמן הקלטה",
         "words": "מילים"
+      },
+      "processAgain": {
+        "action": "עבד שוב",
+        "title": "עבד שוב",
+        "description": "העבר את ההקלטה הזאת דרך מצב אחר. הרשומה המקורית נשמרת והתוצאה נשמרת כרשומה חדשה.",
+        "placeholder": "בחר מצב",
+        "confirm": "עבד",
+        "started": "העיבוד מחדש התחיל",
+        "modeLabel": "מצב"
       },
       "title": "היסטוריה",
       "openFolder": "פתח את תיקיית ההקלטות",
@@ -637,6 +706,12 @@
           "full": "מלא"
         },
         "contextSources": "מקורות הקשר",
+        "columns": {
+          "source": "מקור",
+          "status": "מצב",
+          "method": "שיטה",
+          "outcome": "תוצאה"
+        },
         "contextSource": {
           "target": "יישום",
           "focused_field": "שדה במיקוד",
@@ -681,13 +756,7 @@
           "truncated": "נקטעה",
           "no_speech_detected": "לא זוהה דיבור"
         },
-        "realtimeFactorLabel": "פענוח",
-        "columns": {
-          "source": "מקור",
-          "status": "מצב",
-          "method": "שיטה",
-          "outcome": "תוצאה"
-        }
+        "realtimeFactorLabel": "פענוח"
       },
       "correction": {
         "add": "הוסף תיקון",
@@ -753,16 +822,7 @@
       },
       "noTextRecorded": "לא נשמר טקסט עבור רשומה זו.",
       "cloudHeld": "Sona עצרה את תוצאת הענן: לא חזר דבר מהימן ולא היה מודל מקומי זמין.",
-      "transcriptionEngineFailed": "התמלול נכשל, ולכן לא נשמר דבר.",
-      "processAgain": {
-        "action": "עבד שוב",
-        "title": "עבד שוב",
-        "description": "העבר את ההקלטה הזאת דרך מצב אחר. הרשומה המקורית נשמרת והתוצאה נשמרת כרשומה חדשה.",
-        "placeholder": "בחר מצב",
-        "confirm": "עבד",
-        "started": "העיבוד מחדש התחיל",
-        "modeLabel": "מצב"
-      }
+      "transcriptionEngineFailed": "התמלול נכשל, ולכן לא נשמר דבר."
     },
     "debug": {
       "title": "ניפוי שגיאות",
@@ -780,6 +840,12 @@
         "copied": "הועתק",
         "lineCount": "{{count}} שורות",
         "empty": "אין שורות עדיין."
+      },
+      "whatsNewPreview": {
+        "title": "תצוגה מקדימה של הערת הגרסה",
+        "description": "פתח את הערת הגרסה המצורפת האחרונה בלי לסמן אותה כנצפתה",
+        "noNotes": "לא נמצאו הערות גרסה מצורפות",
+        "error": "לא ניתן להציג תצוגה מקדימה של הערות השחרור. נסה שוב."
       },
       "soundTheme": {
         "label": "ערכת צלילים",
@@ -852,16 +918,16 @@
         "enabled": "מופעל",
         "disabled": "מושבת",
         "holder": "מוחזק על ידי {{name}} (pid {{pid}})",
-        "notSupported": "לא נתמך בפלטפורמה זו.",
-        "noHolder": "אפליקציה שום לא מחזיקה את Secure Input.",
-        "status": "סטטוס",
-        "error": "אבחון המקלדת אינו זמין."
-      },
-      "whatsNewPreview": {
-        "title": "תצוגה מקדימה של הערת הגרסה",
-        "description": "פתח את הערת הגרסה המצורפת האחרונה בלי לסמן אותה כנצפתה",
-        "noNotes": "לא נמצאו הערות גרסה מצורפות",
-        "error": "לא ניתן להציג תצוגה מקדימה של הערות השחרור. נסה שוב."
+        "holderUnknown": "מוחזק על ידי אפליקציה ש-macOS לא ציינה את שמה",
+        "verdictBlocked": "Secure Input פעיל ואף מקש לא הגיע אל Sona. סגרו את האפליקציה שמחזיקה בו ונסו שוב.",
+        "verdictSuspicious": "מקשי שינוי הגיעו, אך לחיצות מקשים לא. ככל הנראה אפליקציה אחרת בולעת אותן.",
+        "verdictNoEvents": "לא הגיע דבר. לחצו על כמה מקשים בזמן שהאבחון פועל.",
+        "verdictOk": "המקשים מגיעים אל Sona.",
+        "failed": "לא ניתן היה להריץ את האבחון: {{error}}",
+        "keyDown": "לחיצת מקש",
+        "keyUp": "שחרור מקש",
+        "flagsChanged": "מקשי שינוי",
+        "mouse": "עכבר"
       },
       "groups": {
         "capture": "קליטה",
@@ -1009,6 +1075,10 @@
         },
         "model": {
           "label": "דגם AI"
+        },
+        "spokenInstructions": {
+          "label": "הוראות מדוברות",
+          "description": "כשמסיימים הכתבה במילה \"Sona,\" שאר המשפט הופך לעריכה שה-AI יחיל, במקום מילים להקלדה."
         },
         "disabledNote": "הפעל ניקוי AI כדי להשתמש בתבנית, בטון, בספק ובמודל שלמטה."
       },
@@ -1391,11 +1461,11 @@
           },
           "codex": {
             "label": "Codex",
-            "description": "מעקב אחר הפעלות בלבד. Sona עדיין לא יכולה להשיב ל-Codex."
+            "description": "צפייה בסשנים של Codex, מענה לבקשות אישור ותגובה כשתור מסתיים."
           },
           "grok": {
             "label": "Grok",
-            "description": "מעקב אחר הפעלות בלבד. Sona עדיין לא יכולה להשיב ל-Grok."
+            "description": "צפייה בסשנים של Grok, מענה לבקשות כלים ותגובה כשתור מסתיים."
           },
           "omp": {
             "label": "OMP",
@@ -1465,7 +1535,7 @@
         "allowExact": "אפשר בדיוק את הבקשה הזאת",
         "denyExact": "דחה בדיוק את הבקשה הזאת",
         "dismiss": "התעלם",
-        "ompPermissionObserveOnly": "בקשות אישור של OMP נצפות בלבד. אשר או דחה אותן ב־OMP."
+        "observeOnly": "Sona יכולה רק לצפות בבקשה הזו. יש לענות עליה ב-{{agent}}."
       },
       "rules": {
         "title": "כללי הרשאות",
@@ -1489,6 +1559,10 @@
       "externalAccess": {
         "label": "גישה חיצונית",
         "rowDescription": "מאפשר לתוכניות אחרות במחשב ה-Mac שלך לקרוא פגישות, הנחיות, אנשים ו-loops פתוחים דרך כלי שורת הפקודה של Sona ושרת ה-MCP. זהו מצב של קריאה בלבד ויישאר כבוי עד שתפעיל אותו."
+      },
+      "externalMutations": {
+        "label": "שינויים חיצוניים",
+        "rowDescription": "מאפשר לאותן תוכניות לסמן התחייבות כהושלמה. נפרד מגישה חיצונית, וכבוי עד שתפעילו אותו: קריאת הפגישות שלכם אינה כמו שינוי שלהן."
       },
       "workspaceNavigation": "תצוגות סוכן",
       "sonaAgent": {
@@ -1614,62 +1688,6 @@
         "chartAria": "פעילות לפי יום, {{count}} ב-7 הימים האחרונים"
       }
     },
-    "vocabulary": {
-      "replacements": {
-        "title": "החלפות מדוברות",
-        "enabledLabel": "הפעל החלפות מדוברות",
-        "spoken": "אתה אומר",
-        "written": "Sona כותב",
-        "spokenPlaceholder": "שטרודל",
-        "writtenPlaceholder": "@",
-        "add": "הוסף כלל",
-        "reset": "שחזר ברירות מחדל",
-        "ruleEnabled": "החל {{spoken}}",
-        "delete": "מחק {{spoken}}",
-        "loading": "טוען החלפות",
-        "loadError": "לא ניתן לטעון את ההחלפות.",
-        "matching": "ביטויים מותאמים למילים שלמות ואינם מבדילים בין אותיות גדולות לקטנות. כששני כללים מתאימים לאותו מקום, הארוך מנצח, וההחלפה רצה לפני תיקון אוצר המילים.",
-        "errors": {
-          "duplicate": "כלל אחר כבר משתמש בביטוי הזה.",
-          "incomplete": "הזן גם ביטוי מדובר וגם את הטקסט שיחליף אותו."
-        },
-        "empty": {
-          "description": "הוסף ביטוי כמו \"שטרודל\", ו-Sona יכתוב @ בכל פעם שתאמר אותו."
-        },
-        "confirmDelete": {
-          "title": "למחוק את {{spoken}}?",
-          "description": "הביטוי לא ינוסח מחדש בתמלולים עתידיים. טקסט שנכתב כבר אינו משתנה."
-        },
-        "confirmReset": {
-          "title": "לשחזר את כללי ברירת המחדל?",
-          "description": "כל כלל שהוספת או ערכת נזרק, וערכת ההתחלה המצורפת חוזרת."
-        }
-      }
-    },
-    "prompts": {
-      "samples": {
-        "title": "דוגמאות כתיבה",
-        "placeholder": "הדבק פסקה שכתבת בעצמך.",
-        "sampleLabel": "דוגמת כתיבה {{number}}",
-        "delete": "מחק את דוגמה {{number}}",
-        "add": "הוסף דוגמה",
-        "wordCount": "{{words}} מתוך {{max}} מילים",
-        "overLimit": "{{words}} מילים. רק {{max}} הראשונות בשימוש.",
-        "privacy": "הדוגמאות נשלחות רק לאן שהתמלול עצמו נשלח כבר, ולשום מקום אחר.",
-        "loading": "טוען דוגמאות",
-        "loadError": "לא ניתן לטעון את הדוגמאות.",
-        "empty": {
-          "description": "הדבק כמה פסקאות שכתבת בעצמך, והניסוח מחדש יילך לפי אוצר המילים שלך, אורך המשפטים ומידת הרשמיות."
-        }
-      }
-    },
-    "hud": {
-      "enabledLabel": "הצג את הכפתור במצב המתנה",
-      "enabledDescription": "השאר כפתור קטן על המסך בין הכתבות. לחץ כדי להתחיל, לחץ לחיצה ימנית כדי להחליף מצב.",
-      "positionLabel": "מקום הכפתור במצב המתנה",
-      "positionTop": "למעלה",
-      "positionBottom": "למטה"
-    },
     "meetings": {
       "digest": {
         "title": "סיכום ערב",
@@ -1692,6 +1710,10 @@
         "webhook": "שלח ל-webhook",
         "webhookHint": "שולח את ייצוא הפגישה כ-JSON. השתמש רק במכונה האישית שלך או ב-tailnet, כפי שנעשה עם השרת.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "runPrompt": "הרצת פרומפט שמור",
+        "runPromptHint": "שואל את אחד הפרומפטים השמורים שלכם על הפגישה ושומר את התשובה יחד איתה.",
+        "promptPlaceholder": "בחירת פרומפט",
+        "needsPrompt": "יש לבחור פרומפט תחילה",
         "needsTarget": "הוסף שם קודם",
         "needsUrl": "הוסף כתובת קודם",
         "rejected": "חלון אחר שינה את זה. קרא שוב ונסה שנית.",
@@ -1712,6 +1734,9 @@
         "saveFailed": "השינוי לא נשמר. קרא את השורה מחדש ונסה שוב."
       }
     }
+  },
+  "whatsNew": {
+    "title": "חדש ב-Sona v{{version}}"
   },
   "common": {
     "loading": "טוען…",
@@ -1742,8 +1767,11 @@
     "noResults": "לא נמצאו תוצאות",
     "newMeeting": "פגישה חדשה",
     "importAudio": "תמלול קובץ",
+    "importMeeting": "ייבוא הקלטה או תמלול",
     "openRecordings": "פתח את תיקיית ההקלטות",
     "openAgent": "פתח סוכן",
+    "runPrompt": "הרצת פרומפט",
+    "newPrompt": "פרומפט חדש",
     "esc": "esc",
     "search": {
       "meetings": "פגישות",
@@ -1752,6 +1780,52 @@
       "loops": "שאלות פתוחות",
       "empty": "שום דבר לא תואם ל\"{{query}}\".",
       "unavailable": "החיפוש אינו זמין כרגע."
+    }
+  },
+  "prompts": {
+    "title": "פרומפטים",
+    "description": "שאלות שאפשר לשאול שוב. אפשר להריץ אחת מלוח הפקודות, או אחרי פגישה מהאוטומציות של סדרה.",
+    "loading": "קורא את הפרומפטים שלכם…",
+    "empty": "אין עדיין פרומפטים.",
+    "new": "פרומפט חדש",
+    "editing": "עריכת פרומפט",
+    "editorHint": "הפרומפט נענה רק מתוך מה ש-Sona כבר מחזיקה על הרשומה שעליה מריצים אותו.",
+    "name": "שם",
+    "body": "פרומפט",
+    "bodyPlaceholder": "פרט את ההחלטות ומי אחראי על כל אחת מהן.",
+    "output": "תשובה",
+    "outputText": "טקסט",
+    "outputSchema": "JSON התואם לסכמה",
+    "schema": "סכמה",
+    "schemaPlaceholder": "{\"type\":\"object\",\"required\":[\"decisions\"],\"properties\":{\"decisions\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+    "targetLabel": "בנושא",
+    "save": "שמירה",
+    "edit": "עריכת {{name}}",
+    "delete": "מחיקת {{name}}",
+    "invalid": "פרומפט צריך שם, פרומפט וסכמה שהיא JSON.",
+    "rejected": "חלון אחר שינה את אלה. יש לקרוא שוב ולנסות שנית.",
+    "saveFailed": "זה לא נשמר.",
+    "target": {
+      "meeting": "פגישה",
+      "person": "אדם",
+      "series": "סדרה"
+    },
+    "run": {
+      "saved": "{{name}} הורץ. התשובה נמצאת תחת תוצאות פרומפטים.",
+      "missing": "הפרומפט הזה נעלם, או שאין עדיין על מה לשאול.",
+      "failed": "לא ניתן היה להריץ את הפרומפט הזה."
+    },
+    "results": {
+      "title": "תוצאות פרומפטים",
+      "rerun": "הרצת {{name}} שוב",
+      "deleted": "פרומפט שנמחק"
+    },
+    "failure": {
+      "modelUnavailable": "לא היה מודל זמין כדי לענות על זה.",
+      "modelUnreachable": "לא ניתן היה להגיע לשרת שלכם.",
+      "modelFailed": "המודל לא החזיר תשובה שמישה.",
+      "schemaMismatch": "התשובה לא תאמה לסכמה.",
+      "noEvidence": "לא היה שום דבר מוקלט שממנו אפשר לענות."
     }
   },
   "accessibility": {
@@ -1814,9 +1888,6 @@
       "hint": "לחץ כדי להכתיב, לחיצה ימנית למצבים",
       "modes": "החלף מצב"
     }
-  },
-  "whatsNew": {
-    "title": "חדש ב-Sona v{{version}}"
   },
   "secureInput": {
     "blockedWithCulprit_one": "ייתכן ש-{{name}} חוסם קיצור דרך אחד",
@@ -1894,6 +1965,28 @@
         "interrupted": "העיבוד הופסק"
       }
     },
+    "start": {
+      "label": "התחל פגישה",
+      "action": "התחל הקלטה",
+      "starting": "מתחיל…",
+      "assurance": "מקליט את הקול של ה-Mac שלך מקומית. שום דבר לא מצטרף לשיחה.",
+      "capture": "לכידה",
+      "noSources": "בחר מקור אחד לפחות.",
+      "localOnly": "מקומי בלבד",
+      "retention": "נשמר: {{policy}}"
+    },
+    "import": {
+      "action": "ייבוא",
+      "importing": "מייבא…",
+      "recordingFilter": "הקלטה",
+      "transcriptFilter": "ייצוא תמלול"
+    },
+    "gate": {
+      "title": "ההקלטה לא התחילה",
+      "readyTitle": "מוכן להקלטה",
+      "recordAnyway": "הקלט בלעדיו",
+      "recordAnywayHint": "הפגישה מסומנת כחלקית, והמקור החסר מצוין בה."
+    },
     "actions": {
       "back": "חזרה",
       "delete": "מחק פגישה",
@@ -1949,6 +2042,14 @@
     "recovery": {
       "title": "פגישות שלא הושלמו",
       "finalize": "לסיים לשמור"
+    },
+    "trash": {
+      "title": "נמחקו לאחרונה",
+      "expires": "נמחק {{deleted}} · ייעלם בעוד {{count}} ימים",
+      "expiresToday": "נמחק {{deleted}} · ייעלם היום",
+      "restore": "שחזור",
+      "restored": "{{title}} חזרה.",
+      "restoreFailed": "לא ניתן היה לשחזר את הפגישה הזו."
     },
     "history": {
       "title": "היסטוריית פגישות",
@@ -2020,7 +2121,8 @@
       "export_cancelled": "הייצוא בוטל. לא נוצר ייצוא שהושלם.",
       "export_failed": "הייצוא נכשל. לא נוצר ייצוא שהושלם.",
       "local_model_unavailable": "אין מודל מקומי זמין לפגישה הזאת.",
-      "remote_unavailable": "היעד המרוחק שנבחר אינו זמין."
+      "remote_unavailable": "היעד המרוחק שנבחר אינו זמין.",
+      "import_unreadable": "Sona לא הצליחה לקרוא את הקובץ הזה כהקלטה או כייצוא תמלול."
     },
     "discard": {
       "liveTitle": "לעצור ולזרוק את ההפעלה הזאת?",
@@ -2088,6 +2190,7 @@
       "followUp": "המשך טיפול",
       "artifactUnavailable": "ההערות שנוצרו אינן זמינות. התמלול וההערות הידניות שלך נשארים ב-Mac הזה.",
       "actionMeta": "אחראי: {{owner}} · עד: {{due}}",
+      "actionDone": "סמן את הפעולה הזאת כבוצעה",
       "unassigned": "לא מוקצה",
       "noDueDate": "בלי תאריך יעד",
       "questions": "שאל את הפגישה",
@@ -2119,8 +2222,7 @@
         "transcript": "תמלול"
       },
       "tabsLabel": "מקטעי סקירת פגישה",
-      "youAsked": "שאלת",
-      "actionDone": "סמן את הפעולה הזאת כבוצעה"
+      "youAsked": "שאלת"
     },
     "ledger": {
       "title": "רישום",
@@ -2248,22 +2350,6 @@
       "gapCount": "פערים: {{total}}",
       "required": "נדרש"
     },
-    "start": {
-      "label": "התחל פגישה",
-      "action": "התחל הקלטה",
-      "starting": "מתחיל…",
-      "assurance": "מקליט את הקול של ה-Mac שלך מקומית. שום דבר לא מצטרף לשיחה.",
-      "capture": "לכידה",
-      "noSources": "בחר מקור אחד לפחות.",
-      "localOnly": "מקומי בלבד",
-      "retention": "נשמר: {{policy}}"
-    },
-    "gate": {
-      "title": "ההקלטה לא התחילה",
-      "readyTitle": "מוכן להקלטה",
-      "recordAnyway": "הקלט בלעדיו",
-      "recordAnywayHint": "הפגישה מסומנת כחלקית, והמקור החסר מצוין בה."
-    },
     "analytics": {
       "title": "שיחה",
       "noSpeech": "לא תומלל שום דיבור, כך שאין מה למדוד.",
@@ -2303,7 +2389,9 @@
       "catchUp": "עדכן אותי במה שהיה",
       "catchingUp": "מעדכן…",
       "catchUpTitle": "עד כאן",
-      "catchUpNoTranscript": "אין עוד מה לסכם. Sona מתמלל אחרי שאתה עוצר את ההקלטה, כך שסיכום יהיה זמין ברגע שהתמלול יתחיל להגיע.",
+      "catchUpNoTranscript": "אין מה לסכם: לפגישה הזו אין תמלול.",
+      "catchUpNothingHeardYet": "אין עדיין מה לסכם. Sona עדיין מתעדכנת במה שקורה בחדר — נסו שוב בעוד רגע.",
+      "catchUpAsOf": "נכון ל-{{time}}, זמני",
       "catchUpUnavailable": "הדגם שעל המכשיר אינו זמין, כך שלא נכתב שום סיכום.",
       "catchUpFailed": "Sona לא הצליח לבנות סיכום. נסה שוב.",
       "templates": {
@@ -2321,6 +2409,7 @@
       "prompt": {
         "calendar": "{{title}} מתחיל",
         "app": "זוהתה פגישה ב-{{app}}",
+        "call": "זוהתה שיחת {{app}}",
         "huddle": "זוהה האדל ב-{{app}}",
         "browser": "זוהתה שיחה ב-{{app}}",
         "unknown": "זוהתה פעילות מיקרופון",
@@ -2357,7 +2446,7 @@
         "calendarDenied": "גישה ללוח השנה לא ניתנה, כך שרק מסלול המיקרופון רץ.",
         "notificationsDenied": "ההתראות של Sona כבויות, כך שההתראות מופיעות רק בתוך האפליקציה.",
         "bluetoothCaveat": "אפליקציית פגישה פתוחה אבל שום דבר לא מדווח על שימוש במיקרופון. אוזניות Bluetooth לעיתים קרובות אינן מדווחות, כך שאם פגישה מתנהלת התחל אותה בעצמך.",
-        "noSilenceStop": "ההקלטה נעצרת כשהאירוע מסתיים, כשהאפליקציה נסגרת, כשה-Mac נכנס לשינה, או כשאתה עוצר אותה. שקט לא עוצר אותה: לשם כך צריך תמלול חי, והתמלול רץ אחרי סיום הפגישה."
+        "noSilenceStop": "ההקלטה נעצרת כשהאירוע מסתיים, השיחה מסתיימת, היישום נסגר, ה-Mac נכנס לשינה או כשאתם עוצרים אותה בעצמכם. שום דבר לא עוצר אותה בגלל שקט: לשם כך היה נדרש תמלול חי, שפועל רק אחרי סיום הפגישה."
       },
       "why": {
         "disabled": "הזיהוי כבוי.",
@@ -2458,7 +2547,12 @@
       "copy": "העתק",
       "copied": "הטיוטה הועתקה.",
       "copyFailed": "לא ניתן להעתיק את הטיוטה.",
-      "failed": "לא ניתן לנסח מעקב לפגישה הזו."
+      "failed": "לא ניתן לנסח מעקב לפגישה הזו.",
+      "openInMail": "פתיחה ב-Mail",
+      "mailOpened": "Mail פתוח עם הטיוטה.",
+      "mailClipboardNote": "המעקב נמצא בלוח ההעתקה. הדביקו אותו כאן.",
+      "mailCopied": "הטיוטה הייתה ארוכה מדי לקישור דואר, ולכן היא נמצאת בלוח ההעתקה.",
+      "mailFailed": "לא ניתן היה לפתוח את Mail עבור הפגישה הזו."
     },
     "prep": {
       "label": "הכנה",
@@ -2496,6 +2590,16 @@
     },
     "workedFor": "עבד {{seconds}} שנ'",
     "stepSeconds": "{{seconds}} שנ'",
+    "error": {
+      "unreachable": "‏Sona לא הצליחה להתחבר.",
+      "refused": "‏Sona לא יכלה לקבל את השאלה הזאת.",
+      "failed": "‏Sona לא הצליחה לסיים את התשובה הזאת."
+    },
+    "working": {
+      "searchedCorpus": "עברתי על הפגישות וההערות שלך",
+      "stillWaiting": "עדיין ממתין…",
+      "cancel": "ביטול"
+    },
     "turnState": {
       "submitting": "נשלח",
       "queued": "בתור",
@@ -2522,20 +2626,27 @@
       "undone": "בוטל",
       "rejected": "לא הוחל"
     },
+    "action": {
+      "resolve_loop": "סימון התחייבות כהושלמה",
+      "assign_loop": "הקצאת אחראי להתחייבות",
+      "set_series_template": "שימוש בתבנית {{template}} עבור הסדרה הזו",
+      "add_vocabulary_term": "הוספת \"{{term}}\" לאוצר המילים שלכם",
+      "rename_speaker": "שינוי שם של דובר ל-{{name}}",
+      "apply": "החלה",
+      "dismiss": "ביטול",
+      "applied": "הוחל",
+      "undo": "ביטול פעולה",
+      "dismissed": "בוטל",
+      "receipt": "קבלה {{id}}"
+    },
+    "tools": {
+      "label": "לאפשר שימוש בכלים",
+      "hint": "לשאלה הזו בלבד"
+    },
     "ask": {
       "row": "שאל את Sona: {{query}}",
       "error": "לא ניתן היה לשלוח את השאלה ל-Sona.",
       "consentRequired": "שאילת שאלה שולחת ציטוטים מהפגישות שלך לשרת שלך, לכן הפעל קודם את בינת הפגישות."
-    },
-    "error": {
-      "unreachable": "‏Sona לא הצליחה להתחבר.",
-      "refused": "‏Sona לא יכלה לקבל את השאלה הזאת.",
-      "failed": "‏Sona לא הצליחה לסיים את התשובה הזאת."
-    },
-    "working": {
-      "searchedCorpus": "עברתי על הפגישות וההערות שלך",
-      "stillWaiting": "עדיין ממתין…",
-      "cancel": "ביטול"
     }
   },
   "overview": {
@@ -2608,6 +2719,12 @@
       "createOffer": "צור הצעת התאמה",
       "currentOffer": "הצעת התאמה",
       "approve": "אשר את ההצעה הזאת",
+      "candidateOffer": "קוד מהמכשיר שאתם מוסיפים",
+      "candidateApprove": "אישור מכשיר",
+      "candidateReading": "בודק…",
+      "candidateCompare": "ודאו שהקוד תואם לקוד המוצג במכשיר לפני האישור.",
+      "candidateInvalid": "הקוד הזה אינו תקין.",
+      "candidateApproved": "המכשיר אושר.",
       "receivedOffer": "הצעה ממכשיר אחר",
       "accept": "קבל את ההצעה"
     },
@@ -2661,10 +2778,6 @@
         "revokeConfirm": "כל מי שמחזיק בקישור הזה מאבד גישה ברגע שתבטל אותו."
       }
     }
-  },
-  "topNav": {
-    "capture": "הקלטה",
-    "library": "ספרייה"
   },
   "people": {
     "title": "אנשים",
@@ -2742,6 +2855,11 @@
       "stale": "האנשים השתנו במסך אחר. יש לטעון מחדש ולנסות שוב.",
       "operation": "לא ניתן לעדכן את האנשים. נסו שוב."
     },
+    "summary": {
+      "empty": "אין עדיין סיכום.",
+      "regenerate": "יצירה מחדש",
+      "provenance": "נכתב על ידי {{model}} בתאריך {{date}}"
+    },
     "review": {
       "personDetails": "פרטי האדם",
       "previouslyTogether": "פגישות קודמות יחד",
@@ -2774,6 +2892,17 @@
       "brief": "ממתין ל{{name}}: {{text}}",
       "briefOverdue": "באיחור אצל {{name}}: {{text}}",
       "briefIOwe": "אתה חייב: {{text}}"
+    }
+  },
+  "organizations": {
+    "title": "ארגונים",
+    "detail": {
+      "people_one": "אדם אחד",
+      "people_two": "שני אנשים",
+      "people_other": "{{count}} אנשים",
+      "peopleHere": "אנשים כאן",
+      "noPeople": "אין כאן עדיין אף אחד.",
+      "recentMeetings": "פגישות אחרונות"
     }
   },
   "libraryV2": {
@@ -2954,6 +3083,8 @@
       "label": "אפליקציות פגישה",
       "browsersAutomatic": "שיחה בלשונית של דפדפן מזוהה גם בלי להופיע כאן.",
       "runningNow": "פועלות כעת",
+      "autoRecord": "הקלטה אוטומטית",
+      "autoRecordConsent": "במקומות מסוימים נדרשת הסכמה של כל המשתתפים בשיחה להקלטה.",
       "add": "הוסף אפליקציה",
       "addTitle": "הוספת אפליקציית פגישה",
       "addDescription": "Sona זקוק למזהה האפליקציה, שניתן למצוא בחלון 'אודות' של האפליקציה או באמצעות `osascript -e 'id of app \"Name\"'`.",
@@ -2967,6 +3098,7 @@
         "teams": "Microsoft Teams",
         "webex": "Webex",
         "facetime": "FaceTime",
+        "phone": "טלפון",
         "slack": "Slack"
       }
     }
@@ -2974,18 +3106,24 @@
   "consentPanel": {
     "calendarTitle": "להקליט את {{title}}?",
     "appTitle": "להקליט את פגישת {{app}} הזו?",
+    "appCallTitle": "להקליט את שיחת {{app}} הזו?",
     "genericTitle": "להקליט את הפגישה הזו?",
     "introduction": "Sona מקליטה על ה-Mac הזה, והשליטה נשארת אצלך.",
     "seriesBrief_one": "פגישה {{nth}} עם {{person}} · {{count}} נושא פתוח",
     "seriesBrief_two": "פגישה {{nth}} עם {{person}} · {{count}} נושאים פתוחים",
     "seriesBrief_other": "פגישה {{nth}} עם {{person}} · {{count}} נושאים פתוחים",
     "alwaysRecord": "תמיד להקליט את הפגישה הזו",
+    "announceInChat": "הודעה בצ'אט",
+    "announceLine": "Sona רושמת הערות עבור {{name}}. אם תעדיפו שלא, אמרו זאת.",
+    "announceRefused": "ההודעה על ההקלטה לא פורסמה: היישום הזה לא קיבל אותה.",
     "assurance": "התחל רק אחרי שכל המשתתפים בפגישה הסכימו שיוקלטו.",
     "record": "הקלט",
     "ignore": "התעלם",
     "recording": "מקליט",
+    "recordingStarted": "ההקלטה התחילה",
     "stop": "עצור",
     "forgetSeries": "שכח את הסדרה הזו",
+    "forgetApp": "לא להקליט את היישום הזה אוטומטית",
     "wrap": {
       "label": "סיכום",
       "title": "{{title}} — נשמר",

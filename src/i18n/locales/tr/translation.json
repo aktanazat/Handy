@@ -33,6 +33,10 @@
     "people": "Kişiler",
     "settings": "Ayarlar"
   },
+  "topNav": {
+    "capture": "Kayıt",
+    "library": "Kitaplık"
+  },
   "onboarding": {
     "subtitle": "Modeller bu Mac üzerinde çalışır ve doğruluk ile hız arasında denge kurar.",
     "existingModelsTitle": "Uyumlu Modeller",
@@ -142,8 +146,10 @@
   },
   "modelSelector": {
     "custom": "Özel",
+    "legacy": "Eski",
     "streaming": "Akış",
     "active": "Aktif",
+    "switching": "Değiştiriliyor…",
     "noModelsAvailable": "Kullanılabilir model yok",
     "verifying": "{{modelName}} doğrulanıyor…",
     "verifyingGeneric": "Doğrulanıyor…",
@@ -153,24 +159,78 @@
     "loading": "{{modelName}} yükleniyor…",
     "loadingGeneric": "Yükleniyor…",
     "deleteModel": "{{modelName}} Sil",
-    "switching": "Değiştiriliyor…",
     "downloadSpeed": "{{speed}} MB/s",
-    "capabilities": {
-      "languageSelection": "Birden fazla giriş dilini destekler",
-      "languageCount": "{{total}} dil",
-      "translation": "İngilizce'ye çevirebilir",
-      "translate": "İngilizce'ye çevir",
-      "singleLanguage": "Yalnızca bu dili destekler",
-      "languageOnly": "Yalnızca {{language}}",
-      "streaming": "Konuşurken canlı transkripsiyon gösterir"
-    },
     "cancel": "İptal",
     "cancelDownload": "İndirmeyi iptal et",
-    "legacy": "Eski"
+    "capabilities": {
+      "languageSelection": "Birden fazla giriş dilini destekler",
+      "singleLanguage": "Yalnızca bu dili destekler",
+      "languageCount": "{{total}} dil",
+      "languageOnly": "Yalnızca {{language}}",
+      "translation": "İngilizce'ye çevirebilir",
+      "translate": "İngilizce'ye çevir",
+      "streaming": "Konuşurken canlı transkripsiyon gösterir"
+    }
   },
   "settings": {
     "modelSettings": {
       "title": "{{model}} Ayarları"
+    },
+    "general": {
+      "title": "Genel",
+      "shortcut": {
+        "title": "Kısayollar",
+        "loading": "Kısayollar yükleniyor…",
+        "none": "Kısayol yapılandırılmadı",
+        "notFound": "Kısayol bulunamadı",
+        "pressKeys": "Tuşlarınıza basın…",
+        "bindings": {
+          "transcribe": {
+            "name": "Transkripsiyon Kısayolu"
+          },
+          "cancel": {
+            "name": "İptal Kısayolu"
+          },
+          "command": {
+            "name": "Komut kısayolu"
+          },
+          "transcribe_with_post_process": {
+            "name": "Son işlem kısayolu"
+          }
+        },
+        "errors": {
+          "restore": "Özgün kısayol geri getirilemedi. Yeniden deneyin.",
+          "set": "Kısayol ayarlanamadı: {{error}}",
+          "reset": "Kısayol sıfırlanamadı. Yeniden deneyin."
+        },
+        "holdHint": "Değiştirmek için dokunun, konuşmak için basılı tutun. Her kısayolla çalışır.",
+        "recordAction": "{{binding}} için yeni bir kısayol kaydet",
+        "unset": "Ayarlanmadı"
+      },
+      "language": {
+        "title": "Dil",
+        "searchPlaceholder": "Dil ara",
+        "noResults": "Dil bulunamadı",
+        "auto": "Otomatik"
+      },
+      "pushToTalk": {
+        "label": "Bas Konuş"
+      },
+      "appearance": {
+        "title": "Görünüm",
+        "material": {
+          "title": "Malzeme",
+          "description": "Katı, Sona'nın yüzeylerini opak tutar. Cam, masaüstünün üst çubuk, komut paleti ve kayıt HUD'undan görünmesini sağlar.",
+          "options": {
+            "solid": "Katı",
+            "glass": "Cam"
+          }
+        }
+      },
+      "commandMode": {
+        "label": "Sesli komut kipi",
+        "description": "Komut kısayolunu basılı tutun ve seçtiğiniz metinde ne değişeceğini söyleyin."
+      }
     },
     "models": {
       "title": "Transkripsiyon Modelleri",
@@ -186,11 +246,11 @@
         "downloadedOnlyHint": "Yalnızca indirilmiş modelleri göster",
         "family": "Model ailesi"
       },
-      "noModelsMatch": "Bu filtreyle eşleşen model yok.",
       "rescan": {
         "label": "Yeniden Tara",
         "tooltip": "Sona dışında modeller klasörüne veya Hugging Face önbelleğine eklenen modelleri yeniden tara"
       },
+      "noModelsMatch": "Bu filtreyle eşleşen model yok.",
       "cloud": {
         "title": "Bulut transkripsiyonu",
         "providerDescription": "Anahtarlar sistem kimlik bilgisi deposunda kalır.",
@@ -255,62 +315,6 @@
         "activeInMemory": "Aktif, bellekte",
         "downloaded": "İndirildi",
         "notDownloaded": "İndirilmedi"
-      }
-    },
-    "general": {
-      "title": "Genel",
-      "shortcut": {
-        "title": "Kısayollar",
-        "loading": "Kısayollar yükleniyor…",
-        "none": "Kısayol yapılandırılmadı",
-        "notFound": "Kısayol bulunamadı",
-        "pressKeys": "Tuşlarınıza basın…",
-        "bindings": {
-          "transcribe": {
-            "name": "Transkripsiyon Kısayolu"
-          },
-          "cancel": {
-            "name": "İptal Kısayolu"
-          },
-          "transcribe_with_post_process": {
-            "name": "Son işlem kısayolu"
-          },
-          "command": {
-            "name": "Komut kısayolu"
-          }
-        },
-        "errors": {
-          "restore": "Özgün kısayol geri getirilemedi. Yeniden deneyin.",
-          "set": "Kısayol ayarlanamadı: {{error}}",
-          "reset": "Kısayol sıfırlanamadı. Yeniden deneyin."
-        },
-        "holdHint": "Değiştirmek için dokunun, konuşmak için basılı tutun. Her kısayolla çalışır.",
-        "recordAction": "{{binding}} için yeni bir kısayol kaydet",
-        "unset": "Ayarlanmadı"
-      },
-      "language": {
-        "title": "Dil",
-        "searchPlaceholder": "Dil ara",
-        "noResults": "Dil bulunamadı",
-        "auto": "Otomatik"
-      },
-      "pushToTalk": {
-        "label": "Bas Konuş"
-      },
-      "appearance": {
-        "title": "Görünüm",
-        "material": {
-          "title": "Malzeme",
-          "description": "Katı, Sona'nın yüzeylerini opak tutar. Cam, masaüstünün üst çubuk, komut paleti ve kayıt HUD'undan görünmesini sağlar.",
-          "options": {
-            "solid": "Katı",
-            "glass": "Cam"
-          }
-        }
-      },
-      "commandMode": {
-        "label": "Sesli komut kipi",
-        "description": "Komut kısayolunu basılı tutun ve seçtiğiniz metinde ne değişeceğini söyleyin."
       }
     },
     "sound": {
@@ -497,7 +501,7 @@
       },
       "spokenEdits": {
         "enabledLabel": "Sesli düzenleme komutlarını uygula",
-        "enabledDescription": "\"scratch that\", \"delete last word\" ve \"delete the last word\" ifadelerini yazmak yerine uygular. Yalnızca İngilizce ve yalnızca ifade iki duraklama arasında tek başına geçtiğinde: \"scratch that plan\" ve \"we should scratch that\" metin olarak kalır.",
+        "enabledDescription": "\"scratch that\", \"delete last word\", \"delete the last word\", \"capitalize that\", \"lowercase that\", \"quote that\", \"make that a list\" ve \"new bullet\" ifadelerini yazmak yerine uygular. Yalnızca İngilizce ve yalnızca ifade iki duraklama arasında tek başına durduğunda: \"scratch that plan\" ve \"we should scratch that\" metin olarak kalır.",
         "toggleError": "Sesli düzenleme komutları değiştirilemedi. Yeniden deneyin."
       }
     },
@@ -568,12 +572,77 @@
         "destinationPinned": "Sona bu onayı tam olarak bu adrese ve kaynağa bağlar."
       }
     },
+    "vocabulary": {
+      "replacements": {
+        "title": "Sesli değiştirmeler",
+        "enabledLabel": "Sesli değiştirmeleri aç",
+        "spoken": "Siz derseniz",
+        "written": "Sona şunu yazar",
+        "spokenPlaceholder": "et işareti",
+        "writtenPlaceholder": "@",
+        "add": "Kural ekle",
+        "reset": "Varsayılanları geri getir",
+        "ruleEnabled": "{{spoken}} uygula",
+        "delete": "{{spoken}} sil",
+        "loading": "Değiştirmeler yükleniyor",
+        "loadError": "Değiştirmeler yüklenemedi.",
+        "matching": "İfadeler tam sözcüklerle eşleşir ve büyük küçük harf ayırmaz. İki kural aynı yere uyduğunda uzun olan kazanır ve değiştirme, sözlük düzeltmesinden önce çalışır.",
+        "errors": {
+          "duplicate": "Başka bir kural bu ifadeyi zaten kullanıyor.",
+          "incomplete": "Hem sesli ifadeyi hem de karşılığını girin."
+        },
+        "empty": {
+          "description": "Et işareti gibi bir ifade ekleyin, siz söyledikçe Sona her seferinde @ yazar."
+        },
+        "confirmDelete": {
+          "title": "{{spoken}} silinsin mi?",
+          "description": "İfade gelecek dökümlerde artık çevrilmez. Önceden yazılmış metin değişmez."
+        },
+        "confirmReset": {
+          "title": "Varsayılan kurallar geri getirilsin mi?",
+          "description": "Eklediğiniz veya düzenlediğiniz her kural atılır ve ürünle gelen başlangıç kümesi geri döner."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Yazı örnekleri",
+        "placeholder": "Kendi yazdığınız bir paragrafı yapıştırın.",
+        "sampleLabel": "Yazı örneği {{number}}",
+        "delete": "{{number}} numaralı örneği sil",
+        "add": "Örnek ekle",
+        "wordCount": "{{max}} sözcüğün {{words}} tanesi",
+        "overLimit": "{{words}} sözcük. Yalnızca ilk {{max}} tanesi kullanılır.",
+        "privacy": "Örnekler yalnızca dökümün kendisinin zaten gittiği yere gider, başka hiçbir yere.",
+        "loading": "Örnekler yükleniyor",
+        "loadError": "Örnekler yüklenemedi.",
+        "empty": {
+          "description": "Kendi yazdığınız birkaç paragrafı yapıştırın; yeniden yazımlar sözcük dağarcığınızı, cümle uzunluğunuzu ve resmiyet düzeyinizi izler."
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "Bekleme kapsülünü göster",
+      "enabledDescription": "Dikte aralarında ekranda küçük bir kapsül tutun. Başlamak için tıklayın, kip değiştirmek için sağ tıklayın.",
+      "positionLabel": "Bekleme kapsülünün konumu",
+      "positionTop": "Üst",
+      "positionBottom": "Alt"
+    },
     "history": {
       "stats": {
         "unavailable": "Kullanım istatistikleri kullanılamıyor.",
         "entries": "kayıt",
         "duration": "kayıt süresi",
         "words": "sözcük"
+      },
+      "processAgain": {
+        "action": "Yeniden işle",
+        "title": "Yeniden işle",
+        "description": "Bu kaydı başka bir kipten geçirin. Özgün kayıt korunur ve sonuç yeni bir kayıt olarak saklanır.",
+        "placeholder": "Bir kip seçin",
+        "confirm": "İşle",
+        "started": "Yeniden işleme başladı",
+        "modeLabel": "Kip"
       },
       "title": "Geçmiş",
       "openFolder": "Kayıtlar Klasörünü Aç",
@@ -637,6 +706,12 @@
           "full": "Tam"
         },
         "contextSources": "Bağlam kaynakları",
+        "columns": {
+          "source": "Kaynak",
+          "status": "Durum",
+          "method": "Yöntem",
+          "outcome": "Sonuç"
+        },
         "contextSource": {
           "target": "Uygulama",
           "focused_field": "Odaklanmış alan",
@@ -681,13 +756,7 @@
           "truncated": "Kesildi",
           "no_speech_detected": "Konuşma algılanmadı"
         },
-        "realtimeFactorLabel": "Kod çözme",
-        "columns": {
-          "source": "Kaynak",
-          "status": "Durum",
-          "method": "Yöntem",
-          "outcome": "Sonuç"
-        }
+        "realtimeFactorLabel": "Kod çözme"
       },
       "correction": {
         "add": "Düzeltme ekle",
@@ -753,16 +822,7 @@
       },
       "noTextRecorded": "Bu kayıt için metin kaydedilmedi.",
       "cloudHeld": "Sona bulut sonucunu alıkoydu: güvenilir hiçbir şey dönmedi ve kullanılabilir yerel model yoktu.",
-      "transcriptionEngineFailed": "Transkripsiyon başarısız oldu, bu yüzden hiçbir şey kaydedilmedi.",
-      "processAgain": {
-        "action": "Yeniden işle",
-        "title": "Yeniden işle",
-        "description": "Bu kaydı başka bir kipten geçirin. Özgün kayıt korunur ve sonuç yeni bir kayıt olarak saklanır.",
-        "placeholder": "Bir kip seçin",
-        "confirm": "İşle",
-        "started": "Yeniden işleme başladı",
-        "modeLabel": "Kip"
-      }
+      "transcriptionEngineFailed": "Transkripsiyon başarısız oldu, bu yüzden hiçbir şey kaydedilmedi."
     },
     "debug": {
       "title": "Hata Ayıklama",
@@ -780,6 +840,12 @@
         "copied": "Kopyalandı",
         "lineCount": "{{count}} satır",
         "empty": "Henüz satır yok."
+      },
+      "whatsNewPreview": {
+        "title": "Sürüm notunu önizle",
+        "description": "En son paketlenmiş sürüm notunu görüldü olarak işaretlemeden aç",
+        "noNotes": "Paketlenmiş sürüm notu bulunamadı",
+        "error": "Sürüm notları önizlenemedi. Yeniden deneyin."
       },
       "soundTheme": {
         "label": "Ses Teması",
@@ -852,16 +918,16 @@
         "enabled": "etkin",
         "disabled": "devre dışı",
         "holder": "{{name}} tarafından tutuluyor (pid {{pid}})",
-        "notSupported": "Bu platformda desteklenmiyor.",
-        "noHolder": "Güvenli Girişi (Secure Input) kullanan uygulama yok.",
-        "status": "Durum",
-        "error": "Klavye teşhisi kullanılamıyor."
-      },
-      "whatsNewPreview": {
-        "title": "Sürüm notunu önizle",
-        "description": "En son paketlenmiş sürüm notunu görüldü olarak işaretlemeden aç",
-        "noNotes": "Paketlenmiş sürüm notu bulunamadı",
-        "error": "Sürüm notları önizlenemedi. Yeniden deneyin."
+        "holderUnknown": "macOS'un adını vermediği bir uygulama tarafından tutuluyor",
+        "verdictBlocked": "Secure Input açık ve Sona'ya hiçbir tuş ulaşmadı. Bunu tutan uygulamayı kapatıp yeniden deneyin.",
+        "verdictSuspicious": "Değiştirici tuşlar ulaştı ancak tuş basımları ulaşmadı. Büyük olasılıkla başka bir uygulama bunları yutuyor.",
+        "verdictNoEvents": "Hiçbir şey ulaşmadı. Tanılama çalışırken birkaç tuşa basın.",
+        "verdictOk": "Tuşlar Sona'ya ulaşıyor.",
+        "failed": "Tanılama çalıştırılamadı: {{error}}",
+        "keyDown": "Tuş basıldı",
+        "keyUp": "Tuş bırakıldı",
+        "flagsChanged": "Değiştiriciler",
+        "mouse": "Fare"
       },
       "groups": {
         "capture": "Kayıt",
@@ -1009,6 +1075,10 @@
         },
         "model": {
           "label": "AI modeli"
+        },
+        "spokenInstructions": {
+          "label": "Sözlü talimatlar",
+          "description": "Bir dikteyi \"Sona,\" ile bitirin; cümlenin geri kalanı yazılacak sözcükler yerine yapay zekânın uygulayacağı bir düzenlemeye dönüşür."
         },
         "disabledNote": "Aşağıdaki hazır ayar, ton, sağlayıcı ve modeli kullanmak için AI temizlemeyi açın."
       },
@@ -1391,11 +1461,11 @@
           },
           "codex": {
             "label": "Codex",
-            "description": "Yalnızca oturumları gözle. Sona henüz Codex'e yanıt veremiyor."
+            "description": "Codex oturumlarını izle, onay isteklerini yanıtla ve bir tur bittiğinde yanıt ver."
           },
           "grok": {
             "label": "Grok",
-            "description": "Yalnızca oturumları gözle. Sona henüz Grok'a yanıt veremiyor."
+            "description": "Grok oturumlarını izle, araç isteklerini yanıtla ve bir tur bittiğinde yanıt ver."
           },
           "omp": {
             "label": "OMP",
@@ -1465,7 +1535,7 @@
         "allowExact": "Tam olarak bu isteğe izin ver",
         "denyExact": "Tam olarak bu isteği reddet",
         "dismiss": "Kapat",
-        "ompPermissionObserveOnly": "OMP onay istekleri yalnızca gözlenir. Bunları OMP içinde onaylayın veya reddedin."
+        "observeOnly": "Sona bu isteği yalnızca izleyebilir. Yanıtı {{agent}} içinde verin."
       },
       "rules": {
         "title": "İzin kuralları",
@@ -1489,6 +1559,10 @@
       "externalAccess": {
         "label": "Harici erişim",
         "rowDescription": "Diğer programların bu Mac üzerindeki toplantılarınızı, diktelerinizi, kişileri ve açık döngüleri Sona'nın komut satırı aracını ve MCP sunucusunu kullanarak okumasına izin verir. Sadece okunabilir durumdadır ve siz açana kadar kapalı kalır."
+      },
+      "externalMutations": {
+        "label": "Dış değişiklikler",
+        "rowDescription": "Aynı programların bir taahhüdü tamamlandı olarak işaretlemesine izin verir. Dış erişimden ayrıdır ve siz açana kadar kapalıdır: toplantılarınızı okumak ile değiştirmek aynı şey değildir."
       },
       "workspaceNavigation": "Ajan görünümleri",
       "sonaAgent": {
@@ -1608,62 +1682,6 @@
         "chartAria": "Günlük etkinlik, son 7 günde {{count}}"
       }
     },
-    "vocabulary": {
-      "replacements": {
-        "title": "Sesli değiştirmeler",
-        "enabledLabel": "Sesli değiştirmeleri aç",
-        "spoken": "Siz derseniz",
-        "written": "Sona şunu yazar",
-        "spokenPlaceholder": "et işareti",
-        "writtenPlaceholder": "@",
-        "add": "Kural ekle",
-        "reset": "Varsayılanları geri getir",
-        "ruleEnabled": "{{spoken}} uygula",
-        "delete": "{{spoken}} sil",
-        "loading": "Değiştirmeler yükleniyor",
-        "loadError": "Değiştirmeler yüklenemedi.",
-        "matching": "İfadeler tam sözcüklerle eşleşir ve büyük küçük harf ayırmaz. İki kural aynı yere uyduğunda uzun olan kazanır ve değiştirme, sözlük düzeltmesinden önce çalışır.",
-        "errors": {
-          "duplicate": "Başka bir kural bu ifadeyi zaten kullanıyor.",
-          "incomplete": "Hem sesli ifadeyi hem de karşılığını girin."
-        },
-        "empty": {
-          "description": "Et işareti gibi bir ifade ekleyin, siz söyledikçe Sona her seferinde @ yazar."
-        },
-        "confirmDelete": {
-          "title": "{{spoken}} silinsin mi?",
-          "description": "İfade gelecek dökümlerde artık çevrilmez. Önceden yazılmış metin değişmez."
-        },
-        "confirmReset": {
-          "title": "Varsayılan kurallar geri getirilsin mi?",
-          "description": "Eklediğiniz veya düzenlediğiniz her kural atılır ve ürünle gelen başlangıç kümesi geri döner."
-        }
-      }
-    },
-    "prompts": {
-      "samples": {
-        "title": "Yazı örnekleri",
-        "placeholder": "Kendi yazdığınız bir paragrafı yapıştırın.",
-        "sampleLabel": "Yazı örneği {{number}}",
-        "delete": "{{number}} numaralı örneği sil",
-        "add": "Örnek ekle",
-        "wordCount": "{{max}} sözcüğün {{words}} tanesi",
-        "overLimit": "{{words}} sözcük. Yalnızca ilk {{max}} tanesi kullanılır.",
-        "privacy": "Örnekler yalnızca dökümün kendisinin zaten gittiği yere gider, başka hiçbir yere.",
-        "loading": "Örnekler yükleniyor",
-        "loadError": "Örnekler yüklenemedi.",
-        "empty": {
-          "description": "Kendi yazdığınız birkaç paragrafı yapıştırın; yeniden yazımlar sözcük dağarcığınızı, cümle uzunluğunuzu ve resmiyet düzeyinizi izler."
-        }
-      }
-    },
-    "hud": {
-      "enabledLabel": "Bekleme kapsülünü göster",
-      "enabledDescription": "Dikte aralarında ekranda küçük bir kapsül tutun. Başlamak için tıklayın, kip değiştirmek için sağ tıklayın.",
-      "positionLabel": "Bekleme kapsülünün konumu",
-      "positionTop": "Üst",
-      "positionBottom": "Alt"
-    },
     "meetings": {
       "digest": {
         "title": "Akşam özeti",
@@ -1686,6 +1704,10 @@
         "webhook": "Bir webhook'a gönder",
         "webhookHint": "Toplantı dışa aktarımını JSON olarak gönderir. Sunucuda olduğu gibi sadece kendi makinenizi veya tailnet'inizi kullanın.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "runPrompt": "Kayıtlı bir istem çalıştır",
+        "runPromptHint": "Kayıtlı istemlerinizden birini toplantı hakkında sorar ve yanıtı toplantıyla birlikte saklar.",
+        "promptPlaceholder": "Bir istem seçin",
+        "needsPrompt": "Önce bir istem seçin",
         "needsTarget": "Önce bir ad ekle",
         "needsUrl": "Önce bir adres ekle",
         "rejected": "Başka bir pencere bunu değiştirdi. Yeniden okuyup tekrar dene.",
@@ -1706,6 +1728,9 @@
         "saveFailed": "Bu değişiklik kaydedilmedi. Satırı yeniden okuyup bir daha dene."
       }
     }
+  },
+  "whatsNew": {
+    "title": "Sona v{{version}} yenilikleri"
   },
   "common": {
     "loading": "Yükleniyor…",
@@ -1736,8 +1761,11 @@
     "noResults": "Sonuç bulunamadı",
     "newMeeting": "Yeni toplantı",
     "importAudio": "Dosyayı transkribe et",
+    "importMeeting": "Kayıt veya transkript içe aktar",
     "openRecordings": "Kayıtlar Klasörünü Aç",
     "openAgent": "Ajanı aç",
+    "runPrompt": "İstem çalıştır",
+    "newPrompt": "Yeni istem",
     "esc": "esc",
     "search": {
       "meetings": "Toplantılar",
@@ -1746,6 +1774,52 @@
       "loops": "Yanıtsız sorular",
       "empty": "\"{{query}}\" ile eşleşen bir şey yok.",
       "unavailable": "Arama şu anda kullanılamıyor."
+    }
+  },
+  "prompts": {
+    "title": "İstemler",
+    "description": "Tekrar sorabileceğiniz sorular. Birini komut paletinden ya da bir toplantıdan sonra serinin otomasyonlarından çalıştırın.",
+    "loading": "İstemleriniz okunuyor…",
+    "empty": "Henüz istem yok.",
+    "new": "Yeni istem",
+    "editing": "İstemi düzenle",
+    "editorHint": "İstem yalnızca Sona'nın çalıştırdığınız kayıt hakkında zaten sahip olduğu bilgilerden yanıtlanır.",
+    "name": "Ad",
+    "body": "İstem",
+    "bodyPlaceholder": "Kararları ve her birinin sorumlusunu listele.",
+    "output": "Yanıt",
+    "outputText": "Metin",
+    "outputSchema": "Bir şemaya uyan JSON",
+    "schema": "Şema",
+    "schemaPlaceholder": "{\"type\":\"object\",\"required\":[\"decisions\"],\"properties\":{\"decisions\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+    "targetLabel": "Konu",
+    "save": "Kaydet",
+    "edit": "{{name}} istemini düzenle",
+    "delete": "{{name}} istemini sil",
+    "invalid": "Bir istem için bir ad, bir istem metni ve JSON biçiminde bir şema gerekir.",
+    "rejected": "Başka bir pencere bunları değiştirdi. Yeniden okuyup tekrar deneyin.",
+    "saveFailed": "Kaydedilemedi.",
+    "target": {
+      "meeting": "Bir toplantı",
+      "person": "Bir kişi",
+      "series": "Bir seri"
+    },
+    "run": {
+      "saved": "{{name}} çalıştı. Yanıt İstem sonuçları altında.",
+      "missing": "Bu istem artık yok ya da henüz sorulacak bir şey yok.",
+      "failed": "Bu istem çalıştırılamadı."
+    },
+    "results": {
+      "title": "İstem sonuçları",
+      "rerun": "{{name}} istemini yeniden çalıştır",
+      "deleted": "Silinmiş istem"
+    },
+    "failure": {
+      "modelUnavailable": "Bunu yanıtlayacak bir model yoktu.",
+      "modelUnreachable": "Sunucunuza ulaşılamadı.",
+      "modelFailed": "Model kullanılabilir bir yanıt döndürmedi.",
+      "schemaMismatch": "Yanıt şemaya uymadı.",
+      "noEvidence": "Yanıt üretilecek kayıtlı bir şey yoktu."
     }
   },
   "accessibility": {
@@ -1808,9 +1882,6 @@
       "hint": "Dikte için tıklayın, kipler için sağ tıklayın",
       "modes": "Kip değiştir"
     }
-  },
-  "whatsNew": {
-    "title": "Sona v{{version}} yenilikleri"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} 1 kısayolu engelliyor olabilir",
@@ -1888,6 +1959,28 @@
         "interrupted": "İşleme yarıda kesildi"
       }
     },
+    "start": {
+      "label": "Bir toplantı başlat",
+      "action": "Kaydı başlat",
+      "starting": "Başlatılıyor…",
+      "assurance": "Mac'inizin sesini yerel olarak kaydeder. Görüşmeye hiçbir şey katılmaz.",
+      "capture": "Yakalama",
+      "noSources": "En az bir kaynak seçin.",
+      "localOnly": "Yalnızca yerel",
+      "retention": "Saklanıyor: {{policy}}"
+    },
+    "import": {
+      "action": "İçe aktar",
+      "importing": "İçe aktarılıyor…",
+      "recordingFilter": "Kayıt",
+      "transcriptFilter": "Transkript dışa aktarımı"
+    },
+    "gate": {
+      "title": "Kayıt başlamadı",
+      "readyTitle": "Kayda hazır",
+      "recordAnyway": "Onsuz kaydet",
+      "recordAnywayHint": "Toplantı kısmi olarak işaretlenir ve eksik kaynak içinde adıyla kalır."
+    },
     "actions": {
       "back": "Geri",
       "delete": "Toplantıyı sil",
@@ -1943,6 +2036,14 @@
     "recovery": {
       "title": "Tamamlanmamış toplantılar",
       "finalize": "Kaydetmeyi tamamla"
+    },
+    "trash": {
+      "title": "Son silinenler",
+      "expires": "{{deleted}} silindi · {{count}} gün içinde kalkacak",
+      "expiresToday": "{{deleted}} silindi · bugün kalkacak",
+      "restore": "Geri yükle",
+      "restored": "{{title}} geri geldi.",
+      "restoreFailed": "Bu toplantı geri yüklenemedi."
     },
     "history": {
       "title": "Toplantı geçmişi",
@@ -2014,7 +2115,8 @@
       "export_cancelled": "Dışa aktarma iptal edildi. Tamamlanmış bir dışa aktarma oluşturulmadı.",
       "export_failed": "Dışa aktarma başarısız oldu. Tamamlanmış bir dışa aktarma oluşturulmadı.",
       "local_model_unavailable": "Bu toplantı için yerel bir model kullanılamıyor.",
-      "remote_unavailable": "Seçilen uzak hedef kullanılamıyor."
+      "remote_unavailable": "Seçilen uzak hedef kullanılamıyor.",
+      "import_unreadable": "Sona bu dosyayı kayıt ya da transkript dışa aktarımı olarak okuyamadı."
     },
     "discard": {
       "liveTitle": "Bu oturum durdurulup atılsın mı?",
@@ -2082,6 +2184,7 @@
       "followUp": "Takip",
       "artifactUnavailable": "Bu oluşturulan notlar kullanılamıyor. Transkript ve kendi notlarınız bu Mac'te kalır.",
       "actionMeta": "Sahibi: {{owner}} · Bitiş: {{due}}",
+      "actionDone": "Bu maddeyi yapıldı olarak işaretle",
       "unassigned": "Atanmamış",
       "noDueDate": "Bitiş tarihi yok",
       "questions": "Bu toplantıya sor",
@@ -2113,8 +2216,7 @@
         "transcript": "Transkript"
       },
       "tabsLabel": "Toplantı inceleme bölümleri",
-      "youAsked": "Siz sordunuz",
-      "actionDone": "Bu maddeyi yapıldı olarak işaretle"
+      "youAsked": "Siz sordunuz"
     },
     "ledger": {
       "title": "Kayıt defteri",
@@ -2242,22 +2344,6 @@
       "gapCount": "Boşluklar: {{total}}",
       "required": "Gerekli"
     },
-    "start": {
-      "label": "Bir toplantı başlat",
-      "action": "Kaydı başlat",
-      "starting": "Başlatılıyor…",
-      "assurance": "Mac'inizin sesini yerel olarak kaydeder. Görüşmeye hiçbir şey katılmaz.",
-      "capture": "Yakalama",
-      "noSources": "En az bir kaynak seçin.",
-      "localOnly": "Yalnızca yerel",
-      "retention": "Saklanıyor: {{policy}}"
-    },
-    "gate": {
-      "title": "Kayıt başlamadı",
-      "readyTitle": "Kayda hazır",
-      "recordAnyway": "Onsuz kaydet",
-      "recordAnywayHint": "Toplantı kısmi olarak işaretlenir ve eksik kaynak içinde adıyla kalır."
-    },
     "analytics": {
       "title": "Konuşma",
       "noSpeech": "Hiç konuşma dökümlenmedi, dolayısıyla ölçülecek bir şey yok.",
@@ -2297,7 +2383,9 @@
       "catchUp": "Beni durumdan haberdar et",
       "catchingUp": "Özetleniyor…",
       "catchUpTitle": "Şimdiye dek",
-      "catchUpNoTranscript": "Henüz özetlenecek bir şey yok. Sona, kaydı durdurduktan sonra döküm çıkarır; döküm gelmeye başladığında özet hazır olur.",
+      "catchUpNoTranscript": "Özetlenecek bir şey yok: bu toplantının transkripti yok.",
+      "catchUpNothingHeardYet": "Henüz özetlenecek bir şey yok. Sona odaya hâlâ yetişmeye çalışıyor; birazdan tekrar deneyin.",
+      "catchUpAsOf": "{{time}} itibarıyla, geçici",
       "catchUpUnavailable": "Aygıttaki model kullanılamıyor, bu yüzden özet yazılmadı.",
       "catchUpFailed": "Sona bir özet oluşturamadı. Yeniden deneyin.",
       "templates": {
@@ -2315,6 +2403,7 @@
       "prompt": {
         "calendar": "{{title}} başlıyor",
         "app": "{{app}} toplantısı algılandı",
+        "call": "{{app}} araması algılandı",
         "huddle": "{{app}} huddle'ı algılandı",
         "browser": "{{app}} içinde görüşme algılandı",
         "unknown": "Mikrofon etkinliği algılandı",
@@ -2351,7 +2440,7 @@
         "calendarDenied": "Takvim erişimi verilmedi, bu yüzden yalnızca mikrofon yolu çalışıyor.",
         "notificationsDenied": "Sona için bildirimler kapalı, bu yüzden uyarılar yalnızca uygulamada görünür.",
         "bluetoothCaveat": "Bir toplantı uygulaması açık ama hiçbir şey mikrofon kullanımı bildirmiyor. Bluetooth kulaklıklar bunu sık sık bildirmez; bir toplantı sürüyorsa kaydı kendiniz başlatın.",
-        "noSilenceStop": "Kayıt; etkinlik bittiğinde, uygulama kapandığında, Mac uykuya geçtiğinde ya da siz durdurduğunuzda biter. Sessizlik onu durdurmaz: bunun için canlı transkripsiyon gerekir, transkripsiyon ise toplantı bittikten sonra çalışır."
+        "noSilenceStop": "Kayıt; etkinlik bittiğinde, arama sona erdiğinde, uygulama kapandığında, Mac'iniz uykuya geçtiğinde ya da siz durdurduğunuzda durur. Sessizlik nedeniyle durmaz: bunun için canlı transkripsiyon gerekir, o da yalnızca toplantı bittikten sonra çalışır."
       },
       "why": {
         "disabled": "Algılama kapalı.",
@@ -2452,7 +2541,12 @@
       "copy": "Kopyala",
       "copied": "Taslak kopyalandı.",
       "copyFailed": "Taslak kopyalanamadı.",
-      "failed": "Bu toplantı için takip mesajı yazılamadı."
+      "failed": "Bu toplantı için takip mesajı yazılamadı.",
+      "openInMail": "Mail'de aç",
+      "mailOpened": "Mail taslakla birlikte açık.",
+      "mailClipboardNote": "Takip mesajı panoda. Buraya yapıştırın.",
+      "mailCopied": "Taslak bir posta bağlantısı için fazla uzundu, bu yüzden panoya kopyalandı.",
+      "mailFailed": "Bu toplantı için Mail açılamadı."
     },
     "prep": {
       "label": "Hazırlık",
@@ -2490,6 +2584,16 @@
     },
     "workedFor": "{{seconds}} sn çalıştı",
     "stepSeconds": "{{seconds}} sn",
+    "error": {
+      "unreachable": "Sona bağlanamadı.",
+      "refused": "Sona bu soruyu alamadı.",
+      "failed": "Sona bu yanıtı tamamlayamadı."
+    },
+    "working": {
+      "searchedCorpus": "Toplantılarınıza ve notlarınıza baktım",
+      "stillWaiting": "Hâlâ bekleniyor…",
+      "cancel": "İptal"
+    },
     "turnState": {
       "submitting": "Gönderiliyor",
       "queued": "Sırada",
@@ -2516,20 +2620,27 @@
       "undone": "Geri alındı",
       "rejected": "Uygulanmadı"
     },
+    "action": {
+      "resolve_loop": "Bir taahhüdü tamamlandı olarak işaretle",
+      "assign_loop": "Bir taahhüde sorumlu ata",
+      "set_series_template": "Bu seri için {{template}} şablonunu kullan",
+      "add_vocabulary_term": "\"{{term}}\" terimini sözlüğünüze ekle",
+      "rename_speaker": "Bir konuşmacıyı {{name}} olarak yeniden adlandır",
+      "apply": "Uygula",
+      "dismiss": "Yoksay",
+      "applied": "Uygulandı",
+      "undo": "Geri al",
+      "dismissed": "Yoksayıldı",
+      "receipt": "Makbuz {{id}}"
+    },
+    "tools": {
+      "label": "Araç kullanmasına izin ver",
+      "hint": "Yalnızca bu soru için"
+    },
     "ask": {
       "row": "Sona'ya sor: {{query}}",
       "error": "Soru Sona'ya gönderilemedi.",
       "consentRequired": "Soru sormak toplantılarından alıntıları sunucuna gönderir, bu yüzden önce toplantı zekâsını aç."
-    },
-    "error": {
-      "unreachable": "Sona bağlanamadı.",
-      "refused": "Sona bu soruyu alamadı.",
-      "failed": "Sona bu yanıtı tamamlayamadı."
-    },
-    "working": {
-      "searchedCorpus": "Toplantılarınıza ve notlarınıza baktım",
-      "stillWaiting": "Hâlâ bekleniyor…",
-      "cancel": "İptal"
     }
   },
   "overview": {
@@ -2600,6 +2711,12 @@
       "createOffer": "Eşleştirme teklifi oluştur",
       "currentOffer": "Eşleştirme teklifi",
       "approve": "Bu teklifi onayla",
+      "candidateOffer": "Eklediğiniz cihazdaki kod",
+      "candidateApprove": "Cihazı onayla",
+      "candidateReading": "Denetleniyor…",
+      "candidateCompare": "Onaylamadan önce bunun cihazdaki kodla eşleştiğini denetleyin.",
+      "candidateInvalid": "Bu kod geçerli değil.",
+      "candidateApproved": "Cihaz onaylandı.",
       "receivedOffer": "Başka bir aygıttan teklif",
       "accept": "Teklifi kabul et"
     },
@@ -2653,10 +2770,6 @@
         "revokeConfirm": "Bu bağlantıya sahip olan herkes, siz iptal ettiğiniz anda erişimi kaybeder."
       }
     }
-  },
-  "topNav": {
-    "capture": "Kayıt",
-    "library": "Kitaplık"
   },
   "people": {
     "title": "Kişiler",
@@ -2733,6 +2846,11 @@
       "stale": "Kişiler başka bir ekranda değişti. Yeniden yükleyip tekrar deneyin.",
       "operation": "Kişiler güncellenemedi. Tekrar deneyin."
     },
+    "summary": {
+      "empty": "Henüz özet yok.",
+      "regenerate": "Yeniden oluştur",
+      "provenance": "{{date}} tarihinde {{model}} tarafından yazıldı"
+    },
     "review": {
       "personDetails": "Kişi ayrıntıları",
       "previouslyTogether": "Daha önce birlikte",
@@ -2762,6 +2880,16 @@
       "brief": "{{name}} bekleniyor: {{text}}",
       "briefOverdue": "{{name}} tarafında gecikmiş: {{text}}",
       "briefIOwe": "Sana düşen: {{text}}"
+    }
+  },
+  "organizations": {
+    "title": "Kuruluşlar",
+    "detail": {
+      "people_one": "{{count}} kişi",
+      "people_other": "{{count}} kişi",
+      "peopleHere": "Buradaki kişiler",
+      "noPeople": "Henüz burada kimse yok.",
+      "recentMeetings": "Son toplantılar"
     }
   },
   "libraryV2": {
@@ -2940,6 +3068,8 @@
       "label": "Toplantı uygulamaları",
       "browsersAutomatic": "Tarayıcı sekmesindeki bir görüşme burada yazmadan da algılanır.",
       "runningNow": "Şu anda çalışanlar",
+      "autoRecord": "Otomatik kaydet",
+      "autoRecordConsent": "Bazı yerlerde aramadaki herkesin kayda onay vermesi gerekir.",
       "add": "Uygulama ekle",
       "addTitle": "Toplantı uygulaması ekle",
       "addDescription": "Sona, uygulamanın Hakkında penceresinde veya `osascript -e 'id of app \"Name\"'` komutuyla bulabileceğiniz uygulama kimliğine ihtiyaç duyar.",
@@ -2953,6 +3083,7 @@
         "teams": "Microsoft Teams",
         "webex": "Webex",
         "facetime": "FaceTime",
+        "phone": "Telefon",
         "slack": "Slack"
       }
     }
@@ -2960,17 +3091,23 @@
   "consentPanel": {
     "calendarTitle": "{{title}} kaydedilsin mi?",
     "appTitle": "Bu {{app}} toplantısı kaydedilsin mi?",
+    "appCallTitle": "Bu {{app}} araması kaydedilsin mi?",
     "genericTitle": "Bu toplantı kaydedilsin mi?",
     "introduction": "Sona bu Mac'te kaydeder, kontrol sizde kalır.",
     "seriesBrief_one": "{{person}} ile toplantı {{nth}} · {{count}} açık konu",
     "seriesBrief_other": "{{person}} ile toplantı {{nth}} · {{count}} açık konu",
     "alwaysRecord": "Bu toplantıyı her zaman kaydet",
+    "announceInChat": "Sohbette duyur",
+    "announceLine": "Sona {{name}} için not alıyor. İstemiyorsanız lütfen belirtin.",
+    "announceRefused": "Bildirim gönderilemedi: bu uygulama kabul etmedi.",
     "assurance": "Yalnızca toplantıdaki herkes kaydedilmeyi kabul ettikten sonra başlatın.",
     "record": "Kaydet",
     "ignore": "Yoksay",
     "recording": "Kayıt",
+    "recordingStarted": "Kayıt başladı",
     "stop": "Durdur",
     "forgetSeries": "Bu seriyi unut",
+    "forgetApp": "Bu uygulamayı otomatik kaydetme",
     "wrap": {
       "label": "Kapanış",
       "title": "{{title}} — kaydedildi",

@@ -33,6 +33,10 @@
     "people": "人物",
     "settings": "设置"
   },
+  "topNav": {
+    "capture": "录音",
+    "library": "资料库"
+  },
   "onboarding": {
     "subtitle": "模型在这台 Mac 上运行，需要在准确度和速度之间取舍。",
     "existingModelsTitle": "兼容的模型",
@@ -142,6 +146,7 @@
   },
   "modelSelector": {
     "custom": "自定义",
+    "legacy": "旧版",
     "streaming": "流式",
     "active": "活跃",
     "switching": "切换中…",
@@ -155,22 +160,77 @@
     "loadingGeneric": "加载中…",
     "deleteModel": "删除 {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
-    "capabilities": {
-      "languageSelection": "支持多种输入语言",
-      "languageCount": "{{total}} 种语言",
-      "translation": "可翻译为英语",
-      "translate": "翻译为英语",
-      "singleLanguage": "仅支持此语言",
-      "languageOnly": "仅 {{language}}",
-      "streaming": "在您说话时实时显示转录"
-    },
     "cancel": "取消",
     "cancelDownload": "取消下载",
-    "legacy": "旧版"
+    "capabilities": {
+      "languageSelection": "支持多种输入语言",
+      "singleLanguage": "仅支持此语言",
+      "languageCount": "{{total}} 种语言",
+      "languageOnly": "仅 {{language}}",
+      "translation": "可翻译为英语",
+      "translate": "翻译为英语",
+      "streaming": "在您说话时实时显示转录"
+    }
   },
   "settings": {
     "modelSettings": {
       "title": "{{model}} 设置"
+    },
+    "general": {
+      "title": "通用",
+      "shortcut": {
+        "title": "快捷键",
+        "loading": "加载快捷键中…",
+        "none": "未配置快捷键",
+        "notFound": "未找到快捷键",
+        "pressKeys": "按下你的按键…",
+        "bindings": {
+          "transcribe": {
+            "name": "转录快捷键"
+          },
+          "cancel": {
+            "name": "取消快捷键"
+          },
+          "command": {
+            "name": "命令快捷键"
+          },
+          "transcribe_with_post_process": {
+            "name": "后处理快捷键"
+          }
+        },
+        "errors": {
+          "restore": "无法恢复原来的快捷键。请重试。",
+          "set": "无法设置快捷键: {{error}}",
+          "reset": "无法重置快捷键。请重试。"
+        },
+        "holdHint": "轻按切换，长按说话。适用于任何快捷键。",
+        "recordAction": "为 {{binding}} 录制新的快捷键",
+        "unset": "未设置"
+      },
+      "language": {
+        "title": "语言",
+        "searchPlaceholder": "搜索语言",
+        "noResults": "未找到语言",
+        "auto": "自动"
+      },
+      "pushToTalk": {
+        "label": "按住说话"
+      },
+      "appearance": {
+        "title": "外观",
+        "material": {
+          "title": "材质",
+          "description": "实色让 Sona 的表面保持不透明。玻璃让桌面透过顶栏、命令面板和录音 HUD 显示出来。",
+          "options": {
+            "solid": "实色",
+            "glass": "玻璃"
+          }
+        }
+      },
+      "commandMode": {
+        "label": "语音命令模式",
+        "description": "按住命令快捷键，说出所选文本要如何修改。"
+      }
     },
     "models": {
       "title": "转录模型",
@@ -186,11 +246,11 @@
         "downloadedOnlyHint": "仅显示已下载的模型",
         "family": "模型系列"
       },
-      "noModelsMatch": "没有符合此筛选条件的模型。",
       "rescan": {
         "label": "重新扫描",
         "tooltip": "重新扫描在 Sona 之外添加到模型文件夹或 Hugging Face 缓存中的模型"
       },
+      "noModelsMatch": "没有符合此筛选条件的模型。",
       "cloud": {
         "title": "云转录",
         "providerDescription": "密钥保存在系统凭据存储中。",
@@ -255,62 +315,6 @@
         "activeInMemory": "已激活，在内存中",
         "downloaded": "已下载",
         "notDownloaded": "未下载"
-      }
-    },
-    "general": {
-      "title": "通用",
-      "shortcut": {
-        "title": "快捷键",
-        "loading": "加载快捷键中…",
-        "none": "未配置快捷键",
-        "notFound": "未找到快捷键",
-        "pressKeys": "按下你的按键…",
-        "bindings": {
-          "transcribe": {
-            "name": "转录快捷键"
-          },
-          "cancel": {
-            "name": "取消快捷键"
-          },
-          "transcribe_with_post_process": {
-            "name": "后处理快捷键"
-          },
-          "command": {
-            "name": "命令快捷键"
-          }
-        },
-        "errors": {
-          "restore": "无法恢复原来的快捷键。请重试。",
-          "set": "无法设置快捷键: {{error}}",
-          "reset": "无法重置快捷键。请重试。"
-        },
-        "holdHint": "轻按切换，长按说话。适用于任何快捷键。",
-        "recordAction": "为 {{binding}} 录制新的快捷键",
-        "unset": "未设置"
-      },
-      "language": {
-        "title": "语言",
-        "searchPlaceholder": "搜索语言",
-        "noResults": "未找到语言",
-        "auto": "自动"
-      },
-      "pushToTalk": {
-        "label": "按住说话"
-      },
-      "appearance": {
-        "title": "外观",
-        "material": {
-          "title": "材质",
-          "description": "实色让 Sona 的表面保持不透明。玻璃让桌面透过顶栏、命令面板和录音 HUD 显示出来。",
-          "options": {
-            "solid": "实色",
-            "glass": "玻璃"
-          }
-        }
-      },
-      "commandMode": {
-        "label": "语音命令模式",
-        "description": "按住命令快捷键，说出所选文本要如何修改。"
       }
     },
     "sound": {
@@ -497,7 +501,7 @@
       },
       "spokenEdits": {
         "enabledLabel": "执行口述编辑命令",
-        "enabledDescription": "执行“scratch that”“delete last word”和“delete the last word”，而不是把它们写出来。仅限英语，且仅当该短语单独位于两次停顿之间时生效：“scratch that plan”和“we should scratch that”仍按文字保留。",
+        "enabledDescription": "听到 \"scratch that\"、\"delete last word\"、\"delete the last word\"、\"capitalize that\"、\"lowercase that\"、\"quote that\"、\"make that a list\" 和 \"new bullet\" 时执行相应操作，而不是将其写入文字。仅支持英语，并且仅当该短语单独出现在两次停顿之间时才生效：\"scratch that plan\" 和 \"we should scratch that\" 仍会作为文字保留。",
         "toggleError": "无法修改口述编辑命令。请重试。"
       }
     },
@@ -568,12 +572,77 @@
         "destinationPinned": "Sona 会把该确认绑定到这个确切的地址和来源。"
       }
     },
+    "vocabulary": {
+      "replacements": {
+        "title": "口述替换",
+        "enabledLabel": "启用口述替换",
+        "spoken": "你说",
+        "written": "Sona 写",
+        "spokenPlaceholder": "艾特",
+        "writtenPlaceholder": "@",
+        "add": "添加规则",
+        "reset": "恢复默认",
+        "ruleEnabled": "应用 {{spoken}}",
+        "delete": "删除 {{spoken}}",
+        "loading": "正在加载替换",
+        "loadError": "无法加载替换。",
+        "matching": "短语按整词匹配且不区分大小写。当两条规则命中同一处时较长的胜出，替换在词汇校正之前运行。",
+        "errors": {
+          "duplicate": "另一条规则已经使用这个短语。",
+          "incomplete": "请同时填写口述短语和它的替换文本。"
+        },
+        "empty": {
+          "description": "添加一个像「艾特」这样的短语，你每次这么说，Sona 就写出 @。"
+        },
+        "confirmDelete": {
+          "title": "删除 {{spoken}}？",
+          "description": "该短语在以后的转写中不再被改写。已写出的文本不变。"
+        },
+        "confirmReset": {
+          "title": "恢复默认规则？",
+          "description": "你添加或编辑的每条规则都会被丢弃，随附的初始规则集会回来。"
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "写作样例",
+        "placeholder": "粘贴一段你自己写的文字。",
+        "sampleLabel": "写作样例 {{number}}",
+        "delete": "删除样例 {{number}}",
+        "add": "添加样例",
+        "wordCount": "{{max}} 个词中的 {{words}} 个",
+        "overLimit": "{{words}} 个词。只使用前 {{max}} 个。",
+        "privacy": "样例只会去转写本身已经会去的地方，不会去任何别处。",
+        "loading": "正在加载样例",
+        "loadError": "无法加载样例。",
+        "empty": {
+          "description": "粘贴几段你自己写的文字，改写就会跟随你的用词、句子长度和正式程度。"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "显示待机药丸",
+      "enabledDescription": "在两次口述之间，在屏幕上保留一个小药丸。点击开始，右键切换模式。",
+      "positionLabel": "待机药丸位置",
+      "positionTop": "顶部",
+      "positionBottom": "底部"
+    },
     "history": {
       "stats": {
         "unavailable": "无法获取使用统计信息。",
         "entries": "录音",
         "duration": "录音时长",
         "words": "词"
+      },
+      "processAgain": {
+        "action": "再处理一次",
+        "title": "再处理一次",
+        "description": "用另一个模式重新跑一遍这段录音。原条目保留，结果另存为新条目。",
+        "placeholder": "选择一个模式",
+        "confirm": "处理",
+        "started": "已开始重新处理",
+        "modeLabel": "模式"
       },
       "title": "历史记录",
       "openFolder": "打开录音文件夹",
@@ -637,6 +706,12 @@
           "full": "完整"
         },
         "contextSources": "上下文来源",
+        "columns": {
+          "source": "来源",
+          "status": "状态",
+          "method": "方式",
+          "outcome": "结果"
+        },
         "contextSource": {
           "target": "应用",
           "focused_field": "聚焦字段",
@@ -681,13 +756,7 @@
           "truncated": "被截断",
           "no_speech_detected": "未检测到语音"
         },
-        "realtimeFactorLabel": "解码",
-        "columns": {
-          "source": "来源",
-          "status": "状态",
-          "method": "方式",
-          "outcome": "结果"
-        }
+        "realtimeFactorLabel": "解码"
       },
       "correction": {
         "add": "添加更正",
@@ -753,16 +822,7 @@
       },
       "noTextRecorded": "此条目未记录任何文本。",
       "cloudHeld": "Sona 扣下了云端结果：没有可信的内容返回，也没有可用的本地模型。",
-      "transcriptionEngineFailed": "转录失败，因此未记录任何内容。",
-      "processAgain": {
-        "action": "再处理一次",
-        "title": "再处理一次",
-        "description": "用另一个模式重新跑一遍这段录音。原条目保留，结果另存为新条目。",
-        "placeholder": "选择一个模式",
-        "confirm": "处理",
-        "started": "已开始重新处理",
-        "modeLabel": "模式"
-      }
+      "transcriptionEngineFailed": "转录失败，因此未记录任何内容。"
     },
     "debug": {
       "title": "调试",
@@ -780,6 +840,12 @@
         "copied": "已复制",
         "lineCount": "{{count}} 行",
         "empty": "暂无日志。"
+      },
+      "whatsNewPreview": {
+        "title": "预览发布说明",
+        "description": "打开最新内置发行说明，且不标记为已查看",
+        "noNotes": "未找到内置发行说明",
+        "error": "无法预览发布说明。请重试。"
       },
       "soundTheme": {
         "label": "声音主题",
@@ -852,16 +918,16 @@
         "enabled": "已启用",
         "disabled": "已禁用",
         "holder": "被 {{name}}（pid {{pid}}）占用",
-        "notSupported": "此平台不支持。",
-        "noHolder": "没有应用正在占用安全输入。",
-        "status": "状态",
-        "error": "无法获取键盘诊断信息。"
-      },
-      "whatsNewPreview": {
-        "title": "预览发布说明",
-        "description": "打开最新内置发行说明，且不标记为已查看",
-        "noNotes": "未找到内置发行说明",
-        "error": "无法预览发布说明。请重试。"
+        "holderUnknown": "被一个 macOS 未指明的应用占用",
+        "verdictBlocked": "Secure Input 已开启，没有任何按键到达 Sona。请关闭占用它的应用，然后重试。",
+        "verdictSuspicious": "收到了修饰键，但没有收到按键。可能有其他应用截获了它们。",
+        "verdictNoEvents": "没有收到任何事件。请在诊断运行时按几个键。",
+        "verdictOk": "按键可以到达 Sona。",
+        "failed": "诊断无法运行：{{error}}",
+        "keyDown": "按键按下",
+        "keyUp": "按键松开",
+        "flagsChanged": "修饰键",
+        "mouse": "鼠标"
       },
       "groups": {
         "capture": "录制",
@@ -1009,6 +1075,10 @@
         },
         "model": {
           "label": "AI 模型"
+        },
+        "spokenInstructions": {
+          "label": "口头指令",
+          "description": "在听写结尾说出“Sona,”，那句话的其余部分将成为交给 AI 执行的编辑指令，而不是要输入的文字。"
         },
         "disabledNote": "开启 AI 清理后即可使用下方的预设、语气、提供方和模型。"
       },
@@ -1391,11 +1461,11 @@
           },
           "codex": {
             "label": "Codex",
-            "description": "只观察会话。Sona 还不能回复 Codex。"
+            "description": "观察 Codex 会话，回应审批请求，并在一轮结束时回复。"
           },
           "grok": {
             "label": "Grok",
-            "description": "只观察会话。Sona 还不能回复 Grok。"
+            "description": "观察 Grok 会话，回应工具请求，并在一轮结束时回复。"
           },
           "omp": {
             "label": "OMP",
@@ -1465,7 +1535,7 @@
         "allowExact": "仅允许这一个请求",
         "denyExact": "仅拒绝这一个请求",
         "dismiss": "关闭",
-        "ompPermissionObserveOnly": "OMP 审批请求仅供观察。请在 OMP 中批准或拒绝。"
+        "observeOnly": "Sona 只能查看这个请求。请在 {{agent}} 中回应它。"
       },
       "rules": {
         "title": "权限规则",
@@ -1489,6 +1559,10 @@
       "externalAccess": {
         "label": "外部访问",
         "rowDescription": "允许本 Mac 上的其他程序通过 Sona 的命令行工具和 MCP 服务器读取您的会议、听写、人物和开放循环。此功能仅限读取，默认关闭，直到您手动开启。"
+      },
+      "externalMutations": {
+        "label": "外部修改",
+        "rowDescription": "允许那些程序将待办标记为已完成。它与“外部访问”相互独立，并在你开启之前保持关闭：读取你的会议与更改它们并不是一回事。"
       },
       "workspaceNavigation": "代理视图",
       "sonaAgent": {
@@ -1602,62 +1676,6 @@
         "chartAria": "每日活动量，过去 7 天内共有 {{count}} 次"
       }
     },
-    "vocabulary": {
-      "replacements": {
-        "title": "口述替换",
-        "enabledLabel": "启用口述替换",
-        "spoken": "你说",
-        "written": "Sona 写",
-        "spokenPlaceholder": "艾特",
-        "writtenPlaceholder": "@",
-        "add": "添加规则",
-        "reset": "恢复默认",
-        "ruleEnabled": "应用 {{spoken}}",
-        "delete": "删除 {{spoken}}",
-        "loading": "正在加载替换",
-        "loadError": "无法加载替换。",
-        "matching": "短语按整词匹配且不区分大小写。当两条规则命中同一处时较长的胜出，替换在词汇校正之前运行。",
-        "errors": {
-          "duplicate": "另一条规则已经使用这个短语。",
-          "incomplete": "请同时填写口述短语和它的替换文本。"
-        },
-        "empty": {
-          "description": "添加一个像「艾特」这样的短语，你每次这么说，Sona 就写出 @。"
-        },
-        "confirmDelete": {
-          "title": "删除 {{spoken}}？",
-          "description": "该短语在以后的转写中不再被改写。已写出的文本不变。"
-        },
-        "confirmReset": {
-          "title": "恢复默认规则？",
-          "description": "你添加或编辑的每条规则都会被丢弃，随附的初始规则集会回来。"
-        }
-      }
-    },
-    "prompts": {
-      "samples": {
-        "title": "写作样例",
-        "placeholder": "粘贴一段你自己写的文字。",
-        "sampleLabel": "写作样例 {{number}}",
-        "delete": "删除样例 {{number}}",
-        "add": "添加样例",
-        "wordCount": "{{max}} 个词中的 {{words}} 个",
-        "overLimit": "{{words}} 个词。只使用前 {{max}} 个。",
-        "privacy": "样例只会去转写本身已经会去的地方，不会去任何别处。",
-        "loading": "正在加载样例",
-        "loadError": "无法加载样例。",
-        "empty": {
-          "description": "粘贴几段你自己写的文字，改写就会跟随你的用词、句子长度和正式程度。"
-        }
-      }
-    },
-    "hud": {
-      "enabledLabel": "显示待机药丸",
-      "enabledDescription": "在两次口述之间，在屏幕上保留一个小药丸。点击开始，右键切换模式。",
-      "positionLabel": "待机药丸位置",
-      "positionTop": "顶部",
-      "positionBottom": "底部"
-    },
     "meetings": {
       "digest": {
         "title": "晚间摘要",
@@ -1680,6 +1698,10 @@
         "webhook": "发送到 webhook",
         "webhookHint": "将会议导出为 JSON。仅限在您自己的机器或 tailnet 上使用，与服务器一致。",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "runPrompt": "运行已保存的提示",
+        "runPromptHint": "用你保存的某个提示向这场会议提问，并将答案与会议一起保存。",
+        "promptPlaceholder": "选择一个提示",
+        "needsPrompt": "请先选择一个提示",
         "needsTarget": "请先填写名称",
         "needsUrl": "请先填写地址",
         "rejected": "另一个窗口改动了这些。请重新读取后再试。",
@@ -1700,6 +1722,9 @@
         "saveFailed": "该更改未保存。请重新读取该行后再试一次。"
       }
     }
+  },
+  "whatsNew": {
+    "title": "Sona v{{version}} 新功能"
   },
   "common": {
     "loading": "加载中…",
@@ -1730,8 +1755,11 @@
     "noResults": "未找到结果",
     "newMeeting": "新会议",
     "importAudio": "转录文件",
+    "importMeeting": "导入录音或转录文本",
     "openRecordings": "打开录音文件夹",
     "openAgent": "打开智能体",
+    "runPrompt": "运行提示",
+    "newPrompt": "新建提示",
     "esc": "esc",
     "search": {
       "meetings": "会议",
@@ -1740,6 +1768,52 @@
       "loops": "未答的问题",
       "empty": "没有与“{{query}}”匹配的内容。",
       "unavailable": "搜索当前不可用。"
+    }
+  },
+  "prompts": {
+    "title": "提示",
+    "description": "可以反复提出的问题。可从命令面板运行，或在会议结束后通过系列的自动化运行。",
+    "loading": "正在读取你的提示…",
+    "empty": "还没有提示。",
+    "new": "新建提示",
+    "editing": "编辑提示",
+    "editorHint": "提示只会根据 Sona 已掌握的关于所运行记录的内容来回答。",
+    "name": "名称",
+    "body": "提示",
+    "bodyPlaceholder": "列出各项决定以及每项的负责人。",
+    "output": "答案",
+    "outputText": "文本",
+    "outputSchema": "符合架构的 JSON",
+    "schema": "架构",
+    "schemaPlaceholder": "{\"type\":\"object\",\"required\":[\"decisions\"],\"properties\":{\"decisions\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+    "targetLabel": "关于",
+    "save": "保存",
+    "edit": "编辑 {{name}}",
+    "delete": "删除 {{name}}",
+    "invalid": "提示需要名称、提示内容以及一个 JSON 格式的架构。",
+    "rejected": "另一个窗口更改了这些内容。请重新读取后再试。",
+    "saveFailed": "未能保存。",
+    "target": {
+      "meeting": "一场会议",
+      "person": "一个人",
+      "series": "一个系列"
+    },
+    "run": {
+      "saved": "{{name}} 已运行。答案在“提示结果”下。",
+      "missing": "该提示已不存在，或者还没有可供提问的内容。",
+      "failed": "该提示无法运行。"
+    },
+    "results": {
+      "title": "提示结果",
+      "rerun": "再次运行 {{name}}",
+      "deleted": "已删除的提示"
+    },
+    "failure": {
+      "modelUnavailable": "没有可用的模型来回答这个问题。",
+      "modelUnreachable": "无法连接到你的服务器。",
+      "modelFailed": "模型没有返回可用的答案。",
+      "schemaMismatch": "答案与架构不匹配。",
+      "noEvidence": "没有可供作答的记录内容。"
     }
   },
   "accessibility": {
@@ -1802,9 +1876,6 @@
       "hint": "点击开始口述，右键选择模式",
       "modes": "切换模式"
     }
-  },
-  "whatsNew": {
-    "title": "Sona v{{version}} 新功能"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} 可能正在阻止 1 个快捷键",
@@ -1882,6 +1953,28 @@
         "interrupted": "处理已中断"
       }
     },
+    "start": {
+      "label": "开始一次会议",
+      "action": "开始录制",
+      "starting": "正在启动…",
+      "assurance": "在本地录制你 Mac 的声音。没有任何东西加入通话。",
+      "capture": "采集",
+      "noSources": "请至少选择一个来源。",
+      "localOnly": "仅本地",
+      "retention": "保留：{{policy}}"
+    },
+    "import": {
+      "action": "导入",
+      "importing": "正在导入…",
+      "recordingFilter": "录音",
+      "transcriptFilter": "转录文本导出"
+    },
+    "gate": {
+      "title": "录制没有开始",
+      "readyTitle": "可以开始录制",
+      "recordAnyway": "不用它也录制",
+      "recordAnywayHint": "该会议会标记为不完整，缺少的音源会在其中写明。"
+    },
     "actions": {
       "back": "返回",
       "delete": "删除会议",
@@ -1937,6 +2030,14 @@
     "recovery": {
       "title": "未完成的会议",
       "finalize": "完成保存"
+    },
+    "trash": {
+      "title": "最近删除",
+      "expires": "删除于 {{deleted}} · {{count}} 天后彻底移除",
+      "expiresToday": "删除于 {{deleted}} · 今天彻底移除",
+      "restore": "恢复",
+      "restored": "{{title}} 已恢复。",
+      "restoreFailed": "无法恢复该会议。"
     },
     "history": {
       "title": "会议历史",
@@ -2008,7 +2109,8 @@
       "export_cancelled": "导出已取消。没有生成完整的导出文件。",
       "export_failed": "导出失败。没有生成完整的导出文件。",
       "local_model_unavailable": "这场会议没有可用的本地模型。",
-      "remote_unavailable": "所选的远程目标不可用。"
+      "remote_unavailable": "所选的远程目标不可用。",
+      "import_unreadable": "Sona 无法将该文件识别为录音或转录文本导出。"
     },
     "discard": {
       "liveTitle": "停止并丢弃这个会话？",
@@ -2076,6 +2178,7 @@
       "followUp": "后续跟进",
       "artifactUnavailable": "这些生成的笔记不可用。转录和你自己写的笔记都留在这台 Mac 上。",
       "actionMeta": "负责人：{{owner}} · 截止：{{due}}",
+      "actionDone": "把这条行动项标记为完成",
       "unassigned": "未分配",
       "noDueDate": "无截止日期",
       "questions": "向此会议提问",
@@ -2107,8 +2210,7 @@
         "transcript": "转录"
       },
       "tabsLabel": "会议回顾栏目",
-      "youAsked": "你的提问",
-      "actionDone": "把这条行动项标记为完成"
+      "youAsked": "你的提问"
     },
     "ledger": {
       "title": "台账",
@@ -2236,22 +2338,6 @@
       "gapCount": "间隙：{{total}}",
       "required": "必需"
     },
-    "start": {
-      "label": "开始一次会议",
-      "action": "开始录制",
-      "starting": "正在启动…",
-      "assurance": "在本地录制你 Mac 的声音。没有任何东西加入通话。",
-      "capture": "采集",
-      "noSources": "请至少选择一个来源。",
-      "localOnly": "仅本地",
-      "retention": "保留：{{policy}}"
-    },
-    "gate": {
-      "title": "录制没有开始",
-      "readyTitle": "可以开始录制",
-      "recordAnyway": "不用它也录制",
-      "recordAnywayHint": "该会议会标记为不完整，缺少的音源会在其中写明。"
-    },
     "analytics": {
       "title": "对话",
       "noSpeech": "没有转写到任何语音，因此没有可衡量的内容。",
@@ -2291,7 +2377,9 @@
       "catchUp": "帮我快速回顾",
       "catchingUp": "正在回顾…",
       "catchUpTitle": "目前为止",
-      "catchUpNoTranscript": "暂时没有可回顾的内容。Sona 在你停止录制之后才转写，所以转写开始到达时就会有回顾。",
+      "catchUpNoTranscript": "没有可回顾的内容：这场会议没有转录文本。",
+      "catchUpNothingHeardYet": "暂时没有可回顾的内容。Sona 仍在跟上现场的进度，请稍后再试。",
+      "catchUpAsOf": "截至 {{time}}，暂定",
       "catchUpUnavailable": "设备端模型不可用，因此没有写出回顾。",
       "catchUpFailed": "Sona 无法生成回顾。请重试。",
       "templates": {
@@ -2309,6 +2397,7 @@
       "prompt": {
         "calendar": "{{title}} 即将开始",
         "app": "检测到 {{app}} 会议",
+        "call": "检测到 {{app}} 通话",
         "huddle": "检测到 {{app}} 快聊",
         "browser": "在 {{app}} 中检测到通话",
         "unknown": "检测到麦克风活动",
@@ -2345,7 +2434,7 @@
         "calendarDenied": "未授予日历访问权限，因此只有麦克风这条路径在运行。",
         "notificationsDenied": "Sona 的通知已关闭，因此提示只出现在应用内。",
         "bluetoothCaveat": "会议应用已打开，但没有任何东西报告正在使用麦克风。蓝牙耳机常常不报告，所以如果有会议正在进行，请自己开始录制。",
-        "noSilenceStop": "录音会在日程结束、应用退出、Mac 睡眠或你自己停止时结束。没有什么会因为安静而停止它：那需要实时转录，而转录是在会议结束后才跑的。"
+        "noSilenceStop": "录制会在日程事件结束、通话结束、应用退出、Mac 进入睡眠或你手动停止时停止。静音不会让它停止：那需要实时转录，而转录只在会议结束后进行。"
       },
       "why": {
         "disabled": "检测已关闭。",
@@ -2446,7 +2535,12 @@
       "copy": "复制",
       "copied": "草稿已复制。",
       "copyFailed": "无法复制草稿。",
-      "failed": "无法为这场会议起草跟进。"
+      "failed": "无法为这场会议起草跟进。",
+      "openInMail": "在 Mail 中打开",
+      "mailOpened": "Mail 已打开并载入草稿。",
+      "mailClipboardNote": "跟进内容已在剪贴板中。请粘贴到这里。",
+      "mailCopied": "草稿太长，无法通过邮件链接传递，因此已放入剪贴板。",
+      "mailFailed": "无法为这场会议打开 Mail。"
     },
     "prep": {
       "label": "会前准备",
@@ -2484,6 +2578,16 @@
     },
     "workedFor": "已处理 {{seconds}} 秒",
     "stepSeconds": "{{seconds}} 秒",
+    "error": {
+      "unreachable": "Sona 无法连接。",
+      "refused": "Sona 无法接受这个问题。",
+      "failed": "Sona 没能写完这个回答。"
+    },
+    "working": {
+      "searchedCorpus": "看过你的会议和笔记了",
+      "stillWaiting": "还在等…",
+      "cancel": "取消"
+    },
     "turnState": {
       "submitting": "发送中",
       "queued": "排队中",
@@ -2510,20 +2614,27 @@
       "undone": "已撤销",
       "rejected": "未应用"
     },
+    "action": {
+      "resolve_loop": "将一项承诺标记为已完成",
+      "assign_loop": "为一项承诺指定负责人",
+      "set_series_template": "为此系列使用 {{template}} 模板",
+      "add_vocabulary_term": "将“{{term}}”添加到你的词汇表",
+      "rename_speaker": "将一位发言人重命名为 {{name}}",
+      "apply": "应用",
+      "dismiss": "忽略",
+      "applied": "已应用",
+      "undo": "撤销",
+      "dismissed": "已忽略",
+      "receipt": "回执 {{id}}"
+    },
+    "tools": {
+      "label": "允许它使用工具",
+      "hint": "仅限本次提问"
+    },
     "ask": {
       "row": "询问 Sona：{{query}}",
       "error": "无法将该问题发送给 Sona。",
       "consentRequired": "提问会把你的会议引文发送到你的服务器，请先开启会议智能。"
-    },
-    "error": {
-      "unreachable": "Sona 无法连接。",
-      "refused": "Sona 无法接受这个问题。",
-      "failed": "Sona 没能写完这个回答。"
-    },
-    "working": {
-      "searchedCorpus": "看过你的会议和笔记了",
-      "stillWaiting": "还在等…",
-      "cancel": "取消"
     }
   },
   "overview": {
@@ -2592,6 +2703,12 @@
       "createOffer": "创建配对提议",
       "currentOffer": "配对提议",
       "approve": "批准这个提议",
+      "candidateOffer": "来自待添加设备的配对码",
+      "candidateApprove": "批准设备",
+      "candidateReading": "正在检查…",
+      "candidateCompare": "批准前，请确认此配对码与设备上显示的一致。",
+      "candidateInvalid": "该配对码无效。",
+      "candidateApproved": "设备已批准。",
       "receivedOffer": "来自另一台设备的提议",
       "accept": "接受提议"
     },
@@ -2645,10 +2762,6 @@
         "revokeConfirm": "撤销后，持有此链接的任何人都会立即失去访问权限。"
       }
     }
-  },
-  "topNav": {
-    "capture": "录音",
-    "library": "资料库"
   },
   "people": {
     "title": "人物",
@@ -2725,6 +2838,11 @@
       "stale": "人物数据已在其他界面更改。请重新加载后重试。",
       "operation": "无法更新人物数据。请重试。"
     },
+    "summary": {
+      "empty": "还没有摘要。",
+      "regenerate": "重新生成",
+      "provenance": "由 {{model}} 于 {{date}} 撰写"
+    },
     "review": {
       "personDetails": "人物详情",
       "previouslyTogether": "以往共同会议",
@@ -2754,6 +2872,15 @@
       "brief": "等待 {{name}}：{{text}}",
       "briefOverdue": "{{name}} 已逾期：{{text}}",
       "briefIOwe": "你负责：{{text}}"
+    }
+  },
+  "organizations": {
+    "title": "组织",
+    "detail": {
+      "people_other": "{{count}} 人",
+      "peopleHere": "这里的成员",
+      "noPeople": "这里还没有人。",
+      "recentMeetings": "最近的会议"
     }
   },
   "libraryV2": {
@@ -2930,6 +3057,8 @@
       "label": "会议应用",
       "browsersAutomatic": "浏览器标签页里的通话无需列在这里也能被检测到。",
       "runningNow": "正在运行",
+      "autoRecord": "自动录制",
+      "autoRecordConsent": "在某些地区，录制通话需要通话中的每个人同意。",
       "add": "添加应用",
       "addTitle": "添加会议应用",
       "addDescription": "Sona 需要应用 ID，您可以在应用的“关于”窗口中找到，或使用 `osascript -e 'id of app \"Name\"'` 获取。",
@@ -2943,6 +3072,7 @@
         "teams": "Microsoft Teams",
         "webex": "Webex",
         "facetime": "FaceTime",
+        "phone": "电话",
         "slack": "Slack"
       }
     }
@@ -2950,16 +3080,22 @@
   "consentPanel": {
     "calendarTitle": "要录制 {{title}} 吗？",
     "appTitle": "要录制这场 {{app}} 会议吗？",
+    "appCallTitle": "录制这次 {{app}} 通话？",
     "genericTitle": "录制这场会议吗？",
     "introduction": "Sona 在这台 Mac 上录制，主动权始终在你手里。",
     "seriesBrief_other": "与 {{person}} 的会议 {{nth}} · {{count}} 个未结事项",
     "alwaysRecord": "始终录制这场会议",
+    "announceInChat": "在聊天中告知",
+    "announceLine": "Sona 正在为 {{name}} 记录笔记。如果你不希望这样，请直接说明。",
+    "announceRefused": "告知信息未能发布：此应用不接受该消息。",
     "assurance": "请在会议中所有人都同意录制之后再开始。",
     "record": "录制",
     "ignore": "忽略",
     "recording": "录制中",
+    "recordingStarted": "录制已开始",
     "stop": "停止",
     "forgetSeries": "忘记这个系列",
+    "forgetApp": "不再自动录制此应用",
     "wrap": {
       "label": "会后整理",
       "title": "{{title}} — 已保存",

@@ -33,6 +33,10 @@
     "people": "Personen",
     "settings": "Instellingen"
   },
+  "topNav": {
+    "capture": "Opname",
+    "library": "Bibliotheek"
+  },
   "onboarding": {
     "subtitle": "Modellen draaien op deze Mac en wegen nauwkeurigheid af tegen snelheid.",
     "existingModelsTitle": "Compatibele modellen",
@@ -187,11 +191,11 @@
           "cancel": {
             "name": "Sneltoets voor annuleren"
           },
-          "transcribe_with_post_process": {
-            "name": "Sneltoets voor naverwerking"
-          },
           "command": {
             "name": "Opdrachtsneltoets"
+          },
+          "transcribe_with_post_process": {
+            "name": "Sneltoets voor naverwerking"
           }
         },
         "errors": {
@@ -497,7 +501,7 @@
       },
       "spokenEdits": {
         "enabledLabel": "Gesproken bewerkopdrachten uitvoeren",
-        "enabledDescription": "Voert \"scratch that\", \"delete last word\" en \"delete the last word\" uit in plaats van ze te schrijven. Alleen in het Engels en alleen als de zinsnede los tussen twee pauzes staat: \"scratch that plan\" en \"we should scratch that\" blijven tekst.",
+        "enabledDescription": "Voer \"scratch that\", \"delete last word\", \"delete the last word\", \"capitalize that\", \"lowercase that\", \"quote that\", \"make that a list\" en \"new bullet\" uit in plaats van ze op te schrijven. Alleen in het Engels, en alleen wanneer de zin op zichzelf staat tussen twee pauzes: \"scratch that plan\" en \"we should scratch that\" blijven tekst.",
         "toggleError": "Kon de gesproken bewerkopdrachten niet wijzigen. Probeer het opnieuw."
       }
     },
@@ -568,12 +572,77 @@
         "destinationPinned": "Sona koppelt de erkenning aan exact dit adres en deze herkomst."
       }
     },
+    "vocabulary": {
+      "replacements": {
+        "title": "Gesproken vervangingen",
+        "enabledLabel": "Gesproken vervangingen aanzetten",
+        "spoken": "Jij zegt",
+        "written": "Sona schrijft",
+        "spokenPlaceholder": "apenstaartje",
+        "writtenPlaceholder": "@",
+        "add": "Regel toevoegen",
+        "reset": "Standaardwaarden herstellen",
+        "ruleEnabled": "{{spoken}} toepassen",
+        "delete": "{{spoken}} verwijderen",
+        "loading": "Vervangingen worden geladen",
+        "loadError": "Kon de vervangingen niet laden.",
+        "matching": "Uitdrukkingen passen op hele woorden en negeren hoofdletters. Als twee regels op dezelfde plek passen wint de langste, en vervanging gebeurt vóór de vocabulairecorrectie.",
+        "errors": {
+          "duplicate": "Een andere regel gebruikt deze uitdrukking al.",
+          "incomplete": "Vul zowel een gesproken uitdrukking als de vervanging in."
+        },
+        "empty": {
+          "description": "Voeg een uitdrukking zoals apenstaartje toe en Sona schrijft @ elke keer dat je die zegt."
+        },
+        "confirmDelete": {
+          "title": "{{spoken}} verwijderen?",
+          "description": "De uitdrukking wordt in toekomstige transcripties niet meer omgezet. Tekst die al geschreven is blijft ongewijzigd."
+        },
+        "confirmReset": {
+          "title": "De standaardregels herstellen?",
+          "description": "Elke regel die je hebt toegevoegd of aangepast wordt weggegooid en de meegeleverde startset komt terug."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Schrijfvoorbeelden",
+        "placeholder": "Plak een alinea die je zelf hebt geschreven.",
+        "sampleLabel": "Schrijfvoorbeeld {{number}}",
+        "delete": "Voorbeeld {{number}} verwijderen",
+        "add": "Voorbeeld toevoegen",
+        "wordCount": "{{words}} van {{max}} woorden",
+        "overLimit": "{{words}} woorden. Alleen de eerste {{max}} worden gebruikt.",
+        "privacy": "Voorbeelden gaan alleen daarheen waar de transcriptie zelf al gaat, en nergens anders.",
+        "loading": "Voorbeelden worden geladen",
+        "loadError": "Kon de voorbeelden niet laden.",
+        "empty": {
+          "description": "Plak een paar alinea's die je zelf hebt geschreven, dan volgen herschrijvingen je woordkeuze, zinslengte en toon."
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "De rustpil weergeven",
+      "enabledDescription": "Houd tussen dictaten een kleine pil op het scherm. Klik om te starten, rechtsklik om van modus te wisselen.",
+      "positionLabel": "Positie van de rustpil",
+      "positionTop": "Boven",
+      "positionBottom": "Onder"
+    },
     "history": {
       "stats": {
         "unavailable": "Gebruiksstatistieken zijn niet beschikbaar.",
         "entries": "opnamen",
         "duration": "opnametijd",
         "words": "woorden"
+      },
+      "processAgain": {
+        "action": "Opnieuw verwerken",
+        "title": "Opnieuw verwerken",
+        "description": "Laat deze opname door een andere modus lopen. Het oorspronkelijke item blijft bewaard en het resultaat wordt als nieuw item opgeslagen.",
+        "placeholder": "Kies een modus",
+        "confirm": "Verwerken",
+        "started": "Herverwerking gestart",
+        "modeLabel": "Modus"
       },
       "title": "Geschiedenis",
       "openFolder": "Opnamemap openen",
@@ -637,6 +706,12 @@
           "full": "Volledig"
         },
         "contextSources": "Contextbronnen",
+        "columns": {
+          "source": "Bron",
+          "status": "Status",
+          "method": "Methode",
+          "outcome": "Uitkomst"
+        },
         "contextSource": {
           "target": "App",
           "focused_field": "Actief veld",
@@ -681,13 +756,7 @@
           "truncated": "Afgekapt",
           "no_speech_detected": "Geen spraak gedetecteerd"
         },
-        "realtimeFactorLabel": "Decodering",
-        "columns": {
-          "source": "Bron",
-          "status": "Status",
-          "method": "Methode",
-          "outcome": "Uitkomst"
-        }
+        "realtimeFactorLabel": "Decodering"
       },
       "correction": {
         "add": "Correctie toevoegen",
@@ -753,16 +822,7 @@
       },
       "noTextRecorded": "Voor dit item is geen tekst vastgelegd.",
       "cloudHeld": "Sona hield het cloudresultaat tegen: er kwam niets betrouwbaars terug en er was geen lokaal model beschikbaar.",
-      "transcriptionEngineFailed": "Transcriptie mislukt, dus er is niets vastgelegd.",
-      "processAgain": {
-        "action": "Opnieuw verwerken",
-        "title": "Opnieuw verwerken",
-        "description": "Laat deze opname door een andere modus lopen. Het oorspronkelijke item blijft bewaard en het resultaat wordt als nieuw item opgeslagen.",
-        "placeholder": "Kies een modus",
-        "confirm": "Verwerken",
-        "started": "Herverwerking gestart",
-        "modeLabel": "Modus"
-      }
+      "transcriptionEngineFailed": "Transcriptie mislukt, dus er is niets vastgelegd."
     },
     "debug": {
       "title": "Probleemoplossing",
@@ -858,10 +918,16 @@
         "enabled": "ingeschakeld",
         "disabled": "uitgeschakeld",
         "holder": "vastgehouden door {{name}} (pid {{pid}})",
-        "notSupported": "Niet ondersteund op dit platform.",
-        "noHolder": "Geen app houdt Secure Input vast.",
-        "status": "Status",
-        "error": "Toetsenborddiagnose is niet beschikbaar."
+        "holderUnknown": "vastgehouden door een app die macOS niet heeft benoemd",
+        "verdictBlocked": "Secure Input staat aan en geen enkele toets heeft Sona bereikt. Sluit de app die het vasthoudt en probeer het opnieuw.",
+        "verdictSuspicious": "Modificatietoetsen zijn aangekomen, maar toetsaanslagen niet. Waarschijnlijk onderschept een andere app ze.",
+        "verdictNoEvents": "Er is helemaal niets aangekomen. Druk op een paar toetsen terwijl de diagnose loopt.",
+        "verdictOk": "Toetsen bereiken Sona.",
+        "failed": "De diagnose kon niet worden uitgevoerd: {{error}}",
+        "keyDown": "Toets ingedrukt",
+        "keyUp": "Toets losgelaten",
+        "flagsChanged": "Modificatietoetsen",
+        "mouse": "Muis"
       },
       "groups": {
         "capture": "Opname",
@@ -1009,6 +1075,10 @@
         },
         "model": {
           "label": "AI-model"
+        },
+        "spokenInstructions": {
+          "label": "Gesproken instructies",
+          "description": "Eindig een dictaat met \"Sona,\" en de rest van die zin wordt een bewerking die de AI toepast, in plaats van woorden om te typen."
         },
         "disabledNote": "Schakel AI-opschoning in om de preset, toon, provider en het model hieronder te gebruiken."
       },
@@ -1391,11 +1461,11 @@
           },
           "codex": {
             "label": "Codex",
-            "description": "Alleen sessies observeren. Sona kan Codex nog niet beantwoorden."
+            "description": "Codex-sessies volgen, goedkeuringsverzoeken beantwoorden en reageren wanneer een beurt eindigt."
           },
           "grok": {
             "label": "Grok",
-            "description": "Alleen sessies observeren. Sona kan Grok nog niet beantwoorden."
+            "description": "Grok-sessies volgen, toolverzoeken beantwoorden en reageren wanneer een beurt eindigt."
           },
           "omp": {
             "label": "OMP",
@@ -1465,7 +1535,7 @@
         "allowExact": "Precies dit verzoek toestaan",
         "denyExact": "Precies dit verzoek weigeren",
         "dismiss": "Sluiten",
-        "ompPermissionObserveOnly": "OMP-goedkeuringsverzoeken worden alleen geobserveerd. Keur ze goed of weiger ze in OMP."
+        "observeOnly": "Sona kan dit verzoek alleen bekijken. Beantwoord het in {{agent}}."
       },
       "rules": {
         "title": "Toegangsregels",
@@ -1489,6 +1559,10 @@
       "externalAccess": {
         "label": "Externe toegang",
         "rowDescription": "Hiermee kunnen andere programma's op deze Mac je meetings, dicteerteksten, personen en open loops lezen via Sona's command-line tool en MCP-server. Dit is alleen voor lezen en blijft uit tot je het inschakelt."
+      },
+      "externalMutations": {
+        "label": "Externe wijzigingen",
+        "rowDescription": "Laat diezelfde programma's een loop als afgerond markeren. Staat los van Externe toegang en blijft uit totdat je het inschakelt: je vergaderingen lezen is niet hetzelfde als ze wijzigen."
       },
       "workspaceNavigation": "Agent-weergaven",
       "sonaAgent": {
@@ -1608,62 +1682,6 @@
         "chartAria": "Activiteit per dag, {{count}} in de laatste 7 dagen"
       }
     },
-    "vocabulary": {
-      "replacements": {
-        "title": "Gesproken vervangingen",
-        "enabledLabel": "Gesproken vervangingen aanzetten",
-        "spoken": "Jij zegt",
-        "written": "Sona schrijft",
-        "spokenPlaceholder": "apenstaartje",
-        "writtenPlaceholder": "@",
-        "add": "Regel toevoegen",
-        "reset": "Standaardwaarden herstellen",
-        "ruleEnabled": "{{spoken}} toepassen",
-        "delete": "{{spoken}} verwijderen",
-        "loading": "Vervangingen worden geladen",
-        "loadError": "Kon de vervangingen niet laden.",
-        "matching": "Uitdrukkingen passen op hele woorden en negeren hoofdletters. Als twee regels op dezelfde plek passen wint de langste, en vervanging gebeurt vóór de vocabulairecorrectie.",
-        "errors": {
-          "duplicate": "Een andere regel gebruikt deze uitdrukking al.",
-          "incomplete": "Vul zowel een gesproken uitdrukking als de vervanging in."
-        },
-        "empty": {
-          "description": "Voeg een uitdrukking zoals apenstaartje toe en Sona schrijft @ elke keer dat je die zegt."
-        },
-        "confirmDelete": {
-          "title": "{{spoken}} verwijderen?",
-          "description": "De uitdrukking wordt in toekomstige transcripties niet meer omgezet. Tekst die al geschreven is blijft ongewijzigd."
-        },
-        "confirmReset": {
-          "title": "De standaardregels herstellen?",
-          "description": "Elke regel die je hebt toegevoegd of aangepast wordt weggegooid en de meegeleverde startset komt terug."
-        }
-      }
-    },
-    "prompts": {
-      "samples": {
-        "title": "Schrijfvoorbeelden",
-        "placeholder": "Plak een alinea die je zelf hebt geschreven.",
-        "sampleLabel": "Schrijfvoorbeeld {{number}}",
-        "delete": "Voorbeeld {{number}} verwijderen",
-        "add": "Voorbeeld toevoegen",
-        "wordCount": "{{words}} van {{max}} woorden",
-        "overLimit": "{{words}} woorden. Alleen de eerste {{max}} worden gebruikt.",
-        "privacy": "Voorbeelden gaan alleen daarheen waar de transcriptie zelf al gaat, en nergens anders.",
-        "loading": "Voorbeelden worden geladen",
-        "loadError": "Kon de voorbeelden niet laden.",
-        "empty": {
-          "description": "Plak een paar alinea's die je zelf hebt geschreven, dan volgen herschrijvingen je woordkeuze, zinslengte en toon."
-        }
-      }
-    },
-    "hud": {
-      "enabledLabel": "De rustpil weergeven",
-      "enabledDescription": "Houd tussen dictaten een kleine pil op het scherm. Klik om te starten, rechtsklik om van modus te wisselen.",
-      "positionLabel": "Positie van de rustpil",
-      "positionTop": "Boven",
-      "positionBottom": "Onder"
-    },
     "meetings": {
       "digest": {
         "title": "Avondsamenvatting",
@@ -1686,6 +1704,10 @@
         "webhook": "Naar een webhook sturen",
         "webhookHint": "Verstuurt de meeting-export als JSON. Gebruik alleen je eigen machine of tailnet, net als bij de server.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "runPrompt": "Een opgeslagen prompt uitvoeren",
+        "runPromptHint": "Stelt een van je opgeslagen prompts over de vergadering en bewaart het antwoord erbij.",
+        "promptPlaceholder": "Kies een prompt",
+        "needsPrompt": "Kies eerst een prompt",
         "needsTarget": "Vul eerst een naam in",
         "needsUrl": "Vul eerst een adres in",
         "rejected": "Een ander venster heeft dit gewijzigd. Lees opnieuw en probeer het nog eens.",
@@ -1739,8 +1761,11 @@
     "noResults": "Niets gevonden",
     "newMeeting": "Nieuwe vergadering",
     "importAudio": "Bestand transcriberen",
+    "importMeeting": "Een opname of transcript importeren",
     "openRecordings": "Opnamemap openen",
     "openAgent": "Agent openen",
+    "runPrompt": "Een prompt uitvoeren",
+    "newPrompt": "Nieuwe prompt",
     "esc": "esc",
     "search": {
       "meetings": "Vergaderingen",
@@ -1749,6 +1774,52 @@
       "loops": "Open vragen",
       "empty": "Niets komt overeen met \"{{query}}\".",
       "unavailable": "Zoeken is nu niet beschikbaar."
+    }
+  },
+  "prompts": {
+    "title": "Prompts",
+    "description": "Vragen die je opnieuw kunt stellen. Voer er een uit vanuit het commandopalet, of na een vergadering vanuit de automatiseringen van een reeks.",
+    "loading": "Je prompts worden gelezen…",
+    "empty": "Nog geen prompts.",
+    "new": "Nieuwe prompt",
+    "editing": "Prompt bewerken",
+    "editorHint": "De prompt wordt alleen beantwoord op basis van wat Sona al weet over het record waarop je hem uitvoert.",
+    "name": "Naam",
+    "body": "Prompt",
+    "bodyPlaceholder": "Som de besluiten op en wie voor elk verantwoordelijk is.",
+    "output": "Antwoord",
+    "outputText": "Tekst",
+    "outputSchema": "JSON volgens een schema",
+    "schema": "Schema",
+    "schemaPlaceholder": "{\"type\":\"object\",\"required\":[\"decisions\"],\"properties\":{\"decisions\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+    "targetLabel": "Over",
+    "save": "Bewaar",
+    "edit": "{{name}} bewerken",
+    "delete": "{{name}} verwijderen",
+    "invalid": "Een prompt heeft een naam, een prompt en een schema in JSON nodig.",
+    "rejected": "Een ander venster heeft dit gewijzigd. Lees opnieuw en probeer het nog eens.",
+    "saveFailed": "Dat is niet bewaard.",
+    "target": {
+      "meeting": "Een vergadering",
+      "person": "Een persoon",
+      "series": "Een reeks"
+    },
+    "run": {
+      "saved": "{{name}} is uitgevoerd. Het antwoord staat onder Promptresultaten.",
+      "missing": "Die prompt bestaat niet meer, of er is nog niets om over te vragen.",
+      "failed": "Die prompt kon niet worden uitgevoerd."
+    },
+    "results": {
+      "title": "Promptresultaten",
+      "rerun": "{{name}} opnieuw uitvoeren",
+      "deleted": "Verwijderde prompt"
+    },
+    "failure": {
+      "modelUnavailable": "Er was geen model beschikbaar om dit te beantwoorden.",
+      "modelUnreachable": "Je server was niet bereikbaar.",
+      "modelFailed": "Het model gaf geen bruikbaar antwoord.",
+      "schemaMismatch": "Het antwoord kwam niet overeen met het schema.",
+      "noEvidence": "Er was niets opgenomen om uit te antwoorden."
     }
   },
   "accessibility": {
@@ -1888,6 +1959,28 @@
         "interrupted": "Verwerking onderbroken"
       }
     },
+    "start": {
+      "label": "Een vergadering starten",
+      "action": "Opname starten",
+      "starting": "Starten…",
+      "assurance": "Neemt de audio van je Mac lokaal op. Er neemt niets deel aan het gesprek.",
+      "capture": "Opname",
+      "noSources": "Kies minstens één bron.",
+      "localOnly": "Alleen lokaal",
+      "retention": "Bewaard: {{policy}}"
+    },
+    "import": {
+      "action": "Importeer",
+      "importing": "Importeren…",
+      "recordingFilter": "Opname",
+      "transcriptFilter": "Transcriptexport"
+    },
+    "gate": {
+      "title": "De opname is niet gestart",
+      "readyTitle": "Klaar om op te nemen",
+      "recordAnyway": "Zonder die bron opnemen",
+      "recordAnywayHint": "De vergadering wordt als gedeeltelijk gemarkeerd en de ontbrekende bron blijft erin genoemd."
+    },
     "actions": {
       "back": "Terug",
       "delete": "Vergadering verwijderen",
@@ -1943,6 +2036,14 @@
     "recovery": {
       "title": "Onafgeronde vergaderingen",
       "finalize": "Opslaan afronden"
+    },
+    "trash": {
+      "title": "Recent verwijderd",
+      "expires": "Verwijderd {{deleted}} · verdwijnt over {{count}} dagen",
+      "expiresToday": "Verwijderd {{deleted}} · verdwijnt vandaag",
+      "restore": "Zet terug",
+      "restored": "{{title}} is terug.",
+      "restoreFailed": "Die vergadering kon niet worden teruggezet."
     },
     "history": {
       "title": "Vergadergeschiedenis",
@@ -2014,7 +2115,8 @@
       "export_cancelled": "De export is geannuleerd. Er is geen voltooide export gemaakt.",
       "export_failed": "De export is mislukt. Er is geen voltooide export gemaakt.",
       "local_model_unavailable": "Er is geen lokaal model beschikbaar voor deze vergadering.",
-      "remote_unavailable": "De geselecteerde externe bestemming is niet beschikbaar."
+      "remote_unavailable": "De geselecteerde externe bestemming is niet beschikbaar.",
+      "import_unreadable": "Sona kon dat bestand niet lezen als opname of als transcriptexport."
     },
     "discard": {
       "liveTitle": "Deze sessie stoppen en weggooien?",
@@ -2082,6 +2184,7 @@
       "followUp": "Opvolging",
       "artifactUnavailable": "Deze gegenereerde notities zijn niet beschikbaar. De transcriptie en je eigen notities blijven op deze Mac.",
       "actionMeta": "Eigenaar: {{owner}} · Deadline: {{due}}",
+      "actionDone": "Deze actie als gedaan markeren",
       "unassigned": "Niet toegewezen",
       "noDueDate": "Geen deadline",
       "questions": "Deze vergadering vragen",
@@ -2113,8 +2216,7 @@
         "transcript": "Transcript"
       },
       "tabsLabel": "Secties vergaderoverzicht",
-      "youAsked": "Je vroeg",
-      "actionDone": "Deze actie als gedaan markeren"
+      "youAsked": "Je vroeg"
     },
     "ledger": {
       "title": "Register",
@@ -2242,22 +2344,6 @@
       "gapCount": "Hiaten: {{total}}",
       "required": "Vereist"
     },
-    "start": {
-      "label": "Een vergadering starten",
-      "action": "Opname starten",
-      "starting": "Starten…",
-      "assurance": "Neemt de audio van je Mac lokaal op. Er neemt niets deel aan het gesprek.",
-      "capture": "Opname",
-      "noSources": "Kies minstens één bron.",
-      "localOnly": "Alleen lokaal",
-      "retention": "Bewaard: {{policy}}"
-    },
-    "gate": {
-      "title": "De opname is niet gestart",
-      "readyTitle": "Klaar om op te nemen",
-      "recordAnyway": "Zonder die bron opnemen",
-      "recordAnywayHint": "De vergadering wordt als gedeeltelijk gemarkeerd en de ontbrekende bron blijft erin genoemd."
-    },
     "analytics": {
       "title": "Gesprek",
       "noSpeech": "Er is geen spraak getranscribeerd, dus er valt niets te meten.",
@@ -2297,7 +2383,9 @@
       "catchUp": "Praat me bij",
       "catchingUp": "Bijpraten…",
       "catchUpTitle": "Tot nu toe",
-      "catchUpNoTranscript": "Nog niets om samen te vatten. Sona transcribeert nadat je de opname stopt, dus er is een samenvatting zodra de transcriptie binnenkomt.",
+      "catchUpNoTranscript": "Niets samen te vatten: deze vergadering heeft geen transcript.",
+      "catchUpNothingHeardYet": "Nog niets samen te vatten. Sona is nog bezig de ruimte bij te benen — probeer het zo nog eens.",
+      "catchUpAsOf": "Per {{time}}, voorlopig",
       "catchUpUnavailable": "Het model op het apparaat is niet beschikbaar, dus er is geen samenvatting geschreven.",
       "catchUpFailed": "Sona kon geen samenvatting maken. Probeer het opnieuw.",
       "templates": {
@@ -2315,6 +2403,7 @@
       "prompt": {
         "calendar": "{{title}} begint",
         "app": "{{app}}-vergadering gedetecteerd",
+        "call": "{{app}}-gesprek gedetecteerd",
         "huddle": "{{app}}-huddle gedetecteerd",
         "browser": "Gesprek gedetecteerd in {{app}}",
         "unknown": "Microfoonactiviteit gedetecteerd",
@@ -2351,7 +2440,7 @@
         "calendarDenied": "Agendatoegang is niet gegeven, dus alleen de microfoonroute loopt.",
         "notificationsDenied": "Meldingen staan uit voor Sona, dus meldingen verschijnen alleen in de app.",
         "bluetoothCaveat": "Er staat een vergaderapp open maar niets meldt microfoongebruik. Bluetooth-headsets doen dat vaak niet, dus start de vergadering zelf als er een loopt.",
-        "noSilenceStop": "De opname stopt wanneer de afspraak eindigt, de app afsluit, je Mac gaat slapen, of je hem zelf stopt. Stilte stopt hem niet: daarvoor is live transcriptie nodig, en die draait pas na de vergadering."
+        "noSilenceStop": "De opname stopt wanneer de afspraak eindigt, het gesprek eindigt, de app wordt afgesloten, je Mac in de sluimerstand gaat, of wanneer je hem zelf stopt. Niets stopt hem bij stilte: daarvoor zou live transcriptie nodig zijn, en die draait pas nadat een vergadering is afgelopen."
       },
       "why": {
         "disabled": "Detectie staat uit.",
@@ -2452,7 +2541,12 @@
       "copy": "Kopiëren",
       "copied": "Concept gekopieerd.",
       "copyFailed": "Het concept kon niet worden gekopieerd.",
-      "failed": "Er kon geen opvolging voor deze vergadering worden opgesteld."
+      "failed": "Er kon geen opvolging voor deze vergadering worden opgesteld.",
+      "openInMail": "Open in Mail",
+      "mailOpened": "Mail is geopend met het concept.",
+      "mailClipboardNote": "De follow-up staat op het klembord. Plak hem hier.",
+      "mailCopied": "Het concept was te lang voor een mailkoppeling, dus het staat op het klembord.",
+      "mailFailed": "Mail kon niet worden geopend voor deze vergadering."
     },
     "prep": {
       "label": "Voorbereiding",
@@ -2490,6 +2584,16 @@
     },
     "workedFor": "{{seconds}} s gewerkt",
     "stepSeconds": "{{seconds}} s",
+    "error": {
+      "unreachable": "Sona kon geen verbinding maken.",
+      "refused": "Sona kon die vraag niet aannemen.",
+      "failed": "Sona kon dat antwoord niet afmaken."
+    },
+    "working": {
+      "searchedCorpus": "Je vergaderingen en notities doorgenomen",
+      "stillWaiting": "Nog aan het wachten…",
+      "cancel": "Annuleren"
+    },
     "turnState": {
       "submitting": "Versturen",
       "queued": "In de wachtrij",
@@ -2516,20 +2620,27 @@
       "undone": "Ongedaan gemaakt",
       "rejected": "Niet toegepast"
     },
+    "action": {
+      "resolve_loop": "Een toezegging als afgerond markeren",
+      "assign_loop": "Een toezegging een eigenaar geven",
+      "set_series_template": "De sjabloon {{template}} gebruiken voor deze reeks",
+      "add_vocabulary_term": "\"{{term}}\" toevoegen aan je woordenlijst",
+      "rename_speaker": "Een spreker hernoemen naar {{name}}",
+      "apply": "Pas toe",
+      "dismiss": "Negeer",
+      "applied": "Toegepast",
+      "undo": "Herstel",
+      "dismissed": "Genegeerd",
+      "receipt": "Bewijs {{id}}"
+    },
+    "tools": {
+      "label": "Tools laten gebruiken",
+      "hint": "Alleen voor deze vraag"
+    },
     "ask": {
       "row": "Sona vragen: {{query}}",
       "error": "De vraag kon niet naar Sona worden verzonden.",
       "consentRequired": "Een vraag stuurt citaten uit je vergaderingen naar je server, zet dus eerst vergaderintelligentie aan."
-    },
-    "error": {
-      "unreachable": "Sona kon geen verbinding maken.",
-      "refused": "Sona kon die vraag niet aannemen.",
-      "failed": "Sona kon dat antwoord niet afmaken."
-    },
-    "working": {
-      "searchedCorpus": "Je vergaderingen en notities doorgenomen",
-      "stillWaiting": "Nog aan het wachten…",
-      "cancel": "Annuleren"
     }
   },
   "overview": {
@@ -2600,6 +2711,12 @@
       "createOffer": "Koppelingsaanbod maken",
       "currentOffer": "Koppelingsaanbod",
       "approve": "Dit aanbod goedkeuren",
+      "candidateOffer": "Code van het apparaat dat je toevoegt",
+      "candidateApprove": "Apparaat goedkeuren",
+      "candidateReading": "Controleren…",
+      "candidateCompare": "Controleer of dit overeenkomt met de code op het apparaat voordat je goedkeurt.",
+      "candidateInvalid": "Die code is niet geldig.",
+      "candidateApproved": "Apparaat goedgekeurd.",
       "receivedOffer": "Aanbod van een ander apparaat",
       "accept": "Aanbod accepteren"
     },
@@ -2653,10 +2770,6 @@
         "revokeConfirm": "Iedereen met deze link verliest toegang zodra je hem intrekt."
       }
     }
-  },
-  "topNav": {
-    "capture": "Opname",
-    "library": "Bibliotheek"
   },
   "people": {
     "title": "Personen",
@@ -2733,6 +2846,11 @@
       "stale": "Personen zijn op een ander scherm gewijzigd. Laad opnieuw en probeer het nogmaals.",
       "operation": "Personen konden niet worden bijgewerkt. Probeer het opnieuw."
     },
+    "summary": {
+      "empty": "Nog geen samenvatting.",
+      "regenerate": "Opnieuw genereren",
+      "provenance": "Geschreven door {{model}} op {{date}}"
+    },
     "review": {
       "personDetails": "Persoonsgegevens",
       "previouslyTogether": "Eerder samen vergaderd",
@@ -2762,6 +2880,16 @@
       "brief": "Wachten op {{name}}: {{text}}",
       "briefOverdue": "Te laat bij {{name}}: {{text}}",
       "briefIOwe": "Jij moet: {{text}}"
+    }
+  },
+  "organizations": {
+    "title": "Organisaties",
+    "detail": {
+      "people_one": "{{count}} persoon",
+      "people_other": "{{count}} personen",
+      "peopleHere": "Mensen hier",
+      "noPeople": "Nog niemand hier.",
+      "recentMeetings": "Recente vergaderingen"
     }
   },
   "libraryV2": {
@@ -2940,6 +3068,8 @@
       "label": "Vergaderapps",
       "browsersAutomatic": "Een gesprek in een browsertabblad wordt gedetecteerd zonder dat het hier staat.",
       "runningNow": "Draait nu",
+      "autoRecord": "Automatisch opnemen",
+      "autoRecordConsent": "Op sommige plaatsen moet iedereen in een gesprek instemmen met de opname.",
       "add": "Een app toevoegen",
       "addTitle": "Een vergaderapp toevoegen",
       "addDescription": "Sona heeft het app-ID nodig, dat je kunt vinden in het 'Over'-venster van de app of met `osascript -e 'id of app \"Naam\"'`.",
@@ -2953,6 +3083,7 @@
         "teams": "Microsoft Teams",
         "webex": "Webex",
         "facetime": "FaceTime",
+        "phone": "Telefoon",
         "slack": "Slack"
       }
     }
@@ -2960,17 +3091,23 @@
   "consentPanel": {
     "calendarTitle": "{{title}} opnemen?",
     "appTitle": "Deze {{app}}-vergadering opnemen?",
+    "appCallTitle": "Dit {{app}}-gesprek opnemen?",
     "genericTitle": "Deze vergadering opnemen?",
     "introduction": "Sona neemt op deze Mac op en jij houdt de controle.",
     "seriesBrief_one": "Gesprek {{nth}} met {{person}} · {{count}} open punt",
     "seriesBrief_other": "Gesprek {{nth}} met {{person}} · {{count}} open punten",
     "alwaysRecord": "Deze vergadering altijd opnemen",
+    "announceInChat": "Aankondigen in de chat",
+    "announceLine": "Sona maakt aantekeningen voor {{name}}. Zeg het als je dat liever niet hebt.",
+    "announceRefused": "De melding is niet geplaatst: deze app accepteerde hem niet.",
     "assurance": "Begin pas als iedereen in de vergadering akkoord is met opnemen.",
     "record": "Opnemen",
     "ignore": "Negeren",
     "recording": "Opname",
+    "recordingStarted": "Opname gestart",
     "stop": "Stoppen",
     "forgetSeries": "Deze reeks vergeten",
+    "forgetApp": "Deze app niet automatisch opnemen",
     "wrap": {
       "label": "Afronding",
       "title": "{{title}} — opgeslagen",
