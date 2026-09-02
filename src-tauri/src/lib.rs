@@ -342,7 +342,6 @@ pub(crate) fn dispatch_deep_link(app: &AppHandle, raw: &str) -> bool {
 /// nothing is happening.
 fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionManager>) {
     use meeting::detection::input_device::{InputDeviceLevel, SelfInputDeviceLease};
-    use meeting::detection::machine::ScreenRecordingPermission;
     use meeting::detection::{apps, calendar, notify, DetectionRuntime};
 
     // The delegate must be registered before the runtime exists, and its target
@@ -352,7 +351,7 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
     let level = Arc::new(InputDeviceLevel::default());
 
     #[cfg(target_os = "macos")]
-    let (running_apps, calendar_source, prompts, browser_titles, screen_recording_probe) = {
+    let (running_apps, calendar_source, prompts, browser_titles) = {
         let prompts: Arc<dyn notify::PromptPresenter> =
             match notify::UserNotificationPrompts::start(Arc::clone(&responder) as Arc<_>) {
                 Some(prompts) => Arc::new(prompts),
@@ -382,16 +381,14 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
             calendar::platform_calendar(),
             prompts,
             browser_titles,
-            probe_screen_recording as fn() -> ScreenRecordingPermission,
         )
     };
     #[cfg(not(target_os = "macos"))]
-    let (running_apps, calendar_source, prompts, browser_titles, screen_recording_probe) = (
+    let (running_apps, calendar_source, prompts, browser_titles) = (
         Arc::new(apps::NoRunningApps) as Arc<dyn apps::RunningAppsSource>,
         calendar::platform_calendar(),
         Arc::new(notify::NoPrompts) as Arc<dyn notify::PromptPresenter>,
         Arc::new(apps::NoBrowserTitles) as Arc<dyn apps::BrowserTitleReader>,
-        (|| ScreenRecordingPermission::NotGranted) as fn() -> ScreenRecordingPermission,
     );
     // The digest shares this presenter rather than making its own. There is one
     // notification centre per process, one delegate on it, and both categories
@@ -423,40 +420,16 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
         Arc::clone(&level) as Arc<_>,
         prompts,
         browser_titles,
-        screen_recording_probe,
     ));
     responder.bind(runtime.prompt_responder());
 
     // The CoreAudio listener is registered by the loop itself, on its own
     // thread. Nothing above this line touches a platform framework: every one of
-    // them — the notification center, the EventKit store, the Screen Recording
-    // probe, and the input-device monitor — is now created on first use, because
-    // doing any of it here means doing it during `setup`, before the window and
-    // its webview exist.
+    // them — the notification center, the EventKit store, and the input-device
+    // monitor — is now created on first use, because doing any of it here means
+    // doing it during `setup`, before the window and its webview exist.
     runtime.spawn_loop(level);
     app_handle.manage(runtime);
-}
-
-/// Probes Screen Recording through ScreenCaptureKit's own preflight.
-///
-/// Reached from the detection thread on first use, never from `setup`: this is a
-/// ScreenCaptureKit query, and the point of deferring it is that no platform
-/// framework is touched while the window is still coming up.
-#[cfg(target_os = "macos")]
-fn probe_screen_recording() -> meeting::detection::machine::ScreenRecordingPermission {
-    use meeting::capture::MeetingCaptureSource;
-    use meeting::detection::machine::ScreenRecordingPermission;
-    use meeting::types::SourceAvailability;
-
-    if meeting_macos::MacosSystemAudioCapture::new()
-        .probe()
-        .availability
-        == SourceAvailability::Available
-    {
-        ScreenRecordingPermission::Granted
-    } else {
-        ScreenRecordingPermission::NotGranted
-    }
 }
 
 fn refresh_meeting_tray(app: AppHandle, manager: Arc<MeetingSessionManager>) {

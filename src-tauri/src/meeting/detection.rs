@@ -37,7 +37,7 @@ pub mod notify;
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Condvar, Mutex, OnceLock};
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -63,7 +63,7 @@ use input_device::{InputDeviceLevel, InputDeviceObserver, InputDeviceState, Self
 use machine::{
     evaluate, evaluate_stop, CalendarEventSummary, CalendarSignal, DetectionInputs,
     DetectionOutcome, DetectionPolicy, MicSignal, OutputSignal, PromptKind, RecentCapture,
-    ScreenRecordingPermission, StopInputs, StopPolicy, StopTrigger, SuppressReason,
+    StopInputs, StopPolicy, StopTrigger, SuppressReason,
 };
 use notify::{
     ConsentPromptSurface, NotificationAccess, PanelCommand, PanelSlot, PromptResponder,
@@ -580,15 +580,6 @@ pub struct DetectionRuntime {
     wakeup: Arc<Wakeup>,
     stop: Arc<AtomicBool>,
     enabled: AtomicBool,
-    /// Probes Screen Recording lazily, and caches the answer.
-    ///
-    /// A function rather than a value because the probe is a ScreenCaptureKit
-    /// query and must not run during `setup`, alongside the rest of this
-    /// module's platform work. Cached because the probe is far too heavy for a
-    /// 15s tick and the answer cannot go stale within a run: macOS requires an
-    /// app restart after the grant changes.
-    screen_recording_probe: fn() -> ScreenRecordingPermission,
-    screen_recording: OnceLock<ScreenRecordingPermission>,
 }
 
 impl DetectionRuntime {
@@ -608,7 +599,6 @@ impl DetectionRuntime {
         input: Arc<dyn InputDeviceState>,
         prompts: Arc<dyn ConsentPromptSurface>,
         browser_titles: Arc<dyn BrowserTitleReader>,
-        screen_recording_probe: fn() -> ScreenRecordingPermission,
     ) -> Self {
         Self {
             app,
@@ -623,8 +613,6 @@ impl DetectionRuntime {
             wakeup: Arc::new(Wakeup::default()),
             stop: Arc::new(AtomicBool::new(false)),
             enabled: AtomicBool::new(false),
-            screen_recording_probe,
-            screen_recording: OnceLock::new(),
         }
     }
 
@@ -803,13 +791,6 @@ impl DetectionRuntime {
     ) {
     }
 
-    /// Screen Recording state, probed once on first use.
-    fn screen_recording(&self) -> ScreenRecordingPermission {
-        *self
-            .screen_recording
-            .get_or_init(self.screen_recording_probe)
-    }
-
     fn tick(self: &Arc<Self>, now_utc_ms: i64) {
         let settings = crate::settings::get_settings(&self.app);
         let policy = policy_from_settings(&settings);
@@ -981,7 +962,6 @@ impl DetectionRuntime {
             call,
             mic,
             output,
-            screen_recording: self.screen_recording(),
             browser_title,
             standing_series_consent,
             standing_app_consent,

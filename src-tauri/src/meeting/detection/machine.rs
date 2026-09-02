@@ -205,17 +205,10 @@ pub enum OutputSignal {
     Active,
 }
 
-/// Screen Recording authorization. Only §5.3 case 7 depends on it, and only to
-/// gain precision — case 10 requires that it never gate cases 1-5.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ScreenRecordingPermission {
-    Granted,
-    NotGranted,
-}
-
 /// What a browser window title says about the tab in front. `Unreadable` is the
-/// honest state when Screen Recording is missing: macOS returns window
-/// dictionaries with the name field omitted rather than failing the call.
+/// honest state when Accessibility is not trusted: the reader needs it to ask
+/// the browser for its focused window at all, and reports so rather than
+/// guessing.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BrowserTitleEvidence {
     MeetingMatch,
@@ -243,7 +236,6 @@ pub struct DetectionInputs {
     pub call: CallSignal,
     pub mic: MicSignal,
     pub output: OutputSignal,
-    pub screen_recording: ScreenRecordingPermission,
     pub browser_title: BrowserTitleEvidence,
     /// True only when the session layer found a live standing grant for this
     /// event's series. A visible countdown is context, never consent.
@@ -727,26 +719,31 @@ pub(crate) const SLACK_BUNDLE_ID: &str = "com.tinyspeck.slackmacgap";
 /// §5.3 cases 7 and 7b. Both non-matching outcomes fall through to case 6's
 /// opt-in toggle rather than hard-suppressing, which is what 7b prescribes: the
 /// browser case degrades to "any mic activity" instead of blocking on a
-/// Screen Recording request the core feature must never depend on.
+/// permission request the core feature must never depend on.
+///
+/// The one permission the title reader needs is Accessibility, and the
+/// evidence already says whether it had it: `Unreadable` is a reader that
+/// could not look. Screen Recording is not consulted here at all. It gates
+/// capturing system audio, not reading a window title, and a missing grant is
+/// the consent panel's degraded-start caveat rather than a reason to stay
+/// silent about a call that is plainly on screen.
 fn browser_outcome(
     inputs: &DetectionInputs,
     policy: &DetectionPolicy,
     bundle_id: &str,
     display_name: &str,
 ) -> DetectionOutcome {
-    let title_readable = inputs.screen_recording == ScreenRecordingPermission::Granted;
-    match (title_readable, inputs.browser_title) {
-        (true, BrowserTitleEvidence::MeetingMatch) => {
-            DetectionOutcome::Prompt(PromptKind::BrowserCall {
-                bundle_id: bundle_id.to_string(),
-                app_name: display_name.to_string(),
-            })
-        }
-        (true, BrowserTitleEvidence::NoMatch) => {
+    match inputs.browser_title {
+        BrowserTitleEvidence::MeetingMatch => DetectionOutcome::Prompt(PromptKind::BrowserCall {
+            bundle_id: bundle_id.to_string(),
+            app_name: display_name.to_string(),
+        }),
+        BrowserTitleEvidence::NoMatch => {
             any_mic_outcome(policy, SuppressReason::BrowserTitleNotMeeting)
         }
-        // Permission missing, or present but the title came back empty anyway.
-        (_, _) => any_mic_outcome(policy, SuppressReason::BrowserTitleUnreadable),
+        BrowserTitleEvidence::Unreadable => {
+            any_mic_outcome(policy, SuppressReason::BrowserTitleUnreadable)
+        }
     }
 }
 
@@ -1011,7 +1008,6 @@ mod tests {
             call: CallSignal::Absent,
             mic: MicSignal::Idle,
             output: OutputSignal::Idle,
-            screen_recording: ScreenRecordingPermission::NotGranted,
             browser_title: BrowserTitleEvidence::Unreadable,
             standing_series_consent: false,
             standing_app_consent: false,
@@ -1401,14 +1397,17 @@ mod tests {
         );
     }
 
-    /* §5.3 case 7 — browser plus readable meeting title plus permission. */
+    /* §5.3 case 7 — browser plus a readable meeting title. FN3 in the
+     * detection map: the reader needs Accessibility, and this used to be
+     * discarded whenever Screen Recording was missing, a grant that has nothing
+     * to do with reading a window title. No Screen Recording input exists any
+     * more, so a match is a prompt, full stop. */
     #[test]
-    fn case_7_browser_meeting_title_prompts_scoped_to_the_browser() {
+    fn case_7_a_meeting_title_prompts_whatever_screen_recording_says() {
         let outcome = evaluate(
             &DetectionInputs {
                 app: chrome(),
                 mic: MicSignal::Active,
-                screen_recording: ScreenRecordingPermission::Granted,
                 browser_title: BrowserTitleEvidence::MeetingMatch,
                 ..inputs()
             },
@@ -1438,7 +1437,6 @@ mod tests {
             &DetectionInputs {
                 app: chrome(),
                 mic: MicSignal::Active,
-                screen_recording: ScreenRecordingPermission::Granted,
                 browser_title: BrowserTitleEvidence::NoMatch,
                 ..inputs()
             },
@@ -1451,14 +1449,13 @@ mod tests {
         );
     }
 
-    /* §5.3 case 7b — same as 7 with no Screen Recording grant. */
+    /* §5.3 case 7b — same as 7 with Accessibility not trusted. */
     #[test]
     fn case_7b_unreadable_browser_title_suppresses_instead_of_guessing() {
         let outcome = evaluate(
             &DetectionInputs {
                 app: chrome(),
                 mic: MicSignal::Active,
-                screen_recording: ScreenRecordingPermission::NotGranted,
                 browser_title: BrowserTitleEvidence::Unreadable,
                 ..inputs()
             },
@@ -1477,7 +1474,6 @@ mod tests {
             &DetectionInputs {
                 app: chrome(),
                 mic: MicSignal::Active,
-                screen_recording: ScreenRecordingPermission::NotGranted,
                 browser_title: BrowserTitleEvidence::Unreadable,
                 ..inputs()
             },
@@ -1604,80 +1600,8 @@ mod tests {
         );
     }
 
-    /* §5.3 case 10 — missing Screen Recording must not gate cases 1-5. */
-    #[test]
-    fn case_10_cases_1_through_5_are_identical_without_screen_recording() {
-        let scenarios: [(&str, DetectionInputs, DetectionPolicy); 4] = [
-            (
-                "case 1",
-                DetectionInputs {
-                    calendar: CalendarSignal::Upcoming {
-                        event: event(3),
-                        seconds_to_start: 30,
-                    },
-                    ..inputs()
-                },
-                calendar_policy(),
-            ),
-            (
-                "case 2",
-                DetectionInputs {
-                    calendar: CalendarSignal::Started { event: event(3) },
-                    mic: MicSignal::Active,
-                    standing_series_consent: true,
-                    ..inputs()
-                },
-                DetectionPolicy {
-                    auto_start_on_open_pane: true,
-                    ..calendar_policy()
-                },
-            ),
-            (
-                "case 3",
-                DetectionInputs {
-                    calendar: CalendarSignal::Started { event: event(3) },
-                    mic: MicSignal::Active,
-                    ..inputs()
-                },
-                calendar_policy(),
-            ),
-            (
-                "case 5",
-                DetectionInputs {
-                    app: zoom(),
-                    mic: MicSignal::Active,
-                    ..inputs()
-                },
-                DetectionPolicy::default(),
-            ),
-        ];
-
-        for (label, base, policy) in scenarios {
-            let denied = evaluate(
-                &DetectionInputs {
-                    screen_recording: ScreenRecordingPermission::NotGranted,
-                    ..base.clone()
-                },
-                &policy,
-            );
-            let granted = evaluate(
-                &DetectionInputs {
-                    screen_recording: ScreenRecordingPermission::Granted,
-                    ..base
-                },
-                &policy,
-            );
-
-            assert_eq!(
-                denied, granted,
-                "{label} must not depend on Screen Recording permission"
-            );
-            assert!(
-                !matches!(denied, DetectionOutcome::Suppress(_)),
-                "{label} must still act without Screen Recording permission"
-            );
-        }
-    }
+    /* §5.3 case 10 — Screen Recording must not gate cases 1-5. It is no longer
+     * an input to this table at all, so nothing here can depend on it. */
 
     /* Suppress paths that are not decision-table rows. */
     #[test]
@@ -1687,7 +1611,6 @@ mod tests {
                 calendar: CalendarSignal::Started { event: event(9) },
                 app: zoom(),
                 mic: MicSignal::Active,
-                screen_recording: ScreenRecordingPermission::Granted,
                 browser_title: BrowserTitleEvidence::MeetingMatch,
                 ..inputs()
             },
@@ -2039,7 +1962,6 @@ mod tests {
             call: facetime(false),
             app: chrome(),
             mic: MicSignal::Active,
-            screen_recording: ScreenRecordingPermission::Granted,
             browser_title: BrowserTitleEvidence::MeetingMatch,
             standing_app_consent: true,
             ..inputs()
