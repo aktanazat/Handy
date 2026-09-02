@@ -325,8 +325,7 @@ pub(crate) fn transcript_segments(
             params![revision_id.to_string(), meeting_id.uuid().to_string()],
         )
         .unwrap();
-    for (ordinal, text) in texts.iter().enumerate() {
-        let ordinal = ordinal as u64;
+    for (ordinal, text) in (0u64..).zip(texts) {
         connection
             .execute(
                 "INSERT INTO meeting_transcript_segments (

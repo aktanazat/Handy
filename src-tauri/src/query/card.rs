@@ -69,10 +69,10 @@ pub(super) struct CorpusFacts {
     /// The newest meeting the card may name: its id, title and time.
     pub last_meeting: Option<(MeetingSessionId, String, i64)>,
     pub meeting_ms: u64,
-    pub people: u64,
-    pub open_loops: u64,
-    pub series: u64,
-    pub upcoming_72h: u64,
+    pub people: usize,
+    pub open_loops: usize,
+    pub series: usize,
+    pub upcoming_72h: usize,
     pub week_dictations: u64,
     pub week_words: u64,
     pub week_meetings: u64,
@@ -115,9 +115,8 @@ pub async fn corpus_card(
             .await
         {
             let rows = allowed_upcoming(&store, events.rows).unwrap_or_default();
-            let horizon = now.timestamp_millis() + 72 * HOUR_MS as i64;
-            facts.upcoming_72h =
-                rows.iter().filter(|row| row.start_utc_ms < horizon).count() as u64;
+            let horizon = (now + chrono::Duration::hours(72)).timestamp_millis();
+            facts.upcoming_72h = rows.iter().filter(|row| row.start_utc_ms < horizon).count();
             facts.next = rows.into_iter().take(NEXT_EVENTS).collect();
         }
     }
@@ -170,7 +169,7 @@ pub(super) fn store_facts(store: &MeetingStore, now: DateTime<Local>) -> CorpusF
     }
     facts.last_meeting = last_meeting(store);
     if let Ok(people) = store.people_list() {
-        facts.people = people.entries.len() as u64;
+        facts.people = people.entries.len();
     }
     if let Ok(inbox) = store.open_loops_inbox(LOOP_SCAN_DEPTH) {
         facts.open_loops = without_excluded_series(
@@ -188,14 +187,14 @@ pub(super) fn store_facts(store: &MeetingStore, now: DateTime<Local>) -> CorpusF
                 })
                 .collect(),
         )
-        .len() as u64;
+        .len();
     }
     if let Ok(roster) = store.series_remote_roster() {
         facts.series = roster
             .rows
             .iter()
             .filter(|row| !row.remote_intelligence_opt_out)
-            .count() as u64;
+            .count();
     }
     facts
 }

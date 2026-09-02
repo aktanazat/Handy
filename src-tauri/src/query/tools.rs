@@ -1422,7 +1422,7 @@ fn activity_result(
     let rows = dictations
         .iter()
         .rev()
-        .take(days as usize)
+        .take(usize::try_from(days).unwrap_or(usize::MAX))
         .map(|point| {
             let meeting = meetings.get(point.local_date.as_str());
             json!({

@@ -735,8 +735,12 @@ impl CheckFailure {
     }
 }
 
+/// Both counts fit a `u32` for any meeting that was recorded, and a `u32` is
+/// exact in an `f64`; one that does not is pinned at the top.
 fn turns_per_minute(turns: usize, seconds: u64) -> f64 {
-    turns as f64 / (seconds as f64 / 60.0)
+    let turns = f64::from(u32::try_from(turns).unwrap_or(u32::MAX));
+    let seconds = f64::from(u32::try_from(seconds).unwrap_or(u32::MAX));
+    turns / (seconds / 60.0)
 }
 
 /// Upstream's `check_open_loops`: every thread left unanswered, dropped or

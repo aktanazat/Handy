@@ -90,7 +90,7 @@ impl StoredAction {
         }
     }
 
-    fn preview(&self, index: usize) -> AgentPanelActionV1 {
+    fn preview(&self, index: u32) -> AgentPanelActionV1 {
         let (state, operation_id) = match &self.state {
             StoredActionState::Pending => (AgentPanelActionStateV1::Pending, None),
             StoredActionState::Applied(applied) => (
@@ -100,7 +100,7 @@ impl StoredAction {
             StoredActionState::Dismissed => (AgentPanelActionStateV1::Dismissed, None),
         };
         AgentPanelActionV1 {
-            action_index: index as u32,
+            action_index: index,
             action: self.action.clone(),
             state,
             operation_id,
@@ -169,10 +169,8 @@ impl ActiveTurn {
             started_at_utc_ms: self.started_at_utc_ms,
             completed_at_utc_ms: self.completed_at_utc_ms,
             steps: self.steps.clone(),
-            actions: self
-                .actions
-                .iter()
-                .enumerate()
+            actions: (0..)
+                .zip(&self.actions)
                 .map(|(index, action)| action.preview(index))
                 .collect(),
             failure: self.failure,
@@ -1154,13 +1152,15 @@ impl AgentPanelManager {
         state: &'a PanelState,
         request: &AgentPanelActionRequestV1,
     ) -> Result<&'a StoredAction, AgentPanelCommandErrorV1> {
+        let index = usize::try_from(request.action_index)
+            .map_err(|_| AgentPanelCommandErrorV1::UnknownAction)?;
         state
             .turn
             .as_ref()
             .filter(|active| active.turn_id == request.turn_id)
             .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?
             .actions
-            .get(request.action_index as usize)
+            .get(index)
             .ok_or(AgentPanelCommandErrorV1::UnknownAction)
     }
 
@@ -1174,6 +1174,8 @@ impl AgentPanelManager {
         request: &AgentPanelActionRequestV1,
         settled: StoredActionState,
     ) -> Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1> {
+        let index = usize::try_from(request.action_index)
+            .map_err(|_| AgentPanelCommandErrorV1::UnknownAction)?;
         let (invalidation_id, status) = {
             let mut state = self.lock_state();
             let active = state
@@ -1183,7 +1185,7 @@ impl AgentPanelManager {
                 .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?;
             active
                 .actions
-                .get_mut(request.action_index as usize)
+                .get_mut(index)
                 .ok_or(AgentPanelCommandErrorV1::UnknownAction)?
                 .state = settled;
             let status = active.status();

@@ -5581,8 +5581,9 @@ pub(crate) mod tests {
     }
 
     /// A complete 16 kHz mono WAV. The decoder verifies a WAV's declared frame
-    /// count against what it decodes, so the fixture has to be whole.
-    fn write_mono_wav(path: &Path, samples: usize) {
+    /// count against what it decodes, so the fixture has to be whole. The
+    /// count is a `u16`, which an `f32` holds exactly, so the tone's phase is.
+    fn write_mono_wav(path: &Path, samples: u16) {
         let specification = hound::WavSpec {
             channels: 1,
             sample_rate: 16_000,
@@ -5591,7 +5592,7 @@ pub(crate) mod tests {
         };
         let mut writer = hound::WavWriter::create(path, specification).expect("create wav");
         for index in 0..samples {
-            let phase = index as f32 / 16_000.0 * std::f32::consts::TAU * 220.0;
+            let phase = f32::from(index) / 16_000.0 * std::f32::consts::TAU * 220.0;
             writer
                 .write_sample(phase.sin() * 0.4)
                 .expect("write sample");

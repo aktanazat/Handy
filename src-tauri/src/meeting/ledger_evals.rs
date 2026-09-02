@@ -109,10 +109,10 @@ fn fixture_with(
     let mut transcript = Vec::new();
     for (index, (segment, (start_ms, end_ms))) in imported.segments.iter().zip(spans).enumerate() {
         let name = segment.speaker.clone().expect("every turn is attributed");
-        let next = speakers.len() + 1;
+        let next = u128::try_from(speakers.len() + 1).unwrap_or(u128::MAX);
         let speaker_id = *speakers
             .entry(name)
-            .or_insert_with(|| SpeakerId::from_uuid(Uuid::from_u128(next as u128)));
+            .or_insert_with(|| SpeakerId::from_uuid(Uuid::from_u128(next)));
         let segment_id = id_of(index + 1);
         let start_offset_ns = start_ms * 1_000_000;
         let end_offset_ns = end_ms * 1_000_000;

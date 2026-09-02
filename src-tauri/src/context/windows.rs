@@ -323,14 +323,14 @@ fn foreground_process_image() -> Option<String> {
         return None;
     }
 
+    let mut buffer = [0u16; MAX_IMAGE_PATH_UNITS];
+    let mut units = u32::try_from(buffer.len()).ok()?;
     // Query-limited access is the least this needs and the most a protected
     // process will grant, so an elevated foreground app degrades to no
     // identity rather than to an error the user cannot act on.
     // SAFETY: OpenProcess takes no caller-owned pointers; the handle is closed below.
     let process =
         unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process_id) }.ok()?;
-    let mut buffer = [0u16; MAX_IMAGE_PATH_UNITS];
-    let mut units = buffer.len() as u32;
     // SAFETY: `process` is open, and buffer/units are live for the whole call.
     let read = unsafe {
         QueryFullProcessImageNameW(
