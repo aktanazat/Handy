@@ -68,6 +68,29 @@ impl CaptureDeadline {
             }
         }
     }
+
+    /// The next read's messaging timeout in whole milliseconds, for a client
+    /// that takes one — UI Automation's transaction timeout. `None` once the
+    /// budget is spent.
+    #[cfg(any(target_os = "windows", test))]
+    pub(crate) fn next_read_millis(self) -> Option<u32> {
+        match self.next_read() {
+            // Every bound in this module is well under `u32::MAX` milliseconds,
+            // so the saturating arm is unreachable arithmetic, not a policy.
+            ReadBudget::Remaining(timeout) => {
+                Some(u32::try_from(timeout.as_millis()).unwrap_or(u32::MAX))
+            }
+            ReadBudget::Timeout => None,
+        }
+    }
+
+    /// Whether another read may start, for a transport that offers no
+    /// per-request timeout — D-Bus. The budget bounds how many reads a capture
+    /// starts; the caller's join bounds how long the group may take.
+    #[cfg(any(target_os = "linux", test))]
+    pub(crate) fn may_start_read(self) -> bool {
+        matches!(self.next_read(), ReadBudget::Remaining(_))
+    }
 }
 
 #[cfg(test)]
@@ -141,5 +164,27 @@ mod tests {
 
         assert_eq!(now.duration_since(start), Duration::from_millis(395));
         assert!(now <= at(start, 400));
+    }
+
+    /// The Windows reader spends the budget as a UI Automation transaction
+    /// timeout, which is a whole number of milliseconds.
+    #[test]
+    fn a_millisecond_client_gets_the_same_budget_the_deadline_hands_out() {
+        let fresh = CaptureDeadline::starting_now();
+        assert_eq!(
+            fresh.next_read_millis(),
+            Some(MAX_READ_TIMEOUT.as_millis() as u32)
+        );
+
+        let spent = CaptureDeadline::expiring_at(Instant::now());
+        assert_eq!(spent.next_read_millis(), None);
+    }
+
+    /// The Linux reader cannot bound one D-Bus request, so the budget decides
+    /// whether another read starts at all.
+    #[test]
+    fn a_transport_without_timeouts_still_stops_starting_reads() {
+        assert!(CaptureDeadline::starting_now().may_start_read());
+        assert!(!CaptureDeadline::expiring_at(Instant::now()).may_start_read());
     }
 }

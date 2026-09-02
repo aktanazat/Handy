@@ -112,6 +112,12 @@ pub struct AgentBridgeObservedRequest {
     pub permission_mode: Option<String>,
     pub expires_at_ms: u64,
     pub state: AgentBridgeRequestState,
+    /// Whether the hook invocation behind this row is holding its agent open
+    /// for Sona's answer. Derived once from
+    /// [`crate::agent_hook_wire::CanonicalEvent::awaits_response`], so the
+    /// console and the responder read the same fact instead of each deciding
+    /// which agents and events can be answered.
+    pub awaiting_response: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -328,9 +334,8 @@ impl AgentBridgeCore {
             .get(session_id)
             .cloned()
             .ok_or(AgentBridgeError::UnknownSession)?;
-        if !session.agent.supports_stop_reply() {
-            return Err(AgentBridgeError::WrongAgent);
-        }
+        // Every agent Sona bridges continues a stopped turn the same way, but
+        // only a session that reached a prompt has a turn to reply to.
         if !self.prepared_sessions.contains(session_id) {
             return Err(AgentBridgeError::UnknownSession);
         }
@@ -432,7 +437,7 @@ impl AgentBridgeCore {
             .observed_requests
             .get(request_id)
             .ok_or(AgentBridgeError::UnknownRequest)?;
-        if !record.public.agent.supports_permission_response() {
+        if !record.public.awaiting_response {
             return Err(AgentBridgeError::PermissionResponseUnsupported);
         }
 
@@ -472,7 +477,7 @@ impl AgentBridgeCore {
             .get(request_id)
             .cloned()
             .ok_or(AgentBridgeError::UnknownRequest)?;
-        if !record.public.agent.supports_permission_response() {
+        if !record.public.awaiting_response {
             return Err(AgentBridgeError::PermissionResponseUnsupported);
         }
 
@@ -611,6 +616,7 @@ impl AgentBridgeCore {
             .and_then(|input| serde_json::to_vec(input).ok())
             .map(|bytes| opaque_hash(&[b"tool-input", &bytes]))
             .unwrap_or_else(|| opaque_hash(&[b"tool-input-none"]));
+        let awaiting_response = request.event.awaits_response();
         let public = AgentBridgeObservedRequest {
             id: request.invocation_id.clone(),
             session_id: session_id.clone(),
@@ -620,6 +626,7 @@ impl AgentBridgeCore {
             permission_mode: request.event.permission_mode.clone(),
             expires_at_ms: request.expires_at_ms,
             state: AgentBridgeRequestState::Observed,
+            awaiting_response,
         };
         self.observed_requests.insert(
             request.invocation_id.clone(),
@@ -629,7 +636,7 @@ impl AgentBridgeCore {
                 tool_input_hash,
             },
         );
-        if kind == AgentBridgeRequestKind::Stop && agent.supports_stop_reply() {
+        if kind == AgentBridgeRequestKind::Stop && awaiting_response {
             self.respond_to_stop(&request, now_ms)?;
         }
         Ok(())
@@ -888,7 +895,7 @@ fn rule_matches(
     record: &ObservedRequestRecord,
     decision: AgentBridgePermissionDecision,
 ) -> bool {
-    record.public.agent.supports_permission_response()
+    record.public.awaiting_response
         && rule.user_created
         && rule.agent == record.public.agent
         && rule.canonical_project_hash == record.request.binding.project_hash
@@ -1331,6 +1338,14 @@ pub fn get_agent_bridge_hook_snippet(app: tauri::AppHandle) -> Result<String, St
             "command": hook,
             "args": ["claude"]
         },
+        "codex": command_hook_config(
+            &shell_invocation(hook, "codex"),
+            &["SessionStart", "UserPromptSubmit", "PermissionRequest", "Stop"],
+        ),
+        "grok": command_hook_config(
+            &shell_invocation(hook, "grok"),
+            &["SessionStart", "UserPromptSubmit", "PreToolUse", "Stop"],
+        ),
         "omp": {
             "command": "omp",
             "args": ["--extension", omp_extension],
@@ -1342,10 +1357,30 @@ pub fn get_agent_bridge_hook_snippet(app: tauri::AppHandle) -> Result<String, St
     .map_err(|_| "hook snippet unavailable".to_string())
 }
 
+/// Codex and Grok both read Claude's `hooks.json` shape but run handlers
+/// through a shell, so the hook arrives as one command string rather than an
+/// argv pair.
+fn command_hook_config(command: &str, events: &[&str]) -> serde_json::Value {
+    let handlers = serde_json::json!([{
+        "hooks": [{ "type": "command", "command": command }]
+    }]);
+    let hooks: serde_json::Map<String, serde_json::Value> = events
+        .iter()
+        .map(|event| ((*event).to_string(), handlers.clone()))
+        .collect();
+    serde_json::json!({ "hooks": hooks })
+}
+
+/// Quotes the packaged hook so an installation path containing spaces still
+/// runs as one command.
+fn shell_invocation(hook: &str, agent: &str) -> String {
+    format!("\"{hook}\" {agent}")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent_hook_wire::{CanonicalEvent, CanonicalTool};
+    use crate::agent_hook_wire::{CanonicalEvent, CanonicalTool, ASK_USER_QUESTION_TOOL};
     use crate::settings::{AgentBridgePermissionRule, AgentBridgeProjectScope};
     use serde_json::json;
     use std::error::Error;
@@ -1910,7 +1945,7 @@ mod tests {
                 CanonicalEventKind::PreToolUse,
                 &root,
                 Some(CanonicalTool {
-                    name: "Bash".to_string(),
+                    name: ASK_USER_QUESTION_TOOL.to_string(),
                     use_id: Some("tool-1".to_string()),
                     input: Some(tool_input),
                 }),
@@ -1923,7 +1958,7 @@ mod tests {
             id: "rule-1".to_string(),
             agent: AgentBridgeAgent::Claude,
             canonical_project_hash: request.binding.project_hash.clone(),
-            tool_name: "Bash".to_string(),
+            tool_name: ASK_USER_QUESTION_TOOL.to_string(),
             permission_mode: Some("default".to_string()),
             tool_input_hash: tool_hash,
             decision: AgentBridgePermissionDecision::Allow,
@@ -1946,6 +1981,83 @@ mod tests {
         core.stop();
         fs::remove_dir_all(root)?;
         Ok(())
+    }
+
+    /// The app writes a response only where the hook is holding its agent open
+    /// for one. Claude's pre-tool gate answers exactly two tools, so an ordinary
+    /// tool call is observed and nothing else — a response for it would sit in
+    /// the session directory until it expired.
+    #[test]
+    fn a_tool_call_with_no_reply_channel_cannot_be_answered() -> Result<(), Box<dyn Error>> {
+        let root = test_root("unanswerable")?;
+        let paths = RuntimePaths::from_root(root.clone(), true)?;
+        let app_id = opaque_hash(&[b"app-unanswerable"]);
+        let binding = binding(&root)?;
+        let settings = enabled_settings(binding.project_hash.clone());
+        let mut core = AgentBridgeCore::new(paths.clone(), app_id.clone())?;
+        core.start(&settings, 1_000)?;
+        let request = persist_event(
+            &paths,
+            &app_id,
+            binding,
+            event(
+                CanonicalEventKind::PreToolUse,
+                &root,
+                Some(CanonicalTool {
+                    name: "Bash".to_string(),
+                    use_id: Some("tool-1".to_string()),
+                    input: Some(json!({"command": "cargo test"})),
+                }),
+            ),
+            b"unanswerable",
+            1_001,
+        )?;
+        core.tick(&settings, 1_002)?;
+
+        let observed = core.requests();
+        assert!(!observed.iter().any(|request| request.awaiting_response));
+        assert_eq!(
+            core.exact_rule_for_request(
+                &request.invocation_id,
+                "rule-1".to_string(),
+                AgentBridgePermissionDecision::Allow,
+            )
+            .unwrap_err(),
+            AgentBridgeError::PermissionResponseUnsupported
+        );
+        core.stop();
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    /// The setup code is pasted straight into `hooks.json`, so a wrong shape is
+    /// a bridge that silently never fires. Codex and Grok both read Claude's
+    /// matcher-group schema, and both run the handler through a shell.
+    #[test]
+    fn the_setup_code_matches_the_matcher_group_schema_both_agents_read() {
+        let config = command_hook_config(
+            &shell_invocation("/Applications/Sona.app/sona agent hook", "codex"),
+            &["SessionStart", "Stop"],
+        );
+        assert_eq!(
+            config,
+            json!({
+                "hooks": {
+                    "SessionStart": [{
+                        "hooks": [{
+                            "type": "command",
+                            "command": "\"/Applications/Sona.app/sona agent hook\" codex"
+                        }]
+                    }],
+                    "Stop": [{
+                        "hooks": [{
+                            "type": "command",
+                            "command": "\"/Applications/Sona.app/sona agent hook\" codex"
+                        }]
+                    }]
+                }
+            })
+        );
     }
 
     #[cfg(unix)]

@@ -161,6 +161,9 @@ windows = { version = "0.61.3", features = [
   "Win32_Foundation",
   "Win32_Graphics_Gdi",
   "Win32_UI_WindowsAndMessaging",
+  # UI Automation drives context capture: the focused element's name, value and
+  # control type, bounded by the client's transaction timeout.
+  "Win32_UI_Accessibility",
 ] }
 libloading = "0.8.9"
 keyring = { version = "=3.6.1", default-features = false, features = ["windows-native"] }
@@ -264,6 +267,11 @@ keyring = { version = "=3.6.1", default-features = false, features = ["apple-nat
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk-layer-shell = { version = "0.8", features = ["v0_6"] }
 gtk = "0.18"
+# AT-SPI2 is a D-Bus service, and this is the D-Bus client Tauri's Linux stack
+# already links. Context capture reads the focused accessible through it; the
+# typed `atspi` wrapper would add a crate and an async runtime for the same
+# five method calls.
+zbus = "5"
 transcribe-cpp = { version = "0.2.0", default-features = false, features = [
   "dynamic-backends",
   "vulkan",

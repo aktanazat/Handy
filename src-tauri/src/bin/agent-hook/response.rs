@@ -12,15 +12,20 @@ use super::runtime::{Clock, Request, SessionPaths};
 pub(super) use super::wire::HookAnswer as ClaudeAnswer;
 use super::wire::{read_json_bounded, HookResponse as AppResponse};
 use super::{
-    CanonicalEvent, CanonicalEventKind, Diagnostic, ASK_USER_QUESTION_TOOL, EXIT_PLAN_MODE_TOOL,
-    MAX_RESPONSE_BYTES, PROTOCOL_GENERATION, SCHEMA_VERSION,
+    Agent, CanonicalEvent, CanonicalEventKind, Diagnostic, ASK_USER_QUESTION_TOOL,
+    EXIT_PLAN_MODE_TOOL, MAX_RESPONSE_BYTES, PROTOCOL_GENERATION, SCHEMA_VERSION,
 };
 
 const PRE_TOOL_USE_HOOK_EVENT: &str = "PreToolUse";
+const PERMISSION_REQUEST_HOOK_EVENT: &str = "PermissionRequest";
 const BLOCK_DECISION: &str = "block";
 const APPROVE_DECISION: &str = "Approve";
 const REJECT_DECISION: &str = "Reject";
 const DONT_ASK_DECISION: &str = "dontAsk";
+/// Codex answers a permission request with a behavior, and Grok answers a
+/// pre-tool gate with a lowercase decision. Neither spells them Claude's way.
+const ALLOW_BEHAVIOR: &str = "allow";
+const DENY_BEHAVIOR: &str = "deny";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Outcome {
@@ -43,12 +48,23 @@ impl Outcome {
         }
     }
 
-    fn permission_decision(self) -> Option<&'static str> {
+    /// Claude's `permissionDecision` spelling.
+    fn claude_permission_decision(self) -> Option<&'static str> {
         match self {
             Self::Approve => Some(APPROVE_DECISION),
             Self::Reject => Some(REJECT_DECISION),
             Self::DontAsk => Some(DONT_ASK_DECISION),
             Self::Block | Self::PassThrough => None,
+        }
+    }
+
+    /// The allow/deny spelling Codex and Grok share. Neither has an equivalent
+    /// of "stop asking about this", which stays a Sona-side permission rule.
+    fn allow_or_deny(self) -> Option<&'static str> {
+        match self {
+            Self::Approve => Some(ALLOW_BEHAVIOR),
+            Self::Reject => Some(DENY_BEHAVIOR),
+            Self::DontAsk | Self::Block | Self::PassThrough => None,
         }
     }
 }
@@ -61,7 +77,7 @@ struct StopDecision<'a> {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct HookSpecificOutput<'a> {
+struct ClaudePermissionOutput<'a> {
     hook_event_name: &'a str,
     permission_decision: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -70,8 +86,34 @@ struct HookSpecificOutput<'a> {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct PreToolUseDecision<'a> {
-    hook_specific_output: HookSpecificOutput<'a>,
+struct ClaudePreToolUseDecision<'a> {
+    hook_specific_output: ClaudePermissionOutput<'a>,
+}
+
+#[derive(Serialize)]
+struct CodexPermissionBehavior<'a> {
+    behavior: &'a str,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CodexPermissionOutput<'a> {
+    hook_event_name: &'a str,
+    decision: CodexPermissionBehavior<'a>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CodexPermissionDecision<'a> {
+    hook_specific_output: CodexPermissionOutput<'a>,
+}
+
+/// Grok's pre-tool gate answers at the top level. `allow` only means "this hook
+/// does not block it"; Grok still applies its own permission policy, which is
+/// why Sona's approval cannot skip a prompt there the way Claude's can.
+#[derive(Serialize)]
+struct GrokToolDecision<'a> {
+    decision: &'a str,
 }
 
 /// Claims the app's response for this invocation, if one is already waiting.
@@ -125,13 +167,18 @@ pub(crate) fn encode_claimed(
     encode_outcome(&response, outcome, event).map(Some)
 }
 
+/// One shape per (agent, event) pair Sona is allowed to answer. Every pair is
+/// pinned by a golden fixture, and anything outside the table is refused rather
+/// than emitting bytes no fixture proves.
 fn encode_outcome(
     response: &AppResponse,
     outcome: Outcome,
     event: &CanonicalEvent,
 ) -> Result<Vec<u8>, Diagnostic> {
-    match (event.event, outcome) {
-        (CanonicalEventKind::Stop, Outcome::Block) => {
+    match (event.agent, event.event) {
+        // Every agent continues a finished turn the same way, with the reply
+        // text as the reason.
+        (_, CanonicalEventKind::Stop) if outcome == Outcome::Block => {
             let reason = response
                 .reason
                 .as_deref()
@@ -145,24 +192,49 @@ fn encode_outcome(
                 reason,
             })
         }
-        (CanonicalEventKind::PreToolUse, _) => {
+        (Agent::Claude, CanonicalEventKind::PreToolUse) => {
             let decision = outcome
-                .permission_decision()
+                .claude_permission_decision()
                 .ok_or(Diagnostic::ResponseOutcomeUnsupported)?;
             if response.reason.is_some() {
                 return Err(Diagnostic::ResponseOutcomeUnsupported);
             }
             let answers = permitted_answers(response, outcome, event)?;
-            serialize(&PreToolUseDecision {
-                hook_specific_output: HookSpecificOutput {
+            serialize(&ClaudePreToolUseDecision {
+                hook_specific_output: ClaudePermissionOutput {
                     hook_event_name: PRE_TOOL_USE_HOOK_EVENT,
                     permission_decision: decision,
                     answers,
                 },
             })
         }
+        (Agent::Codex, CanonicalEventKind::PermissionRequest) => {
+            let behavior = plain_decision(response, outcome)?;
+            serialize(&CodexPermissionDecision {
+                hook_specific_output: CodexPermissionOutput {
+                    hook_event_name: PERMISSION_REQUEST_HOOK_EVENT,
+                    decision: CodexPermissionBehavior { behavior },
+                },
+            })
+        }
+        (Agent::Grok, CanonicalEventKind::PreToolUse) => {
+            let decision = plain_decision(response, outcome)?;
+            serialize(&GrokToolDecision { decision })
+        }
         _ => Err(Diagnostic::ResponseOutcomeUnsupported),
     }
+}
+
+/// An allow/deny answer carries nothing else. Codex and Grok both accept a
+/// message with a denial, but the app never writes one for a permission
+/// decision, so no fixture pins those bytes and they are refused.
+fn plain_decision(response: &AppResponse, outcome: Outcome) -> Result<&'static str, Diagnostic> {
+    if response.reason.is_some() || response.answers.is_some() {
+        return Err(Diagnostic::ResponseOutcomeUnsupported);
+    }
+    outcome
+        .allow_or_deny()
+        .ok_or(Diagnostic::ResponseOutcomeUnsupported)
 }
 
 /// Answers ride along only where an exact golden fixture covers them: an

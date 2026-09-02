@@ -1,0 +1,1 @@
+{"session_id":"codex-session","transcript_path":"/tmp/codex-rollout.jsonl","cwd":"/sona-fixture-project","hook_event_name":"Stop","model":"gpt-5.1-codex","permission_mode":"default","turn_id":"turn-1","stop_hook_active":false,"last_assistant_message":"fixture"}

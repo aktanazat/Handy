@@ -20,12 +20,36 @@ use super::{
 const STOP_INPUT: &[u8] = include_bytes!("fixtures/claude-stop-input.json");
 const QUESTION_INPUT: &[u8] = include_bytes!("fixtures/claude-askuserquestion-input.json");
 const PLAN_INPUT: &[u8] = include_bytes!("fixtures/claude-exitplanmode-input.json");
-const STOP_BLOCK_OUTPUT: &[u8] = include_bytes!("fixtures/claude-stop-block-output.json");
+const STOP_BLOCK_OUTPUT: &[u8] = include_bytes!("fixtures/stop-block-output.json");
 const APPROVE_ANSWERS_OUTPUT: &[u8] =
     include_bytes!("fixtures/claude-pretooluse-approve-answers-output.json");
 const APPROVE_OUTPUT: &[u8] = include_bytes!("fixtures/claude-pretooluse-approve-output.json");
 const REJECT_OUTPUT: &[u8] = include_bytes!("fixtures/claude-pretooluse-reject-output.json");
 const DONT_ASK_OUTPUT: &[u8] = include_bytes!("fixtures/claude-pretooluse-dontask-output.json");
+
+const CODEX_SESSION_START_INPUT: &[u8] = include_bytes!("fixtures/codex-sessionstart-input.json");
+const CODEX_PROMPT_INPUT: &[u8] = include_bytes!("fixtures/codex-userpromptsubmit-input.json");
+const CODEX_PERMISSION_INPUT: &[u8] = include_bytes!("fixtures/codex-permissionrequest-input.json");
+const CODEX_PRE_TOOL_INPUT: &[u8] = include_bytes!("fixtures/codex-pretooluse-input.json");
+const CODEX_POST_TOOL_INPUT: &[u8] = include_bytes!("fixtures/codex-posttooluse-input.json");
+const CODEX_STOP_INPUT: &[u8] = include_bytes!("fixtures/codex-stop-input.json");
+const CODEX_ALLOW_OUTPUT: &[u8] =
+    include_bytes!("fixtures/codex-permissionrequest-allow-output.json");
+const CODEX_DENY_OUTPUT: &[u8] =
+    include_bytes!("fixtures/codex-permissionrequest-deny-output.json");
+
+const GROK_SESSION_START_INPUT: &[u8] = include_bytes!("fixtures/grok-sessionstart-input.json");
+const GROK_PROMPT_INPUT: &[u8] = include_bytes!("fixtures/grok-userpromptsubmit-input.json");
+const GROK_PRE_TOOL_INPUT: &[u8] = include_bytes!("fixtures/grok-pretooluse-input.json");
+const GROK_POST_TOOL_INPUT: &[u8] = include_bytes!("fixtures/grok-posttooluse-input.json");
+const GROK_STOP_INPUT: &[u8] = include_bytes!("fixtures/grok-stop-input.json");
+const GROK_NOTIFICATION_INPUT: &[u8] = include_bytes!("fixtures/grok-notification-input.json");
+const GROK_ALLOW_OUTPUT: &[u8] = include_bytes!("fixtures/grok-pretooluse-allow-output.json");
+const GROK_DENY_OUTPUT: &[u8] = include_bytes!("fixtures/grok-pretooluse-deny-output.json");
+
+/// Workspace path the Codex and Grok fixtures name. A run has to be bound to
+/// the test's temporary project, so [`in_project`] rewrites it.
+const FIXTURE_PROJECT: &str = "/sona-fixture-project";
 
 const NOW_MS: u64 = 1_700_000_000_000;
 const APP_INSTANCE_ID: &str = "0123456789abcdef0123456789abcdef";
@@ -233,6 +257,16 @@ fn golden_answers() -> Vec<ClaudeAnswer> {
         selected: vec!["First".to_owned()],
     }]
 }
+
+/// Binds a checked-in fixture to this test's temporary project. Codex and Grok
+/// name their workspace inside the payload, so one file drives both the decode
+/// assertions and a run that has to pass the project allow-list.
+fn in_project(fixture: &[u8], project: &Path) -> Vec<u8> {
+    String::from_utf8_lossy(fixture)
+        .replace(FIXTURE_PROJECT, &project.to_string_lossy())
+        .into_bytes()
+}
+
 fn omp_session_start_input(project: &Path) -> serde_json::Result<Vec<u8>> {
     serde_json::to_vec(&json!({
         "schema_version": 1,
@@ -241,6 +275,19 @@ fn omp_session_start_input(project: &Path) -> serde_json::Result<Vec<u8>> {
         "workspace_root": project.to_string_lossy(),
         "stop_hook_active": false,
         "sequence": 1
+    }))
+}
+
+/// OMP's inputs are built rather than checked in: its workspace is the only
+/// field the bridge binds on, and the extension always sends the live one.
+fn omp_prompt_input(project: &Path) -> serde_json::Result<Vec<u8>> {
+    serde_json::to_vec(&json!({
+        "schema_version": 1,
+        "event": "user_prompt_submit",
+        "session_id": "omp-session",
+        "workspace_root": project.to_string_lossy(),
+        "stop_hook_active": false,
+        "sequence": 2
     }))
 }
 
@@ -296,33 +343,198 @@ fn rejects_unusable_input_without_output_or_session() {
     assert!(sessions_are_empty(&fixture));
 }
 
+/// One fixture per event kind each provider emits, decoded to the canonical
+/// shape the rest of the hook and the app bridge consume.
 #[test]
-fn decodes_each_agent_with_its_own_key_convention() {
-    let claude = br#"{"session_id":"claude-session","transcript_path":"/tmp/claude.jsonl","stop_hook_active":false,"hook_event_name":"PreToolUse","last_assistant_message":"","tool_name":"Edit","tool_input":{"file_path":"a.rs"}}"#;
-    let claude_event = decode_event(Agent::Claude, claude).expect("Claude event");
-    assert_eq!(claude_event.agent, Agent::Claude);
-    assert_eq!(claude_event.event, CanonicalEventKind::PreToolUse);
-    assert_eq!(claude_event.tool_name(), Some("Edit"));
+fn every_provider_event_kind_decodes_from_its_own_fixture() {
+    let cases = [
+        (
+            Agent::Claude,
+            STOP_INPUT,
+            CanonicalEventKind::Stop,
+            None,
+            true,
+        ),
+        (
+            Agent::Claude,
+            QUESTION_INPUT,
+            CanonicalEventKind::PreToolUse,
+            Some("AskUserQuestion"),
+            true,
+        ),
+        (
+            Agent::Claude,
+            PLAN_INPUT,
+            CanonicalEventKind::PreToolUse,
+            Some("ExitPlanMode"),
+            true,
+        ),
+        (
+            Agent::Codex,
+            CODEX_SESSION_START_INPUT,
+            CanonicalEventKind::SessionStart,
+            None,
+            false,
+        ),
+        (
+            Agent::Codex,
+            CODEX_PROMPT_INPUT,
+            CanonicalEventKind::UserPromptSubmit,
+            None,
+            false,
+        ),
+        (
+            Agent::Codex,
+            CODEX_PERMISSION_INPUT,
+            CanonicalEventKind::PermissionRequest,
+            Some("Bash"),
+            true,
+        ),
+        (
+            Agent::Codex,
+            CODEX_PRE_TOOL_INPUT,
+            CanonicalEventKind::PreToolUse,
+            Some("Bash"),
+            false,
+        ),
+        (
+            Agent::Codex,
+            CODEX_POST_TOOL_INPUT,
+            CanonicalEventKind::PostToolUse,
+            Some("Bash"),
+            false,
+        ),
+        (
+            Agent::Codex,
+            CODEX_STOP_INPUT,
+            CanonicalEventKind::Stop,
+            None,
+            true,
+        ),
+        (
+            Agent::Grok,
+            GROK_SESSION_START_INPUT,
+            CanonicalEventKind::SessionStart,
+            None,
+            false,
+        ),
+        (
+            Agent::Grok,
+            GROK_PROMPT_INPUT,
+            CanonicalEventKind::UserPromptSubmit,
+            None,
+            false,
+        ),
+        (
+            Agent::Grok,
+            GROK_PRE_TOOL_INPUT,
+            CanonicalEventKind::PreToolUse,
+            Some("run_terminal_command"),
+            true,
+        ),
+        (
+            Agent::Grok,
+            GROK_POST_TOOL_INPUT,
+            CanonicalEventKind::PostToolUse,
+            Some("run_terminal_command"),
+            false,
+        ),
+        (
+            Agent::Grok,
+            GROK_STOP_INPUT,
+            CanonicalEventKind::Stop,
+            None,
+            true,
+        ),
+        (
+            Agent::Grok,
+            GROK_NOTIFICATION_INPUT,
+            CanonicalEventKind::Notification,
+            None,
+            false,
+        ),
+    ];
 
-    let codex = br#"{"sessionId":"codex-session","hookEventName":"Stop","turnId":"turn-1","prompt":"continue","lastAssistantMessage":"done"}"#;
-    let codex_event = decode_event(Agent::Codex, codex).expect("Codex event");
-    assert_eq!(codex_event.agent, Agent::Codex);
-    assert_eq!(codex_event.event, CanonicalEventKind::Stop);
-    assert_eq!(codex_event.request_id.as_deref(), Some("turn-1"));
+    for (agent, input, kind, tool, awaited) in cases {
+        let event = decode_event(agent, input)
+            .unwrap_or_else(|error| panic!("{agent:?} {kind:?} fixture did not decode: {error:?}"));
+        assert_eq!(event.agent, agent);
+        assert_eq!(
+            event.event, kind,
+            "{agent:?} fixture decoded to {:?}",
+            event.event
+        );
+        assert_eq!(event.tool_name(), tool, "{agent:?} {kind:?} tool");
+        assert_eq!(
+            event.awaits_response(),
+            awaited,
+            "{agent:?} {kind:?} reply channel"
+        );
+    }
+}
 
-    let grok = br#"{"sessionId":"grok-session","hookEventName":"permissionrequest","toolName":"run_terminal_command","toolInput":{"command":"pwd"},"permissionMode":"default"}"#;
-    let grok_event = decode_event(Agent::Grok, grok).expect("Grok event");
-    assert_eq!(grok_event.agent, Agent::Grok);
-    assert_eq!(grok_event.event, CanonicalEventKind::PermissionRequest);
+/// Each provider spells the same event differently, and the key conventions do
+/// not overlap, so a payload handed to the wrong decoder is refused rather than
+/// half-read.
+#[test]
+fn one_provider_payload_never_decodes_as_another() {
+    for (agent, input) in [
+        (Agent::Claude, CODEX_STOP_INPUT),
+        (Agent::Claude, GROK_STOP_INPUT),
+        (Agent::Codex, STOP_INPUT),
+        (Agent::Codex, GROK_STOP_INPUT),
+        (Agent::Grok, STOP_INPUT),
+        (Agent::Grok, CODEX_STOP_INPUT),
+    ] {
+        assert!(
+            matches!(decode_event(agent, input), Err(DecodeError::Invalid)),
+            "{agent:?} accepted another provider's payload"
+        );
+    }
+}
 
+/// Grok mirrors the event name in two keys. A payload whose spellings disagree
+/// is not the event it announces.
+#[test]
+fn grok_requires_both_spellings_of_its_event_name_to_agree() {
+    let mismatched = String::from_utf8_lossy(GROK_STOP_INPUT)
+        .replace(
+            "\"hook_event_name\":\"Stop\"",
+            "\"hook_event_name\":\"PreToolUse\"",
+        )
+        .into_bytes();
     assert!(matches!(
-        decode_event(Agent::Claude, codex),
+        decode_event(Agent::Grok, &mismatched),
         Err(DecodeError::Invalid)
     ));
-    assert!(matches!(
-        decode_event(Agent::Codex, claude),
-        Err(DecodeError::Invalid)
-    ));
+}
+
+/// Grok fires `Stop` again at session teardown, where its decision is parsed
+/// and ignored. Holding the process open for an answer nobody can use would
+/// delay every session exit.
+#[test]
+fn grok_session_teardown_stop_is_observed_not_answered() {
+    let teardown = String::from_utf8_lossy(GROK_STOP_INPUT)
+        .replace("\"reason\":\"end_turn\"", "\"reason\":\"shutdown\"")
+        .into_bytes();
+    let event = decode_event(Agent::Grok, &teardown).expect("teardown stop decodes");
+    assert_eq!(event.event, CanonicalEventKind::Stop);
+    assert!(!event.awaits_response());
+}
+
+/// No prompt appears while permissions are bypassed, so there is nothing for
+/// Sona to answer and nothing worth blocking the agent on.
+#[test]
+fn bypassed_permissions_leave_tool_gates_observe_only() {
+    let bypassed = String::from_utf8_lossy(GROK_PRE_TOOL_INPUT)
+        .replace(
+            "\"permissionMode\":\"default\"",
+            "\"permissionMode\":\"bypassPermissions\"",
+        )
+        .into_bytes();
+    let event = decode_event(Agent::Grok, &bypassed).expect("bypassed gate decodes");
+    assert!(event.bypass_permissions);
+    assert!(!event.awaits_response());
 }
 
 #[test]
@@ -372,6 +584,23 @@ fn omp_session_and_permission_events_persist_without_response() -> Result<(), Bo
     assert_eq!(
         persisted_session.event.event,
         CanonicalEventKind::SessionStart
+    );
+
+    let prompt_input = omp_prompt_input(&fixture.project)?;
+    let prompt_request = request_for(Agent::Omp, &prompt_input, &fixture.project);
+    let (stdout, stderr) = run(Agent::Omp, &prompt_input, &fixture.hook);
+    assert!(stdout.is_empty());
+    assert!(stderr.is_empty());
+    let persisted_prompt: HookRequest = read_json_bounded(
+        &session_for(&fixture.hook, &prompt_request)
+            .request_path(&prompt_request.invocation_id)
+            .expect("OMP prompt path"),
+        MAX_RESPONSE_BYTES,
+    )
+    .expect("persisted OMP prompt");
+    assert_eq!(
+        persisted_prompt.event.event,
+        CanonicalEventKind::UserPromptSubmit
     );
 
     let permission_input = omp_permission_input(&fixture.project)?;
@@ -452,23 +681,136 @@ fn omp_wrong_project_passes_through_without_persistence() -> Result<(), Box<dyn 
     Ok(())
 }
 
+/// The answerable pairs, end to end: the app's outcome becomes the exact bytes
+/// that provider's hook contract defines, and the invocation is acknowledged.
 #[test]
-fn codex_and_grok_decode_then_pass_through_without_persistence() {
-    let fixture = fixture(NOW_MS, true);
-    let codex =
-        br#"{"sessionId":"codex-session","hookEventName":"Stop","lastAssistantMessage":"done"}"#;
-    let grok =
-        br#"{"sessionId":"grok-session","hookEventName":"stop","lastAssistantMessage":"done"}"#;
+fn answerable_provider_events_emit_their_golden_reply() {
+    let cases = [
+        (
+            Agent::Codex,
+            CODEX_PERMISSION_INPUT,
+            "approve",
+            None,
+            CODEX_ALLOW_OUTPUT,
+        ),
+        (
+            Agent::Codex,
+            CODEX_PERMISSION_INPUT,
+            "reject",
+            None,
+            CODEX_DENY_OUTPUT,
+        ),
+        (
+            Agent::Codex,
+            CODEX_STOP_INPUT,
+            "block",
+            Some(GOLDEN_REASON),
+            STOP_BLOCK_OUTPUT,
+        ),
+        (
+            Agent::Grok,
+            GROK_PRE_TOOL_INPUT,
+            "approve",
+            None,
+            GROK_ALLOW_OUTPUT,
+        ),
+        (
+            Agent::Grok,
+            GROK_PRE_TOOL_INPUT,
+            "reject",
+            None,
+            GROK_DENY_OUTPUT,
+        ),
+        (
+            Agent::Grok,
+            GROK_STOP_INPUT,
+            "block",
+            Some(GOLDEN_REASON),
+            STOP_BLOCK_OUTPUT,
+        ),
+    ];
 
-    for (agent, input) in [
-        (Agent::Codex, codex.as_slice()),
-        (Agent::Grok, grok.as_slice()),
-    ] {
-        let (stdout, stderr) = run(agent, input, &fixture.hook);
-        assert!(stdout.is_empty());
+    for (agent, fixture_bytes, outcome, reason, expected) in cases {
+        let fixture = fixture(NOW_MS, true);
+        install_ready(&fixture.hook, &fixture.project, agent);
+        let input = in_project(fixture_bytes, &fixture.project);
+        let request = request_for(agent, &input, &fixture.project);
+        let response = response_for(&request, outcome, reason, None);
+        let session = place_response_for_request(&fixture.hook, &request, &response);
+
+        let (stdout, stderr) = run(agent, &input, &fixture.hook);
+        assert_eq!(
+            stdout, expected,
+            "{agent:?} {outcome} produced unexpected bytes"
+        );
         assert!(stderr.is_empty());
+        assert!(session
+            .ack_path(&request.invocation_id)
+            .expect("ack path")
+            .exists());
     }
-    assert!(sessions_are_empty(&fixture));
+}
+
+/// An observe-only event still publishes a session observation, but it never
+/// waits: the provider process must not be held open for an answer no shape
+/// exists for.
+#[test]
+fn observe_only_provider_events_persist_without_waiting() {
+    for (agent, fixture_bytes) in [
+        (Agent::Codex, CODEX_SESSION_START_INPUT),
+        (Agent::Codex, CODEX_PRE_TOOL_INPUT),
+        (Agent::Codex, CODEX_POST_TOOL_INPUT),
+        (Agent::Grok, GROK_SESSION_START_INPUT),
+        (Agent::Grok, GROK_POST_TOOL_INPUT),
+        (Agent::Grok, GROK_NOTIFICATION_INPUT),
+    ] {
+        let fixture = fixture(NOW_MS, true);
+        install_ready(&fixture.hook, &fixture.project, agent);
+        let input = in_project(fixture_bytes, &fixture.project);
+        let request = request_for(agent, &input, &fixture.project);
+        let session = session_for(&fixture.hook, &request);
+
+        let (stdout, stderr) = run(agent, &input, &fixture.hook);
+        assert!(
+            stdout.is_empty(),
+            "{agent:?} answered an observe-only event"
+        );
+        assert!(stderr.is_empty());
+        let persisted: HookRequest = read_json_bounded(
+            &session
+                .request_path(&request.invocation_id)
+                .expect("request path"),
+            MAX_RESPONSE_BYTES,
+        )
+        .expect("persisted observation");
+        assert_eq!(persisted.event.agent, agent);
+        assert!(!persisted.event.awaits_response());
+    }
+}
+
+/// A permission answer for an event with no reply channel is refused instead of
+/// emitting bytes no provider contract defines.
+#[test]
+fn an_answer_to_an_observe_only_event_is_refused() {
+    let fixture = fixture(NOW_MS, true);
+    install_ready(&fixture.hook, &fixture.project, Agent::Codex);
+    let input = in_project(CODEX_PRE_TOOL_INPUT, &fixture.project);
+    let request = request_for(Agent::Codex, &input, &fixture.project);
+    let response = response_for(&request, "approve", None, None);
+    let session = place_response_for_request(&fixture.hook, &request, &response);
+
+    let (stdout, stderr) = run(Agent::Codex, &input, &fixture.hook);
+    assert!(stdout.is_empty());
+    assert!(stderr.is_empty());
+    // The hook never claimed the response, because it never waited for one.
+    assert!(session
+        .response_path(&request.invocation_id)
+        .expect("response path")
+        .exists());
+    assert!(!session
+        .ack_path(&request.invocation_id)
+        .expect("ack path")
+        .exists());
 }
 
 #[test]

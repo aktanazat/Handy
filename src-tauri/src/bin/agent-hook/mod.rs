@@ -273,7 +273,7 @@ fn run_with_runtime<R: Read, W: Write, D: Write>(
 
     // Nonblocking events publish session observations for the app bridge but
     // never hold the provider process open for a response.
-    if !awaits_response(&event) {
+    if !event.awaits_response() {
         return Ok(());
     }
 
@@ -293,19 +293,6 @@ fn run_with_runtime<R: Read, W: Write, D: Write>(
     session.persist_ack(&HookAck::response_emitted(&request, hook.clock.now_ms()))?;
     fs::remove_file(claimed)?;
     Ok(())
-}
-
-/// Only events whose reply bytes are pinned by a golden fixture wait for an
-/// answer. Codex and Grok stay typed pass-through until their output schemas are
-/// established.
-fn awaits_response(event: &CanonicalEvent) -> bool {
-    match (event.agent, event.event) {
-        (Agent::Claude | Agent::Omp, CanonicalEventKind::Stop) => !event.stop_hook_active,
-        (Agent::Claude, CanonicalEventKind::PreToolUse) => event
-            .tool_name()
-            .is_some_and(|tool| tool == ASK_USER_QUESTION_TOOL || tool == EXIT_PLAN_MODE_TOOL),
-        _ => false,
-    }
 }
 
 fn read_bounded_json<R: Read>(input: &mut R) -> Result<Vec<u8>, Diagnostic> {

@@ -2669,7 +2669,15 @@ export type AccessibilityAccess = "granted" | "denied" | "unsupported"
  */
 export type AgentBridgeAgent = "claude" | "codex" | "grok" | "omp"
 export type AgentBridgeDiagnostic = "disabled" | "runtime_unavailable" | "interactive_unsupported" | "app_lock_held" | "active"
-export type AgentBridgeObservedRequest = { id: string; session_id: string; agent: AgentBridgeAgent; kind: AgentBridgeRequestKind; tool_name: string | null; permission_mode: string | null; expires_at_ms: number; state: AgentBridgeRequestState }
+export type AgentBridgeObservedRequest = { id: string; session_id: string; agent: AgentBridgeAgent; kind: AgentBridgeRequestKind; tool_name: string | null; permission_mode: string | null; expires_at_ms: number; state: AgentBridgeRequestState;
+/**
+ * Whether the hook invocation behind this row is holding its agent open
+ * for Sona's answer. Derived once from
+ * [`crate::agent_hook_wire::CanonicalEvent::awaits_response`], so the
+ * console and the responder read the same fact instead of each deciding
+ * which agents and events can be answered.
+ */
+awaiting_response: boolean }
 export type AgentBridgeObservedSession = { id: string; agent: AgentBridgeAgent; canonical_project_hash: string; session_generation: number; policy_generation: number; last_seen_at_ms: number }
 export type AgentBridgePendingMessage = { id: string; agent: AgentBridgeAgent; session_id: string; text: string; expires_at_ms: number; state: AgentBridgePendingState; confirmed: boolean }
 export type AgentBridgePendingState = "held" | "response_written" | "emitted" | "copy_only" | "cancelled"

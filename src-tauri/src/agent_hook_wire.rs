@@ -32,6 +32,10 @@ pub const MAX_POLICY_BYTES: usize = 64 * 1024;
 pub const REQUEST_TTL_MS: u64 = 30_000;
 pub const ASK_USER_QUESTION_TOOL: &str = "AskUserQuestion";
 pub const EXIT_PLAN_MODE_TOOL: &str = "ExitPlanMode";
+/// Grok's `Stop` also fires once at session teardown, where its decision output
+/// is parsed and ignored. Only a genuine turn end carries this reason, and only
+/// a genuine turn end can be continued.
+pub const GROK_TURN_END_REASON: &str = "end_turn";
 
 const HEX_DIGITS: &[u8; 16] = b"0123456789abcdef";
 static TEMP_FILE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -124,6 +128,42 @@ pub struct CanonicalEvent {
 impl CanonicalEvent {
     pub fn tool_name(&self) -> Option<&str> {
         self.tool.as_ref().map(|tool| tool.name.as_str())
+    }
+
+    /// Whether this invocation is holding its agent open for Sona's answer.
+    ///
+    /// One table, compiled by both sides: the hook binary waits exactly when
+    /// this is true, and the app writes a response exactly when it is true. A
+    /// disagreement would leave either an agent blocked on an answer nobody
+    /// writes or a response file nobody claims.
+    ///
+    /// Every entry is a reply channel that agent documents:
+    ///
+    /// | Agent  | Event               | Channel                                     |
+    /// | ------ | ------------------- | ------------------------------------------- |
+    /// | all    | `Stop`              | `{"decision":"block","reason":…}`           |
+    /// | Claude | `PreToolUse`        | `permissionDecision` for the two ask tools  |
+    /// | Codex  | `PermissionRequest` | `decision.behavior` allow/deny              |
+    /// | Grok   | `PreToolUse`        | top-level `decision` allow/deny             |
+    pub fn awaits_response(&self) -> bool {
+        match (self.agent, self.event) {
+            // Grok also fires `Stop` once at session teardown, where the
+            // decision is parsed and ignored. Only a genuine turn end can be
+            // continued, and only that one carries the turn-end reason.
+            (Agent::Grok, CanonicalEventKind::Stop) => {
+                !self.stop_hook_active && self.reason.as_deref() == Some(GROK_TURN_END_REASON)
+            }
+            (_, CanonicalEventKind::Stop) => !self.stop_hook_active,
+            (Agent::Claude, CanonicalEventKind::PreToolUse) => self
+                .tool_name()
+                .is_some_and(|tool| tool == ASK_USER_QUESTION_TOOL || tool == EXIT_PLAN_MODE_TOOL),
+            // Codex asks before it prompts; Grok's only gate is the pre-tool
+            // one. Neither can be answered while permissions are bypassed,
+            // because no prompt appears to answer.
+            (Agent::Codex, CanonicalEventKind::PermissionRequest)
+            | (Agent::Grok, CanonicalEventKind::PreToolUse) => !self.bypass_permissions,
+            _ => false,
+        }
     }
 }
 

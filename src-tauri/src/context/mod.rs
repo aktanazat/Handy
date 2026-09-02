@@ -34,13 +34,26 @@ use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 mod clipboard_recency;
-/// Only the macOS reader has cross-process reads to bound. The module is still
-/// compiled for tests everywhere, because the budget arithmetic is the part
-/// worth testing and it needs no Accessibility API.
-#[cfg(any(target_os = "macos", test))]
+/// Every platform reader has cross-process reads to bound, and the budget
+/// arithmetic is the part worth testing, so this compiles everywhere.
 mod deadline;
+#[cfg(target_os = "linux")]
+mod linux;
 #[cfg(target_os = "macos")]
 pub(crate) mod macos;
+#[cfg(target_os = "windows")]
+mod windows;
+
+// One name for "the reader this build talks to". Sona ships on these three
+// desktops and nowhere else, so the list is exhaustive rather than a fallback
+// chain: a fourth target has to add a reader instead of silently capturing
+// nothing.
+#[cfg(target_os = "linux")]
+use self::linux as platform;
+#[cfg(target_os = "macos")]
+use self::macos as platform;
+#[cfg(target_os = "windows")]
+use self::windows as platform;
 
 pub(crate) use clipboard_recency::set_clipboard_watch_enabled;
 pub use clipboard_recency::DEFAULT_CLIPBOARD_PREROLL_MS;
@@ -49,15 +62,7 @@ pub use clipboard_recency::DEFAULT_CLIPBOARD_PREROLL_MS;
 /// calls this before context capture, so it never depends on Accessibility or
 /// URL/field/selection consent.
 pub(crate) fn frontmost_application_identifier() -> Option<String> {
-    #[cfg(target_os = "macos")]
-    {
-        macos::frontmost_application_identifier()
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    {
-        None
-    }
+    platform::frontmost_application_identifier()
 }
 
 /// The result of a one-shot browser-host read for mode automation. It contains
@@ -179,15 +184,7 @@ pub enum SelectionCapture {
 /// Bounded by the reader's own cross-process deadline, and never reads a secure
 /// text field.
 pub fn capture_selected_text() -> SelectionCapture {
-    #[cfg(target_os = "macos")]
-    {
-        macos::capture_selected_text()
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    {
-        SelectionCapture::Unavailable(ContextSourceStatus::Unsupported)
-    }
+    platform::capture_selected_text()
 }
 
 /// Longest a run will wait at prompt-render time for its own capture. A wedged
@@ -199,6 +196,17 @@ const CAPTURE_JOIN_TIMEOUT: Duration = Duration::from_millis(400);
 /// own budget; this exists so a multi-megabyte editor buffer is never copied
 /// into the process in the first place.
 const MAX_SOURCE_BYTES: usize = 8 * 1024;
+
+/// Whether this build's reader can answer the frontmost page's URL. Only macOS
+/// Accessibility publishes one: UI Automation and AT-SPI2 expose a browser's
+/// address bar as an ordinary control, and guessing per browser is not a
+/// platform answer.
+const SUPPORTS_BROWSER_URL: bool = cfg!(target_os = "macos");
+
+/// Whether this build can prove a clipboard copy happened inside a run's
+/// pre-roll window. [`clipboard_recency`] needs a change counter to sample, and
+/// only macOS's pasteboard publishes one.
+const SUPPORTS_CLIPBOARD_RECENCY: bool = cfg!(target_os = "macos");
 
 /// How much target-app information a mode may use for one rendering run.
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq, Serialize, Type)]
@@ -807,19 +815,29 @@ fn diagnostics(
         AccessibilityAccess::Denied => ContextSourceStatus::PermissionDenied,
         AccessibilityAccess::Unsupported => ContextSourceStatus::Unsupported,
     };
-    let target_identity = if cfg!(target_os = "macos") {
-        ContextSourceStatus::Captured
-    } else {
-        ContextSourceStatus::Unsupported
+    let target_identity = ContextSourceStatus::Captured;
+    // A source the platform reader cannot answer at all stays unsupported even
+    // when accessibility is granted, so the pane never offers a toggle that
+    // could not change the outcome.
+    let browser_url = match (
+        SUPPORTS_BROWSER_URL,
+        accessibility_gated,
+        url_capture_enabled,
+    ) {
+        (false, _, _) => ContextSourceStatus::Unsupported,
+        (true, ContextSourceStatus::Captured, false) => ContextSourceStatus::Disabled,
+        (true, status, _) => status,
     };
-    let browser_url = match (accessibility_gated, url_capture_enabled) {
-        (ContextSourceStatus::Captured, false) => ContextSourceStatus::Disabled,
-        (status, _) => status,
-    };
-    let clipboard = match (accessibility_gated, clipboard_watch_enabled) {
-        (ContextSourceStatus::Unsupported, _) => ContextSourceStatus::Unsupported,
-        (_, false) => ContextSourceStatus::NotRequested,
-        (_, true) => ContextSourceStatus::Captured,
+    let clipboard = match (
+        SUPPORTS_CLIPBOARD_RECENCY,
+        accessibility_gated,
+        clipboard_watch_enabled,
+    ) {
+        (false, _, _) | (_, ContextSourceStatus::Unsupported, _) => {
+            ContextSourceStatus::Unsupported
+        }
+        (_, _, false) => ContextSourceStatus::NotRequested,
+        (_, _, true) => ContextSourceStatus::Captured,
     };
 
     ContextDiagnostics {
@@ -836,13 +854,12 @@ fn diagnostics(
 /// Reads the sources whose value is only true at record start. Each stage owns
 /// its own budget, so a wedged application costs one bounded attempt per stage
 /// instead of one shared allowance.
-#[cfg(target_os = "macos")]
 fn read_start(
     policy: ContextPolicy,
     options: CaptureOptions,
     clipboard_generation: clipboard_recency::Generation,
 ) -> StartCapture {
-    macos::read_start(
+    platform::read_start(
         policy,
         options,
         clipboard_generation,
@@ -850,29 +867,14 @@ fn read_start(
     )
 }
 
-#[cfg(not(target_os = "macos"))]
-fn read_start(
-    _policy: ContextPolicy,
-    _options: CaptureOptions,
-    _clipboard_generation: clipboard_recency::Generation,
-) -> StartCapture {
-    StartCapture {
-        accessibility: AccessibilityAccess::Unsupported,
-        selected_text: SourceOutcome::Unavailable(ContextSourceStatus::Unsupported),
-        clipboard: SourceOutcome::Unavailable(ContextSourceStatus::Unsupported),
-        ..StartCapture::default()
-    }
-}
-
 /// Reads the frontmost application and its focused control. Called immediately
 /// before the step that consumes the context, never at record start.
-#[cfg(target_os = "macos")]
 fn read_application(policy: ContextPolicy, options: CaptureOptions) -> ApplicationCapture {
     if !policy.wants_target() {
         return ApplicationCapture::default();
     }
     let started = Instant::now();
-    let application = macos::read_application(
+    let application = platform::read_application(
         policy,
         options,
         now_ms(),
@@ -885,30 +887,9 @@ fn read_application(policy: ContextPolicy, options: CaptureOptions) -> Applicati
     application
 }
 
-#[cfg(not(target_os = "macos"))]
-fn read_application(policy: ContextPolicy, _options: CaptureOptions) -> ApplicationCapture {
-    if !policy.wants_target() {
-        return ApplicationCapture::default();
-    }
-    ApplicationCapture {
-        captured_at_ms: Some(now_ms()),
-        target: SourceOutcome::Unavailable(ContextSourceStatus::Unsupported),
-        focused_field: SourceOutcome::Unavailable(ContextSourceStatus::Unsupported),
-        browser_url: SourceOutcome::Unavailable(ContextSourceStatus::Unsupported),
-        ..ApplicationCapture::default()
-    }
-}
-
 /// Non-prompting accessibility check.
 pub fn platform_accessibility() -> AccessibilityAccess {
-    #[cfg(target_os = "macos")]
-    {
-        macos::accessibility_access()
-    }
-    #[cfg(not(target_os = "macos"))]
-    {
-        AccessibilityAccess::Unsupported
-    }
+    platform::accessibility_access()
 }
 
 fn now_ms() -> u64 {

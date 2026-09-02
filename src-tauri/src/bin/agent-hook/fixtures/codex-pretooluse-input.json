@@ -1,0 +1,1 @@
+{"session_id":"codex-session","transcript_path":"/tmp/codex-rollout.jsonl","cwd":"/sona-fixture-project","hook_event_name":"PreToolUse","model":"gpt-5.1-codex","permission_mode":"default","turn_id":"turn-1","tool_name":"Bash","tool_use_id":"call-1","tool_input":{"command":"cargo test"}}

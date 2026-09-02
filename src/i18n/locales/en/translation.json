@@ -1455,11 +1455,11 @@
           },
           "codex": {
             "label": "Codex",
-            "description": "Observe sessions only. Sona cannot reply to Codex yet."
+            "description": "Observe Codex sessions, answer approval requests, and reply when a turn ends."
           },
           "grok": {
             "label": "Grok",
-            "description": "Observe sessions only. Sona cannot reply to Grok yet."
+            "description": "Observe Grok sessions, answer tool requests, and reply when a turn ends."
           },
           "omp": {
             "label": "OMP",
@@ -1529,7 +1529,7 @@
         "allowExact": "Allow exactly this request",
         "denyExact": "Deny exactly this request",
         "dismiss": "Dismiss",
-        "ompPermissionObserveOnly": "OMP approval requests are observed only. Approve or deny them in OMP."
+        "observeOnly": "Sona can only watch this request. Answer it in {{agent}}."
       },
       "rules": {
         "title": "Permission rules",

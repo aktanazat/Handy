@@ -51,14 +51,6 @@ impl AgentBridgeAgent {
             Self::Omp => "omp",
         }
     }
-
-    pub fn supports_stop_reply(self) -> bool {
-        matches!(self, Self::Claude | Self::Omp)
-    }
-
-    pub fn supports_permission_response(self) -> bool {
-        matches!(self, Self::Claude)
-    }
 }
 
 /// A human-selected outcome for a single observed permission request. Neither

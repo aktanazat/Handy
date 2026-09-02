@@ -33,30 +33,33 @@ export const AgentBridgeRequests: React.FC<AgentBridgeRequestsProps> = ({
         </div>
       ) : (
         requests.map((request) => {
-          const canRespondToPermission =
+          const agent = t(
+            "settings.agents.controls.providers." + request.agent + ".label",
+          );
+          const open = request.state === "observed";
+          /* The backend decides which invocations are holding their agent open
+           * for an answer, so the console never has to keep its own list of
+           * which providers and events can be replied to. */
+          const permissionKind =
+            request.kind === "permission_request" ||
+            request.kind === "pre_tool_use";
+          const canRespond =
             interactiveReady &&
-            request.agent === "claude" &&
-            request.kind === "pre_tool_use" &&
-            request.state === "observed" &&
-            (request.tool_name === "AskUserQuestion" ||
-              request.tool_name === "ExitPlanMode");
-          const ompPermissionObserveOnly =
-            request.agent === "omp" &&
-            request.kind === "permission_request" &&
-            request.state === "observed";
+            open &&
+            permissionKind &&
+            request.awaiting_response;
+          const observeOnly =
+            open && permissionKind && !request.awaiting_response;
 
           return (
             <div
               key={request.id}
+              data-slot="agent-bridge-request"
               className="flex min-w-0 flex-wrap items-start justify-between gap-3 px-4 py-3"
             >
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] leading-5 break-words text-gray-1000">
-                  {t(
-                    "settings.agents.controls.providers." +
-                      request.agent +
-                      ".label",
-                  )}
+                  {agent}
                   {" · "}
                   {t("settings.agents.observed.requestKinds." + request.kind)}
                   {request.tool_name ? " · " + request.tool_name : ""}
@@ -68,14 +71,14 @@ export const AgentBridgeRequests: React.FC<AgentBridgeRequestsProps> = ({
                     ),
                   })}
                 </Microlabel>
-                {ompPermissionObserveOnly ? (
+                {observeOnly ? (
                   <Notice className="mt-1">
-                    {t("settings.agents.observed.ompPermissionObserveOnly")}
+                    {t("settings.agents.observed.observeOnly", { agent })}
                   </Notice>
                 ) : null}
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
-                {canRespondToPermission ? (
+                {canRespond ? (
                   <>
                     <Button
                       variant="outline"
@@ -94,7 +97,7 @@ export const AgentBridgeRequests: React.FC<AgentBridgeRequestsProps> = ({
                     </Button>
                   </>
                 ) : null}
-                {request.agent === "claude" && request.state === "observed" ? (
+                {open ? (
                   <Button
                     variant="outline"
                     size="sm"

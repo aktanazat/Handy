@@ -6091,6 +6091,7 @@ dependencies = [
  "windows 0.61.3",
  "winreg 0.55.0",
  "x25519-dalek",
+ "zbus",
  "zeroize",
 ]
 
