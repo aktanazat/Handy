@@ -633,12 +633,14 @@ mod tests {
 
     /// The one row the plane does not read itself: dictation search is async
     /// and behind `HistoryManager`, so the seam takes its rows as an argument.
-    /// This one has no title, which is the ordinary case.
+    /// This one has no title, which is the ordinary case. Its timestamp is in
+    /// UNIX seconds, the unit the history store keeps, one second before the
+    /// meeting.
     fn dictation() -> HistoryEntry {
         HistoryEntry {
             id: DICTATION_ID,
             file_name: "4218.wav".to_string(),
-            timestamp: NOW - 1_000,
+            timestamp: NOW / 1000 - 1,
             saved: true,
             title: String::new(),
             transcription_text: "reminder to send dana the tier comparison".to_string(),
@@ -698,6 +700,33 @@ mod tests {
             "one row per noun, newest first, each at a sona:// address"
         );
         assert!(page.next_cursor.is_none(), "four rows are not a full page");
+    }
+
+    /// History keeps UNIX seconds and the plane orders by milliseconds. A row
+    /// that was not converted would date to 1970 and sort below every meeting.
+    #[test]
+    fn a_dictation_from_today_sorts_before_a_meeting_from_yesterday() {
+        let (_directory, store) = store();
+        let yesterday = NOW - 86_400_000;
+        let session_id = meeting(&store, TITLE, yesterday);
+        transcript(&store, session_id, SEGMENT);
+        note(&store, session_id);
+        let mut today = dictation();
+        today.timestamp = NOW / 1000;
+
+        let page = search(&store, QueryScope::All, vec![today]);
+
+        assert_eq!(
+            page.entries
+                .iter()
+                .map(|row| (row.kind, row.when_utc_ms))
+                .collect::<Vec<_>>(),
+            vec![
+                (QueryRowKind::Dictation, NOW),
+                (QueryRowKind::Meeting, yesterday),
+            ],
+            "the dictation is dated in milliseconds and sorts newest first"
+        );
     }
 
     /// Every row's snippet is the text that put it in front of the reader.

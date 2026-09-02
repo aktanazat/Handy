@@ -459,7 +459,8 @@ pub(crate) fn assemble(
             id: entry.id.to_string(),
             title: bounded(title, MAX_TITLE_CHARS),
             snippet: bounded(text, MAX_SNIPPET_CHARS),
-            when_utc_ms: entry.timestamp,
+            // History keeps UNIX seconds; the plane's order is milliseconds.
+            when_utc_ms: entry.timestamp * 1000,
             link: dictation_link(entry.id),
         });
     }
