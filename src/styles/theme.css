@@ -1,6 +1,9 @@
-/* Sona theme tokens. Light uses the Porcelain Aurora skin; dark uses its Ink
- * twin. Components consume semantic names or the Tailwind bridge in
- * app/globals.css. Theme values do not live in component styles. */
+/* Sona theme tokens. Light is the Porcelain skin warmed to stone and sand;
+ * dark is its Ink twin warmed the same way. Neutrals carry a little warmth in
+ * OKLCH (hue 70-80, chroma under 0.012) instead of sitting on the gray axis,
+ * the accent is a scarce bronze rather than a brand blue, and floating
+ * surfaces are frosted. Components consume semantic names or the Tailwind
+ * bridge in app/globals.css. Theme values do not live in component styles. */
 
 /* =================================================== light (the default) === */
 
@@ -8,28 +11,28 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --bg-1: #ffffff;
-  --bg-2: #fafafa;
+  --bg-1: #f7f5f2;
+  --bg-2: #f2efea;
 
-  --gray-100: #f5f5f5;
-  --gray-200: #ebebeb;
-  --gray-300: #e3e3e3;
-  --gray-400: #ebebeb;
-  --gray-500: #c9c9c9;
-  --gray-600: #a8a8a8;
-  --gray-700: #999999;
-  --gray-800: #999999;
-  --gray-900: #666666;
-  --gray-1000: #171717;
+  --gray-100: #f1eee9;
+  --gray-200: #e8e4de;
+  --gray-300: #dfdad3;
+  --gray-400: #e6e2dc;
+  --gray-500: #c9c3ba;
+  --gray-600: #a59e94;
+  --gray-700: #8e877d;
+  --gray-800: #8e877d;
+  --gray-900: #5d574f;
+  --gray-1000: #1c1a17;
 
-  --gray-a-100: rgba(0, 0, 0, 0.04);
-  --gray-a-200: rgba(0, 0, 0, 0.06);
-  --gray-a-300: rgba(0, 0, 0, 0.08);
-  --gray-a-400: #ebebeb;
-  --gray-a-500: #c9c9c9;
-  --gray-a-600: #999999;
-  --gray-a-700: rgba(0, 0, 0, 0.44);
-  --gray-a-900: rgba(0, 0, 0, 0.7);
+  --gray-a-100: rgba(28, 26, 23, 0.04);
+  --gray-a-200: rgba(28, 26, 23, 0.06);
+  --gray-a-300: rgba(28, 26, 23, 0.08);
+  --gray-a-400: #e6e2dc;
+  --gray-a-500: #c9c3ba;
+  --gray-a-600: #8e877d;
+  --gray-a-700: rgba(28, 26, 23, 0.46);
+  --gray-a-900: rgba(28, 26, 23, 0.72);
 
   --blue-100: #eef6ff;
   --blue-400: #b9d7fd;
@@ -47,10 +50,16 @@
   --amber-400: #efd0a2;
   --amber-700: #ffb224;
   --amber-900: #a35200;
+  /* The one scarce accent: a bronze that reads as ink with warmth, not as a
+     brand colour. 700 on white is 5.6:1. */
+  --bronze-100: #f4ebe0;
+  --bronze-400: #dcc3a2;
+  --bronze-700: #8b5a2b;
+  --bronze-900: #744a22;
 
   --surface-1: var(--bg-1);
   --surface-2: var(--bg-2);
-  --surface-raised: #ffffff;
+  --surface-raised: #fbfaf8;
   --surface-inset: var(--gray-100);
   --border-subtle: var(--gray-a-300);
   --border: var(--gray-a-400);
@@ -62,12 +71,12 @@
   --text-secondary: var(--gray-900);
   --text-tertiary: var(--gray-800);
   --text-disabled: var(--gray-700);
-  --accent: var(--blue-700);
-  --accent-hover: var(--blue-900);
-  --accent-pressed: #0051b3;
-  --accent-soft: var(--blue-100);
+  --accent: var(--bronze-700);
+  --accent-hover: var(--bronze-900);
+  --accent-pressed: #5f3c1b;
+  --accent-soft: var(--bronze-100);
   --on-accent: #ffffff;
-  --focus-ring: var(--blue-700);
+  --focus-ring: var(--bronze-700);
   --info: var(--blue-900);
   --success: var(--green-900);
   --warning: var(--amber-900);
@@ -76,27 +85,33 @@
   --invert-fg: var(--bg-1);
   --scrim: rgba(0, 0, 0, 0.4);
 
-  /* Cards and controls are flat. Only floating popovers and dialogs lift. */
+  /* Cards and controls are flat. Only floating surfaces lift, and they lift
+     on one soft, low-opacity shadow in the ink hue rather than a gray stack. */
   --shadow-card: none;
   --shadow-panel: none;
-  --shadow-popover: 0 12px 30px rgba(0, 0, 0, 0.12);
-  --shadow-dialog: 0 18px 44px rgba(0, 0, 0, 0.16);
-  --shadow-overlay: 0 16px 40px -20px rgb(0 0 0 / 0.25);
-  --chat-edge-shadow: rgb(0 0 0 / 0.12);
+  --shadow-popover: 0 16px 40px -12px rgb(28 26 23 / 0.18);
+  --shadow-dialog: 0 24px 60px -16px rgb(28 26 23 / 0.22);
+  --shadow-overlay: 0 20px 48px -20px rgb(28 26 23 / 0.28);
+  --chat-edge-shadow: rgb(28 26 23 / 0.12);
 
-  --glass-tint: rgba(255, 255, 255, 0.62);
-  --glass-tint-dense: rgba(255, 255, 255, 0.85);
-  --glass-tint-clear: rgba(255, 255, 255, 0.34);
-  --glass-border: var(--border);
-  --glass-specular-top: rgba(255, 255, 255, 0.75);
-  --glass-shadow: none;
-  --glass-canvas: rgba(255, 255, 255, 0.6);
+  /* Frosted stone: the tint is the warm white at partial opacity, the edge is
+     a hairline of ink plus a specular line on top, and the lift is one long
+     soft shadow. */
+  --glass-tint: rgba(247, 245, 242, 0.7);
+  --glass-tint-dense: rgba(247, 245, 242, 0.86);
+  --glass-tint-clear: rgba(247, 245, 242, 0.42);
+  --glass-border: rgba(28, 26, 23, 0.1);
+  --glass-specular-top: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 24px 60px -28px rgb(28 26 23 / 0.4);
+  --glass-canvas: rgba(247, 245, 242, 0.6);
 
-  --aurora-blue: rgba(0, 112, 243, 0.2);
-  --aurora-violet: rgba(124, 58, 237, 0.13);
-  --aurora-cyan: rgba(34, 211, 238, 0.17);
-  --aurora-veil-start: rgba(255, 255, 255, 0.25);
-  --aurora-veil-end: rgba(255, 255, 255, 0.62);
+  /* The aurora keeps its token names but is sand, clay and light now, not
+     blue, violet and cyan. */
+  --aurora-blue: rgba(196, 160, 110, 0.22);
+  --aurora-violet: rgba(160, 120, 90, 0.14);
+  --aurora-cyan: rgba(232, 214, 186, 0.22);
+  --aurora-veil-start: rgba(247, 245, 242, 0.25);
+  --aurora-veil-end: rgba(247, 245, 242, 0.62);
 }
 
 /* ============================================================ dark twin === */
@@ -104,28 +119,28 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --bg-1: #0a0a0a;
-  --bg-2: #050505;
+  --bg-1: #151311;
+  --bg-2: #100f0d;
 
-  --gray-100: #111111;
-  --gray-200: #1a1a1a;
-  --gray-300: #1f1f1f;
-  --gray-400: #262626;
-  --gray-500: #333333;
-  --gray-600: #5c5c5c;
-  --gray-700: #5c5c5c;
-  --gray-800: #5c5c5c;
-  --gray-900: #8f8f8f;
-  --gray-1000: #ededed;
+  --gray-100: #1c1a17;
+  --gray-200: #252220;
+  --gray-300: #2b2825;
+  --gray-400: #322e2a;
+  --gray-500: #3f3a35;
+  --gray-600: #66605a;
+  --gray-700: #66605a;
+  --gray-800: #66605a;
+  --gray-900: #9b948b;
+  --gray-1000: #ece7e0;
 
-  --gray-a-100: rgba(255, 255, 255, 0.04);
-  --gray-a-200: rgba(255, 255, 255, 0.07);
-  --gray-a-300: #1f1f1f;
-  --gray-a-400: #262626;
-  --gray-a-500: #333333;
-  --gray-a-600: #5c5c5c;
-  --gray-a-700: rgba(255, 255, 255, 0.44);
-  --gray-a-900: rgba(255, 255, 255, 0.62);
+  --gray-a-100: rgba(236, 231, 224, 0.05);
+  --gray-a-200: rgba(236, 231, 224, 0.08);
+  --gray-a-300: #2b2825;
+  --gray-a-400: #322e2a;
+  --gray-a-500: #3f3a35;
+  --gray-a-600: #66605a;
+  --gray-a-700: rgba(236, 231, 224, 0.46);
+  --gray-a-900: rgba(236, 231, 224, 0.64);
 
   --blue-100: #101b2d;
   --blue-400: #163f73;
@@ -143,10 +158,16 @@
   --amber-400: #5c4322;
   --amber-700: #ffb224;
   --amber-900: #ffc96b;
+  /* Bronze lifts on dark: 700 is the text-and-fill accent (8.1:1 on --bg-1),
+     900 the hover, so on-accent is the ink. */
+  --bronze-100: #2b2218;
+  --bronze-400: #5a4430;
+  --bronze-700: #d3a06a;
+  --bronze-900: #e0b17f;
 
   --surface-1: var(--bg-1);
   --surface-2: var(--bg-2);
-  --surface-raised: #111111;
+  --surface-raised: #1c1a17;
   --surface-inset: var(--bg-2);
   --border-subtle: var(--gray-a-300);
   --border: var(--gray-a-400);
@@ -158,12 +179,12 @@
   --text-secondary: var(--gray-900);
   --text-tertiary: var(--gray-800);
   --text-disabled: var(--gray-700);
-  --accent: var(--blue-700);
-  --accent-hover: var(--blue-900);
-  --accent-pressed: #0061d5;
-  --accent-soft: var(--blue-100);
-  --on-accent: #0a0a0a;
-  --focus-ring: var(--blue-700);
+  --accent: var(--bronze-700);
+  --accent-hover: var(--bronze-900);
+  --accent-pressed: #c08f58;
+  --accent-soft: var(--bronze-100);
+  --on-accent: #151311;
+  --focus-ring: var(--bronze-700);
   --info: var(--blue-900);
   --success: var(--green-900);
   --warning: var(--amber-900);
@@ -174,35 +195,37 @@
 
   --shadow-card: none;
   --shadow-panel: none;
-  --shadow-popover: 0 12px 30px rgba(0, 0, 0, 0.45);
-  --shadow-dialog: 0 18px 44px rgba(0, 0, 0, 0.55);
-  --shadow-overlay: 0 16px 40px -20px rgb(0 0 0 / 0.6);
+  --shadow-popover: 0 16px 40px -12px rgb(0 0 0 / 0.5);
+  --shadow-dialog: 0 24px 60px -16px rgb(0 0 0 / 0.6);
+  --shadow-overlay: 0 20px 48px -20px rgb(0 0 0 / 0.65);
   --chat-edge-shadow: rgb(0 0 0 / 0.38);
 
-  --glass-tint: rgba(17, 17, 17, 0.62);
-  --glass-tint-dense: rgba(17, 17, 17, 0.85);
-  --glass-tint-clear: rgba(17, 17, 17, 0.34);
-  --glass-border: var(--border);
-  --glass-specular-top: rgba(255, 255, 255, 0.1);
-  --glass-shadow: none;
-  --glass-canvas: rgba(10, 10, 10, 0.6);
+  --glass-tint: rgba(28, 26, 23, 0.66);
+  --glass-tint-dense: rgba(28, 26, 23, 0.86);
+  --glass-tint-clear: rgba(28, 26, 23, 0.4);
+  --glass-border: rgba(236, 231, 224, 0.1);
+  --glass-specular-top: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 24px 60px -28px rgb(0 0 0 / 0.7);
+  --glass-canvas: rgba(21, 19, 17, 0.6);
 
-  --aurora-blue: rgba(0, 112, 243, 0.6);
-  --aurora-violet: rgba(124, 58, 237, 0.48);
-  --aurora-cyan: rgba(34, 211, 238, 0.32);
-  --aurora-veil-start: rgba(10, 10, 10, 0);
-  --aurora-veil-end: rgba(10, 10, 10, 0.72);
+  --aurora-blue: rgba(196, 160, 110, 0.32);
+  --aurora-violet: rgba(160, 120, 90, 0.26);
+  --aurora-cyan: rgba(232, 214, 186, 0.16);
+  --aurora-veil-start: rgba(21, 19, 17, 0);
+  --aurora-veil-end: rgba(21, 19, 17, 0.72);
 }
 
 /* ===================================== scales that do not follow a theme === */
 
 :root {
-  /* Controls use 8px corners; cards and floating panels use 12px. */
+  /* Controls use 10px corners; cards 14, floating panels 16, modals 18. The
+     step up from control to panel is what makes a floating surface read as a
+     separate object rather than a bigger control. */
   --radius-xs: 5px; /* key cap */
-  --radius-control: 8px; /* button, input, select, tooltip */
-  --radius-card: 12px; /* content card */
-  --radius-panel: 12px; /* menu, popover, floating panel */
-  --radius-dialog: 12px; /* modal */
+  --radius-control: 10px; /* button, input, select, tooltip */
+  --radius-card: 14px; /* content card */
+  --radius-panel: 16px; /* menu, popover, floating panel */
+  --radius-dialog: 18px; /* modal */
   --radius-sheet: 20px; /* full-bleed panel */
   /* Pills are for status dots, the HUD card and toggle tracks. Never on a badge
      that carries metadata, never on a button. */
@@ -252,7 +275,7 @@
 
   /* -- glass geometry, read by the material rules in primitives.css. The
      per-theme tint/border/specular/shadow/canvas live in the theme blocks. */
-  --glass-blur: 20px; /* Apple's shipped web value */
+  --glass-blur: 24px;
   --glass-scrim: rgba(0, 0, 0, 0.35); /* HIG's stated dimming layer */
 
   --duration-instant: 80ms;
@@ -262,6 +285,12 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  /* One shape for every popup: it arrives in --duration-standard on
+     --ease-out from --popup-enter-scale and a few points of travel, and it
+     leaves in --duration-fast on --ease-in-out to opacity 0 with no travel.
+     Reduced motion keeps the fade and drops the transform. */
+  --popup-enter-scale: 0.97;
+  --popup-enter-travel: 6px;
 
   /* UI weights are 400/500/600. SF provides its own optical tracking, so
      letter spacing stays at zero. */

@@ -700,7 +700,9 @@ pub enum Theme {
 
 /// Window material. `Solid` paints Sona's own surfaces edge to edge; `Glass`
 /// makes the window background transparent so the native vibrancy view shows
-/// through the three chrome surfaces (top nav, command palette, HUD).
+/// through the three chrome surfaces (top nav, command palette, HUD). Glass is
+/// the default: the frosted chrome is the look, and a store that never wrote
+/// the field gets it. Off macOS the intent resolves to Solid anyway.
 ///
 /// This is the user's *intent*. The material actually in force is this AND
 /// vibrancy having applied — vibrancy is macOS-only and can fail, and a failed
@@ -709,8 +711,8 @@ pub enum Theme {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, PartialEq, Eq, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum AppearanceMaterial {
-    #[default]
     Solid,
+    #[default]
     Glass,
 }
 
