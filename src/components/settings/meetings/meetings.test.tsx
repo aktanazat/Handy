@@ -779,6 +779,35 @@ describe("live capture", () => {
   });
 });
 
+/* The generated panel on its own. Module-scoped because two describes read
+ * it: the panel's, and the review's, which has to show that a ledger never
+ * takes the summary or the actions away from it. */
+const insightsMarkup = (
+  overrides: Partial<React.ComponentProps<typeof InsightsTab>>,
+) =>
+  render(
+    <InsightsTab
+      snapshot={SNAPSHOT}
+      busy={false}
+      editable
+      canRegenerate
+      newNote=""
+      analytics={null}
+      speakerNames={{}}
+      doneActionItems={new Set()}
+      onNewNoteChange={noop}
+      onCreateNote={noop}
+      onNoteUpdate={noop}
+      onNoteDelete={noop}
+      onRegenerate={noop}
+      onJumpToSegment={noop}
+      onActionItemToggle={noop}
+      onRefresh={async () => {}}
+      onAnalyticsRefresh={async () => {}}
+      {...overrides}
+    />,
+  );
+
 describe("meeting review", () => {
   const reviewMarkup = (
     overrides: Partial<React.ComponentProps<typeof MeetingReview>> = {},
@@ -903,6 +932,30 @@ describe("meeting review", () => {
     );
   });
 
+  /* Upstream's "should not fire" evals, in Sona's terms. Sona reads a ledger
+   * from every meeting rather than on a phrase, so the only trigger rule left
+   * is the negative one: a ledger is more than a summary or an action list
+   * asked for, and it never stands in for either. The ledger keeps its own
+   * tab; Insights keeps the summary and the actions. */
+  test("a ledger never replaces the summary or the action list", () => {
+    const withLedger = ledgerSnapshot(LEDGER);
+    const review = reviewMarkup({ snapshot: withLedger });
+    expect(buttonTag(review, "Ledger")).toContain('data-state="active"');
+    expect(buttonTag(review, "Insights")).not.toContain('data-state="active"');
+    /* The open panel is the ledger's, and the summary is not in it. */
+    expect(review).toContain(LEDGER.headline);
+    expect(review).not.toContain("The team agreed to ship this week.");
+    /* Insights, on the same record, still carries the summary and the
+     * actions, and none of the ledger. */
+    const insights = insightsMarkup({ snapshot: withLedger });
+    expect(insights).toContain(">Summary<");
+    expect(insights).toContain("The team agreed to ship this week.");
+    expect(insights).toContain(">Action items<");
+    expect(insights).toContain("Write the release notes.");
+    expect(insights).not.toContain(LEDGER.headline);
+    expect(insights).not.toContain("Pricing tiers");
+  });
+
   test("the title is the page's heading, and the only way to a field", () => {
     expect(markup).toContain(">Weekly planning</button>");
     expect(markup).toContain('title="Rename this meeting"');
@@ -983,32 +1036,6 @@ describe("meeting review", () => {
 });
 
 describe("insights panel", () => {
-  const insightsMarkup = (
-    overrides: Partial<React.ComponentProps<typeof InsightsTab>>,
-  ) =>
-    render(
-      <InsightsTab
-        snapshot={SNAPSHOT}
-        busy={false}
-        editable
-        canRegenerate
-        newNote=""
-        analytics={null}
-        speakerNames={{}}
-        doneActionItems={new Set()}
-        onNewNoteChange={noop}
-        onCreateNote={noop}
-        onNoteUpdate={noop}
-        onNoteDelete={noop}
-        onRegenerate={noop}
-        onJumpToSegment={noop}
-        onActionItemToggle={noop}
-        onRefresh={async () => {}}
-        onAnalyticsRefresh={async () => {}}
-        {...overrides}
-      />,
-    );
-
   test("renders every generated section with citations as jump controls", () => {
     const markup = insightsMarkup({});
     for (const heading of [
