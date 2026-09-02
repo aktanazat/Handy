@@ -5,7 +5,53 @@ import type {
   AgentPanelTurnStatusV1,
   AgentPanelWorkspaceV1,
   SonaAgentChatTurnV1,
+  SonaChatActionV1,
 } from "@/bindings";
+
+/**
+ * One line saying what a card will change, as a translation key and the values
+ * it interpolates.
+ *
+ * The line names the kind of change rather than the row it touches: a loop id
+ * is a digest, and printing one in a 340pt column would tell the reader
+ * nothing. What tells them which loop is the action's own reason, drawn
+ * underneath, which is a sentence about that one commitment.
+ *
+ * `translate` is the caller's `t`, because one value — the notes template — is
+ * itself a name the catalogue owns, and it is the same name the meetings
+ * screens show.
+ */
+export interface ActionLine {
+  key: string;
+  values: Record<string, string>;
+}
+
+export const actionLine = (
+  action: SonaChatActionV1,
+  translate: (key: string) => string,
+): ActionLine => {
+  switch (action.kind) {
+    case "set_series_template":
+      return {
+        key: "chat.action.set_series_template",
+        values: {
+          template: translate(`meetings.notes.templates.${action.template_id}`),
+        },
+      };
+    case "add_vocabulary_term":
+      return {
+        key: "chat.action.add_vocabulary_term",
+        values: { term: action.replacement ?? action.term },
+      };
+    case "rename_speaker":
+      return {
+        key: "chat.action.rename_speaker",
+        values: { name: action.name },
+      };
+    default:
+      return { key: `chat.action.${action.kind}`, values: {} };
+  }
+};
 
 /**
  * What the relay is doing, as the sheet needs to know it.
@@ -253,6 +299,20 @@ export const composerKeys =
     if (event.key !== "Enter" || event.shiftKey) return;
     event.preventDefault();
     send();
+  };
+
+/**
+ * Ask the question, then put the tools grant back down.
+ *
+ * The grant covers one question. It has already been read into the turn by the
+ * time this runs, so clearing it here is what stops the next question
+ * inheriting it — and a reader who wants tools again says so again, which is
+ * the whole reason there is no setting for it.
+ */
+export const composerSend =
+  (send: () => void, clearTools: () => void) => (): void => {
+    send();
+    clearTools();
   };
 
 /**

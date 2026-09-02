@@ -2614,6 +2614,23 @@
       "undone": "Undone",
       "rejected": "Not applied"
     },
+    "action": {
+      "resolve_loop": "Mark a commitment done",
+      "assign_loop": "Give a commitment an owner",
+      "set_series_template": "Use the {{template}} template for this series",
+      "add_vocabulary_term": "Add \"{{term}}\" to your vocabulary",
+      "rename_speaker": "Rename a speaker to {{name}}",
+      "apply": "Apply",
+      "dismiss": "Dismiss",
+      "applied": "Applied",
+      "undo": "Undo",
+      "dismissed": "Dismissed",
+      "receipt": "Receipt {{id}}"
+    },
+    "tools": {
+      "label": "Let it use tools",
+      "hint": "This question only"
+    },
     "ask": {
       "row": "Ask Sona: {{query}}",
       "error": "Couldn't send that question to Sona.",

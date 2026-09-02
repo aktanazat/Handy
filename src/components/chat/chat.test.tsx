@@ -11,9 +11,11 @@ import { AppContent } from "@/App";
 import { commands } from "@/bindings";
 import type {
   AgentChatConversationSummaryV1,
+  AgentPanelActionV1,
   AgentPanelProposalPreviewV1,
   AgentPanelStatusV1,
   AgentPanelTurnStatusV1,
+  AgentPanelWorkspaceV1,
   SonaAgentChatTurnV1,
 } from "@/bindings";
 import { askSona } from "@/components/commandPaletteSearch";
@@ -24,6 +26,7 @@ import type { ChatPhase } from "./chatModel";
 import {
   chatPhase,
   composerKeys,
+  composerSend,
   isStillWaiting,
   linkifySona,
   proposalRowIndex,
@@ -75,6 +78,17 @@ const en = JSON.parse(fs.readFileSync(localeFile, "utf8")) as {
     status: Record<"disabled" | "unpaired" | "offline" | "error", string>;
     turnState: Record<"running", string>;
     proposal: Record<"apply" | "applied" | "undo", string>;
+    action: Record<
+      | "resolve_loop"
+      | "add_vocabulary_term"
+      | "apply"
+      | "dismiss"
+      | "applied"
+      | "undo"
+      | "dismissed",
+      string
+    >;
+    tools: Record<"label", string>;
   };
 };
 
@@ -118,6 +132,7 @@ const TURN: AgentPanelTurnStatusV1 = {
   started_at_utc_ms: 1_000,
   completed_at_utc_ms: null,
   steps: [],
+  actions: [],
   failure: null,
 };
 
@@ -153,6 +168,8 @@ interface SheetCase {
   historyOpen?: boolean;
   now?: number;
   searchedCorpus?: boolean;
+  toolsAllowed?: boolean;
+  workspace?: AgentPanelWorkspaceV1;
 }
 const sheet = ({
   open = true,
@@ -164,6 +181,8 @@ const sheet = ({
   historyOpen = false,
   now = 6_000,
   searchedCorpus = false,
+  toolsAllowed = false,
+  workspace = "sona_chat",
 }: SheetCase = {}): string =>
   paint(
     <ChatSheet
@@ -178,7 +197,8 @@ const sheet = ({
       historyOpen={historyOpen}
       now={now}
       draft=""
-      workspace="sona_chat"
+      workspace={workspace}
+      toolsAllowed={toolsAllowed}
       busy={false}
       error={null}
       onClose={noop}
@@ -191,6 +211,9 @@ const sheet = ({
       onStop={noop}
       onApply={noop}
       onUndo={noop}
+      onApplyAction={noop}
+      onDismissAction={noop}
+      onToolsAllowedChange={noop}
       onOpenLink={noop}
       onOpenSettings={noop}
       onRetry={noop}
@@ -469,6 +492,136 @@ describe("a settings answer", () => {
     expect(markup).toContain(en.chat.proposal.applied);
     expect(markup).toContain(en.chat.proposal.undo);
     expect(markup).not.toContain(`>${en.chat.proposal.apply}<`);
+  });
+});
+
+const RESOLVE: AgentPanelActionV1 = {
+  action_index: 0,
+  action: {
+    kind: "resolve_loop",
+    reason: "You said in the meeting that the deck went out.",
+    loop_id: "m-1:commitment:0123456789abcdef",
+  },
+  state: "pending",
+  operation_id: null,
+};
+
+const offering = (
+  ...actions: AgentPanelActionV1[]
+): AgentPanelTurnStatusV1 => ({
+  ...TURN,
+  state: "succeeded",
+  completed_at_utc_ms: 4_000,
+  actions,
+});
+
+describe("a corpus change the answer offered", () => {
+  test("pending: what changes, why, and both ways to answer it", () => {
+    const markup = sheet({
+      conversation: [user("Close the deck commitment"), assistant("Done?")],
+      turn: offering(RESOLVE),
+    });
+
+    expect(occurrences(markup, 'data-slot="chat-action"')).toBe(1);
+    expect(markup).toContain(en.chat.action.resolve_loop);
+    expect(markup).toContain(escaped(RESOLVE.action.reason));
+    expect(markup).toContain(en.chat.action.apply);
+    expect(markup).toContain(en.chat.action.dismiss);
+    expect(markup).not.toContain(en.chat.action.applied);
+    /* A loop id is a digest. The card names the kind of change and leaves the
+     * row to the reason, which is a sentence about that one commitment. */
+    expect(markup).not.toContain("m-1:commitment:0123456789abcdef");
+  });
+
+  test("applied: the same card, now saying so, with an undo beside it", () => {
+    const markup = sheet({
+      turn: offering({
+        ...RESOLVE,
+        state: "applied",
+        operation_id: "3f1a-op",
+      }),
+    });
+
+    expect(occurrences(markup, 'data-slot="chat-action"')).toBe(1);
+    expect(markup).toContain(en.chat.action.applied);
+    expect(markup).toContain(en.chat.action.undo);
+    expect(markup).not.toContain(`>${en.chat.action.apply}<`);
+  });
+
+  test("dismissed: a card that says so and offers nothing", () => {
+    const markup = sheet({
+      turn: offering({ ...RESOLVE, state: "dismissed" }),
+    });
+
+    expect(markup).toContain(en.chat.action.dismissed);
+    expect(markup).not.toContain(`>${en.chat.action.apply}<`);
+    expect(markup).not.toContain(`>${en.chat.action.undo}<`);
+  });
+
+  /* Three offers are three choices, each answerable on its own. */
+  test("a set of offers is a card each, in the order they were offered", () => {
+    const markup = sheet({
+      turn: offering(RESOLVE, {
+        action_index: 1,
+        action: {
+          kind: "add_vocabulary_term",
+          reason: "Sona keeps writing it as two words.",
+          term: "north star",
+          replacement: "Northstar",
+        },
+        state: "pending",
+        operation_id: null,
+      }),
+    });
+
+    expect(occurrences(markup, 'data-slot="chat-action"')).toBe(2);
+    expect(markup.indexOf(en.chat.action.resolve_loop)).toBeLessThan(
+      markup.indexOf("Northstar"),
+    );
+  });
+
+  test("an answer with nothing to offer draws no card", () => {
+    const markup = sheet({
+      conversation: [user("What did we decide?"), assistant("The deck ships.")],
+      turn: offering(),
+    });
+
+    expect(markup).not.toContain('data-slot="chat-action"');
+  });
+});
+
+describe("the per-question tools grant", () => {
+  test("off by default, and only offered on the Ask scope", () => {
+    const asking = sheet();
+    const settings = sheet({ workspace: "sona_config" });
+
+    expect(asking).toContain('data-slot="chat-tools"');
+    expect(asking).toContain('aria-checked="false"');
+    expect(asking).toContain(en.chat.tools.label);
+    expect(settings).not.toContain('data-slot="chat-tools"');
+  });
+
+  test("on: the chip says so", () => {
+    const markup = sheet({ toolsAllowed: true });
+    const chip =
+      /<button[^>]*data-slot="chat-tools"[^>]*>/.exec(markup)?.[0] ?? "";
+
+    expect(chip).toContain('aria-checked="true"');
+  });
+});
+
+describe("the per-question tools grant, as a gesture", () => {
+  /* The grant is read into the turn before this runs, so clearing it here is
+   * what stops the next question inheriting it. */
+  test("a send asks the question and puts the grant back down", () => {
+    const done: string[] = [];
+
+    composerSend(
+      () => done.push("send"),
+      () => done.push("clear"),
+    )();
+
+    expect(done).toEqual(["send", "clear"]);
   });
 });
 
@@ -881,6 +1034,7 @@ describe("the sheet's Ask turn", () => {
           locale: "en",
           workspace: turn.workspace,
           gate: turn.gate,
+          toolsAllowed: false,
         });
         searchedCorpus.push(outcome.searchedCorpus);
       }
@@ -922,12 +1076,14 @@ describe("the sheet's Ask turn", () => {
         locale: "en",
         workspace: "sona_chat",
         gate: { paired: false, remoteIntelligence: false },
+        toolsAllowed: false,
       });
       await sendSheetTurn({
         message: "What did we decide?",
         locale: "en",
         workspace: "sona_chat",
         gate: { paired: false, remoteIntelligence: false },
+        toolsAllowed: false,
       });
     } finally {
       commands.agentPanelSendTurn = original;
@@ -935,6 +1091,47 @@ describe("the sheet's Ask turn", () => {
 
     expect(turnIds).toHaveLength(2);
     expect(turnIds[0]).not.toBe(turnIds[1]);
+  });
+
+  /* The grant is the reader's, for one question. It rides on the turn that
+   * asked for it, and the settings proposer — a zero-tool sandbox on the relay
+   * — never carries one however the composer was left. */
+  test("the tools grant rides one Ask turn and never a settings turn", async () => {
+    const original = commands.agentPanelSendTurn;
+    const granted: boolean[] = [];
+    commands.agentPanelSendTurn = async (request) => {
+      granted.push(request.tools_allowed);
+      return {
+        status: "ok",
+        data: {
+          invalidation_id: 1,
+          relay_status: "ready",
+          conversation_id: "c1",
+          conversation: [],
+          turn: null,
+          proposal: null,
+        },
+      };
+    };
+    try {
+      for (const [workspace, toolsAllowed] of [
+        ["sona_chat", true],
+        ["sona_chat", false],
+        ["sona_config", true],
+      ] as const) {
+        await sendSheetTurn({
+          message: "What did we decide?",
+          locale: "en",
+          workspace,
+          gate: { paired: false, remoteIntelligence: false },
+          toolsAllowed,
+        });
+      }
+    } finally {
+      commands.agentPanelSendTurn = original;
+    }
+
+    expect(granted).toEqual([true, false, false]);
   });
 });
 

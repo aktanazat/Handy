@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, SlidersHorizontal } from "lucide-react";
 import type {
+  AgentPanelActionV1,
   AgentPanelProposalPreviewV1,
   AgentPanelTurnStatusV1,
   SonaAgentChatTurnV1,
@@ -9,6 +10,7 @@ import type {
 import { Button } from "@/components/vg/button";
 import { cn } from "@/lib/cn";
 import {
+  actionLine,
   conversationRows,
   isStillWaiting,
   isTurnRunning,
@@ -256,6 +258,79 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
   );
 };
 
+interface ChatActionCardProps {
+  action: AgentPanelActionV1;
+  busy: boolean;
+  onApply: () => void;
+  onDismiss: () => void;
+}
+
+/**
+ * One corpus change the answer offered, as the one thing you can do about it.
+ *
+ * Built like the settings proposal card and read the same way: what changes on
+ * the first line, why underneath, one button that makes it happen. Applying
+ * moves this same card to Applied with an Undo beside it, rather than adding a
+ * second card that reports on the first.
+ *
+ * Dismiss and Undo are one gesture with two labels — "this change is not in
+ * effect" — so both go to the same command, and both leave the card saying
+ * Dismissed.
+ */
+const ChatActionCard: React.FC<ChatActionCardProps> = ({
+  action,
+  busy,
+  onApply,
+  onDismiss,
+}) => {
+  const { t } = useTranslation();
+  const line = actionLine(action.action, t);
+
+  return (
+    <div
+      data-slot="chat-action"
+      className="flex items-center gap-3 rounded-panel border border-gray-alpha-400 bg-background-100 p-3"
+    >
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        {/* Wraps rather than truncates, for the reason the proposal card
+            wraps: a press on Apply under half a sentence is a press on
+            something nobody was shown. */}
+        <span className="text-[13px] leading-[18px] text-gray-1000 [overflow-wrap:anywhere]">
+          {t(line.key, line.values)}
+        </span>
+        <span className="text-[11px] leading-4 text-gray-900 [overflow-wrap:anywhere]">
+          {action.action.reason}
+        </span>
+      </span>
+      {action.state === "pending" && (
+        <span className="flex flex-none items-center gap-1.5">
+          <Button variant="outline" size="sm" onClick={onApply} disabled={busy}>
+            {t("chat.action.apply")}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onDismiss} disabled={busy}>
+            {t("chat.action.dismiss")}
+          </Button>
+        </span>
+      )}
+      {action.state === "applied" && (
+        <span className="flex flex-none items-center gap-1.5">
+          <span className="text-[12px] leading-4 text-gray-900">
+            {t("chat.action.applied")}
+          </span>
+          <Button variant="ghost" size="sm" onClick={onDismiss} disabled={busy}>
+            {t("chat.action.undo")}
+          </Button>
+        </span>
+      )}
+      {action.state === "dismissed" && (
+        <span className="flex-none text-[12px] leading-4 text-gray-900">
+          {t("chat.action.dismissed")}
+        </span>
+      )}
+    </div>
+  );
+};
+
 export interface ChatTurnsProps {
   conversation: readonly SonaAgentChatTurnV1[];
   turn: AgentPanelTurnStatusV1 | null;
@@ -269,12 +344,14 @@ export interface ChatTurnsProps {
   onRetry: () => void;
   onApply: () => void;
   onUndo: () => void;
+  onApplyAction: (actionIndex: number) => void;
+  onDismissAction: (actionIndex: number) => void;
   onOpenLink: (link: string) => void;
 }
 
 /**
- * The scrollback: what was said, what the turn did on the way, and the one
- * card a settings answer becomes.
+ * The scrollback: what was said, what the turn did on the way, the one card a
+ * settings answer becomes, and the cards a corpus change is offered as.
  */
 export const ChatTurns: React.FC<ChatTurnsProps> = ({
   conversation,
@@ -287,6 +364,8 @@ export const ChatTurns: React.FC<ChatTurnsProps> = ({
   onRetry,
   onApply,
   onUndo,
+  onApplyAction,
+  onDismissAction,
   onOpenLink,
 }) => {
   const rows = conversationRows(conversation);
@@ -334,6 +413,19 @@ export const ChatTurns: React.FC<ChatTurnsProps> = ({
           last — and a proposal with no row of its own is drawn rather than
           dropped. */}
       {workIndex === rows.length && <li>{work}</li>}
+      {/* The offer sits under the answer that made it, because the answer is
+          what explains it. Each card is its own row so a set of three reads
+          as three choices rather than one block. */}
+      {(turn?.actions ?? []).map((action) => (
+        <li key={action.action_index}>
+          <ChatActionCard
+            action={action}
+            busy={busy}
+            onApply={() => onApplyAction(action.action_index)}
+            onDismiss={() => onDismissAction(action.action_index)}
+          />
+        </li>
+      ))}
       {cardIndex === -1 && proposal !== null && (
         <li>
           <ProposalCard

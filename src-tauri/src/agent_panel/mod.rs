@@ -1,3 +1,4 @@
+mod actions;
 mod config;
 mod history;
 /// `pub(crate)` for one constant: the context-pack ceiling this module
@@ -7,13 +8,14 @@ pub(crate) mod protocol;
 mod relay;
 mod wire;
 
+use actions::{ActionUndo, AppliedAction};
 use config::{AppliedSettings, ConfigError, SettingUndo};
 use protocol::{
     AgentPanelWorkspaceV1, PanelTurnV1, SonaAgentChatRoleV1, SonaAgentChatTurnV1,
     SonaAgentResponseV1, SonaAgentStepStateV1, SonaAgentStepV1, SonaAgentTurnV1,
-    SonaAllowedValuesV1, SonaChatTurnV1, SonaConfigProposalV1, SonaConfirmationClassV1,
-    SonaSettingChangeV1, MAX_RECENT_TURNS, MAX_RECENT_TURN_BYTES, SONA_AGENT_TURN_VERSION,
-    SONA_CHAT_TURN_VERSION,
+    SonaAllowedValuesV1, SonaChatActionV1, SonaChatTurnV2, SonaConfigProposalV1,
+    SonaConfirmationClassV1, SonaSettingChangeV1, MAX_RECENT_TURNS, MAX_RECENT_TURN_BYTES,
+    SONA_AGENT_TURN_VERSION, SONA_CHAT_TURN_VERSION,
 };
 use relay::{
     validate_pairing, RelayClient, RelayError, RelayEvent, RelayJob, RelayJobFailure,
@@ -28,13 +30,14 @@ use tauri_specta::Event as _;
 pub use history::AgentChatConversationSummaryV1;
 pub use relay::AgentPanelPublicIdentityV1;
 pub use wire::{
-    AgentPanelActorV1, AgentPanelApplyChangeRequestV1, AgentPanelCancelTurnRequestV1,
-    AgentPanelCommandErrorV1, AgentPanelPairingCommandV1, AgentPanelPairingReceiptV1,
-    AgentPanelPairingRequestV1, AgentPanelPairingStatusV1, AgentPanelProposalChangedEvent,
-    AgentPanelProposalPreviewV1, AgentPanelProposalStateV1, AgentPanelRelayStatusV1,
-    AgentPanelSendTurnRequestV1, AgentPanelStatusChangedEvent, AgentPanelStatusV1,
-    AgentPanelStepV1, AgentPanelTurnChangedEvent, AgentPanelTurnFailureV1, AgentPanelTurnStateV1,
-    AgentPanelTurnStatusV1, AgentPanelUndoChangeRequestV1,
+    AgentPanelActionRequestV1, AgentPanelActionStateV1, AgentPanelActionV1, AgentPanelActorV1,
+    AgentPanelApplyChangeRequestV1, AgentPanelCancelTurnRequestV1, AgentPanelCommandErrorV1,
+    AgentPanelPairingCommandV1, AgentPanelPairingReceiptV1, AgentPanelPairingRequestV1,
+    AgentPanelPairingStatusV1, AgentPanelProposalChangedEvent, AgentPanelProposalPreviewV1,
+    AgentPanelProposalStateV1, AgentPanelRelayStatusV1, AgentPanelSendTurnRequestV1,
+    AgentPanelStatusChangedEvent, AgentPanelStatusV1, AgentPanelStepV1, AgentPanelTurnChangedEvent,
+    AgentPanelTurnFailureV1, AgentPanelTurnStateV1, AgentPanelTurnStatusV1,
+    AgentPanelUndoChangeRequestV1,
 };
 
 /// The one window there is. Every command on this surface is called from the
@@ -45,6 +48,80 @@ const POLL_INTERVAL: Duration = Duration::from_millis(750);
 const IDLE_POLL_INTERVAL: Duration = Duration::from_secs(2);
 const IDLE_POLL_AFTER: Duration = Duration::from_secs(10);
 const MAX_CONVERSATION_TURNS: usize = MAX_RECENT_TURNS * 2;
+
+/// One offered corpus change, and what has become of it.
+///
+/// The applied state carries the mutation's own record — the receipt id the
+/// store minted and the inverse that puts it back — rather than leaving them
+/// as two nullable fields beside a flag, so "applied with nothing to undo" is
+/// not a state this can be in. That inverse never leaves the process: the card
+/// shows a state and a receipt, and how a change is reversed is not the
+/// reader's business.
+enum StoredActionState {
+    Pending,
+    Applied(AppliedAction),
+    Dismissed,
+}
+
+/// What putting one card back takes.
+enum Reversal<'a> {
+    /// Already back. Nothing to run and nothing to record.
+    Settled,
+    /// Never ran, so there is nothing to reverse — only the card to mark.
+    Unapplied,
+    /// Ran. This is the mutation that undoes it.
+    Undo(&'a ActionUndo),
+}
+
+struct StoredAction {
+    action: SonaChatActionV1,
+    state: StoredActionState,
+}
+
+impl StoredAction {
+    fn pending(action: SonaChatActionV1) -> Self {
+        Self {
+            action,
+            state: StoredActionState::Pending,
+        }
+    }
+
+    fn preview(&self, index: usize) -> AgentPanelActionV1 {
+        let (state, operation_id) = match &self.state {
+            StoredActionState::Pending => (AgentPanelActionStateV1::Pending, None),
+            StoredActionState::Applied(applied) => (
+                AgentPanelActionStateV1::Applied,
+                applied.operation_id.clone(),
+            ),
+            StoredActionState::Dismissed => (AgentPanelActionStateV1::Dismissed, None),
+        };
+        AgentPanelActionV1 {
+            action_index: index as u32,
+            action: self.action.clone(),
+            state,
+            operation_id,
+        }
+    }
+
+    /// The mutation to run, or `None` when this card has already been
+    /// answered. A second Apply on an applied card must not reach the store
+    /// again: the answer is already in the ledger, and running it twice would
+    /// put it there twice.
+    const fn to_run(&self) -> Option<&SonaChatActionV1> {
+        match self.state {
+            StoredActionState::Pending => Some(&self.action),
+            StoredActionState::Applied(_) | StoredActionState::Dismissed => None,
+        }
+    }
+
+    const fn reversal(&self) -> Reversal<'_> {
+        match &self.state {
+            StoredActionState::Pending => Reversal::Unapplied,
+            StoredActionState::Applied(applied) => Reversal::Undo(&applied.undo),
+            StoredActionState::Dismissed => Reversal::Settled,
+        }
+    }
+}
 
 struct ActiveTurn {
     turn_id: String,
@@ -62,6 +139,7 @@ struct ActiveTurn {
     completed_at_utc_ms: Option<i64>,
     failure: Option<AgentPanelTurnFailureV1>,
     steps: Vec<AgentPanelStepV1>,
+    actions: Vec<StoredAction>,
 }
 
 impl ActiveTurn {
@@ -74,6 +152,12 @@ impl ActiveTurn {
             started_at_utc_ms: self.started_at_utc_ms,
             completed_at_utc_ms: self.completed_at_utc_ms,
             steps: self.steps.clone(),
+            actions: self
+                .actions
+                .iter()
+                .enumerate()
+                .map(|(index, action)| action.preview(index))
+                .collect(),
             failure: self.failure,
         }
     }
@@ -461,13 +545,14 @@ impl AgentPanelManager {
                     context.allowed,
                 ),
                 None => (
-                    PanelTurnV1::Chat(SonaChatTurnV1 {
+                    PanelTurnV1::Chat(SonaChatTurnV2 {
                         protocol_version: SONA_CHAT_TURN_VERSION.to_string(),
                         conversation_id,
                         turn_id: turn_id.clone(),
                         user_message: request.message.clone(),
                         recent_turns,
                         context_pack: request.context_pack,
+                        tools_allowed: request.tools_allowed,
                         locale: request.locale,
                         app_version: env!("CARGO_PKG_VERSION").to_string(),
                     }),
@@ -497,6 +582,7 @@ impl AgentPanelManager {
                 completed_at_utc_ms: None,
                 failure: None,
                 steps: Vec::new(),
+                actions: Vec::new(),
             });
             state.invalidate()
         };
@@ -671,7 +757,7 @@ impl AgentPanelManager {
         } = job;
         let auto_apply_enabled =
             crate::settings::get_settings(&self.app).agent_panel_safe_appearance_auto_apply;
-        let (workspace, expected_revision, allowed, existing_job_id) = {
+        let (existing_job_id, rejected) = {
             let state = self.lock_state();
             let active = state
                 .turn
@@ -679,10 +765,10 @@ impl AgentPanelManager {
                 .filter(|active| active.turn_id == turn_id)
                 .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?;
             (
-                active.workspace,
-                active.request.settings_revision(),
-                active.allowed.clone(),
                 active.job_id.clone(),
+                response.as_ref().is_some_and(|response| {
+                    response.validate(&active.request, &active.allowed).is_err()
+                }),
             )
         };
         if existing_job_id
@@ -692,24 +778,19 @@ impl AgentPanelManager {
             self.record_relay_error(turn_id, RelayError::OwnershipRejected, false);
             return Err(AgentPanelCommandErrorV1::OwnershipRejected);
         }
-        if let Some(response) = response.as_ref() {
-            if response
-                .validate(workspace, expected_revision, &allowed)
-                .is_err()
-            {
-                self.record_protocol_failure(turn_id);
-                return Err(match response {
-                    SonaAgentResponseV1::Proposal { .. } => {
-                        AgentPanelCommandErrorV1::InvalidProposal
-                    }
-                    SonaAgentResponseV1::Text { .. } => AgentPanelCommandErrorV1::UntrustedResponse,
-                });
-            }
+        if rejected {
+            self.record_protocol_failure(turn_id);
+            return Err(match response {
+                Some(SonaAgentResponseV1::Proposal { .. }) => {
+                    AgentPanelCommandErrorV1::InvalidProposal
+                }
+                _ => AgentPanelCommandErrorV1::UntrustedResponse,
+            });
         }
 
         let (invalidation_id, turn_state, proposal_event, follow_up) = {
             let mut state = self.lock_state();
-            let (cancel_requested, turn_state) = {
+            let (cancel_requested, turn_state, allowed) = {
                 let active = state
                     .turn
                     .as_mut()
@@ -733,7 +814,17 @@ impl AgentPanelManager {
                     let elapsed_ms = active.elapsed_ms();
                     merge_steps(&mut active.steps, response.steps(), elapsed_ms);
                 }
-                (active.cancel_requested, active.state)
+                /* The offer arrives with the answer and belongs to it: the
+                 * pack these ids were checked against is this turn's, so the
+                 * cards live on the turn rather than beside the conversation. */
+                if let Some(SonaAgentResponseV1::Text { actions, .. }) = response.as_ref() {
+                    active.actions = actions.iter().cloned().map(StoredAction::pending).collect();
+                }
+                (
+                    active.cancel_requested,
+                    active.state,
+                    active.allowed.clone(),
+                )
             };
             state.relay_status = AgentPanelRelayStatusV1::Ready;
 
@@ -790,6 +881,117 @@ impl AgentPanelManager {
             self.emit_proposal(invalidation_id, Some(proposal_id), Some(proposal_state));
         }
         Ok(follow_up)
+    }
+
+    /// Make one offered change, once.
+    ///
+    /// A card that is not pending is already answered, so this returns what it
+    /// says rather than refusing: two presses on Apply — a double click, a
+    /// reopened sheet, a retry after a slow round trip — must leave one
+    /// mutation and one receipt behind.
+    pub(crate) async fn apply_action(
+        &self,
+        request: AgentPanelActionRequestV1,
+    ) -> Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1> {
+        let to_run = {
+            let state = self.lock_state();
+            self.stored_action(&state, &request)?.to_run().cloned()
+        };
+        let Some(action) = to_run else {
+            return self.turn_status(&request.turn_id);
+        };
+        let applied = actions::apply(&self.app, &action)
+            .await
+            .map_err(|_| AgentPanelCommandErrorV1::ActionFailed)?;
+        self.settle_action(&request, StoredActionState::Applied(applied))
+    }
+
+    /// Put one offered change back: refuse it before it happens, or reverse it
+    /// after.
+    ///
+    /// One command for both because they are one gesture — "this change is not
+    /// in effect" — and because an action that has been undone is in exactly
+    /// the state an action that was never applied is in. Reversing runs the
+    /// inverse mutation, which earns its own receipt: the corpus was changed
+    /// twice and the ledger says so.
+    pub(crate) async fn dismiss_action(
+        &self,
+        request: AgentPanelActionRequestV1,
+    ) -> Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1> {
+        let undo = {
+            let state = self.lock_state();
+            match self.stored_action(&state, &request)?.reversal() {
+                Reversal::Settled => return self.turn_status(&request.turn_id),
+                Reversal::Unapplied => None,
+                Reversal::Undo(undo) => Some(undo.clone()),
+            }
+        };
+        if let Some(undo) = undo {
+            actions::undo(&self.app, &undo)
+                .await
+                .map_err(|_| AgentPanelCommandErrorV1::ActionFailed)?;
+        }
+        self.settle_action(&request, StoredActionState::Dismissed)
+    }
+
+    fn stored_action<'a>(
+        &self,
+        state: &'a PanelState,
+        request: &AgentPanelActionRequestV1,
+    ) -> Result<&'a StoredAction, AgentPanelCommandErrorV1> {
+        state
+            .turn
+            .as_ref()
+            .filter(|active| active.turn_id == request.turn_id)
+            .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?
+            .actions
+            .get(request.action_index as usize)
+            .ok_or(AgentPanelCommandErrorV1::UnknownAction)
+    }
+
+    /// Record what a mutation did to one card, and tell the sheet.
+    ///
+    /// The turn is re-found rather than held across the write: the mutation
+    /// awaits, and holding the panel lock across an await would block every
+    /// other command on this surface behind a store round trip.
+    fn settle_action(
+        &self,
+        request: &AgentPanelActionRequestV1,
+        settled: StoredActionState,
+    ) -> Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1> {
+        let (invalidation_id, status) = {
+            let mut state = self.lock_state();
+            let active = state
+                .turn
+                .as_mut()
+                .filter(|active| active.turn_id == request.turn_id)
+                .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?;
+            active
+                .actions
+                .get_mut(request.action_index as usize)
+                .ok_or(AgentPanelCommandErrorV1::UnknownAction)?
+                .state = settled;
+            let status = active.status();
+            (state.invalidate(), status)
+        };
+        self.emit_turn(
+            invalidation_id,
+            Some(status.turn_id.clone()),
+            Some(status.state),
+        );
+        Ok(status)
+    }
+
+    fn turn_status(
+        &self,
+        turn_id: &str,
+    ) -> Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1> {
+        self.lock_state()
+            .turn
+            .as_ref()
+            .filter(|active| active.turn_id == turn_id)
+            .map(ActiveTurn::status)
+            .ok_or(AgentPanelCommandErrorV1::UnknownTurn)
     }
 
     pub(crate) fn apply_change(
@@ -1394,7 +1596,7 @@ pub(crate) async fn run_chat_turn(
         |manager| manager.nonce_cache.clone(),
     );
     let idempotency_key = relay::new_idempotency_key().map_err(chat_turn_error)?;
-    let turn = PanelTurnV1::Chat(SonaChatTurnV1 {
+    let turn = PanelTurnV1::Chat(SonaChatTurnV2 {
         protocol_version: SONA_CHAT_TURN_VERSION.to_string(),
         conversation_id: format!("headless-{idempotency_key}"),
         turn_id: format!("turn-{idempotency_key}"),
@@ -1404,6 +1606,9 @@ pub(crate) async fn run_chat_turn(
          * depend on the order they were generated in. */
         recent_turns: Vec::new(),
         context_pack,
+        /* Artifact generation is a background job with nobody watching it, so
+         * it never reaches for tools. */
+        tools_allowed: false,
         locale: crate::settings::get_settings(app).app_language,
         app_version: env!("CARGO_PKG_VERSION").to_string(),
     });
@@ -1437,11 +1642,7 @@ pub(crate) async fn run_chat_turn(
     }
     let response = job.response.ok_or(ChatTurnError::Failed)?;
     response
-        .validate(
-            AgentPanelWorkspaceV1::SonaChat,
-            None,
-            &SonaAllowedValuesV1::default(),
-        )
+        .validate(&turn, &SonaAllowedValuesV1::default())
         .map_err(|_| ChatTurnError::Failed)?;
     match response {
         SonaAgentResponseV1::Text { message, .. } => Ok(message),
@@ -1635,6 +1836,32 @@ pub fn agent_panel_undo_change(
 ) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
     require_caller(&caller)?;
     manager.undo_change(request)
+}
+
+/// Make one of the answer's offered changes. Nothing here is reachable without
+/// a press: there is no setting that applies an action on arrival, and there
+/// is not going to be one.
+#[tauri::command]
+#[specta::specta]
+pub async fn agent_panel_apply_action(
+    caller: WebviewWindow,
+    manager: State<'_, AgentPanelManager>,
+    request: AgentPanelActionRequestV1,
+) -> Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1> {
+    require_caller(&caller)?;
+    manager.apply_action(request).await
+}
+
+/// Refuse one of the answer's offered changes, or reverse it after the fact.
+#[tauri::command]
+#[specta::specta]
+pub async fn agent_panel_dismiss_action(
+    caller: WebviewWindow,
+    manager: State<'_, AgentPanelManager>,
+    request: AgentPanelActionRequestV1,
+) -> Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1> {
+    require_caller(&caller)?;
+    manager.dismiss_action(request).await
 }
 
 /// The titles the history button lists, newest first.
@@ -2002,5 +2229,71 @@ mod tests {
             turn_failure_for_job(RelayJobFailure::Failed),
             AgentPanelTurnFailureV1::Failed
         );
+    }
+
+    fn offered() -> StoredAction {
+        StoredAction::pending(SonaChatActionV1::ResolveLoop {
+            reason: "You said the deck went out.".to_string(),
+            loop_id: crate::meeting::loop_types::MeetingLoopId("l-1".to_string()),
+        })
+    }
+
+    fn committed() -> AppliedAction {
+        AppliedAction {
+            operation_id: Some("op-1".to_string()),
+            undo: ActionUndo::ReopenLoop {
+                loop_id: crate::meeting::loop_types::MeetingLoopId("l-1".to_string()),
+            },
+        }
+    }
+
+    /// The card reports the receipt the mutation minted, so the change can be
+    /// found in the ledger beside every other change to the same meeting.
+    #[test]
+    fn an_applied_card_carries_the_receipt_the_store_recorded() {
+        let mut action = offered();
+        assert_eq!(action.preview(0).state, AgentPanelActionStateV1::Pending);
+        assert_eq!(action.preview(0).operation_id, None);
+
+        action.state = StoredActionState::Applied(committed());
+        let preview = action.preview(3);
+
+        assert_eq!(preview.action_index, 3);
+        assert_eq!(preview.state, AgentPanelActionStateV1::Applied);
+        assert_eq!(preview.operation_id.as_deref(), Some("op-1"));
+    }
+
+    /// A double click, a reopened sheet, a retry after a slow round trip: the
+    /// second press must not reach the store, because the answer is already in
+    /// the ledger and running it twice would put it there twice.
+    #[test]
+    fn a_card_is_only_ever_applied_once() {
+        let mut action = offered();
+        assert!(action.to_run().is_some());
+
+        action.state = StoredActionState::Applied(committed());
+        assert!(action.to_run().is_none());
+
+        action.state = StoredActionState::Dismissed;
+        assert!(action.to_run().is_none());
+    }
+
+    /// Dismiss and Undo are one gesture with two labels. Refusing a change
+    /// that never happened runs nothing; putting back one that did runs its
+    /// inverse first, and both end in the same place.
+    #[test]
+    fn putting_a_card_back_only_reverses_what_actually_ran() {
+        let mut action = offered();
+        assert!(matches!(action.reversal(), Reversal::Unapplied));
+
+        action.state = StoredActionState::Applied(committed());
+        assert!(matches!(
+            action.reversal(),
+            Reversal::Undo(ActionUndo::ReopenLoop { .. })
+        ));
+
+        action.state = StoredActionState::Dismissed;
+        assert!(matches!(action.reversal(), Reversal::Settled));
+        assert_eq!(action.preview(0).state, AgentPanelActionStateV1::Dismissed);
     }
 }

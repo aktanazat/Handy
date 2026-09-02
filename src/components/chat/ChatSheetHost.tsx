@@ -13,6 +13,7 @@ import {
 import { ChatSheet } from "./ChatSheet";
 import {
   chatPhase,
+  composerSend,
   isTurnRunning,
   retryMessage,
   shouldPackChatTurn,
@@ -61,6 +62,8 @@ export interface SheetTurnRequest {
   locale: string;
   workspace: AgentPanelWorkspaceV1;
   gate: ChatPackGate;
+  /** This one question may reach the operator's own MCP servers. */
+  toolsAllowed: boolean;
 }
 
 export interface SheetTurnResult {
@@ -74,6 +77,7 @@ export const sendSheetTurn = async ({
   locale,
   workspace,
   gate,
+  toolsAllowed,
 }: SheetTurnRequest): Promise<SheetTurnResult> => {
   let contextPack: string | null = null;
   let searchedCorpus = false;
@@ -91,6 +95,9 @@ export const sendSheetTurn = async ({
       locale,
       workspace,
       context_pack: contextPack,
+      /* Only the Ask worker can run a tool, so a settings turn carries no
+       * grant however the composer was left. */
+      tools_allowed: toolsAllowed && workspace === "sona_chat",
     }),
     searchedCorpus,
   };
@@ -126,6 +133,10 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
   const [draft, setDraft] = useState("");
   const [workspace, setWorkspace] =
     useState<AgentPanelWorkspaceV1>("sona_chat");
+  /* Per turn, never remembered: it goes back off after every send, so tools
+   * are something the reader grants a question rather than a mode the app is
+   * left in. */
+  const [toolsAllowed, setToolsAllowed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -214,6 +225,7 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
         locale: i18n.language,
         workspace,
         gate: panel,
+        toolsAllowed,
       });
       turnSearchedCorpus = outcome.searchedCorpus;
       return outcome.result;
@@ -256,6 +268,33 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
     await sendTurn(message);
   };
 
+  /* An action's commands answer with the turn, not the whole panel, so the
+   * status the sheet holds is patched at the one field that moved rather than
+   * re-read. */
+  const settleAction = async (
+    command: typeof commands.agentPanelApplyAction,
+    actionIndex: number,
+  ) => {
+    if (turn === null || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await command({
+        turn_id: turn.turn_id,
+        action_index: actionIndex,
+      });
+      if (result.status === "error") {
+        setError(result.error);
+        return;
+      }
+      setStatus((held) =>
+        held === null ? held : { ...held, turn: result.data },
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const proposal = status?.proposal ?? null;
 
   return (
@@ -272,6 +311,7 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
       now={now}
       draft={draft}
       workspace={workspace}
+      toolsAllowed={toolsAllowed}
       busy={busy}
       error={error}
       onClose={onClose}
@@ -280,7 +320,11 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
       onNewChat={() => void newConversation()}
       onDraftChange={setDraft}
       onWorkspaceChange={setWorkspace}
-      onSend={() => void send()}
+      onToolsAllowedChange={setToolsAllowed}
+      onSend={composerSend(
+        () => void send(),
+        () => setToolsAllowed(false),
+      )}
       onStop={() => {
         if (turn === null) return;
         void run(() =>
@@ -312,6 +356,12 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
           }),
         );
       }}
+      onApplyAction={(actionIndex) =>
+        void settleAction(commands.agentPanelApplyAction, actionIndex)
+      }
+      onDismissAction={(actionIndex) =>
+        void settleAction(commands.agentPanelDismissAction, actionIndex)
+      }
       /* Routed through the backend, which owns what a `sona://` address means
        * and which surface it wakes — the same path an address arriving from
        * outside the app takes. */

@@ -1,6 +1,6 @@
 use super::protocol::{
-    AgentPanelWorkspaceV1, SonaAgentChatTurnV1, SonaAgentStepStateV1, SonaConfirmationClassV1,
-    SonaSettingChangeV1,
+    AgentPanelWorkspaceV1, SonaAgentChatTurnV1, SonaAgentStepStateV1, SonaChatActionV1,
+    SonaConfirmationClassV1, SonaSettingChangeV1,
 };
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -66,6 +66,38 @@ pub enum AgentPanelProposalStateV1 {
     Rejected,
 }
 
+/// Where one offered corpus change has got to.
+///
+/// Three states rather than the proposal's four: an action that has been
+/// undone is an action that is not in effect, which is what `Dismissed`
+/// already means, and a second word for it would be a second thing for the
+/// card to explain. Pressing Dismiss on a pending action and Undo on an
+/// applied one is therefore the same command and the same destination.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentPanelActionStateV1 {
+    Pending,
+    Applied,
+    Dismissed,
+}
+
+/// One card under an answer: what the assistant offered to change, whether it
+/// has happened, and the receipt it produced.
+///
+/// `operation_id` is the [`crate::meeting::types::OperationReceipt`] the
+/// mutation recorded, so the change can be found in the ledger beside every
+/// other change to the same meeting. It is `None` for a vocabulary term: that
+/// write goes to settings, which keeps no operation ledger.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields)]
+pub struct AgentPanelActionV1 {
+    /// Position in the turn's offer, which is how a command names one.
+    pub action_index: u32,
+    pub action: SonaChatActionV1,
+    pub state: AgentPanelActionStateV1,
+    pub operation_id: Option<String>,
+}
+
 /// One row of the sheet's "Worked for Ns" disclosure.
 ///
 /// The relay reports a step's identity, its label and whether it is still
@@ -103,6 +135,9 @@ pub struct AgentPanelTurnStatusV1 {
     /// What the remote side did on the way to its answer. Empty until a
     /// workspace reports steps.
     pub steps: Vec<AgentPanelStepV1>,
+    /// What the answer offered to change in the corpus, in the order it
+    /// offered them. Empty unless the reader asked for a change.
+    pub actions: Vec<AgentPanelActionV1>,
     /// Why it has no answer, when the panel can name the reason.
     pub failure: Option<AgentPanelTurnFailureV1>,
 }
@@ -144,6 +179,22 @@ pub struct AgentPanelSendTurnRequestV1 {
     /// by whoever is asking. The panel does not assemble packs, and a turn
     /// without one is an ordinary question.
     pub context_pack: Option<String>,
+    /// Whether this one turn may reach the operator's own MCP servers. Off
+    /// unless the reader turned it on for this send.
+    pub tools_allowed: bool,
+}
+
+/// Apply, or put back, one of a turn's offered changes.
+///
+/// The index is the card's position in the offer rather than an id of its
+/// own: an action has no existence apart from the turn that proposed it, and
+/// minting an id for it would invite a caller to hold one past the turn's
+/// life.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields)]
+pub struct AgentPanelActionRequestV1 {
+    pub turn_id: String,
+    pub action_index: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -240,6 +291,11 @@ pub enum AgentPanelCommandErrorV1 {
     TurnActive,
     UnknownTurn,
     UnknownProposal,
+    /// No card at that index on that turn.
+    UnknownAction,
+    /// The mutation behind a card refused: the meeting moved under it, the row
+    /// it named is gone, or the store would not take the write.
+    ActionFailed,
     ConfirmationRequired,
     StaleProposal,
     InvalidProposal,

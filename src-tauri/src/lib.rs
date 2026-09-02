@@ -1336,6 +1336,8 @@ pub fn run(cli_args: CliArgs) {
             agent_panel::agent_panel_cancel_turn,
             agent_panel::agent_panel_apply_change,
             agent_panel::agent_panel_undo_change,
+            agent_panel::agent_panel_apply_action,
+            agent_panel::agent_panel_dismiss_action,
             agent_panel::agent_chat_history_list,
             agent_panel::agent_chat_open,
             agent_panel::agent_chat_new,

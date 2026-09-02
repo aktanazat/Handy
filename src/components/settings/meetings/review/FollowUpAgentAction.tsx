@@ -109,6 +109,9 @@ export const FollowUpAgentAction: React.FC<{
         /* The ledger lines are already quoted in the message itself, so there
          * is no separate evidence pack to send. */
         context_pack: null,
+        /* Nor any tool: this is a question about a draft that is already in
+         * the message. */
+        tools_allowed: false,
       });
       if (sent.status === "error") {
         toast.error(t("people.review.agentError"));

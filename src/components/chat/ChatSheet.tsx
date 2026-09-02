@@ -172,6 +172,8 @@ export interface ChatSheetProps {
   workspace: AgentPanelWorkspaceV1;
   /** The current Ask turn's pack contained at least one corpus source. */
   searchedCorpus: boolean;
+  /** This one question may reach the operator's own MCP servers. */
+  toolsAllowed: boolean;
   /** A send, stop, apply, undo or history read is mid-flight. */
   busy: boolean;
   /** A refused command, as distinct from the relay's own state. */
@@ -186,6 +188,9 @@ export interface ChatSheetProps {
   onStop: () => void;
   onApply: () => void;
   onUndo: () => void;
+  onApplyAction: (actionIndex: number) => void;
+  onDismissAction: (actionIndex: number) => void;
+  onToolsAllowedChange: (allowed: boolean) => void;
   onOpenLink: (link: string) => void;
   onOpenSettings: () => void;
   onRetry: () => void;
@@ -217,6 +222,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   now,
   draft,
   workspace,
+  toolsAllowed,
   busy,
   error,
   searchedCorpus,
@@ -230,6 +236,9 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   onStop,
   onApply,
   onUndo,
+  onApplyAction,
+  onDismissAction,
+  onToolsAllowedChange,
   onOpenLink,
   onOpenSettings,
   onRetry,
@@ -369,6 +378,8 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
               onRetry={onRetryTurn}
               onApply={onApply}
               onUndo={onUndo}
+              onApplyAction={onApplyAction}
+              onDismissAction={onDismissAction}
               onOpenLink={onOpenLink}
             />
           )}
@@ -392,8 +403,10 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
           fieldRef={fieldRef}
           running={running}
           disabled={composerDisabled}
+          toolsAllowed={toolsAllowed}
           onWorkspaceChange={onWorkspaceChange}
           onDraftChange={onDraftChange}
+          onToolsAllowedChange={onToolsAllowedChange}
           onSend={onSend}
           onStop={onStop}
         />

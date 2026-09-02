@@ -194,6 +194,30 @@ async agentPanelUndoChange(request: AgentPanelUndoChangeRequestV1) : Promise<Res
 }
 },
 /**
+ * Make one of the answer's offered changes. Nothing here is reachable without
+ * a press: there is no setting that applies an action on arrival, and there
+ * is not going to be one.
+ */
+async agentPanelApplyAction(request: AgentPanelActionRequestV1) : Promise<Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_panel_apply_action", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Refuse one of the answer's offered changes, or reverse it after the fact.
+ */
+async agentPanelDismissAction(request: AgentPanelActionRequestV1) : Promise<Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_panel_dismiss_action", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * The titles the history button lists, newest first.
  */
 async agentChatHistoryList() : Promise<Result<AgentChatConversationSummaryV1[], AgentPanelCommandErrorV1>> {
@@ -1623,6 +1647,43 @@ async meetingConsentPanelForgetSeries(sessionId: MeetingSessionId) : Promise<Res
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Post this recording's disclosure line into the meeting's chat.
+ *
+ * The line is the caller's because it comes from the i18next catalog. Answers
+ * with what the disclosure is now, so the live surface can say quietly that the
+ * target would not take it.
+ */
+async meetingAnnounceDisclosure(sessionId: MeetingSessionId, line: string) : Promise<Result<MeetingSessionDisclosure, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_announce_disclosure", { sessionId, line }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The meetings a person deleted and can still get back, newest first.
+ */
+async meetingTrashList() : Promise<Result<MeetingTrashEntry[], MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_trash_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Undo one deletion, by the deletion's own job id.
+ */
+async meetingTrashRestore(jobId: MeetingDeletionJobId) : Promise<Result<MeetingSessionSnapshot, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_trash_restore", { jobId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async meetingPause(request: MeetingMutationRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("meeting_pause", { request }) };
@@ -2063,6 +2124,29 @@ async personDetail(personId: PersonId) : Promise<Result<PersonDetailResult, Meet
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * One organization page: its people, and what they collectively left open.
+ *
+ * `slug` is what `sona://organization/<slug>` carries. The store slugifies
+ * whatever it is given, so a caller holding the label a person's header shows
+ * may pass that instead of deriving the slug a second time.
+ */
+async organizationDetail(slug: string) : Promise<Result<OrganizationDetailResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("organization_detail", { slug }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async personSummaryRegenerate(personId: PersonId) : Promise<Result<PersonDetailResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("person_summary_regenerate", { personId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async personContext(personIds: PersonId[]) : Promise<Result<PersonContextResult, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("person_context", { personIds }) };
@@ -2192,6 +2276,22 @@ async meetingLoopAssign(request: MeetingLoopAssignRequest) : Promise<Result<Meet
 async meetingFollowUpDraft(operationId: MeetingOperationId, sessionId: MeetingSessionId) : Promise<Result<MeetingFollowUpDraft, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("meeting_follow_up_draft", { operationId, sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * D26. Build the `mailto:` URL that opens this meeting's follow-up in Mail.
+ *
+ * Takes the draft and the over-bound note because both are words a person
+ * reads, and those come from the i18next catalog rather than from Rust. Returns
+ * the URL for the caller to open: the addressing, the subject, the encoding and
+ * the length bound are this side's, opening a URL is the shell's.
+ */
+async meetingFollowUpMail(request: MeetingFollowUpMailRequest) : Promise<Result<MeetingFollowUpMail, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_follow_up_mail", { request }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -2610,6 +2710,55 @@ async meetingAutomationRuns(sessionId: MeetingSessionId) : Promise<Result<Meetin
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async savedPromptList() : Promise<Result<SavedPromptList, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("saved_prompt_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async savedPromptSave(request: SavedPromptSaveRequest) : Promise<Result<SavedPromptMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("saved_prompt_save", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async savedPromptDelete(request: SavedPromptDeleteRequest) : Promise<Result<SavedPromptMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("saved_prompt_delete", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Ask one saved prompt about one noun, and keep the answer.
+ *
+ * Answers with the run it wrote, including the runs that produced nothing: a
+ * prompt whose engine was unreachable is a receipt the surface shows, not an
+ * error it apologises for. `not_found` is the narrow case where there was
+ * nothing to ask about — a deleted prompt, or a person this Mac has never
+ * recorded a meeting with.
+ */
+async savedPromptRun(request: SavedPromptRunRequest) : Promise<Result<PromptRun, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("saved_prompt_run", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async savedPromptRuns(target: PromptTargetRef) : Promise<Result<PromptRun[], MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("saved_prompt_runs", { target }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -2693,7 +2842,15 @@ export type AccessibilityAccess = "granted" | "denied" | "unsupported"
  */
 export type AgentBridgeAgent = "claude" | "codex" | "grok" | "omp"
 export type AgentBridgeDiagnostic = "disabled" | "runtime_unavailable" | "interactive_unsupported" | "app_lock_held" | "active"
-export type AgentBridgeObservedRequest = { id: string; session_id: string; agent: AgentBridgeAgent; kind: AgentBridgeRequestKind; tool_name: string | null; permission_mode: string | null; expires_at_ms: number; state: AgentBridgeRequestState }
+export type AgentBridgeObservedRequest = { id: string; session_id: string; agent: AgentBridgeAgent; kind: AgentBridgeRequestKind; tool_name: string | null; permission_mode: string | null; expires_at_ms: number; state: AgentBridgeRequestState;
+/**
+ * Whether the hook invocation behind this row is holding its agent open
+ * for Sona's answer. Derived once from
+ * [`crate::agent_hook_wire::CanonicalEvent::awaits_response`], so the
+ * console and the responder read the same fact instead of each deciding
+ * which agents and events can be answered.
+ */
+awaiting_response: boolean }
 export type AgentBridgeObservedSession = { id: string; agent: AgentBridgeAgent; canonical_project_hash: string; session_generation: number; policy_generation: number; last_seen_at_ms: number }
 export type AgentBridgePendingMessage = { id: string; agent: AgentBridgeAgent; session_id: string; text: string; expires_at_ms: number; state: AgentBridgePendingState; confirmed: boolean }
 export type AgentBridgePendingState = "held" | "response_written" | "emitted" | "copy_only" | "cancelled"
@@ -2727,6 +2884,39 @@ export type AgentBridgeUpdateEvent = { status: AgentBridgeStatus }
  * One row of the history popover: enough to choose by, and no transcript.
  */
 export type AgentChatConversationSummaryV1 = { conversation_id: string; title: string; updated_at_utc_ms: number }
+/**
+ * Apply, or put back, one of a turn's offered changes.
+ *
+ * The index is the card's position in the offer rather than an id of its
+ * own: an action has no existence apart from the turn that proposed it, and
+ * minting an id for it would invite a caller to hold one past the turn's
+ * life.
+ */
+export type AgentPanelActionRequestV1 = { turn_id: string; action_index: number }
+/**
+ * Where one offered corpus change has got to.
+ *
+ * Three states rather than the proposal's four: an action that has been
+ * undone is an action that is not in effect, which is what `Dismissed`
+ * already means, and a second word for it would be a second thing for the
+ * card to explain. Pressing Dismiss on a pending action and Undo on an
+ * applied one is therefore the same command and the same destination.
+ */
+export type AgentPanelActionStateV1 = "pending" | "applied" | "dismissed"
+/**
+ * One card under an answer: what the assistant offered to change, whether it
+ * has happened, and the receipt it produced.
+ *
+ * `operation_id` is the [`crate::meeting::types::OperationReceipt`] the
+ * mutation recorded, so the change can be found in the ledger beside every
+ * other change to the same meeting. It is `None` for a vocabulary term: that
+ * write goes to settings, which keeps no operation ledger.
+ */
+export type AgentPanelActionV1 = {
+/**
+ * Position in the turn's offer, which is how a command names one.
+ */
+action_index: number; action: SonaChatActionV1; state: AgentPanelActionStateV1; operation_id: string | null }
 export type AgentPanelActorV1 = "user"
 /**
  * Apply one proposal, whole.
@@ -2736,7 +2926,16 @@ export type AgentPanelActorV1 = "user"
  */
 export type AgentPanelApplyChangeRequestV1 = { proposal_id: string; expected_revision: number; confirmed: boolean }
 export type AgentPanelCancelTurnRequestV1 = { turn_id: string }
-export type AgentPanelCommandErrorV1 = "unauthorized_window" | "disabled" | "unpaired" | "offline" | "invalid_configuration" | "secret_unavailable" | "untrusted_response" | "remote_rejected" | "ownership_rejected" | "unknown_conversation" | "invalid_request" | "turn_active" | "unknown_turn" | "unknown_proposal" | "confirmation_required" | "stale_proposal" | "invalid_proposal" | "invalid_setting" | "not_undoable"
+export type AgentPanelCommandErrorV1 = "unauthorized_window" | "disabled" | "unpaired" | "offline" | "invalid_configuration" | "secret_unavailable" | "untrusted_response" | "remote_rejected" | "ownership_rejected" | "unknown_conversation" | "invalid_request" | "turn_active" | "unknown_turn" | "unknown_proposal" |
+/**
+ * No card at that index on that turn.
+ */
+"unknown_action" |
+/**
+ * The mutation behind a card refused: the meeting moved under it, the row
+ * it named is gone, or the store would not take the write.
+ */
+"action_failed" | "confirmation_required" | "stale_proposal" | "invalid_proposal" | "invalid_setting" | "not_undoable"
 export type AgentPanelPairingCommandV1 = "set" | "clear" | "test_connection"
 /**
  * Proof that a pairing change happened, in the shape the rest of the app
@@ -2764,7 +2963,12 @@ export type AgentPanelSendTurnRequestV1 = { turn_id: string; message: string; lo
  * by whoever is asking. The panel does not assemble packs, and a turn
  * without one is an ordinary question.
  */
-context_pack: string | null }
+context_pack: string | null;
+/**
+ * Whether this one turn may reach the operator's own MCP servers. Off
+ * unless the reader turned it on for this send.
+ */
+tools_allowed: boolean }
 export type AgentPanelStatusChangedEvent = { invalidation_id: number; status: AgentPanelRelayStatusV1 }
 export type AgentPanelStatusV1 = { invalidation_id: number; relay_status: AgentPanelRelayStatusV1; conversation_id: string | null; conversation: SonaAgentChatTurnV1[]; turn: AgentPanelTurnStatusV1 | null; proposal: AgentPanelProposalPreviewV1 | null }
 /**
@@ -2810,6 +3014,11 @@ completed_at_utc_ms: number | null;
  * workspace reports steps.
  */
 steps: AgentPanelStepV1[];
+/**
+ * What the answer offered to change in the corpus, in the order it
+ * offered them. Empty unless the reader asked for a change.
+ */
+actions: AgentPanelActionV1[];
 /**
  * Why it has no answer, when the panel can name the reason.
  */
@@ -3087,7 +3296,19 @@ meeting_remote_intelligence_enabled?: boolean;
  * `consent_required` while this is false, so turning it on is the whole
  * grant. Read-only either way — nothing on that surface mutates.
  */
-external_query_enabled?: boolean }
+external_query_enabled?: boolean;
+/**
+ * D15. Whether those same outside processes may *change* the corpus —
+ * today `sona --loop-resolve <loop_id>` and the MCP tool over it.
+ *
+ * A second grant beside the read one rather than a level above it: a
+ * person who let a script read their meetings has not answered the
+ * question of whether it may close their loops, and reading the two
+ * answers off one switch would answer it for them. Off on install, and
+ * inert on its own — a mutation verb needs this row, and every read still
+ * needs the row above.
+ */
+external_mutations_enabled?: boolean }
 /**
  * Window material. `Solid` paints Sona's own surfaces edge to edge; `Glass`
  * makes the window background transparent so the native vibrancy view shows
@@ -3459,7 +3680,13 @@ delivery: DetectionPromptDelivery;
  * One short explanation rendered only after the panel has acknowledged its
  * first successful prompt delivery.
  */
-showIntroduction: boolean }
+showIntroduction: boolean;
+/**
+ * What this prompt's series remembers about announcing itself, which is the
+ * state the panel's announce checkbox opens in. False for a meeting with no
+ * series behind it: there is nothing to remember and nothing remembered.
+ */
+announceInChat: boolean }
 /**
  * Which prompt to raise, carrying the fields the copy pattern interpolates.
  * The frontend localizes from these fields; the native notification uses the
@@ -3964,9 +4191,10 @@ export type MeetingAutomationFailure =
  */
 "rejected"
 /**
- * The three after-meeting actions. Nothing here is a channel to a third party:
+ * The four after-meeting actions. Nothing here is a channel to a third party:
  * reminders are Apple's local database, a Shortcut is a program the operator
- * wrote, and a webhook is refused unless its host is on their own tailnet.
+ * wrote, a saved prompt goes to whichever engine D14 already allows this
+ * meeting, and a webhook is refused unless its host is on their own tailnet.
  */
 export type MeetingAutomationKind =
 /**
@@ -3981,7 +4209,12 @@ export type MeetingAutomationKind =
 /**
  * POST the meeting's export JSON to a URL on the operator's own network.
  */
-"webhook"
+"webhook" |
+/**
+ * Ask one saved prompt about this meeting and keep the answer. The target
+ * is the prompt's id.
+ */
+"run_prompt"
 /**
  * Every series the settings surface lists, and the fence its writes carry.
  *
@@ -4060,10 +4293,22 @@ export type MeetingCommandError = "consent_required" | "consent_stale" | "invali
  * they all have the same answer: choose a different file.
  */
 "import_unreadable"
-export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel" | "loop_resolve" | "loop_reopen" | "loop_assign" | "loop_carry" | "series_template_set" | "series_digest_set" | "series_always_record_set" | "follow_up_draft" | "series_automation_set" | "series_remote_opt_out_set"
+export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel" | "loop_resolve" | "loop_reopen" | "loop_assign" | "loop_carry" | "series_template_set" | "series_digest_set" | "series_always_record_set" | "follow_up_draft" | "series_automation_set" | "series_remote_opt_out_set" | "saved_prompt_save" | "saved_prompt_delete"
 export type MeetingConsentInput = { policy_version: number; microphone_acknowledged: boolean; system_audio_acknowledged: boolean; known_missing_sources_acknowledged: SourceKind[]; degraded_start_policy: DegradedStartPolicy; destination: ProcessingDestination; remote_acknowledgement: RemoteAcknowledgement | null }
-export type MeetingConsentPanelSessionState = { snapshot: MeetingSessionSnapshot; standing_series_key: string | null }
-export type MeetingConsentPanelStartRequest = { prompt_id: string; operation_id: MeetingOperationId; consent: MeetingConsentInput; always_record_series: boolean }
+export type MeetingConsentPanelSessionState = { snapshot: MeetingSessionSnapshot; standing_series_key: string | null;
+/**
+ * What this recording's disclosure is doing. The panel supplies the words
+ * for a `pending` one, because they come from the i18next catalog.
+ */
+disclosure: MeetingSessionDisclosure }
+export type MeetingConsentPanelStartRequest = { prompt_id: string; operation_id: MeetingOperationId; consent: MeetingConsentInput; always_record_series: boolean;
+/**
+ * Whether this recording posts one disclosure line into the meeting's own
+ * chat, and — for a recurring meeting — what its series should remember
+ * about that from now on.
+ */
+announce_in_chat: boolean }
+export type MeetingDeletionJobId = string
 export type MeetingDiarizationGenerationId = string
 export type MeetingDiarizationSnapshot = { status: DiarizationStatus; model_id: string; model_version: string; generation_id: MeetingDiarizationGenerationId | null; assigned_segment_count: number }
 export type MeetingEventPayload = { event_schema_version: number; session_id: MeetingSessionId | null; revision: number }
@@ -4103,6 +4348,42 @@ decisions: string[];
  * `effect_ids` names the engine that wrote it, or the fallback.
  */
 receipt: OperationReceipt }
+/**
+ * The compose window to open, and which words it will carry.
+ */
+export type MeetingFollowUpMail = { url: string; body: MeetingFollowUpMailBody }
+/**
+ * Which words the compose window opened with.
+ */
+export type MeetingFollowUpMailBody =
+/**
+ * The draft itself, in the URL.
+ */
+"draft" |
+/**
+ * The draft was too long for the URL, so it is on the clipboard and the
+ * compose window opened with the caller's one-line note in its place.
+ */
+"clipboard"
+/**
+ * Open one meeting's follow-up in the operator's mail client.
+ *
+ * Both strings are the caller's, already translated, for the same reason
+ * [`MeetingFollowUpDraft`] carries evidence rather than prose: the words a
+ * person reads come from the i18next catalog, and a Rust string cannot reach
+ * it. What this side owns is the address list, the subject, the encoding and
+ * the bound.
+ */
+export type MeetingFollowUpMailRequest = { session_id: MeetingSessionId;
+/**
+ * The draft, exactly as the sheet shows it.
+ */
+body: string;
+/**
+ * One line to open the compose window with when the draft is too long for
+ * a URL and goes to the clipboard instead.
+ */
+over_bound_note: string }
 /**
  * Who wrote the draft.
  */
@@ -4466,7 +4747,16 @@ always_record: boolean;
  * switch that quietly excluded series would make the global one a lie.
  * What is stored here is only the departure from that.
  */
-remote_intelligence_opt_out: boolean; revision: number }
+remote_intelligence_opt_out: boolean;
+/**
+ * True when this series posts one disclosure line into the meeting's own
+ * chat as it starts recording.
+ *
+ * The default is false: a recording announces itself only because somebody
+ * asked it to, and a line typed into a shared chat by an app nobody invited
+ * would be exactly the ambient authority this design refuses.
+ */
+announce_in_chat: boolean; revision: number }
 /**
  * D14. Keep this series' text on this Mac, or hand it back to the global
  * meeting-intelligence setting.
@@ -4500,6 +4790,31 @@ export type MeetingSeriesRemoteRow = { series_key: string; title: string; last_m
  */
 export type MeetingSeriesTemplateSetRequest = { operation_id: MeetingOperationId; series_key: string; template: MeetingNotesTemplate | null; expected_revision: number }
 export type MeetingSessionChangedEvent = MeetingEventPayload
+/**
+ * What one recording's disclosure — the line the consent panel offers to post
+ * in the meeting's own chat — is doing.
+ */
+export type MeetingSessionDisclosure =
+/**
+ * Nobody asked this meeting to announce itself, which is the default.
+ */
+{ kind: "not_asked" } |
+/**
+ * Asked for and not posted yet. `notetaker` is the name the room is told
+ * the notes are for: the calendar account's own attendee entry, which is
+ * the only place this app learns its operator's name.
+ *
+ * ponytail: falls back to the meeting's title when the calendar names
+ * nobody, so the one sentence always has something to interpolate. The
+ * upgrade path is an account name in settings, not a second phrasing.
+ */
+{ kind: "pending"; notetaker: string } |
+/**
+ * Posted, or refused. Delivery's own receipt says which: a target that
+ * cannot accept an insertion is `definitely_not_dispatched`, and that is
+ * the case the live surface mentions.
+ */
+{ kind: "attempted"; receipt: DeliveryReceipt }
 export type MeetingSessionId = string
 export type MeetingSessionSnapshot = { session_id: MeetingSessionId; phase: MeetingPhase; revision: number; title: string; started_at_utc_ms: number | null; elapsed_offset_ns: number | null; sources: MeetingSourceSnapshot[]; open_capture_window_started_at_ns: number | null; capture_completeness: CaptureCompleteness; storage: StorageAvailability; processing_status: ProcessingStatus;
 /**
@@ -4555,6 +4870,20 @@ export type MeetingTimeWindow = "any" | "today" | "last_7_days" | "last_30_days"
 export type MeetingTitleSetRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; title: string }
 export type MeetingTrackSnapshot = { track_id: SourceTrackId; source_kind: SourceKind; format: AudioFormat | null; first_offset_ns: number | null; last_offset_ns: number | null; durable_record_count: number }
 export type MeetingTranscriptChangedEvent = MeetingEventPayload
+/**
+ * One deleted meeting that can still be brought back.
+ *
+ * Not a stored shape: `expires_at_utc_ms` is derived from the deletion instant
+ * and the app's trash horizon, so the list and the sweep cannot disagree about
+ * when an undo runs out.
+ */
+export type MeetingTrashEntry = {
+/**
+ * The deletion job, which is the handle a restore is asked for by. There is
+ * no session id here on purpose: the session row is gone, and a restore is
+ * an undo of one deletion rather than an operation on a meeting.
+ */
+job_id: MeetingDeletionJobId; title: string; deleted_at_utc_ms: number; expires_at_utc_ms: number }
 /**
  * One local-calendar day in the meeting trend. Every requested date is
  * present, including dates with no retained meeting sessions.
@@ -4714,7 +5043,15 @@ cloud_timestamps?: boolean }
  */
 export type ModeDefinition = { id: string; name: string; tone: Tone; context_policy: ContextPolicy; asr: ModeAsrSettings; llm: ModeLlmSettings; prompt: ModePromptSettings; delivery: ModeDeliverySettings }
 export type ModeDeliverySettings = { paste_method: PasteMethod; clipboard_handling: ClipboardHandling; auto_submit: boolean; auto_submit_key: AutoSubmitKey; append_trailing_space: boolean; paste_delay_ms: number; paste_delay_after_ms: number; reliable_paste: boolean; typing_tool: TypingTool; external_script_path: string | null }
-export type ModeLlmSettings = { enabled: boolean; provider_id: string; model_id: string }
+export type ModeLlmSettings = { enabled: boolean; provider_id: string; model_id: string;
+/**
+ * Whether a trailing `Sona, …` sentence is handed to this mode's rewrite
+ * provider as an edit instruction instead of being typed. Off by default,
+ * and inert while `enabled` is false — without a rewrite provider the
+ * instruction has nowhere to go. Existing modes deserialize with it off.
+ * See [`crate::audio_toolkit::split_spoken_instruction`].
+ */
+spoken_instructions?: boolean }
 export type ModeMutationError = { kind: "stale_revision"; expected_revision: number; actual_revision: number } | { kind: "invalid_mode_id" } | { kind: "empty_name" } | { kind: "cannot_delete_default" } | { kind: "unknown_mode"; mode_id: string } | { kind: "duplicate_mode_id"; mode_id: string } | { kind: "invalid_reorder" } | { kind: "invalid_app_identity" } | { kind: "frontmost_application_unavailable" } | { kind: "invalid_website_host" } | { kind: "website_activation_consent_required" } | { kind: "frontmost_website_unavailable" } | { kind: "website_activation_secure_field" }
 export type ModePromptSettings = { preset: PromptPreset; source_prompt_id: string | null; custom_prompt: string | null }
 /**
@@ -4820,6 +5157,30 @@ export type OpenLoopsInboxResult = { schema_version: number; revision: number; e
 export type OperationActor = "user" | "system"
 export type OperationReceipt = { schema_version: number; operation_id: MeetingOperationId; session_id: MeetingSessionId | null; actor: OperationActor; command: MeetingCommandKind; expected_revision: number; from_phase: MeetingPhase | null; to_phase: MeetingPhase | null; requested_at_utc_ms: number; committed_at_utc_ms: number | null; result: OperationResult; reason_codes: MeetingReasonCode[]; new_revision: number | null; effect_ids: string[] }
 export type OperationResult = "committed" | "rejected" | "failed"
+/**
+ * One organization, read across the people who carry it.
+ *
+ * Every field is a union of what its people already answer, in the same
+ * shapes: an organization is not a stored noun in this corpus — no row, no
+ * identity, no mutation — it is the set of people whose calendar addresses
+ * landed on one domain. So this page reuses the person row, the person's
+ * meeting summary and the person's loop, and adds nothing of its own beyond
+ * the union.
+ */
+export type OrganizationDetail = {
+/**
+ * The label as its people carry it, not the slug it was looked up by.
+ */
+name: string; people: PersonListEntry[];
+/**
+ * Meetings with anybody here, newest first, deduplicated across people.
+ */
+recent_meetings: PersonMeetingSummary[];
+/**
+ * What is still open with anybody here, newest first.
+ */
+open_loops: PersonOpenLoop[] }
+export type OrganizationDetailResult = { schema_version: number; revision: number; detail: OrganizationDetail }
 export type OrtAcceleratorSetting = "auto" | "cpu" | "cuda" | "directml" | "rocm"
 export type OverlayPosition = "top" | "bottom"
 /**
@@ -4850,7 +5211,11 @@ export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_
 export type PeopleListResult = { schema_version: number; revision: number; entries: PersonListEntry[] }
 export type PeopleMutationResult = { schema_version: number; revision: number; person: Person | null; removed: boolean }
 export type PermissionAccess = "allowed" | "denied" | "unknown"
-export type Person = { id: PersonId; display_name: string; aliases: string[]; calendar_emails: string[]; organization: string | null; created_at_utc_ms: number; updated_at_utc_ms: number }
+export type Person = { id: PersonId; display_name: string; aliases: string[]; calendar_emails: string[]; organization: string | null;
+/**
+ * Absent until an artifact pass has had an engine to write it with.
+ */
+summary: PersonSummary | null; created_at_utc_ms: number; updated_at_utc_ms: number }
 export type PersonBriefingLastMeeting = { id: MeetingSessionId; title: string; at_utc_ms: number; headline: string | null }
 export type PersonBriefingRow = { person_id: PersonId; display_name: string; meetings_count: number; last: PersonBriefingLastMeeting | null; open_loops: PersonOpenLoop[]; commitments: PersonCommitment[] }
 export type PersonCommitment = { loop_id: MeetingLoopId; meeting_id: MeetingSessionId; title: string; at_utc_ms: number; text: string; status: MeetingLoopStatus;
@@ -4908,6 +5273,20 @@ export type PersonRenameRequest = { person_id: PersonId; display_name: string; e
 export type PersonSplitRequest = { source_person_id: PersonId; target: PersonSplitTarget; meeting_ids: MeetingSessionId[]; aliases: string[]; calendar_emails: string[]; document_ids: DocumentId[]; expected_revision: number }
 export type PersonSplitTarget = { kind: "create"; display_name: string } | { kind: "existing"; person_id: PersonId }
 /**
+ * The relationship paragraph on a person's page: three sentences generated
+ * from that person's evidence pack, and the two facts that make it readable.
+ *
+ * One struct rather than three optional columns on [`Person`], because a
+ * paragraph with no engine behind it and an engine with no paragraph are both
+ * states the store cannot produce and no reader should have to handle.
+ */
+export type PersonSummary = { text: string; generated_at_utc_ms: number;
+/**
+ * The engine that wrote it, as [`crate::meeting::processing::MeetingTextGenerator::model_id`]
+ * reports it.
+ */
+model_id: string }
+/**
  * One paragraph of the user's own writing, injected into the rewrite prompt as
  * a voice-matching example. Samples are the user's text, so they are never
  * sent anywhere the transcript itself would not already go.
@@ -4931,7 +5310,83 @@ export type ProcessingFailure = "local_model_unavailable" | "remote_unavailable"
  */
 "interrupted"
 export type ProcessingStatus = { kind: "pending" } | { kind: "running" } | { kind: "succeeded" } | { kind: "failed"; reason: ProcessingFailure } | { kind: "cancelled" }
+/**
+ * What shape a prompt's answer takes.
+ */
+export type PromptOutput =
+/**
+ * Prose, rendered as Markdown wherever a run is read.
+ */
+{ kind: "text" } |
+/**
+ * One JSON object, checked against `json_schema` before it is stored. An
+ * answer that does not check is a failed run, never a stored half-answer.
+ */
+{ kind: "schema"; json_schema: string }
 export type PromptPreset = "minimalist_cleanup" | "application_context" | "email" | "meeting" | "notes" | "generic"
+/**
+ * One attempt at one prompt, and its receipt.
+ *
+ * This *is* the receipt, not a summary of one kept elsewhere — the same rule
+ * [`super::automation_types::MeetingAutomationRunReceipt`] follows.
+ * [`OperationReceipt`] is the currency of fenced preference writes; a run is a
+ * generation, so it records its own outcome in its own row. Nothing retries: a
+ * `Failed` row is the answer, and it stays visible.
+ */
+export type PromptRun = { run_id: PromptRunId; prompt_id: SavedPromptId; target_kind: PromptTarget; target_id: string;
+/**
+ * The notes revision this run read, when it read one meeting's own words.
+ * `None` for a prompt about a person or a series, which read a pack drawn
+ * from many.
+ */
+artifact_id: MeetingArtifactId | null; model_id: string; model_version: string; produced_at_utc_ms: number; result: PromptRunResult }
+/**
+ * Why a run produced no answer.
+ *
+ * Its own vocabulary rather than [`super::types::MeetingReasonCode`], for the
+ * same reason [`super::automation_types::MeetingAutomationFailure`] has one:
+ * these are the ways one model call fails, and widening the app-wide code list
+ * with them would make every unrelated receipt reader carry them too.
+ */
+export type PromptRunFailure =
+/**
+ * No engine at all: remote is off or this series is excluded, and this
+ * machine has no on-device model either.
+ */
+"model_unavailable" |
+/**
+ * The chosen engine could not be reached.
+ */
+"model_unreachable" |
+/**
+ * It answered, and the answer was not usable.
+ */
+"model_failed" |
+/**
+ * A schema prompt whose answer was not JSON, or not this schema's JSON.
+ */
+"schema_mismatch" |
+/**
+ * Nothing in the corpus for this prompt to read.
+ */
+"no_evidence"
+export type PromptRunId = string
+/**
+ * What one run produced.
+ *
+ * Struct variants rather than the newtypes the shape suggests, because serde's
+ * internal tagging — the convention every other tagged enum in this app uses —
+ * cannot carry a newtype variant holding a string.
+ */
+export type PromptRunResult = { kind: "text"; text: string } | { kind: "json"; json: string } | { kind: "failed"; reason: PromptRunFailure }
+/**
+ * Which noun a prompt is written about.
+ */
+export type PromptTarget = "meeting" | "person" | "series"
+/**
+ * The noun one run was about.
+ */
+export type PromptTargetRef = { kind: "meeting"; session_id: MeetingSessionId } | { kind: "person"; person_id: PersonId } | { kind: "series"; series_key: string }
 /**
  * Where the next page resumes.
  *
@@ -5018,7 +5473,12 @@ export type QueryLinkRequestedEvent = QueryLinkPayload
  * third channel never appears: meeting *lifecycle* navigation belongs to the
  * meeting event; opening a query-plane address belongs here.
  */
-export type QueryLinkTarget = { kind: "person"; person_id: PersonId } | { kind: "dictation"; history_id: number } |
+export type QueryLinkTarget = { kind: "person"; person_id: PersonId } |
+/**
+ * Everybody at one organization. A slug rather than an id: an
+ * organization is derived from calendar domains, not stored as a row.
+ */
+{ kind: "organization"; slug: string } | { kind: "dictation"; history_id: number } |
 /**
  * The search surface, with the question the link carried. Empty means the
  * link named no question, which is what the ⌘K chord does.
@@ -5086,6 +5546,30 @@ export type RemoteAcknowledgement = { destination_id: string; policy_version: nu
  */
 export type ReplacementRule = { spoken: string; written: string; enabled: boolean }
 export type RequestedEngine = "local" | "deepgram_nova_3" | "eleven_labs_scribe_v2"
+/**
+ * One prompt the operator wrote.
+ */
+export type SavedPrompt = { prompt_id: SavedPromptId; name: string; body: string; output: PromptOutput; target: PromptTarget; created_at_utc_ms: number; updated_at_utc_ms: number }
+export type SavedPromptDeleteRequest = { operation_id: MeetingOperationId; prompt_id: SavedPromptId; expected_revision: number }
+export type SavedPromptId = string
+/**
+ * The prompts on this machine, and the fence a write against them carries.
+ *
+ * One counter for the whole table, like the automations roster's: the settings
+ * page and the palette both hold the whole list and write single rows against
+ * it, and a per-row revision would cost a read each without changing what
+ * happens when two windows save from the same list.
+ */
+export type SavedPromptList = { prompts: SavedPrompt[]; revision: number }
+export type SavedPromptMutationResult = { receipt: OperationReceipt; prompts: SavedPromptList }
+export type SavedPromptRunRequest = { prompt_id: SavedPromptId; target: PromptTargetRef }
+/**
+ * Create a prompt, or rewrite one.
+ *
+ * A `None` id asks for a new prompt; any other id is the row to overwrite, so
+ * a replayed save from a stale window updates in place rather than duplicating.
+ */
+export type SavedPromptSaveRequest = { operation_id: MeetingOperationId; prompt_id: SavedPromptId | null; name: string; body: string; output: PromptOutput; target: PromptTarget; expected_revision: number }
 export type SecretCommandError = "not_found" | "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend" | "consent_required"
 export type SecretErrorKind = "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend"
 export type SecretKind = "llm" | "stt" | "meeting_storage"
@@ -5131,6 +5615,20 @@ export type Snippet = { id: string; trigger: string; expansion: string; enabled:
 export type SonaAgentChatRoleV1 = "user" | "assistant"
 export type SonaAgentChatTurnV1 = { role: SonaAgentChatRoleV1; message: string }
 export type SonaAgentStepStateV1 = "running" | "done" | "failed"
+/**
+ * One corpus change the assistant is offering to make.
+ *
+ * Every id here is a real newtype rather than a string, so a response whose
+ * person id is not a uuid or whose template is not one of the five fails at
+ * the decode rather than at the store. What the type cannot say is that an id
+ * names something *this turn was shown*; that is
+ * [`SonaChatActionV1::validate`], and it is the difference between an
+ * assistant acting on evidence and an assistant guessing at the corpus.
+ *
+ * Mirrored by `SONA_ACTION_FIELDS` in `omp_bridge/sona_chat.py`, which checks
+ * the same field sets on the way out.
+ */
+export type SonaChatActionV1 = { kind: "resolve_loop"; reason: string; loop_id: MeetingLoopId } | { kind: "assign_loop"; reason: string; loop_id: MeetingLoopId; person_id: PersonId } | { kind: "set_series_template"; reason: string; series_key: string; template_id: MeetingNotesTemplate } | { kind: "add_vocabulary_term"; reason: string; term: string; replacement: string | null } | { kind: "rename_speaker"; reason: string; session_id: MeetingSessionId; speaker_id: SpeakerId; name: string }
 export type SonaConfirmationClassV1 = "automatic" | "review" | "explicit"
 export type SonaSettingChangeV1 = { key: "theme"; value: Theme } | { key: "overlay_style"; value: OverlayStyle } | { key: "overlay_position"; value: OverlayPosition } | { key: "audio_feedback"; value: boolean } | { key: "audio_volume"; value: number } | { key: "mute_while_recording"; value: boolean } | { key: "audio_output_device_id"; value: string } | { key: "microphone_id"; value: string } | { key: "default_transcription_model"; value: string } | { key: "language"; value: string } | { key: "spelling_behavior"; value: EnglishSpelling } | { key: "mode_selection"; value: string } | { key: "mode_toggles"; value: Partial<{ [key in string]: boolean }> } | { key: "local_retention_period"; value: number } | { key: "start_hidden"; value: boolean } | { key: "tray_visibility"; value: boolean } | { key: "update_note_visibility"; value: boolean }
 export type SoundTheme = "marimba" | "pop" | "custom"

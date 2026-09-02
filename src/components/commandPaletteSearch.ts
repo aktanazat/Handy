@@ -227,6 +227,9 @@ export const askSona = async (
       locale,
       workspace: "sona_chat",
       context_pack: pack.data.pack,
+      /* The palette has no toggle and no place to show one: a question typed
+       * here is answered from the pack alone. */
+      tools_allowed: false,
     });
     return sent.status === "error" ? "failed" : "sent";
   } catch {
