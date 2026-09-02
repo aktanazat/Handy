@@ -3086,6 +3086,7 @@
       "browsersAutomatic": "Rozmowa w karcie przeglądarki jest wykrywana bez wpisywania jej tutaj.",
       "runningNow": "Uruchomione teraz",
       "autoRecord": "Nagrywaj automatycznie",
+      "autoRecordSources": "Nagrywaj automatycznie rejestruje Twój mikrofon i wyjście audio tego Maca zawsze, gdy ta aplikacja jest w trakcie połączenia.",
       "autoRecordConsent": "W niektórych miejscach nagrywanie wymaga zgody wszystkich uczestników rozmowy.",
       "add": "Dodaj aplikację",
       "addTitle": "Dodaj aplikację do spotkań",

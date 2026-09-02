@@ -3045,6 +3045,7 @@
       "browsersAutomatic": "브라우저 탭의 통화는 여기 없어도 감지됩니다.",
       "runningNow": "지금 실행 중",
       "autoRecord": "자동으로 녹음",
+      "autoRecordSources": "자동으로 녹음은 해당 앱이 통화 중일 때마다 마이크와 이 Mac의 오디오 출력을 녹음합니다.",
       "autoRecordConsent": "일부 지역에서는 통화 참여자 전원이 녹음에 동의해야 합니다.",
       "add": "앱 추가",
       "addTitle": "미팅 앱 추가",

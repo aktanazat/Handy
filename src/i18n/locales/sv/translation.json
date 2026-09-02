@@ -3056,6 +3056,7 @@
       "browsersAutomatic": "Ett samtal i en webbläsarflik upptäcks utan att stå med här.",
       "runningNow": "Körs nu",
       "autoRecord": "Spela in automatiskt",
+      "autoRecordSources": "Spela in automatiskt fångar din mikrofon och den här datorns ljudutgång varje gång den appen är i ett samtal.",
       "autoRecordConsent": "På vissa platser krävs att alla i ett samtal samtycker till inspelning.",
       "add": "Lägg till en app",
       "addTitle": "Lägg till en mötesapp",

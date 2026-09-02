@@ -3045,6 +3045,7 @@
       "browsersAutomatic": "Cuộc gọi trong một thẻ trình duyệt vẫn được phát hiện mà không cần liệt kê ở đây.",
       "runningNow": "Đang chạy",
       "autoRecord": "Tự động ghi âm",
+      "autoRecordSources": "Tự động ghi âm sẽ thu micrô của bạn và đầu ra âm thanh của máy Mac này bất cứ khi nào ứng dụng đó đang trong cuộc gọi.",
       "autoRecordConsent": "Một số nơi yêu cầu mọi người trong cuộc gọi phải đồng ý với việc ghi âm.",
       "add": "Thêm một ứng dụng",
       "addTitle": "Thêm một ứng dụng họp",

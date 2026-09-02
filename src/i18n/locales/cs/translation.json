@@ -3086,6 +3086,7 @@
       "browsersAutomatic": "Hovor na kartě prohlížeče se rozpozná, aniž by byl uveden zde.",
       "runningNow": "Právě běží",
       "autoRecord": "Nahrávat automaticky",
+      "autoRecordSources": "Nahrávat automaticky zachytává váš mikrofon a zvukový výstup tohoto Macu vždy, když je daná aplikace v hovoru.",
       "autoRecordConsent": "Na některých místech musí s nahráváním souhlasit všichni účastníci hovoru.",
       "add": "Přidat aplikaci",
       "addTitle": "Přidat aplikaci pro schůzky",

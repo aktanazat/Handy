@@ -3056,6 +3056,7 @@
       "browsersAutomatic": "Een gesprek in een browsertabblad wordt gedetecteerd zonder dat het hier staat.",
       "runningNow": "Draait nu",
       "autoRecord": "Automatisch opnemen",
+      "autoRecordSources": "Automatisch opnemen legt je microfoon en de audio-uitvoer van deze Mac vast wanneer die app in een gesprek is.",
       "autoRecordConsent": "Op sommige plaatsen moet iedereen in een gesprek instemmen met de opname.",
       "add": "Een app toevoegen",
       "addTitle": "Een vergaderapp toevoegen",

@@ -3056,6 +3056,7 @@
       "browsersAutomatic": "Tarayıcı sekmesindeki bir görüşme burada yazmadan da algılanır.",
       "runningNow": "Şu anda çalışanlar",
       "autoRecord": "Otomatik kaydet",
+      "autoRecordSources": "Otomatik olarak kaydet, o uygulama bir aramadayken mikrofonunuzu ve bu Mac'in ses çıkışını kaydeder.",
       "autoRecordConsent": "Bazı yerlerde aramadaki herkesin kayda onay vermesi gerekir.",
       "add": "Uygulama ekle",
       "addTitle": "Toplantı uygulaması ekle",

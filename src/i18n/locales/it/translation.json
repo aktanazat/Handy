@@ -3071,6 +3071,7 @@
       "browsersAutomatic": "Una chiamata in una scheda del browser viene rilevata senza comparire qui.",
       "runningNow": "In esecuzione ora",
       "autoRecord": "Registra automaticamente",
+      "autoRecordSources": "Registra automaticamente acquisisce il microfono e l'uscita audio di questo Mac ogni volta che quell'app è in una chiamata.",
       "autoRecordConsent": "In alcuni luoghi è richiesto il consenso alla registrazione di tutti i partecipanti alla chiamata.",
       "add": "Aggiungi un'app",
       "addTitle": "Aggiungi un'app di riunione",

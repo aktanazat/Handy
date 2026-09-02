@@ -3056,6 +3056,7 @@
       "browsersAutomatic": "Ein Anruf in einem Browser-Tab wird erkannt, ohne hier aufgeführt zu sein.",
       "runningNow": "Läuft gerade",
       "autoRecord": "Automatisch aufnehmen",
+      "autoRecordSources": "Automatisch aufnehmen erfasst dein Mikrofon und die Audioausgabe dieses Mac, sobald diese App in einem Anruf ist.",
       "autoRecordConsent": "An manchen Orten müssen alle Teilnehmenden eines Anrufs der Aufnahme zustimmen.",
       "add": "App hinzufügen",
       "addTitle": "Besprechungs-App hinzufügen",

@@ -3071,6 +3071,7 @@
       "browsersAutomatic": "Una llamada en una pestaña del navegador se detecta sin necesidad de aparecer aquí.",
       "runningNow": "En ejecución ahora",
       "autoRecord": "Grabar automáticamente",
+      "autoRecordSources": "Grabar automáticamente captura tu micrófono y la salida de audio de este Mac siempre que esa app esté en una llamada.",
       "autoRecordConsent": "En algunos lugares se exige que todos los participantes de una llamada acepten la grabación.",
       "add": "Añadir una app",
       "addTitle": "Añadir una app de reunión",

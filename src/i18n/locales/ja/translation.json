@@ -3045,6 +3045,7 @@
       "browsersAutomatic": "ブラウザのタブでの通話は、ここに載せなくても検出されます。",
       "runningNow": "実行中",
       "autoRecord": "自動で録音",
+      "autoRecordSources": "自動的に録音は、そのAppが通話中のときにいつでもマイクとこのMacのオーディオ出力を録音します。",
       "autoRecordConsent": "地域によっては、通話の参加者全員の録音への同意が必要です。",
       "add": "アプリを追加",
       "addTitle": "ミーティングアプリを追加",

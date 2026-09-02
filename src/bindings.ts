@@ -3772,7 +3772,13 @@ export type DetectionPromptKind =
  */
 { kind: "UnknownMicSource" }
 export type DetectionPromptRetractedEvent = { eventSchemaVersion: number; promptId: string; reason: DetectionPromptRetractionReason }
-export type DetectionPromptRetractionReason = "trigger_app_quit" | "event_ended" | "mic_episode_ended" | "resolved"
+export type DetectionPromptRetractionReason = "trigger_app_quit" | "event_ended" | "mic_episode_ended" |
+/**
+ * A call prompt's call is no longer live. Its episode is the call, not
+ * the microphone: the call it offered to record may never have raised
+ * the input device at all.
+ */
+"call_ended" | "resolved"
 /**
  * The operator-editable half of detection, read and written as one unit.
  *
@@ -5708,10 +5714,11 @@ export type StopTrigger =
 "input_device_idle" |
 /**
  * The call this capture was started for ended: its app stopped playing
- * through the default output device. `InputDeviceIdle` cannot express
- * this — Sona's own capture keeps the input device raised for the whole
- * meeting — and a call app stays open long after a call hangs up, so
- * `TriggerAppExited` cannot either.
+ * through the default output device and stayed silent past
+ * `CALL_HANGUP_GRACE_MS`. `InputDeviceIdle` cannot express this — Sona's
+ * own capture keeps the input device raised for the whole meeting — and a
+ * call app stays open long after a call hangs up, so `TriggerAppExited`
+ * cannot either.
  */
 "call_ended" |
 /**

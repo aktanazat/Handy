@@ -3056,6 +3056,7 @@
       "browsersAutomatic": "Et opkald i en browserfane bliver registreret uden at stå her.",
       "runningNow": "Kører nu",
       "autoRecord": "Optag automatisk",
+      "autoRecordSources": "Optag automatisk optager din mikrofon og denne Macs lydoutput, hver gang den pågældende app er i et opkald.",
       "autoRecordConsent": "Nogle steder kræver, at alle på et opkald samtykker til optagelse.",
       "add": "Tilføj en app",
       "addTitle": "Tilføj en mødeapp",

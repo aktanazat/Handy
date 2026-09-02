@@ -3045,6 +3045,7 @@
       "browsersAutomatic": "浏览器标签页里的通话无需列在这里也能被检测到。",
       "runningNow": "正在运行",
       "autoRecord": "自动录制",
+      "autoRecordSources": "自动录制会在该应用处于通话中时录制你的麦克风和这台 Mac 的音频输出。",
       "autoRecordConsent": "在某些地区，录制通话需要通话中的每个人同意。",
       "add": "添加应用",
       "addTitle": "添加会议应用",

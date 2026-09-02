@@ -3071,6 +3071,7 @@
       "browsersAutomatic": "Un appel dans un onglet du navigateur est détecté sans figurer ici.",
       "runningNow": "En cours d'exécution",
       "autoRecord": "Enregistrer automatiquement",
+      "autoRecordSources": "Enregistrer automatiquement capture votre micro et la sortie audio de ce Mac chaque fois que cette app est en appel.",
       "autoRecordConsent": "Dans certains endroits, l'enregistrement exige l'accord de tous les participants à l'appel.",
       "add": "Ajouter une app",
       "addTitle": "Ajouter une app de réunion",
