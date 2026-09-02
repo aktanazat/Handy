@@ -44,7 +44,8 @@ export type DetectionSuppressReason =
   | "attendee_floor_not_met"
   | "unknown_mic_source"
   | "browser_title_unreadable"
-  | "browser_title_not_meeting";
+  | "browser_title_not_meeting"
+  | "app_present_not_in_use";
 
 export type DetectionStopTrigger =
   | "sleep_boundary"

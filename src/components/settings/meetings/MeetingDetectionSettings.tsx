@@ -45,7 +45,20 @@ const SUPPRESS_REASON_COPY = {
     "meetings.detection.why.browserNotMeeting",
     "A browser is in front and its tab is not a call.",
   ],
+  app_present_not_in_use: [
+    "meetings.detection.why.appPresentNotInUse",
+    "A meeting app is open, but you have not switched to it since the microphone came on.",
+  ],
 } satisfies Record<DetectionSuppressReason, [string, string]>;
+
+/* The one sentence the status line says for a suppressed tick. Exported as a
+ * pure mapping, like `promptTitle`, because a static render cannot observe a
+ * seeded store: this is where a reason's copy is checked. */
+export const suppressReasonLine = (
+  t: (key: string, fallback: string) => string,
+  reason: DetectionSuppressReason,
+): string =>
+  t(SUPPRESS_REASON_COPY[reason][0], SUPPRESS_REASON_COPY[reason][1]);
 
 /** One degraded path, named. `live` belongs only to the line that changes on a
  *  tick rather than on something the operator did. */
@@ -267,10 +280,7 @@ export const MeetingDetectionState: React.FC = () => {
       id: "suppression",
       tone: "muted",
       live: true,
-      text: t(
-        SUPPRESS_REASON_COPY[status.suppressReason][0],
-        SUPPRESS_REASON_COPY[status.suppressReason][1],
-      ),
+      text: suppressReasonLine(t, status.suppressReason),
     });
   }
   if (!status.availableStopTriggers.includes("silence")) {

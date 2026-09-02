@@ -11,6 +11,7 @@ import {
   MeetingDetectionAdvanced,
   MeetingDetectionState,
   MeetingDetectionToggle,
+  suppressReasonLine,
 } from "./MeetingDetectionSettings";
 import { MeetingAppsPicker } from "./MeetingAppsPicker";
 import { DetectionListeners, promptTitle } from "./DetectionListeners";
@@ -248,6 +249,7 @@ describe("english catalogue", () => {
     "meetings.detection.why.unknownApp",
     "meetings.detection.why.browserUnreadable",
     "meetings.detection.why.browserNotMeeting",
+    "meetings.detection.why.appPresentNotInUse",
     "meetings.detection.calendar.refusedLabel",
     "meetings.detection.calendar.refused",
     "meetings.detection.calendar.openSettings",
@@ -271,10 +273,22 @@ describe("english catalogue", () => {
       "unknownApp",
       "browserUnreadable",
       "browserNotMeeting",
+      "appPresentNotInUse",
     ];
 
     expect(Object.keys(catalogue.meetings.detection.why).sort()).toEqual(
       reasons.sort(),
+    );
+  });
+
+  /* The reason change 1 of the detection redesign added: presence is not
+   * participation. The sentence has to say what the operator can do about
+   * it, which is switch to the app. */
+  test("app_present_not_in_use tells the operator to switch to the app", () => {
+    expect(
+      suppressReasonLine(i18n.t.bind(i18n), "app_present_not_in_use"),
+    ).toBe(
+      "A meeting app is open, but you have not switched to it since the microphone came on.",
     );
   });
 });

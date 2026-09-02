@@ -2437,7 +2437,8 @@
         "soloEvent": "The next event has fewer than two attendees, so it reads as blocked time.",
         "unknownApp": "Something is using the microphone, but it is not a known meeting app.",
         "browserUnreadable": "A browser is in front, but its tab title cannot be read.",
-        "browserNotMeeting": "A browser is in front and its tab is not a call."
+        "browserNotMeeting": "A browser is in front and its tab is not a call.",
+        "appPresentNotInUse": "A meeting app is open, but you have not switched to it since the microphone came on."
       }
     },
     "preview": {
