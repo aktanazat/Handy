@@ -864,14 +864,28 @@ describe("meeting review", () => {
 
   /* The race this rule exists for, as the sequence the screen actually sees:
    * processing finishes while the review is open, so the record arrives empty
-   * and fills in. A `useState` initialiser reads only the first of these. */
+   * and fills in. A `useState` initialiser reads only the first of these.
+   * What fills in decides where it opens: the ledger is the default reading
+   * of a finished meeting, and Insights is the fallback for a record that has
+   * words but no ledger. `LEDGER` is defined further down the file; tests run
+   * after the module has finished evaluating, so it is in reach here. */
   test("a record whose notes arrive after the screen does still opens on them", () => {
     const arriving = { ...SNAPSHOT, artifacts: [], notes: [] };
 
     // First snapshot: nothing to read, nobody has decided, transcript renders.
     expect(nextReviewTab(null, arriving)).toBeNull();
-    // Second snapshot, same mounted screen: the artifacts landed.
+    // Second snapshot, same mounted screen: notes landed without a ledger.
     expect(nextReviewTab(null, SNAPSHOT)).toBe("insights");
+    // Or with one, which is where a finished meeting is read from.
+    expect(nextReviewTab(null, ledgerSnapshot(LEDGER))).toBe("ledger");
+    // A ledger on a revision that is no longer current is no ledger.
+    const [artifact] = ledgerSnapshot(LEDGER).artifacts;
+    expect(
+      nextReviewTab(null, {
+        ...SNAPSHOT,
+        artifacts: [{ ...artifact, state: "out_of_date" }],
+      }),
+    ).toBe("insights");
   });
 
   test("a decision, once made, survives every later snapshot", () => {
@@ -882,6 +896,11 @@ describe("meeting review", () => {
     expect(
       nextReviewTab("insights", { ...SNAPSHOT, artifacts: [], notes: [] }),
     ).toBe("insights");
+    // Nor may a ledger arriving pull a reader off the tab they are on.
+    expect(nextReviewTab("insights", ledgerSnapshot(LEDGER))).toBe("insights");
+    expect(nextReviewTab("transcript", ledgerSnapshot(LEDGER))).toBe(
+      "transcript",
+    );
   });
 
   test("the title is the page's heading, and the only way to a field", () => {

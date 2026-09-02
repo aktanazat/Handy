@@ -35,6 +35,7 @@ import { InsightsTab } from "./review/InsightsTab";
 import { TalkTimeRow } from "./review/TalkTimeRow";
 import { TranscriptTab } from "./review/TranscriptTab";
 import { MeetingLedgerSection } from "./MeetingLedgerSection";
+import { currentLedger } from "./meetingLedger";
 import { MeetingPhaseText } from "./MeetingStatus";
 import { type LoopChange } from "./review/LoopRows";
 import { committedEdit, inlineEditKeys } from "./review/inlineEdit";
@@ -72,6 +73,12 @@ type ReviewTab = (typeof REVIEW_TAB_IDS)[number];
  * snapshot in hand. `null` means nobody has decided yet — the record carries
  * nothing written about it, so the transcript is all there is to read.
  *
+ * The ledger is the default reading of a finished meeting: where did we land,
+ * and what was left open. A record that carries one opens there; a record
+ * with notes but no ledger opens on Insights, which is still something to
+ * read. The plain summary and the action list stay on Insights either way —
+ * the ledger sits beside them, never in their place.
+ *
  * A decision, once made, is never revisited: `chosen` short-circuits, so a
  * refresh cannot move a reader who picked a tab and a deleted last note cannot
  * pull one off Insights. The only transition this makes is the first one, from
@@ -83,9 +90,11 @@ export const nextReviewTab = (
   snapshot: MeetingReviewSnapshot,
 ): ReviewTab | null =>
   chosen ??
-  (snapshot.artifacts.length > 0 || snapshot.notes.length > 0
-    ? "insights"
-    : null);
+  (currentLedger(snapshot.artifacts) !== null
+    ? "ledger"
+    : snapshot.artifacts.length > 0 || snapshot.notes.length > 0
+      ? "insights"
+      : null);
 
 /* The kit's own `line` variant draws the mark; this only quiets the type and
  * moves the focus ring onto the accent. */
