@@ -777,28 +777,30 @@ export default function ConsentPanel() {
               </label>
             </>
           ) : null}
-          <div className="flex items-end justify-between gap-3">
-            <p id="consent-body" className={`max-w-[215px] ${noteClass}`}>
-              {t(
-                "meetings.start.assurance",
-                "Records your Mac's audio locally. Nothing joins the call.",
-              )}
-            </p>
-            <div className="flex gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={ignore}>
-                {t("consentPanel.ignore")}
-              </Button>
-              {/* Focus lands here: Enter records, Escape ignores. */}
-              <Button
-                type="button"
-                size="sm"
-                autoFocus
-                disabled={starting}
-                onClick={record}
-              >
-                {t("consentPanel.record")}
-              </Button>
-            </div>
+          {/* Full width, on its own row: beside the buttons it ran to four
+           * lines in the locales with the widest button labels, and the
+           * window, sized for the tallest locale, opened a band under the
+           * buttons everywhere else. */}
+          <p id="consent-body" className={noteClass}>
+            {t(
+              "meetings.start.assurance",
+              "Records your Mac's audio locally. Nothing joins the call.",
+            )}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={ignore}>
+              {t("consentPanel.ignore")}
+            </Button>
+            {/* Focus lands here: Enter records, Escape ignores. */}
+            <Button
+              type="button"
+              size="sm"
+              autoFocus
+              disabled={starting}
+              onClick={record}
+            >
+              {t("consentPanel.record")}
+            </Button>
           </div>
         </Card>
       );

@@ -17,15 +17,17 @@ const CARD_INSET: f64 = 7.0;
 // at its ceiling, and recorded per row at the tallest locale, rounded up to the
 // point: the window is chosen before any text is measured, and copy that does
 // not fit is copy the reader loses. The prompt is the only shape whose rows
-// wrap by locale: its assurance line sits beside the buttons and runs to four
-// lines in uk where English takes two, so English renders 32pt shorter than
-// the tallest locale, which shows as bottom inset rather than as the band this
-// panel used to open between its checkbox and its buttons. The ritual cards
-// truncate or clamp every row and measure the same in every locale. Change the
-// panel's copy, type or layout and these have to be measured again.
+// wrap by locale: its assurance line runs to two lines in most locales where
+// English takes one, and its introduction to two in ten of them, so English
+// renders 16pt shorter than the tallest locale in the shapes without a
+// paragraph and 36pt shorter in the ones with two, which shows as bottom inset
+// rather than as the band this panel used to open between its checkbox and its
+// buttons. The ritual cards truncate or clamp every row and measure the same
+// in every locale. Change the panel's copy, type or layout and these have to
+// be measured again.
 
 /// The prompt's title, assurance line and buttons. Nothing here is optional.
-const PROMPT_CONTENT: f64 = 125.0;
+const PROMPT_CONTENT: f64 = 131.0;
 /// The always-record checkbox row and the gap above it. Calendar prompts only.
 const PROMPT_CHECKBOX_ROW: f64 = 31.0;
 /// The announce-in-chat checkbox row. Drawn with the always-record row and only
@@ -296,11 +298,11 @@ mod tests {
             .height()
         };
 
-        assert_eq!(prompt(false, false, false), 139.0);
-        assert_eq!(prompt(false, true, false), 183.0);
-        assert_eq!(prompt(true, false, false), 201.0);
-        assert_eq!(prompt(true, true, false), 245.0);
-        assert_eq!(prompt(true, true, true), 269.0);
+        assert_eq!(prompt(false, false, false), 145.0);
+        assert_eq!(prompt(false, true, false), 189.0);
+        assert_eq!(prompt(true, false, false), 207.0);
+        assert_eq!(prompt(true, true, false), 251.0);
+        assert_eq!(prompt(true, true, true), 275.0);
         assert_eq!(prep(0, false, false), 173.0);
         // The loops heading is drawn with the first row and only then.
         assert_eq!(prep(1, false, false), 226.0);
