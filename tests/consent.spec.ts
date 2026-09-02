@@ -25,6 +25,7 @@ const ACTIVE_PANEL_STATE = {
     started_at_utc_ms: meetingStartedAtMs(),
   },
   standing_series_key: null,
+  disclosure: { kind: "not_asked" },
 };
 
 const PREP_RITUAL = {
@@ -170,6 +171,103 @@ test.describe("Consent panel", () => {
         ),
       )
       .toEqual({ promptId: "prompt-ignore", accepted: false });
+  });
+
+  /* The prompt is a dialog the keyboard can drive: focus starts on Record,
+   * Tab cycles inside the card, and Escape is Ignore. The card stays for its
+   * exit fade rather than vanishing under the pointer. */
+  test("the prompt is a dialog: Record takes focus, Tab cycles, Escape ignores", async ({
+    page,
+  }) => {
+    await installTauriMock(page, {
+      events: {
+        "detection-prompt": [{ ...CALENDAR_PROMPT, promptId: "prompt-keys" }],
+      },
+    });
+    await page.goto("/consent");
+
+    const dialog = page.getByRole("dialog", { name: "Record Weekly sync?" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAccessibleDescription(
+      /Sona records on this Mac and keeps you in control\./,
+    );
+    const record = page.getByRole("button", { name: "Record", exact: true });
+    await expect(record).toBeFocused();
+
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("checkbox", { name: "Always record this meeting" }),
+    ).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(record).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(page.locator("[data-leaving] > main")).toBeVisible();
+    await expect(dialog).toBeHidden();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          JSON.parse(
+            localStorage.getItem("detection-prompt-response") ?? "null",
+          ),
+        ),
+      )
+      .toEqual({ promptId: "prompt-keys", accepted: false });
+  });
+
+  test("Escape dismisses PREP and finishes WRAP, and leaves the pill alone", async ({
+    page,
+  }) => {
+    await installTauriMock(page, {
+      events: { "meeting-ritual": [PREP_RITUAL] },
+    });
+    await page.goto("/consent");
+    await expect(
+      page.getByRole("dialog", { name: /Weekly product review — in/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Record when it starts" }),
+    ).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          JSON.parse(localStorage.getItem("meeting-ritual-response") ?? "null"),
+        ),
+      )
+      .toEqual({ ritualId: PREP_RITUAL.ritualId, action: "prep_dismiss" });
+
+    await installTauriMock(page, {
+      events: { "meeting-ritual": [WRAP_RITUAL] },
+    });
+    await page.goto("/consent");
+    await expect(
+      page.getByRole("dialog", { name: "Weekly product review — saved" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Done" })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          JSON.parse(localStorage.getItem("meeting-ritual-response") ?? "null"),
+        ),
+      )
+      .toEqual({ ritualId: WRAP_RITUAL.ritualId, action: "wrap_done" });
+
+    await installTauriMock(page, {
+      responses: { meeting_consent_panel_active_state: ACTIVE_PANEL_STATE },
+    });
+    await page.goto("/consent");
+    await expect(page.getByText("Recording", { exact: true })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(200);
+    await expect(page.getByText("Recording", { exact: true })).toBeVisible();
+    expect(
+      await page.evaluate(() =>
+        Number(localStorage.getItem("meeting-stopped")),
+      ),
+    ).toBe(0);
   });
 
   test("retraction clears the matching panel prompt", async ({ page }) => {

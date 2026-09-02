@@ -667,8 +667,14 @@ export function installMockedRuntime(payload: MockPayload): void {
       return null;
     }
     if (command === "meeting_consent_panel_active_state") {
+      /* `disclosure` is not optional on the wire: the panel reads its kind on
+       * every render of the recording pill. */
       return capturing()
-        ? { snapshot: session(), standing_series_key: null }
+        ? {
+            snapshot: session(),
+            standing_series_key: null,
+            disclosure: { kind: "not_asked" },
+          }
         : null;
     }
     /* The agent-bridge observation reads return lists in production; a null

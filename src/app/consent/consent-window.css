@@ -13,3 +13,57 @@ body > #root {
   inline-size: 100%;
   overflow: hidden;
 }
+
+/* The card's motion. This webview never loads App.css, so the reduced-motion
+   clamp at the end is its own.
+
+   Enter is the overlay's `scard-pop` (RecordingOverlay.css): 180ms --ease-out
+   on opacity plus a 0.96 scale from the anchor. The anchor is the window's
+   top-right corner, which consent_panel.rs pins to the screen's, so it is a
+   physical corner rather than a logical one. Exit is a 120ms fade; the panel
+   keeps the card mounted for that long after its state clears, and
+   consent_panel.rs waits the same 120ms before it hides the window. */
+.consent-card {
+  transform-origin: top right;
+  animation: consent-card-enter var(--duration-standard) var(--ease-out);
+}
+
+[data-leaving] > .consent-card {
+  animation: consent-card-leave var(--duration-fast) var(--ease-out) forwards;
+  /* A card on its way out answers nothing. */
+  pointer-events: none;
+}
+
+@keyframes consent-card-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes consent-card-leave {
+  to {
+    opacity: 0;
+  }
+}
+
+/* The kit's controls draw a 3px translucent ring on focus. In this window they
+   take the shell's outline (base.css) instead, so focus reads the same as in
+   the main window. Unlayered on purpose: layer order beats the utilities'
+   ring without a specificity contest. */
+.consent-card :is(button, [role="checkbox"]):focus-visible {
+  box-shadow: none;
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consent-card,
+  [data-leaving] > .consent-card {
+    animation: none;
+  }
+}

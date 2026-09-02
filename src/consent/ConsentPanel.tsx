@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import { FocusScope } from "radix-ui/internal";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
@@ -25,8 +34,104 @@ import {
 } from "@/components/settings/meetings/review/followUpDraft";
 import { elapsedLabel } from "./elapsed";
 
+/* The card is the window: consent_panel.rs sizes the NSPanel to it before the
+ * webview draws, so nothing here may grow past what that file measured. The
+ * surface tokens are the overlay's (`.scard` in RecordingOverlay.css): card
+ * radius, hairline, lifted shadow, so the two floating windows read as one
+ * app. Its motion lives in app/consent/consent-window.css under `consent-card`. */
 const panelClass =
-  "m-2 flex h-[calc(100%-1rem)] flex-col gap-3 rounded-lg border border-border bg-raised p-4 text-gray-1000 shadow-lg";
+  "consent-card m-2 flex h-[calc(100%-1rem)] flex-col gap-3 rounded-card border border-gray-alpha-400 bg-background-100 p-4 text-gray-1000 shadow-[var(--shadow-overlay)]";
+
+/* The type layer (theme.css) in the roles this card uses: a 13/20 sentence-case
+ * microlabel above a 14/20 heading, 13/20 body and a 12/16 note. Root type is
+ * 14px, so the kit's rem sizes would land between the roles. */
+const kickerClass = "text-[13px] leading-[20px] text-gray-900";
+const titleClass = "text-[14px] leading-[20px] font-semibold";
+const bodyClass = "text-[13px] leading-[20px] text-gray-900";
+const noteClass = "text-[12px] leading-[16px] text-gray-900";
+
+type CardProps = {
+  children: ReactNode;
+  testId?: string;
+  /* A card that asks for a decision is a dialog, named by its heading and
+   * described by its body. The recording surfaces are status and pass
+   * nothing. */
+  labelledBy?: string;
+  describedBy?: string;
+  /* What Escape means on this card. Undefined on the recording surfaces: they
+   * have no dismissal, only Stop. */
+  onEscape?: () => void;
+};
+
+/* One surface for every state.
+ *
+ * The window is already on screen when the card mounts (consent_panel.rs
+ * shows it, then the event lands here), so the card's entrance is what the
+ * reader sees. Tab cycles inside the card and focus cannot leave it: this
+ * document holds nothing else. */
+function Card({
+  children,
+  testId,
+  labelledBy,
+  describedBy,
+  onEscape,
+}: CardProps) {
+  return (
+    <FocusScope.FocusScope
+      asChild
+      loop
+      trapped
+      /* React has already focused the card's `autoFocus` control in this
+       * commit. Left alone, Radix would move focus to the first tabbable,
+       * which on the prompt is a checkbox rather than Record. */
+      onMountAutoFocus={(event) => event.preventDefault()}
+    >
+      <main
+        className={panelClass}
+        role={labelledBy === undefined ? undefined : "dialog"}
+        aria-labelledby={labelledBy}
+        aria-describedby={describedBy}
+        data-testid={testId}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || onEscape === undefined) return;
+          event.preventDefault();
+          onEscape();
+        }}
+      >
+        {children}
+      </main>
+    </FocusScope.FocusScope>
+  );
+}
+
+/* How long a cleared state's card stays mounted for its exit fade: the
+ * `--duration-fast` consent-window.css runs it over, and the delay
+ * consent_panel.rs waits before it hides the window. A state that arrives
+ * inside that window takes the surface at once. */
+const EXIT_MS = 120;
+
+/* Returns the card to draw: the live one, or the last one while it fades. The
+ * held card is the previous commit's element, so what fades is exactly what
+ * was on screen. */
+function useExitHold(card: ReactElement | null) {
+  const latest = useRef<ReactElement | null>(null);
+  const [expired, setExpired] = useState(false);
+  const empty = card === null;
+  useEffect(() => {
+    if (card !== null) latest.current = card;
+  });
+  useEffect(() => {
+    if (!empty) {
+      setExpired(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setExpired(true), EXIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [empty]);
+  if (!empty) return { card, leaving: false };
+  const held = expired ? null : latest.current;
+  return { card: held, leaving: held !== null };
+}
 
 const startOptions = (prompt: DetectionPromptEvent): MeetingStartOptions => ({
   title:
@@ -69,13 +174,16 @@ export function PrepCard({
     .join("; ");
 
   return (
-    <main className={panelClass} data-testid="prep-card">
+    <Card
+      testId="prep-card"
+      labelledBy="consent-title"
+      describedBy="consent-body"
+      onEscape={() => onAction("prep_dismiss")}
+    >
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-800">
-            {t("meetings.prep.label")}
-          </p>
-          <h1 className="truncate text-base font-semibold tracking-tight">
+          <p className={kickerClass}>{t("meetings.prep.label")}</p>
+          <h1 id="consent-title" className={`truncate ${titleClass}`}>
             {t("meetings.prep.title", { title: card.title, count: minutes })}
           </h1>
         </div>
@@ -83,7 +191,7 @@ export function PrepCard({
           type="button"
           variant="ghost"
           size="sm"
-          className="-mr-2 -mt-2 px-2 text-gray-800"
+          className="-me-2 -mt-2 px-2 text-gray-800"
           aria-label={t("meetings.prep.dismiss")}
           onClick={() => onAction("prep_dismiss")}
         >
@@ -91,7 +199,7 @@ export function PrepCard({
         </Button>
       </div>
 
-      <p className="line-clamp-2 text-sm text-gray-900">
+      <p id="consent-body" className={`line-clamp-2 ${bodyClass}`}>
         <span className="font-medium text-gray-1000">
           {t("meetings.prep.lastTime")}
         </span>{" "}
@@ -99,7 +207,7 @@ export function PrepCard({
       </p>
 
       {card.mineOpenLoopCount > 0 ? (
-        <div className="min-h-0 text-sm">
+        <div className={`min-h-0 ${bodyClass}`}>
           <p className="font-medium">
             {t("meetings.prep.myOpenLoops", {
               count: card.mineOpenLoopCount,
@@ -116,13 +224,13 @@ export function PrepCard({
       ) : null}
 
       {card.waitingOnCount > 0 ? (
-        <p className="text-sm text-gray-900">
+        <p className={bodyClass}>
           {t("meetings.prep.waitingOn", { count: card.waitingOnCount })}
         </p>
       ) : null}
 
       {participants !== "" ? (
-        <p className="line-clamp-2 text-xs leading-4 text-gray-900">
+        <p className={`line-clamp-2 ${noteClass}`}>
           <span className="font-medium text-gray-1000">
             {t("meetings.prep.participants")}
           </span>{" "}
@@ -130,11 +238,14 @@ export function PrepCard({
         </p>
       ) : null}
 
+      {/* The primary takes focus when the card appears: Enter records, Escape
+       * dismisses. Open brief stands in when nothing can be armed. */}
       <div className="mt-auto flex justify-end gap-2">
         <Button
           type="button"
           variant="ghost"
           size="sm"
+          autoFocus={!card.canRecordWhenStarts}
           onClick={() => onAction("prep_open_brief")}
         >
           {t("meetings.prep.openBrief")}
@@ -143,13 +254,14 @@ export function PrepCard({
           <Button
             type="button"
             size="sm"
+            autoFocus
             onClick={() => onAction("prep_record_when_starts")}
           >
             {t("meetings.prep.recordWhenStarts")}
           </Button>
         ) : null}
       </div>
-    </main>
+    </Card>
   );
 }
 
@@ -181,17 +293,22 @@ export function WrapCard({ card, copied, onAction, onCopy, t }: WrapCardProps) {
     .join(" · ");
 
   return (
-    <main className={panelClass} data-testid="wrap-card">
+    <Card
+      testId="wrap-card"
+      labelledBy="consent-title"
+      describedBy="consent-body"
+      onEscape={() => onAction("wrap_done")}
+    >
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-800">
-          {t("consentPanel.wrap.label")}
-        </p>
-        <h1 className="truncate text-base font-semibold tracking-tight">
+        <p className={kickerClass}>{t("consentPanel.wrap.label")}</p>
+        <h1 id="consent-title" className={`truncate ${titleClass}`}>
           {t("consentPanel.wrap.title", { title: card.title })}
         </h1>
       </div>
-      <p className="line-clamp-2 text-sm text-gray-900">{card.headline}</p>
-      {delta !== "" ? <p className="text-sm text-gray-900">{delta}</p> : null}
+      <p id="consent-body" className={`line-clamp-2 ${bodyClass}`}>
+        {card.headline}
+      </p>
+      {delta !== "" ? <p className={bodyClass}>{delta}</p> : null}
       <div className="mt-auto flex justify-end gap-2">
         <Button
           type="button"
@@ -206,14 +323,19 @@ export function WrapCard({ card, copied, onAction, onCopy, t }: WrapCardProps) {
             ? t("consentPanel.wrap.copied")
             : t("consentPanel.wrap.copyFollowUp")}
         </Button>
-        <Button type="button" size="sm" onClick={() => onAction("wrap_done")}>
+        <Button
+          type="button"
+          size="sm"
+          autoFocus
+          onClick={() => onAction("wrap_done")}
+        >
           {t("consentPanel.wrap.done")}
         </Button>
       </div>
       <span className="sr-only" role="status" aria-live="polite">
         {copied ? t("consentPanel.wrap.copied") : ""}
       </span>
-    </main>
+    </Card>
   );
 }
 
@@ -231,17 +353,19 @@ type RecordingCardProps = {
  * produced it, without going to Settings first. */
 export function RecordingCard({ card, onAction, t, now }: RecordingCardProps) {
   return (
-    <main className={panelClass} data-testid="recording-card">
+    <Card testId="recording-card">
       <div className="flex items-center gap-2">
         <span className="size-2 rounded-full bg-red-700" aria-hidden="true" />
-        <strong className="text-sm font-semibold">
+        <strong className="text-[13px] leading-[20px] font-semibold">
           {t("consentPanel.recordingStarted")}
         </strong>
-        <span className="ml-auto text-sm tabular-nums text-gray-900">
+        <span className={`ms-auto tabular-nums ${bodyClass}`}>
           {elapsedLabel(card.startedAtUtcMs, now)}
         </span>
       </div>
-      <p className="truncate text-base font-medium">{card.appName}</p>
+      <p className="truncate text-[14px] leading-[20px] font-medium">
+        {card.appName}
+      </p>
       <div className="mt-auto flex items-center justify-end gap-2">
         <Button
           type="button"
@@ -260,7 +384,7 @@ export function RecordingCard({ card, onAction, t, now }: RecordingCardProps) {
           {t("consentPanel.stop")}
         </Button>
       </div>
-    </main>
+    </Card>
   );
 }
 
@@ -535,151 +659,183 @@ export default function ConsentPanel() {
     setActive({ ...active, standing_series_key: null });
   };
 
-  /* Ahead of the generic pill below: this card names the app whose standing
-   * grant started the capture, and offers to take that grant back. The pill
-   * knows neither. */
-  if (ritual?.ritual.kind === "recording") {
-    return (
-      <RecordingCard
-        card={ritual.ritual.card}
-        onAction={(action) => void ritualAction(action)}
-        t={t}
-        now={now}
-      />
-    );
-  }
+  /* Each state mounts its own card, keyed by what it is about, so a new prompt
+   * or ritual gets the entrance again and a replaced one never inherits stale
+   * motion. The recording card comes ahead of the generic pill: it names the
+   * app whose standing grant started the capture, and offers to take that
+   * grant back. The pill knows neither. */
+  const card = ((): ReactElement | null => {
+    if (ritual?.ritual.kind === "recording") {
+      return (
+        <RecordingCard
+          key={`ritual:${ritual.ritualId}`}
+          card={ritual.ritual.card}
+          onAction={(action) => void ritualAction(action)}
+          t={t}
+          now={now}
+        />
+      );
+    }
 
-  if (active !== null) {
-    return (
-      <main className={panelClass}>
-        <div className="flex items-center gap-2">
-          <span className="size-2 rounded-full bg-red-700" aria-hidden="true" />
-          <strong className="text-sm font-semibold">
-            {t("consentPanel.recording")}
-          </strong>
-          <span className="ml-auto text-sm tabular-nums text-gray-900">
-            {elapsedLabel(active.snapshot.started_at_utc_ms, now)}
-          </span>
-        </div>
-        <p className="truncate text-base font-medium">
-          {active.snapshot.title}
-        </p>
-        {/* A disclosure the target would not take is worth saying once, quietly:
-         * the recording is running either way, and the room was not told. */}
-        {active.disclosure.kind === "attempted" &&
-        active.disclosure.receipt.outcome === "definitely_not_dispatched" ? (
-          <p
-            className="text-xs leading-4 text-gray-900"
-            data-slot="consent-announce-refused"
-          >
-            {t("consentPanel.announceRefused")}
+    if (active !== null) {
+      return (
+        <Card key={`active:${active.snapshot.session_id}`}>
+          <div className="flex items-center gap-2">
+            <span
+              className="size-2 rounded-full bg-red-700"
+              aria-hidden="true"
+            />
+            <strong className="text-[13px] leading-[20px] font-semibold">
+              {t("consentPanel.recording")}
+            </strong>
+            <span className={`ms-auto tabular-nums ${bodyClass}`}>
+              {elapsedLabel(active.snapshot.started_at_utc_ms, now)}
+            </span>
+          </div>
+          <p className="truncate text-[14px] leading-[20px] font-medium">
+            {active.snapshot.title}
           </p>
-        ) : null}
-        <div className="flex items-center justify-end gap-2">
-          {active.standing_series_key !== null ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={forgetSeries}
-            >
-              {t("consentPanel.forgetSeries")}
-            </Button>
-          ) : null}
-          <Button type="button" variant="outline" size="sm" onClick={stop}>
-            {t("consentPanel.stop")}
-          </Button>
-        </div>
-      </main>
-    );
-  }
-
-  if (prompt !== null) {
-    const calendarPrompt = prompt.prompt.kind === "CalendarEvent";
-    return (
-      <main className={panelClass}>
-        <div className="min-h-0 overflow-hidden">
-          <h1 className="text-base font-semibold tracking-tight">{title}</h1>
-          {prompt.showIntroduction ? (
-            <p className="mt-1 text-sm text-gray-900">
-              {t("consentPanel.introduction")}
+          {/* A disclosure the target would not take is worth saying once,
+           * quietly: the recording is running either way, and the room was
+           * not told. */}
+          {active.disclosure.kind === "attempted" &&
+          active.disclosure.receipt.outcome === "definitely_not_dispatched" ? (
+            <p className={noteClass} data-slot="consent-announce-refused">
+              {t("consentPanel.announceRefused")}
             </p>
           ) : null}
-          {briefing !== null ? (
-            <p className="mt-1 text-sm text-gray-900">{briefing}</p>
-          ) : null}
-        </div>
-        {calendarPrompt ? (
-          <>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                className="border-gray-700"
-                checked={alwaysRecord}
-                onCheckedChange={(checked) => setAlwaysRecord(checked === true)}
-              />
-              <span>{t("consentPanel.alwaysRecord")}</span>
-            </label>
-            {/* Remembered per series, like the decision above it. */}
-            <label
-              className="flex items-center gap-2 text-sm"
-              data-slot="consent-announce"
-            >
-              <Checkbox
-                className="border-gray-700"
-                checked={announceInChat}
-                onCheckedChange={(checked) =>
-                  setAnnounceInChat(checked === true)
-                }
-              />
-              <span>{t("consentPanel.announceInChat")}</span>
-            </label>
-          </>
-        ) : null}
-        <div className="flex items-end justify-between gap-3">
-          <p className="max-w-[215px] text-xs leading-4 text-gray-900">
-            {t(
-              "meetings.start.assurance",
-              "Records your Mac's audio locally. Nothing joins the call.",
-            )}
-          </p>
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={ignore}>
-              {t("consentPanel.ignore")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              disabled={starting}
-              onClick={record}
-            >
-              {t("consentPanel.record")}
+          <div className="flex items-center justify-end gap-2">
+            {active.standing_series_key !== null ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={forgetSeries}
+              >
+                {t("consentPanel.forgetSeries")}
+              </Button>
+            ) : null}
+            <Button type="button" variant="outline" size="sm" onClick={stop}>
+              {t("consentPanel.stop")}
             </Button>
           </div>
-        </div>
-      </main>
-    );
-  }
+        </Card>
+      );
+    }
 
-  if (ritual?.ritual.kind === "prep") {
-    return (
-      <PrepCard
-        card={ritual.ritual.card}
-        onAction={(action) => void ritualAction(action)}
-        t={t}
-        now={now}
-      />
-    );
-  }
-  if (ritual?.ritual.kind === "wrap") {
-    return (
-      <WrapCard
-        card={ritual.ritual.card}
-        copied={copied}
-        onAction={(action) => void ritualAction(action)}
-        onCopy={() => void copyFollowUp()}
-        t={t}
-      />
-    );
-  }
-  return null;
+    if (prompt !== null) {
+      const calendarPrompt = prompt.prompt.kind === "CalendarEvent";
+      return (
+        <Card
+          key={`prompt:${prompt.promptId}`}
+          labelledBy="consent-title"
+          describedBy={
+            prompt.showIntroduction
+              ? "consent-introduction consent-body"
+              : "consent-body"
+          }
+          onEscape={() => void ignore()}
+        >
+          <div className="min-h-0 overflow-hidden">
+            <h1 id="consent-title" className={titleClass}>
+              {title}
+            </h1>
+            {prompt.showIntroduction ? (
+              <p id="consent-introduction" className={`mt-1 ${bodyClass}`}>
+                {t("consentPanel.introduction")}
+              </p>
+            ) : null}
+            {briefing !== null ? (
+              <p className={`mt-1 ${bodyClass}`}>{briefing}</p>
+            ) : null}
+          </div>
+          {calendarPrompt ? (
+            <>
+              <label className="flex items-center gap-2 text-[13px] leading-[20px]">
+                <Checkbox
+                  className="border-gray-700"
+                  checked={alwaysRecord}
+                  onCheckedChange={(checked) =>
+                    setAlwaysRecord(checked === true)
+                  }
+                />
+                <span>{t("consentPanel.alwaysRecord")}</span>
+              </label>
+              {/* Remembered per series, like the decision above it. */}
+              <label
+                className="flex items-center gap-2 text-[13px] leading-[20px]"
+                data-slot="consent-announce"
+              >
+                <Checkbox
+                  className="border-gray-700"
+                  checked={announceInChat}
+                  onCheckedChange={(checked) =>
+                    setAnnounceInChat(checked === true)
+                  }
+                />
+                <span>{t("consentPanel.announceInChat")}</span>
+              </label>
+            </>
+          ) : null}
+          <div className="flex items-end justify-between gap-3">
+            <p id="consent-body" className={`max-w-[215px] ${noteClass}`}>
+              {t(
+                "meetings.start.assurance",
+                "Records your Mac's audio locally. Nothing joins the call.",
+              )}
+            </p>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={ignore}>
+                {t("consentPanel.ignore")}
+              </Button>
+              {/* Focus lands here: Enter records, Escape ignores. */}
+              <Button
+                type="button"
+                size="sm"
+                autoFocus
+                disabled={starting}
+                onClick={record}
+              >
+                {t("consentPanel.record")}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      );
+    }
+
+    if (ritual?.ritual.kind === "prep") {
+      return (
+        <PrepCard
+          key={`ritual:${ritual.ritualId}`}
+          card={ritual.ritual.card}
+          onAction={(action) => void ritualAction(action)}
+          t={t}
+          now={now}
+        />
+      );
+    }
+    if (ritual?.ritual.kind === "wrap") {
+      return (
+        <WrapCard
+          key={`ritual:${ritual.ritualId}`}
+          card={ritual.ritual.card}
+          copied={copied}
+          onAction={(action) => void ritualAction(action)}
+          onCopy={() => void copyFollowUp()}
+          t={t}
+        />
+      );
+    }
+    return null;
+  })();
+
+  const shown = useExitHold(card);
+  /* One box that never remounts, so the held card keeps its node and fades
+   * rather than entering again. `contents` keeps it out of layout. */
+  return (
+    <div className="contents" data-leaving={shown.leaving ? "" : undefined}>
+      {shown.card}
+    </div>
+  );
 }
