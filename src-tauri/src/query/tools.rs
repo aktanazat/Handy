@@ -42,7 +42,9 @@ use crate::managers::history::{
 };
 use crate::meeting::analytics::talk_metrics;
 use crate::meeting::detection::calendar::{CalendarAccess, CalendarSource};
-use crate::meeting::ledger::MeetingLedger;
+use crate::meeting::ledger::{
+    LedgerFirmness, LedgerReceiptState, LedgerThreadState, MeetingLedger,
+};
 use crate::meeting::loop_types::{MeetingLoopRow, MeetingLoopStatus};
 use crate::meeting::people_types::{PersonId, PersonLinkConfidence};
 use crate::meeting::session::MeetingSessionManager;
@@ -689,19 +691,28 @@ pub(super) fn when(utc_ms: i64) -> String {
 
 /// One row as every listing renders it, with the ledger headline beside a
 /// meeting that has one.
-fn row_json(row: &QueryRow, ledger_headline: Option<&str>) -> Value {
-    let mut object = json!({
-        "kind": token(&row.kind),
-        "id": row.id,
-        "title": row.title,
-        "when": when(row.when_utc_ms),
-        "snippet": row.snippet,
-        "link": row.link,
-    });
-    if let Some(headline) = ledger_headline {
-        object["ledger_headline"] = Value::String(headline.to_string());
+#[derive(Serialize)]
+struct ListedRow<'a> {
+    kind: String,
+    id: &'a str,
+    title: &'a str,
+    when: String,
+    snippet: &'a str,
+    link: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ledger_headline: Option<&'a str>,
+}
+
+fn row_json<'a>(row: &'a QueryRow, ledger_headline: Option<&'a str>) -> ListedRow<'a> {
+    ListedRow {
+        kind: token(&row.kind),
+        id: &row.id,
+        title: &row.title,
+        when: when(row.when_utc_ms),
+        snippet: &row.snippet,
+        link: &row.link,
+        ledger_headline,
     }
-    object
 }
 
 /// The ledger headline of each meeting row, keyed by the row's id. A read
@@ -732,9 +743,10 @@ fn listing(store: &MeetingStore, rows: Vec<QueryRow>, more: bool) -> Outcome {
     let mut value = Map::new();
     value.insert(
         "rows".to_string(),
-        rows.iter()
+        json!(rows
+            .iter()
             .map(|row| row_json(row, headlines.get(&row.id).map(String::as_str)))
-            .collect(),
+            .collect::<Vec<_>>()),
     );
     value.insert("more".to_string(), Value::Bool(more));
     let mut outcome = Outcome::new(value, &["/rows"]);
@@ -967,7 +979,7 @@ fn meeting_result(store: &MeetingStore, session_id: MeetingSessionId) -> Result<
     value.insert("open_loops".to_string(), Value::Array(open_loops));
     value.insert("talk_share".to_string(), Value::Array(talk_share));
     if let Some(ledger) = artifacts.and_then(|content| content.ledger.as_ref()) {
-        value.insert("ledger".to_string(), ledger_json(ledger));
+        value.insert("ledger".to_string(), json!(ledger_json(ledger)));
     }
     value.insert("link".to_string(), json!(row.link));
     let mut outcome = Outcome::new(value, MEETING_CUTS);
@@ -998,41 +1010,105 @@ const MEETING_CUTS: &[&str] = &[
 /// The ledger with the names its own types use, receipts folded into the row
 /// they vouch for: `quote`, `speaker` and `at_ms` beside each thread and
 /// commitment rather than a nested object per row.
-fn ledger_json(ledger: &MeetingLedger) -> Value {
-    json!({
-        "headline": ledger.headline,
-        "threads": ledger.threads.iter().map(|thread| json!({
-            "topic": thread.topic,
-            "state": token(&thread.state),
-            "substantive": thread.substantive,
-            "owner": thread.owner,
-            "quote": thread.receipt.quote,
-            "speaker": thread.receipt.speaker,
-            "at_ms": thread.receipt.t_ms,
-        })).collect::<Vec<_>>(),
-        "open_loops": ledger.open_loops.iter().map(|open_loop| json!({
-            "question": open_loop.question,
-            "instead": open_loop.instead,
-            "at_ms": open_loop.at_ms,
-        })).collect::<Vec<_>>(),
-        "commitments": ledger.commitments.iter().map(|commitment| json!({
-            "who": commitment.who,
-            "what": commitment.what,
-            "firmness": token(&commitment.firmness),
-            "quote": commitment.receipt.quote,
-            "speaker": commitment.receipt.speaker,
-            "at_ms": commitment.receipt.t_ms,
-        })).collect::<Vec<_>>(),
-        "stances": ledger.stances.iter().map(|stance| json!({
-            "from": stance.from,
-            "to": stance.to,
-            "what": stance.what,
-            "note": stance.note,
-            "at_ms": stance.at_ms,
-        })).collect::<Vec<_>>(),
-        "caveats": ledger.caveats,
-        "receipts": ledger.receipts,
-    })
+#[derive(Serialize)]
+struct LedgerJson<'a> {
+    headline: &'a str,
+    threads: Vec<LedgerThreadJson<'a>>,
+    open_loops: Vec<LedgerOpenLoopJson<'a>>,
+    commitments: Vec<LedgerCommitmentJson<'a>>,
+    stances: Vec<LedgerStanceJson<'a>>,
+    caveats: &'a [String],
+    receipts: LedgerReceiptState,
+}
+
+#[derive(Serialize)]
+struct LedgerThreadJson<'a> {
+    topic: &'a str,
+    state: LedgerThreadState,
+    substantive: bool,
+    owner: Option<&'a str>,
+    quote: &'a str,
+    speaker: Option<&'a str>,
+    at_ms: u64,
+}
+
+#[derive(Serialize)]
+struct LedgerOpenLoopJson<'a> {
+    question: &'a str,
+    instead: &'a str,
+    at_ms: u64,
+}
+
+#[derive(Serialize)]
+struct LedgerCommitmentJson<'a> {
+    who: &'a str,
+    what: &'a str,
+    firmness: LedgerFirmness,
+    quote: &'a str,
+    speaker: Option<&'a str>,
+    at_ms: u64,
+}
+
+#[derive(Serialize)]
+struct LedgerStanceJson<'a> {
+    from: &'a str,
+    to: &'a str,
+    what: &'a str,
+    note: Option<&'a str>,
+    at_ms: u64,
+}
+
+fn ledger_json(ledger: &MeetingLedger) -> LedgerJson<'_> {
+    LedgerJson {
+        headline: &ledger.headline,
+        threads: ledger
+            .threads
+            .iter()
+            .map(|thread| LedgerThreadJson {
+                topic: &thread.topic,
+                state: thread.state,
+                substantive: thread.substantive,
+                owner: thread.owner.as_deref(),
+                quote: &thread.receipt.quote,
+                speaker: thread.receipt.speaker.as_deref(),
+                at_ms: thread.receipt.t_ms,
+            })
+            .collect(),
+        open_loops: ledger
+            .open_loops
+            .iter()
+            .map(|open_loop| LedgerOpenLoopJson {
+                question: &open_loop.question,
+                instead: &open_loop.instead,
+                at_ms: open_loop.at_ms,
+            })
+            .collect(),
+        commitments: ledger
+            .commitments
+            .iter()
+            .map(|commitment| LedgerCommitmentJson {
+                who: &commitment.who,
+                what: &commitment.what,
+                firmness: commitment.firmness,
+                quote: &commitment.receipt.quote,
+                speaker: commitment.receipt.speaker.as_deref(),
+                at_ms: commitment.receipt.t_ms,
+            })
+            .collect(),
+        stances: ledger
+            .stances
+            .iter()
+            .map(|stance| LedgerStanceJson {
+                from: &stance.from,
+                to: &stance.to,
+                what: &stance.what,
+                note: stance.note.as_deref(),
+                at_ms: stance.at_ms,
+            })
+            .collect(),
+        caveats: &ledger.caveats,
+        receipts: ledger.receipts,
+    }
 }
 
 /// One page of a meeting's transcript, human edits applied and empty

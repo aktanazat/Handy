@@ -1357,18 +1357,41 @@ pub fn get_agent_bridge_hook_snippet(app: tauri::AppHandle) -> Result<String, St
     .map_err(|_| "hook snippet unavailable".to_string())
 }
 
+/// Claude's `hooks.json` shape as Codex and Grok read it: an event name to a
+/// matcher group, each holding the handlers to run.
+#[derive(Serialize)]
+struct CommandHookConfig {
+    hooks: BTreeMap<String, [HookGroup; 1]>,
+}
+
+#[derive(Clone, Serialize)]
+struct HookGroup {
+    hooks: [CommandHook; 1],
+}
+
+#[derive(Clone, Serialize)]
+struct CommandHook {
+    #[serde(rename = "type")]
+    kind: &'static str,
+    command: String,
+}
+
 /// Codex and Grok both read Claude's `hooks.json` shape but run handlers
 /// through a shell, so the hook arrives as one command string rather than an
 /// argv pair.
-fn command_hook_config(command: &str, events: &[&str]) -> serde_json::Value {
-    let handlers = serde_json::json!([{
-        "hooks": [{ "type": "command", "command": command }]
-    }]);
-    let hooks: serde_json::Map<String, serde_json::Value> = events
-        .iter()
-        .map(|event| ((*event).to_string(), handlers.clone()))
-        .collect();
-    serde_json::json!({ "hooks": hooks })
+fn command_hook_config(command: &str, events: &[&str]) -> CommandHookConfig {
+    let group = HookGroup {
+        hooks: [CommandHook {
+            kind: "command",
+            command: command.to_string(),
+        }],
+    };
+    CommandHookConfig {
+        hooks: events
+            .iter()
+            .map(|event| ((*event).to_string(), [group.clone()]))
+            .collect(),
+    }
 }
 
 /// Quotes the packaged hook so an installation path containing spaces still
@@ -2040,7 +2063,7 @@ mod tests {
             &["SessionStart", "Stop"],
         );
         assert_eq!(
-            config,
+            serde_json::to_value(config).expect("hook config serializes"),
             json!({
                 "hooks": {
                     "SessionStart": [{
