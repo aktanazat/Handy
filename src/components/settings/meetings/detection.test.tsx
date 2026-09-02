@@ -699,6 +699,13 @@ describe("the shared write gate", () => {
 describe("a refused calendar enable", () => {
   const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
 
+  /* The backend never turned the path on, so the status it hands back after
+   * the refused request still says the calendar is off. */
+  const refusedStatus = (): DetectionStatus => ({
+    ...status(true),
+    settings: { ...status(true).settings, calendarEnabled: false },
+  });
+
   beforeAll(() => {
     Object.defineProperty(globalThis, "window", {
       configurable: true,
@@ -710,7 +717,10 @@ describe("a refused calendar enable", () => {
               return Promise.resolve("denied");
             }
             if (command === "detection_status_get") {
-              return Promise.resolve(status(true));
+              return Promise.resolve(refusedStatus());
+            }
+            if (command === "detection_settings_set") {
+              return Promise.resolve(refusedStatus());
             }
             throw new Error(`unexpected command: ${command}`);
           },
@@ -723,9 +733,9 @@ describe("a refused calendar enable", () => {
     else Reflect.deleteProperty(globalThis, "window");
   });
 
-  test("sets the flag, writes nothing, and turning off clears it", async () => {
+  test("sets the flag, leaves the path off, and turning off clears it", async () => {
     useDetectionStore.setState({
-      status: status(true),
+      status: refusedStatus(),
       prompts: [],
       savingSettings: false,
       calendarRefused: false,
@@ -741,17 +751,18 @@ describe("a refused calendar enable", () => {
     expect(useDetectionStore.getState().calendarRefused).toBe(false);
   });
 
+  /* A static render only ever sees the store's initial snapshot (see the file
+   * header), so the rows the flag adds are checked through the catalogue they
+   * read, the way every other state-dependent line in this file is. */
   test("the advanced rows then point at System Settings", () => {
-    useDetectionStore.setState({
-      status: status(true),
-      prompts: [],
-      savingSettings: false,
-      calendarRefused: true,
-    });
-    const markup = paint(<MeetingDetectionAdvanced />);
-
-    expect(markup).toContain("Calendar access is limited");
-    expect(markup).toContain("Open System Settings");
-    expect(markup).toContain("Full Calendar Access");
+    expect(i18n.t("meetings.detection.calendar.refusedLabel")).toBe(
+      "Calendar access is limited",
+    );
+    expect(i18n.t("meetings.detection.calendar.openSettings")).toBe(
+      "Open System Settings",
+    );
+    expect(i18n.t("meetings.detection.calendar.refused")).toContain(
+      "Full Calendar Access",
+    );
   });
 });

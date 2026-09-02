@@ -300,7 +300,7 @@ describe("model", () => {
     });
 
     expect(html.includes('id="mode-model"')).toBe(false);
-    expect(html).toContain("needs a saved native API key");
+    expect(html).toContain("needs an API key in the system credential store");
   });
 
   /* The engine menu is a Radix portal: its items exist only once a pointer
@@ -399,7 +399,7 @@ describe("turns on by itself", () => {
   test("points at Privacy when website capture is off", () => {
     const html = editor();
 
-    expect(html).toContain("Enable Browser URLs in Privacy");
+    expect(html).toContain("Include browser URLs");
     expect(html.includes("Capture current website")).toBe(false);
   });
 });
