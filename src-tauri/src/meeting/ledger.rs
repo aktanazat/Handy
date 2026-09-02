@@ -606,14 +606,6 @@ pub(crate) fn build_page(input: LedgerPageInput<'_>) -> LedgerPage {
         })
         .collect();
 
-    let mut caveats = input.ledger.caveats.clone();
-    let unlisted = unlisted_unresolved(input.ledger);
-    if unlisted > 0 {
-        caveats.push(format!(
-            "Unresolved threads absent from the open-loops table: {unlisted}. Their state was read from a receipt; the question they left open was not written down."
-        ));
-    }
-
     LedgerPage {
         meta: PageMeta {
             title: input.title.to_string(),
@@ -635,33 +627,10 @@ pub(crate) fn build_page(input: LedgerPageInput<'_>) -> LedgerPage {
         commitments,
         stances,
         talk_share,
-        caveats,
+        caveats: input.ledger.caveats.clone(),
         interaction_count: input.talk.interaction_count,
         median_switch_gap_ms: input.talk.median_switch_gap_ms,
     }
-}
-
-/// Upstream's `check_open_loops`, as a count rather than a failure: every
-/// thread left unanswered, dropped or answered sideways is supposed to reach
-/// the open-loops table. Reported on the page instead of rejecting the ledger,
-/// because the alternative is inventing the question nobody wrote down.
-fn unlisted_unresolved(ledger: &MeetingLedger) -> usize {
-    let listed = ledger
-        .open_loops
-        .iter()
-        .map(|loop_| format!("{} {}", fold(&loop_.question), fold(&loop_.instead)))
-        .collect::<Vec<_>>()
-        .join(" ");
-    ledger
-        .threads
-        .iter()
-        .filter(|thread| thread.state.unresolved())
-        .filter(|thread| {
-            let topic = fold(&thread.topic);
-            let head: String = topic.chars().take(LABEL_MATCH_CHARS).collect();
-            !head.is_empty() && !listed.contains(&head)
-        })
-        .count()
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -693,6 +662,174 @@ pub(crate) fn render_html(page: &LedgerPage) -> Result<String, LedgerRenderError
     page_html.push('\n');
     page_html.push_str(&TEMPLATE[close..]);
     Ok(page_html)
+}
+
+// ── the structural checks ───────────────────────────────────────────────────
+//
+// Upstream's `scripts/check_ledger.py`, which a person runs on a finished page
+// and then fixes what it finds. Nobody runs anything by hand here, so the
+// checks run at the acceptance seam, on the page this ledger would render as,
+// and what they find is logged and, where a reader can weigh it, written into
+// the ledger's own caveats. Nothing here rejects a ledger the receipt
+// discipline above has accepted.
+//
+// Some of upstream's checks have no port because they cannot fail on this
+// side: `check_no_transcript` (a rendered turn is three integers by type),
+// the state half of `check_receipts` (`LedgerThreadState` is an enum), the
+// speaker-index half of `check_geometry` (the page resolves every index
+// itself), and `check_meta_date` (the exporter formats the date itself). The
+// number-clash half of `check_headline_news` is not ported: the prompt
+// forbids the repeat, and the check needs a number-word parser that would
+// be the largest thing in this section for the least likely failure.
+
+/// A turn is a whole speaking turn, not a subtitle cue. Upstream's bounds: a
+/// cue-shaped transcript overshoots the ceiling by ten to twenty times, and
+/// an under-split one falls through the floor.
+const TURNS_PER_MINUTE_MAX: f64 = 8.0;
+const TURNS_PER_MINUTE_MIN: f64 = 0.8;
+
+/// One line `check_ledger.py` would have printed with a cross beside it.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum CheckFailure {
+    /// `check_turn_count`: the page's time axis has no length.
+    NoDuration,
+    /// `check_turn_count`: turns per minute outside the bounds above.
+    TurnDensity { turns: usize, seconds: u64 },
+    /// `check_receipts` and `check_quotes_verbatim`: a receipt that is empty
+    /// or not in the transcript, by the matcher above.
+    UnverifiedReceipt { label: String },
+    /// `check_open_loops`: threads left unresolved that never reached the
+    /// open-loops table.
+    UnlistedUnresolved { count: usize },
+    /// `check_geometry`: a cited stretch, in seconds, that does not run
+    /// forwards inside the meeting.
+    Geometry { label: String, from: u64, to: u64 },
+    /// `check_headline_news`: the page opens on nothing.
+    MissingHeadline,
+}
+
+impl CheckFailure {
+    /// What a reader is told, for the failures a reader can weigh. The rest
+    /// describe a ledger that never reaches one: an invented receipt is
+    /// removed at the seam and an empty headline is refused at validation.
+    pub(crate) fn caveat(&self) -> Option<String> {
+        match self {
+            Self::TurnDensity { turns, seconds } => {
+                let clock = mmss(*seconds);
+                Some(if turns_per_minute(*turns, *seconds) > TURNS_PER_MINUTE_MAX {
+                    format!("Turn count looks cue-shaped: {turns} turns in {clock} is more than a conversation has, so turn counts and talk share are counted over fragments rather than turns.")
+                } else {
+                    format!("Turn count looks under-split: {turns} turns in {clock} is fewer than a conversation has, so turn counts and talk share are counted over runs longer than one turn.")
+                })
+            }
+            Self::UnlistedUnresolved { count } => Some(format!(
+                "Unresolved threads absent from the open-loops table: {count}. Their state was read from a receipt; the question they left open was not written down."
+            )),
+            Self::NoDuration
+            | Self::UnverifiedReceipt { .. }
+            | Self::Geometry { .. }
+            | Self::MissingHeadline => None,
+        }
+    }
+}
+
+fn turns_per_minute(turns: usize, seconds: u64) -> f64 {
+    turns as f64 / (seconds as f64 / 60.0)
+}
+
+/// Upstream's `check_open_loops`: every thread left unanswered, dropped or
+/// answered sideways is supposed to reach the open-loops table. A thread is
+/// listed when the table names it, by the head of its label or by the moment
+/// it is cited at, so a question phrased differently from its thread still
+/// counts. Counted rather than refused, because the alternative is inventing
+/// the question nobody wrote down.
+fn unlisted_unresolved(ledger: &MeetingLedger) -> usize {
+    let listed = ledger
+        .open_loops
+        .iter()
+        .map(|loop_| {
+            format!(
+                "{} {} {}",
+                mmss(loop_.at_ms / 1_000),
+                fold(&loop_.question),
+                fold(&loop_.instead)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    ledger
+        .threads
+        .iter()
+        .filter(|thread| thread.state.unresolved())
+        .filter(|thread| {
+            let topic = fold(&thread.topic);
+            let head: String = topic.chars().take(LABEL_MATCH_CHARS).collect();
+            !head.is_empty()
+                && !listed.contains(&head)
+                && !listed.contains(&mmss(thread.receipt.t_ms / 1_000))
+        })
+        .count()
+}
+
+/// Every check upstream runs on a finished page, run on the page this ledger
+/// would render as. `folded_haystack` is the transcript as [`fold_haystack`]
+/// prepares it: the same text the receipts were accepted against.
+pub(crate) fn check(
+    ledger: &MeetingLedger,
+    page: &LedgerPage,
+    folded_haystack: &str,
+) -> Vec<CheckFailure> {
+    let mut failures = Vec::new();
+    let end = page.meta.end;
+    if end == 0 {
+        failures.push(CheckFailure::NoDuration);
+    } else {
+        let turns = page.turns.len();
+        if !(TURNS_PER_MINUTE_MIN..=TURNS_PER_MINUTE_MAX).contains(&turns_per_minute(turns, end)) {
+            failures.push(CheckFailure::TurnDensity {
+                turns,
+                seconds: end,
+            });
+        }
+    }
+    let receipts = ledger
+        .threads
+        .iter()
+        .map(|thread| (thread.topic.as_str(), &thread.receipt))
+        .chain(
+            ledger
+                .commitments
+                .iter()
+                .map(|commitment| (commitment.what.as_str(), &commitment.receipt)),
+        );
+    for (label, receipt) in receipts {
+        if !quote_is_verbatim(&receipt.quote, folded_haystack) {
+            failures.push(CheckFailure::UnverifiedReceipt {
+                label: label.to_string(),
+            });
+        }
+        // The page clamps a cited stretch onto its axis rather than refusing
+        // it, so the citation is what is checked: a stretch the page had to
+        // move is drawn at a time it did not happen.
+        for citation in &receipt.citations {
+            let to = seconds(citation.end_offset_ns);
+            if citation.start_offset_ns >= citation.end_offset_ns || to > end {
+                failures.push(CheckFailure::Geometry {
+                    label: label.to_string(),
+                    from: seconds(citation.start_offset_ns),
+                    to,
+                });
+            }
+        }
+    }
+    let unlisted = unlisted_unresolved(ledger);
+    if unlisted > 0 {
+        failures.push(CheckFailure::UnlistedUnresolved { count: unlisted });
+    }
+    if ledger.headline.trim().is_empty() {
+        failures.push(CheckFailure::MissingHeadline);
+    }
+    failures
 }
 
 #[cfg(test)]
@@ -960,16 +1097,35 @@ mod tests {
     }
 
     #[test]
-    fn an_unresolved_thread_missing_from_open_loops_is_reported_on_the_page() {
+    fn an_unresolved_thread_is_listed_by_its_label_or_by_its_moment() {
         let mut subject = ledger(vec![thread(
             "We never actually said which tier the trial converts into.",
             LedgerThreadState::Unanswered,
         )]);
         assert_eq!(unlisted_unresolved(&subject), 1);
+        // Worded nothing like the thread, and cited somewhere else: not it.
+        subject.open_loops.push(LedgerOpenLoop {
+            question: "Who owns the audit log?".to_string(),
+            instead: "Nobody answered.".to_string(),
+            at_ms: 40_000,
+            citations: Vec::new(),
+        });
+        assert_eq!(unlisted_unresolved(&subject), 1);
+        // Worded nothing like the thread, but cited at its moment: upstream
+        // counts that as the same question, and so does this.
+        subject.open_loops.push(LedgerOpenLoop {
+            question: "Does the trial land people on team?".to_string(),
+            instead: "The discount got answered instead.".to_string(),
+            at_ms: 252_000,
+            citations: Vec::new(),
+        });
+        assert_eq!(unlisted_unresolved(&subject), 0);
+        // And the label's head on its own is enough.
+        subject.open_loops.truncate(1);
         subject.open_loops.push(LedgerOpenLoop {
             question: "Which tier does the trial convert into?".to_string(),
             instead: "Pricing tiers never came back up.".to_string(),
-            at_ms: 252_000,
+            at_ms: 40_000,
             citations: Vec::new(),
         });
         assert_eq!(unlisted_unresolved(&subject), 0);
@@ -1114,6 +1270,9 @@ mod tests {
             segment_speakers: &segment_speakers,
         });
         let html = render_html(&page).expect("rendered page");
+        // The same page passes the ported checker, so what upstream's script
+        // accepts on disk and what `check` accepts in memory stay one thing.
+        assert_eq!(check(&subject, &page, &haystack), Vec::new());
 
         let directory = std::env::temp_dir();
         let page_path = directory.join("sona-ledger-fixture.html");

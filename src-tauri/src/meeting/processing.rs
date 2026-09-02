@@ -1,6 +1,7 @@
 use super::analytics::{
-    talk_metrics, tracker_results, KeywordTracker, MeetingAnalytics, MeetingCatchUp,
-    MeetingCatchUpState, MeetingNotesTemplate, CATCH_UP_MAX_BULLETS,
+    merge_turns, talk_metrics, tracker_results, AnalyticsSegment, KeywordTracker,
+    MeetingAnalytics, MeetingCatchUp, MeetingCatchUpState, MeetingNotesTemplate,
+    CATCH_UP_MAX_BULLETS,
 };
 use super::diarization::{
     model_manifest, DiarizationError, DiarizedWindow, MeetingDiarizationSession, MeetingDiarizer,
@@ -65,11 +66,13 @@ const MAX_LEDGER_ROWS: usize = 64;
 /// Line ceiling for the summary. A summary is what a reader takes in at a
 /// glance, and every line past this is the outline's job.
 const MAX_SUMMARY_LINES: usize = 12;
-/// Bumped whenever a generated-notes or ledger prompt changes: it is hashed
-/// into an artifact's generation key, so a bump retires every cached
-/// generation. v4 added the where-did-we-land ledger. v5 asks for the summary
-/// as cited lines so each line can name the segment it came from.
-const TEMPLATE_VERSION: u32 = 5;
+/// Bumped whenever a generated-notes or ledger prompt changes, or what is
+/// written from one does: it is hashed into an artifact's generation key, so a
+/// bump retires every cached generation. v4 added the where-did-we-land
+/// ledger. v5 asks for the summary as cited lines so each line can name the
+/// segment it came from. v6 runs upstream's structural checks on the ledger
+/// and writes what they found into its caveats.
+const TEMPLATE_VERSION: u32 = 6;
 /// How many relationship paragraphs one artifact pass will write.
 ///
 /// A ceiling, not a preference: the pass runs one model call per person on the
@@ -1561,8 +1564,12 @@ impl MeetingProcessingService {
         // The ledger is a second reading of the same evidence, asked for
         // separately: it has its own prompt and its own output budget, and a
         // ledger the model cannot produce leaves the notes above intact rather
-        // than failing the whole revision.
-        content.ledger = generate_ledger(generator.as_ref(), &evidence);
+        // than failing the whole revision. The diarized segments go with it
+        // because its checks are run on the page it would render as.
+        let segments = store
+            .analytics_segments(session_id)
+            .map_err(|_| ProcessingFailure::EngineFailure)?;
+        content.ledger = generate_ledger(generator.as_ref(), &evidence, &segments, session_id);
         let artifact = store
             .store_artifact_revision(ArtifactRevisionInput {
                 session_id,
@@ -3279,20 +3286,67 @@ The headline carries the news a reader gets from reading across rows — a subje
         .to_string()
 }
 
-/// Read the conversation as a ledger, and refuse to ship a receipt that is not
-/// in the transcript.
+/// Read the conversation as a ledger, refuse to ship a receipt that is not in
+/// the transcript, and say on the ledger what the structural checks found.
 ///
 /// Upstream runs `scripts/check_ledger.py` and a person fixes what it finds.
-/// Nobody is watching here, so the check runs at the acceptance seam: a ledger
-/// with an invented quote is thrown away and asked for once more, and if the
-/// second reading also invents one, the unverifiable claims are removed and the
-/// ledger says so in its own caveats. `None` means the model produced nothing
-/// usable; the generated notes it was asked for alongside are unaffected.
-fn generate_ledger(
+/// Nobody is watching here, so both halves run at the acceptance seam. The
+/// receipt check decides: a ledger with an invented quote is thrown away and
+/// asked for once more, and if the second reading also invents one, the
+/// unverifiable claims are removed and the ledger says so in its own caveats.
+/// The structural checks report: every failure is logged, the two a reader
+/// can weigh become caveats, and none of them rejects a ledger the receipt
+/// check accepted. `None` means the model produced nothing usable; the
+/// generated notes it was asked for alongside are unaffected.
+pub(crate) fn generate_ledger(
     generator: &dyn MeetingTextGenerator,
     evidence: &ArtifactEvidence,
+    segments: &[AnalyticsSegment],
+    session_id: MeetingSessionId,
 ) -> Option<MeetingLedger> {
     let haystack = ledger::fold_haystack(evidence.transcript.iter().map(|item| item.text.as_str()));
+    let mut ledger = read_ledger(generator, evidence, &haystack)?;
+    // The page this ledger would render as, built the way the exporter builds
+    // it so the checks read the measured numbers a reader would. Title, kind
+    // and date are presentation and take no part in them; the axis runs to
+    // the last word transcribed, which is the conversation the turn density
+    // is a rate over.
+    let segment_speakers: HashMap<TranscriptSegmentId, SpeakerId> = segments
+        .iter()
+        .map(|segment| (segment.segment_id, segment.speaker_id))
+        .collect();
+    let page = ledger::build_page(ledger::LedgerPageInput {
+        title: "",
+        kind: "",
+        date: None,
+        duration_ns: segments
+            .iter()
+            .map(|segment| segment.end_offset_ns)
+            .max()
+            .unwrap_or(0),
+        ledger: &ledger,
+        talk: &talk_metrics(segments),
+        turns: &merge_turns(segments),
+        speaker_names: &HashMap::new(),
+        segment_speakers: &segment_speakers,
+    });
+    for failure in ledger::check(&ledger, &page, &haystack) {
+        log::warn!("Ledger check failed for {session_id:?}: {failure:?}");
+        if let Some(caveat) = failure.caveat() {
+            ledger.caveats.push(caveat);
+        }
+    }
+    Some(ledger)
+}
+
+/// One reading of the transcript, with every receipt looked up: the model is
+/// asked, asked once more if a receipt is not in the transcript, and the
+/// second answer is degraded rather than trusted.
+fn read_ledger(
+    generator: &dyn MeetingTextGenerator,
+    evidence: &ArtifactEvidence,
+    haystack: &str,
+) -> Option<MeetingLedger> {
     let prompt = ledger_system_prompt();
     let input = fit_model_input(
         &evidence.transcript,
@@ -3310,13 +3364,13 @@ fn generate_ledger(
             .ok()?;
         let raw: RawLedgerOutput = serde_json::from_str(&output).ok()?;
         let candidate = validate_ledger_output(&raw, &evidence.transcript).ok()?;
-        if ledger::unverified_receipts(&candidate, &haystack) == 0 {
+        if ledger::unverified_receipts(&candidate, haystack) == 0 {
             return Some(candidate);
         }
         last = Some(candidate);
     }
     let mut degraded = last?;
-    ledger::degrade_unverified(&mut degraded, &haystack);
+    ledger::degrade_unverified(&mut degraded, haystack);
     // A ledger whose every thread was invented is not a degraded ledger, it is
     // no ledger.
     (!degraded.threads.is_empty()).then_some(degraded)
