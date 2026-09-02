@@ -242,7 +242,14 @@ export const RecordingOverlayContent = ({
       )}
       {/* Nothing to cancel once the run has failed. The button is the one thing
           the pill hides until it is asked for: it rides the meter's trailing end
-          on hover and focus, so at rest the row is only the mark and the wave. */}
+          on hover, so at rest the row is only the mark and the wave.
+
+          Hover is the only way to reach it. The overlay is a nonactivating
+          panel that never takes keyboard focus (overlay.rs: focusable(false),
+          can_become_key_window false), which is what keeps the app being
+          dictated into in front, so the :focus-visible rule beside the hover
+          one in RecordingOverlay.css cannot fire here. Cancelling by keyboard
+          is the shortcut's job. */}
       {!failed && (
         <button
           className="sx"
