@@ -1,0 +1,137 @@
+{
+  "headline": "Pricing came back after the billing decision and stays open for another week, this time for a stated reason rather than drift. The one question Dana asked outright got an answer about the discount instead, and the onboarding email copy died the moment Amir raised billing. Every commitment in the room is Amir's.",
+  "threads": [
+    {
+      "topic": "Morning check-in",
+      "state": "closed",
+      "substantive": false,
+      "receipt": {
+        "quote": "Morning. You good? I know it's been a week.",
+        "speaker": "Dana Whitfield",
+        "citations": ["00000000-0000-0000-0000-000000000001"]
+      },
+      "owner": null
+    },
+    {
+      "topic": "Pricing tiers",
+      "state": "open",
+      "substantive": true,
+      "receipt": {
+        "quote": "we keep, we keep circling it and then running out of time ... So pricing stays open, which is annoying because that's the third week running",
+        "speaker": "Dana Whitfield",
+        "citations": [
+          "00000000-0000-0000-0000-000000000003",
+          "00000000-0000-0000-0000-000000000027"
+        ]
+      },
+      "owner": null
+    },
+    {
+      "topic": "Which tier the trial converts into",
+      "state": "unanswered",
+      "substantive": true,
+      "receipt": {
+        "quote": "Which tier does the trial convert into?",
+        "speaker": "Dana Whitfield",
+        "citations": ["00000000-0000-0000-0000-000000000007"]
+      },
+      "owner": null
+    },
+    {
+      "topic": "Onboarding email copy",
+      "state": "dropped",
+      "substantive": true,
+      "receipt": {
+        "quote": "the other thing, the onboarding emails. The copy in those is still the old positioning",
+        "speaker": "Dana Whitfield",
+        "citations": ["00000000-0000-0000-0000-000000000011"]
+      },
+      "owner": null
+    },
+    {
+      "topic": "Annual versus monthly at launch",
+      "state": "decided",
+      "substantive": true,
+      "receipt": {
+        "quote": "Okay good, that's decided then. Annual only, monthly in Q3.",
+        "speaker": "Dana Whitfield",
+        "citations": ["00000000-0000-0000-0000-000000000015"]
+      },
+      "owner": null
+    },
+    {
+      "topic": "Tier comparison table for sales",
+      "state": "action",
+      "substantive": true,
+      "receipt": {
+        "quote": "I'll do it. I've got the feature matrix already, it's mostly, it's mostly formatting at this point.",
+        "speaker": "Amir Haddad",
+        "citations": ["00000000-0000-0000-0000-000000000020"]
+      },
+      "owner": "Amir Haddad"
+    },
+    {
+      "topic": "Sign-off",
+      "state": "closed",
+      "substantive": false,
+      "receipt": {
+        "quote": "Alright, I'll let you go. Thanks Amir.",
+        "speaker": "Dana Whitfield",
+        "citations": ["00000000-0000-0000-0000-000000000029"]
+      },
+      "owner": null
+    }
+  ],
+  "open_loops": [
+    {
+      "question": "Which tier does the trial convert into?",
+      "instead": "Amir answered about the annual discount and the first invoice, and the tier never came up again.",
+      "citations": [
+        "00000000-0000-0000-0000-000000000007",
+        "00000000-0000-0000-0000-000000000008"
+      ]
+    },
+    {
+      "question": "Who fixes the onboarding email copy that still says workspace for teams?",
+      "instead": "Amir switched to annual versus monthly mid-thread and the emails never came back.",
+      "citations": [
+        "00000000-0000-0000-0000-000000000011",
+        "00000000-0000-0000-0000-000000000012"
+      ]
+    }
+  ],
+  "commitments": [
+    {
+      "who": "Amir Haddad",
+      "what": "Write the tier comparison table for sales by end of week",
+      "firmness": "firm",
+      "receipt": {
+        "quote": "I'll do it. I've got the feature matrix already, it's mostly, it's mostly formatting at this point.",
+        "speaker": "Amir Haddad",
+        "citations": ["00000000-0000-0000-0000-000000000020"]
+      }
+    },
+    {
+      "who": "Amir Haddad",
+      "what": "Model the annual discount before the team price is set",
+      "firmness": "soft",
+      "receipt": {
+        "quote": "I'd want to model that before we commit to twenty.",
+        "speaker": "Amir Haddad",
+        "citations": ["00000000-0000-0000-0000-000000000010"]
+      }
+    }
+  ],
+  "stances": [
+    {
+      "from": "Amir Haddad",
+      "to": "Dana Whitfield",
+      "what": "Annual only at launch, monthly in Q3",
+      "note": "Taken up without pushback. Nobody disagreed with anything in this conversation.",
+      "citations": ["00000000-0000-0000-0000-000000000014"]
+    }
+  ],
+  "caveats": [
+    "Turn clocks are the export's own and a turn ends where the next begins, so talk share is by span rather than by words spoken."
+  ]
+}

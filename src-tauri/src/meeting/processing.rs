@@ -1,7 +1,6 @@
 use super::analytics::{
-    merge_turns, talk_metrics, tracker_results, AnalyticsSegment, KeywordTracker,
-    MeetingAnalytics, MeetingCatchUp, MeetingCatchUpState, MeetingNotesTemplate,
-    CATCH_UP_MAX_BULLETS,
+    merge_turns, talk_metrics, tracker_results, AnalyticsSegment, KeywordTracker, MeetingAnalytics,
+    MeetingCatchUp, MeetingCatchUpState, MeetingNotesTemplate, CATCH_UP_MAX_BULLETS,
 };
 use super::diarization::{
     model_manifest, DiarizationError, DiarizedWindow, MeetingDiarizationSession, MeetingDiarizer,
@@ -3263,9 +3262,12 @@ struct RawLedgerStance {
     citations: Vec<String>,
 }
 
+/// The model's wire shape, before any citation is resolved or any quote is
+/// looked up. Visible to the crate so an eval can hand a written answer
+/// through the same validation a generated one gets.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct RawLedgerOutput {
+pub(crate) struct RawLedgerOutput {
     headline: String,
     threads: Vec<RawLedgerThread>,
     open_loops: Vec<RawLedgerOpenLoop>,
@@ -3376,7 +3378,7 @@ fn read_ledger(
     (!degraded.threads.is_empty()).then_some(degraded)
 }
 
-fn validate_ledger_output(
+pub(crate) fn validate_ledger_output(
     output: &RawLedgerOutput,
     evidence: &[MeetingEvidence],
 ) -> Result<MeetingLedger, ()> {

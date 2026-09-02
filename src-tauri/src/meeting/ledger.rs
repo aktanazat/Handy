@@ -231,7 +231,7 @@ impl MeetingLedger {
 /// case away. Upstream's `_norm`, minus its leading NFKC pass — Sona carries
 /// no Unicode normalisation crate, and the pairs below are the substitutions
 /// that decide a receipt match in practice.
-fn fold(text: &str) -> String {
+pub(crate) fn fold(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut space_pending = false;
     for character in text.chars() {
@@ -349,17 +349,19 @@ pub(crate) fn degrade_unverified(ledger: &mut MeetingLedger, folded_haystack: &s
 // ── the page ────────────────────────────────────────────────────────────────
 //
 // Upstream's field names, because the template's reader is upstream's and
-// keeping the names identical keeps the divergence auditable.
+// keeping the names identical keeps the divergence auditable. The fields the
+// eval grades against upstream's rubric are visible to the crate; the rest
+// are the page's own.
 
 #[derive(Serialize)]
-struct PageMeta {
+pub(crate) struct PageMeta {
     title: String,
     kind: String,
     source: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     date: Option<String>,
     start: u64,
-    end: u64,
+    pub(crate) end: u64,
     headline: String,
     /// Not upstream's: a Sona ledger states on the page whether its own
     /// receipt check passed, because the check runs unattended.
@@ -372,11 +374,11 @@ struct PageParticipant {
 }
 
 #[derive(Serialize)]
-struct PageTopic {
-    label: String,
+pub(crate) struct PageTopic {
+    pub(crate) label: String,
     /// `[fromSeconds, toSeconds, speakerIndex]`, one entry per cited stretch.
     /// Two entries mean the subject was left and came back.
-    segs: Vec<(u64, u64, i32)>,
+    pub(crate) segs: Vec<(u64, u64, i32)>,
     state: &'static str,
     outcome: &'static str,
     substantive: bool,
@@ -416,33 +418,33 @@ struct PageStance {
 /// without arithmetic. The page displays these numbers; it does not derive
 /// them, so the page and the app can never disagree.
 #[derive(Serialize)]
-struct PageTalkShare {
-    name: String,
+pub(crate) struct PageTalkShare {
+    pub(crate) name: String,
     #[serde(rename = "sharePermille")]
-    share_permille: u32,
+    pub(crate) share_permille: u32,
     #[serde(rename = "speakingSeconds")]
     speaking_seconds: u64,
     #[serde(rename = "turnCount")]
-    turn_count: u32,
+    pub(crate) turn_count: u32,
     #[serde(rename = "longestMonologueSeconds")]
     longest_monologue_seconds: u64,
 }
 
 #[derive(Serialize)]
 pub(crate) struct LedgerPage {
-    meta: PageMeta,
+    pub(crate) meta: PageMeta,
     participants: Vec<PageParticipant>,
     /// `[speakerIndex, secondsFromStart, wordCount]`. Three integers: the
     /// privacy invariant is the type, not a runtime check. An unattributable
     /// turn carries speaker index `-1` and is left out of the counts.
-    turns: Vec<(i32, u64, u32)>,
-    topics: Vec<PageTopic>,
+    pub(crate) turns: Vec<(i32, u64, u32)>,
+    pub(crate) topics: Vec<PageTopic>,
     #[serde(rename = "openLoops")]
     open_loops: Vec<PageOpenLoop>,
     commitments: Vec<PageCommitment>,
     stances: Vec<PageStance>,
     #[serde(rename = "talkShare")]
-    talk_share: Vec<PageTalkShare>,
+    pub(crate) talk_share: Vec<PageTalkShare>,
     caveats: Vec<String>,
     /// Measured, and shown in the footer.
     #[serde(rename = "interactionCount")]

@@ -1,0 +1,152 @@
+[
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Morning. You good? I know it's been a week.",
+    "timestamp": 4
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "Yeah, fine. Bit fried, but fine.",
+    "timestamp": 9
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Okay so I want to get through pricing today because we keep, we keep circling it and then running out of time. The tiers. Where I've got to is three tiers, starter, team, business, and the middle one is the one everyone lands on. That's the whole design really. But I don't know if we're pricing team at forty or at fifty and honestly I've been going back and forth on that all week.",
+    "timestamp": 14
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "Fifty feels high for what's in it right now.",
+    "timestamp": 41
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "It does, yeah. It does feel high. Although if we add the audit log before launch then it doesn't. So it kind of depends what ships.",
+    "timestamp": 46
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "Right.",
+    "timestamp": 57
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Anyway. Which tier does the trial convert into? Because at the moment the trial is basically business, everything switched on, and then on day fifteen they get dropped into whatever they picked, which for most people is going to be team, and that's a downgrade experience. That's a bad, that's genuinely a bad moment.",
+    "timestamp": 62
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "Well the discount's the bigger problem. If we're doing twenty percent annual and the trial's already free, the first invoice is going to look weird next to what they were seeing.",
+    "timestamp": 88
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Hm. Maybe.",
+    "timestamp": 101
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "I'd want to model that before we commit to twenty.",
+    "timestamp": 104
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Sure. Okay. So — the other thing, the onboarding emails. The copy in those is still the old positioning, it still says \"workspace for teams\" which we haven't used since March, and if someone signs up tomorrow that's the first thing they read.",
+    "timestamp": 109
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "Mm. Hey, did we ever decide about annual versus monthly for launch? Because that changes the whole billing build.",
+    "timestamp": 128
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Right, yes. My view is annual first. Just annual. We get the cash, the build is simpler, and we add monthly in Q3 when we actually understand churn.",
+    "timestamp": 139
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "I think that's right. Yeah. Let's do annual only at launch.",
+    "timestamp": 153
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Okay good, that's decided then. Annual only, monthly in Q3.",
+    "timestamp": 159
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "Agreed.",
+    "timestamp": 165
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "That unblocks a lot actually. The billing thing was holding up the whole, the whole schema conversation.",
+    "timestamp": 171
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "It was.",
+    "timestamp": 180
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Right. So then who's writing the tier comparison table? Because sales are asking and I said end of week and I probably shouldn't have.",
+    "timestamp": 184
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "I'll do it. I've got the feature matrix already, it's mostly, it's mostly formatting at this point.",
+    "timestamp": 195
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Perfect. End of week?",
+    "timestamp": 203
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "End of week.",
+    "timestamp": 206
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Great. Um. What else. Oh — back to the tiers for a second, sorry. If we do annual only, does that change the forty versus fifty thing? Because annual at fifty is six hundred a year and that's a different conversation to forty.",
+    "timestamp": 211
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "It's a different conversation, yeah.",
+    "timestamp": 232
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "So maybe we hold the number until you've modelled the discount.",
+    "timestamp": 236
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "That'd be my instinct.",
+    "timestamp": 242
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Fine. Fine. So pricing stays open, which is annoying because that's the third week running, but at least it's open for a reason now rather than just, you know, drift.",
+    "timestamp": 246
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "Better reason than last week.",
+    "timestamp": 260
+  },
+  {
+    "speaker": "Dana Whitfield",
+    "text": "Ha. Yeah. Alright, I'll let you go. Thanks Amir.",
+    "timestamp": 264
+  },
+  {
+    "speaker": "Amir Haddad",
+    "text": "See you.",
+    "timestamp": 270
+  }
+]
