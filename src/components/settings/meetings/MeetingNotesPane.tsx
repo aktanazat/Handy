@@ -28,6 +28,7 @@ import {
   type MeetingNotesTemplate,
   type MeetingUserNotes,
 } from "./meetingAnalytics";
+import { formatMeetingOffset } from "./meetingUtils";
 import { useSessionSeriesTemplate } from "./seriesTemplate";
 
 /* The user's own notes for one meeting: a plain text area they type into while
@@ -184,6 +185,7 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
         bullets: [],
         through_offset_ns: null,
         segment_count: 0,
+        provisional: false,
       });
     } finally {
       setCatchingUp(false);
@@ -365,14 +367,22 @@ const SeriesTemplateAction: React.FC<SeriesTemplateActionProps> = ({
   );
 };
 
-interface CatchUpResultProps {
+export interface CatchUpResultProps {
   result: MeetingCatchUp;
 }
 
-/* A catch-up over the transcript Sona has so far. Audio is transcribed once
- * capture stops, so during a live recording the honest answer is that there is
- * nothing to read yet — and this says so instead of showing an empty list. */
-const CatchUpResult: React.FC<CatchUpResultProps> = ({ result }) => {
+/* A recap of what the meeting has said so far.
+ *
+ * While capture runs, the words behind it come from a transcript Sona
+ * recognizes as it goes, so the recap is stamped with how far into the meeting
+ * it read: a recap of a conversation that is still happening is only true up
+ * to a moment, and a reader who cannot see which moment cannot tell whether
+ * the last thing said is in it. The transcript itself never appears here.
+ *
+ * "Nothing to recap" is two different facts. Mid-meeting it means nothing has
+ * been recognized yet, and pressing again in a moment is the answer.
+ * Afterwards it means the meeting has no transcript at all. */
+export const CatchUpResult: React.FC<CatchUpResultProps> = ({ result }) => {
   const { t } = useTranslation();
 
   if (result.state !== "ready") {
@@ -382,10 +392,15 @@ const CatchUpResult: React.FC<CatchUpResultProps> = ({ result }) => {
           tone={result.state === "no_transcript_yet" ? "muted" : "warning"}
         >
           {result.state === "no_transcript_yet"
-            ? t(
-                "meetings.notes.catchUpNoTranscript",
-                "Nothing to recap yet. Sona transcribes after you stop recording, so a recap is available once the transcript starts arriving.",
-              )
+            ? result.provisional
+              ? t(
+                  "meetings.notes.catchUpNothingHeardYet",
+                  "Nothing to recap yet. Sona is still catching up with the room — try again in a moment.",
+                )
+              : t(
+                  "meetings.notes.catchUpNoTranscript",
+                  "Nothing to recap: this meeting has no transcript.",
+                )
             : result.state === "model_unavailable"
               ? t(
                   "meetings.notes.catchUpUnavailable",
@@ -401,7 +416,7 @@ const CatchUpResult: React.FC<CatchUpResultProps> = ({ result }) => {
   }
 
   return (
-    <div className="flex flex-col gap-2 px-4 py-3">
+    <div className="flex flex-col gap-2 px-4 py-3" data-slot="catch-up">
       <h3>
         <Microlabel>{t("meetings.notes.catchUpTitle", "So far")}</Microlabel>
       </h3>
@@ -410,6 +425,16 @@ const CatchUpResult: React.FC<CatchUpResultProps> = ({ result }) => {
           <li key={bullet}>{bullet}</li>
         ))}
       </ul>
+      {result.provisional ? (
+        <p data-slot="catch-up-as-of">
+          <Microlabel>
+            {t("meetings.notes.catchUpAsOf", {
+              time: formatMeetingOffset(result.through_offset_ns),
+              defaultValue: "As of {{time}}, provisional",
+            })}
+          </Microlabel>
+        </p>
+      ) : null}
     </div>
   );
 };

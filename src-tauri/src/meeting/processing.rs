@@ -29,11 +29,12 @@ use log::info;
 use rustfft::num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::hash_map::Entry;
 use std::collections::{BTreeMap, HashMap};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Condvar, Mutex};
-use std::thread;
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::thread::{self, JoinHandle};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -86,6 +87,10 @@ pub trait MeetingTranscriptEngine: Send + Sync {
     fn plan_for(&self, run_plan: &MeetingRunPlan) -> Option<AsrPlan>;
     fn engine_id(&self) -> &'static str;
     fn transcribe(&self, plan: &AsrPlan, samples: &[f32]) -> Result<String, ProcessingFailure>;
+    /// Whether the engine is already working for somebody else. Only the
+    /// provisional pass over a running capture asks: the post-stop pass is the
+    /// meeting's own turn and waits for the engine like every other caller.
+    fn is_busy(&self) -> bool;
 }
 
 struct LocalMeetingTranscriptEngine {
@@ -112,6 +117,10 @@ impl MeetingTranscriptEngine for LocalMeetingTranscriptEngine {
             .transcribe_shared(plan, samples)
             .map(|decode| decode.text)
             .map_err(|_| ProcessingFailure::EngineFailure)
+    }
+
+    fn is_busy(&self) -> bool {
+        self.manager.engine_busy()
     }
 }
 
@@ -416,7 +425,9 @@ impl MeetingProcessingService {
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(engine);
     }
 
-    /// The detector slot, for tests that need speech without a bundled model.
+    /// The voice-activity slot, for tests that have no app handle and so no
+    /// bundled model to open. Speech detection decides where one utterance
+    /// ends, so a test about transcripts has to be able to choose it.
     #[cfg(test)]
     pub(crate) fn set_vad_factory(&self, factory: Arc<dyn MeetingVadFactory>) {
         *self
@@ -645,10 +656,20 @@ impl MeetingProcessingService {
             })?
     }
 
+    /// Answer one question about one meeting from local evidence.
+    ///
+    /// `live` is the provisional transcript of a capture that is still
+    /// running, and the session hands one over only while it owns one. With it
+    /// this meeting's evidence is the words recognized during capture, and the
+    /// answer says so; any other meeting in the scope is finished and is
+    /// searched as always. A provisional answer is not saved as history — its
+    /// citations name a reading no revision keeps — so it is returned to the
+    /// asker with its receipt and nowhere else.
     pub(crate) fn ask_question(
         &self,
         store: &MeetingStore,
         request: QuestionGenerationRequest,
+        live: Option<&LiveTranscript>,
     ) -> Result<(OperationReceipt, MeetingAnswer), ProcessingFailure> {
         let QuestionGenerationRequest {
             operation_id,
@@ -669,9 +690,23 @@ impl MeetingProcessingService {
         if snapshot.revision != expected_revision {
             return Err(ProcessingFailure::Cancelled);
         }
-        let evidence = store
-            .search_evidence(&scoped_sessions, &question, MAX_QA_EVIDENCE)
-            .map_err(|_| ProcessingFailure::EngineFailure)?;
+        let provisional = live.is_some();
+        self.refresh_live(store, session_id, live);
+        let mut evidence = match live {
+            Some(live) => live.evidence(session_id, MAX_CATCH_UP_EVIDENCE_BYTES),
+            None => Vec::new(),
+        };
+        let searchable: Vec<MeetingSessionId> = scoped_sessions
+            .into_iter()
+            .filter(|scoped| !provisional || *scoped != session_id)
+            .collect();
+        if !searchable.is_empty() {
+            evidence.extend(
+                store
+                    .search_evidence(&searchable, &question, MAX_QA_EVIDENCE)
+                    .map_err(|_| ProcessingFailure::EngineFailure)?,
+            );
+        }
         let mut answer = MeetingAnswer {
             question_id,
             session_id,
@@ -683,6 +718,8 @@ impl MeetingProcessingService {
             input_revision: expected_revision,
             revision: 0,
             created_at_utc_ms: requested_at_utc_ms,
+            through_offset_ns: live.and_then(LiveTranscript::through_offset_ns),
+            provisional,
         };
         if !evidence.is_empty() {
             match self.text_generator_for_session(store, session_id) {
@@ -722,6 +759,11 @@ impl MeetingProcessingService {
                 }
             }
         }
+        if provisional && save_history {
+            log::info!(
+                "Answered {session_id:?} from its provisional transcript, so the answer is returned and not saved to question history"
+            );
+        }
         let receipt = store
             .record_question_answer(
                 operation_id,
@@ -729,7 +771,7 @@ impl MeetingProcessingService {
                 session_id,
                 expected_revision,
                 &answer,
-                save_history,
+                save_history && !provisional,
             )
             .map_err(|_| ProcessingFailure::EngineFailure)?;
         if receipt.result == OperationResult::Rejected {
@@ -794,9 +836,7 @@ impl MeetingProcessingService {
                 },
             );
         };
-        let failed = |reason| {
-            PromptRunResult::Failed { reason }
-        };
+        let failed = |reason| PromptRunResult::Failed { reason };
         let Ok(input) = prompt_model_input(store, self, &prompt, &scope, generator.as_ref()) else {
             return run(
                 generator.model_id(),
@@ -804,17 +844,14 @@ impl MeetingProcessingService {
                 failed(PromptRunFailure::NoEvidence),
             );
         };
-        let result = match generator.generate(
-            &prompt_system_prompt(&prompt),
-            &input,
-            PROMPT_MAX_TOKENS,
-        ) {
-            Ok(output) => prompt_answer(&prompt.output, &output),
-            Err(MeetingTextGenerationError::Unreachable) => {
-                failed(PromptRunFailure::ModelUnreachable)
-            }
-            Err(MeetingTextGenerationError::Failed) => failed(PromptRunFailure::ModelFailed),
-        };
+        let result =
+            match generator.generate(&prompt_system_prompt(&prompt), &input, PROMPT_MAX_TOKENS) {
+                Ok(output) => prompt_answer(&prompt.output, &output),
+                Err(MeetingTextGenerationError::Unreachable) => {
+                    failed(PromptRunFailure::ModelUnreachable)
+                }
+                Err(MeetingTextGenerationError::Failed) => failed(PromptRunFailure::ModelFailed),
+            };
         run(generator.model_id(), generator.model_version(), result)
     }
 
@@ -1090,7 +1127,7 @@ impl MeetingProcessingService {
         let mut previous_end = None;
         let mut previous_epoch = None;
         store
-            .visit_durable_track_records(session_id, track_id, |record| {
+            .visit_durable_track_records(session_id, track_id, None, |record| {
                 self.wait_for_capture(cancelled)
                     .map_err(store_error_from_processing)?;
                 if record_starts_new_span(previous_end, previous_epoch, &record) {
@@ -1308,23 +1345,24 @@ impl MeetingProcessingService {
         let mut windower = DiarizationWindower::new(detector);
         let mut frames = RecordFrameBuffer::new();
         let mut cluster_speakers = HashMap::new();
-        let result = store.visit_durable_track_records(session_id, track.track_id, |record| {
-            self.wait_for_capture(cancelled)
-                .map_err(store_error_from_processing)?;
-            process_record_frames(&record, &mut frames, &mut windower, |window| {
-                self.assign_diarized_window(
-                    store,
-                    session_id,
-                    transcript_revision_id,
-                    generation_id,
-                    &mut diarizer,
-                    &mut cluster_speakers,
-                    window,
-                )
-                .map_err(store_error_from_processing)
-            })?;
-            Ok(())
-        });
+        let result =
+            store.visit_durable_track_records(session_id, track.track_id, None, |record| {
+                self.wait_for_capture(cancelled)
+                    .map_err(store_error_from_processing)?;
+                process_record_frames(&record, &mut frames, &mut windower, |window| {
+                    self.assign_diarized_window(
+                        store,
+                        session_id,
+                        transcript_revision_id,
+                        generation_id,
+                        &mut diarizer,
+                        &mut cluster_speakers,
+                        window,
+                    )
+                    .map_err(store_error_from_processing)
+                })?;
+                Ok(())
+            });
         if result.is_ok() {
             if let Some(window) = windower.finish() {
                 let _ = self.assign_diarized_window(
@@ -1674,28 +1712,66 @@ impl MeetingProcessingService {
         Ok(analytics)
     }
 
-    /// Recap the transcript captured so far. Audio is transcribed only once
-    /// capture stops, so during a live recording there is genuinely nothing to
-    /// read yet and this reports `NoTranscriptYet` instead of inventing one.
+    /// Read the audio a running capture has committed since the last pass, for
+    /// a reader that is about to quote its provisional transcript.
+    ///
+    /// A person pressing for a recap is asking about now, so the pass runs on
+    /// the asking thread rather than waiting for the next tick; the cursors are
+    /// a lock, so this waits for a pass already in flight instead of racing it.
+    /// A failure is not the reader's failure — it leaves whatever the
+    /// background pass has already recognized, and nothing recognized at all is
+    /// answered as nothing to read. The pass logs its own first failure per
+    /// capture; this line is for the press that found it.
+    fn refresh_live(
+        &self,
+        store: &MeetingStore,
+        session_id: MeetingSessionId,
+        live: Option<&LiveTranscript>,
+    ) {
+        let Some(live) = live else {
+            return;
+        };
+        if let Err(error) = self.live_pass(store, session_id, live) {
+            log::debug!("No fresh provisional transcript for {session_id:?}: {error:?}");
+        }
+    }
+
+    /// Recap what the meeting has said so far.
+    ///
+    /// `live` is the provisional transcript of a capture that is still
+    /// running, and the session hands one over only while it owns one. With it
+    /// the recap is read from words recognized during capture and marked
+    /// provisional; without it, from the newest stored transcript revision,
+    /// which is the authoritative reading and the only one after a stop.
+    /// Neither source is ever mixed with the other: a recap says which
+    /// transcript it read, and half of each would be neither.
     pub(crate) fn catch_up(
         &self,
         store: &MeetingStore,
         session_id: MeetingSessionId,
+        live: Option<&LiveTranscript>,
     ) -> Result<MeetingCatchUp, ProcessingFailure> {
-        let evidence = store
-            .pending_transcript_evidence(session_id, MAX_CATCH_UP_EVIDENCE_BYTES)
-            .map_err(|_| ProcessingFailure::EngineFailure)?;
+        let provisional = live.is_some();
+        self.refresh_live(store, session_id, live);
+        let evidence = match live {
+            Some(live) => live.evidence(session_id, MAX_CATCH_UP_EVIDENCE_BYTES),
+            None => store
+                .pending_transcript_evidence(session_id, MAX_CATCH_UP_EVIDENCE_BYTES)
+                .map_err(|_| ProcessingFailure::EngineFailure)?,
+        };
         let segment_count = u32::try_from(evidence.len()).unwrap_or(u32::MAX);
         if evidence.is_empty() {
             return Ok(MeetingCatchUp::empty(
                 MeetingCatchUpState::NoTranscriptYet,
                 0,
+                provisional,
             ));
         }
         let Some(generator) = self.text_generator_for_session(store, session_id) else {
             return Ok(MeetingCatchUp::empty(
                 MeetingCatchUpState::ModelUnavailable,
                 segment_count,
+                provisional,
             ));
         };
         let through_offset_ns = evidence
@@ -1717,12 +1793,14 @@ impl MeetingProcessingService {
                 return Ok(MeetingCatchUp::empty(
                     MeetingCatchUpState::ModelUnavailable,
                     segment_count,
+                    provisional,
                 ))
             }
             Err(MeetingTextGenerationError::Failed) => {
                 return Ok(MeetingCatchUp::empty(
                     MeetingCatchUpState::Failed,
                     segment_count,
+                    provisional,
                 ))
             }
         };
@@ -1730,6 +1808,7 @@ impl MeetingProcessingService {
             return Ok(MeetingCatchUp::empty(
                 MeetingCatchUpState::Failed,
                 segment_count,
+                provisional,
             ));
         };
         let bullets: Vec<String> = raw
@@ -1745,6 +1824,7 @@ impl MeetingProcessingService {
             return Ok(MeetingCatchUp::empty(
                 MeetingCatchUpState::Failed,
                 segment_count,
+                provisional,
             ));
         }
         Ok(MeetingCatchUp {
@@ -1752,7 +1832,116 @@ impl MeetingProcessingService {
             bullets,
             through_offset_ns,
             segment_count,
+            provisional,
         })
+    }
+
+    /// Transcribe the audio one running capture has committed since the last
+    /// pass, per source track, and append what comes back to its provisional
+    /// transcript.
+    ///
+    /// The audio comes from the durable records on disk — the same ones the
+    /// post-stop pass reads — and never from the capture ring: that ring is
+    /// single-producer, single-consumer, and its consumer belongs to the ingest
+    /// worker. Reading committed records instead costs at most one checkpoint
+    /// interval of lag and cannot take a packet away from the writer.
+    ///
+    /// `Ok(())` covers the skips as well as the work: an engine somebody else
+    /// is using, and a capture with nothing new on disk, are both normal.
+    fn live_pass(
+        &self,
+        store: &MeetingStore,
+        session_id: MeetingSessionId,
+        live: &LiveTranscript,
+    ) -> Result<(), ProcessingFailure> {
+        let engine = self
+            .transcript_engine
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+            .ok_or(ProcessingFailure::LocalModelUnavailable)?;
+        // Asked once, before any work: a dictation that starts mid-pass waits
+        // for the chunk being recognized, and no longer. Yielding partway
+        // through instead would drop the chunks already cut from records the
+        // mark has passed, which would leave a hole in the middle of a
+        // provisional transcript that claims to run to a given moment — worse
+        // than one late chunk, and not worth the trade until somebody measures
+        // a wait that matters.
+        if engine.is_busy() {
+            return Ok(());
+        }
+        let plan = store
+            .processing_plan(session_id)
+            .map_err(|_| ProcessingFailure::EngineFailure)?;
+        if !matches!(plan.destination, ProcessingDestination::Local) {
+            return Err(ProcessingFailure::RemoteUnavailable);
+        }
+        let mut asr_plan = engine
+            .plan_for(&plan)
+            .ok_or(ProcessingFailure::LocalModelUnavailable)?;
+        if let Ok(Some(blob)) = store.series_priming(session_id) {
+            super::learning::apply_series_priming(&mut asr_plan, &blob);
+        }
+        let tracks = store
+            .review_snapshot(session_id)
+            .map_err(|_| ProcessingFailure::EngineFailure)?
+            .tracks;
+        let mut cursors = live.cursors();
+        for track in &tracks {
+            let cursor = match cursors.entry(track.track_id) {
+                Entry::Occupied(entry) => entry.into_mut(),
+                Entry::Vacant(entry) => entry.insert(LiveTrackCursor::open(
+                    self.vad_factory
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .open(track.source_kind)?,
+                )),
+            };
+            let mut recognized = Vec::new();
+            let visited = store.visit_durable_track_records(
+                session_id,
+                track.track_id,
+                cursor.through_sequence,
+                |record| {
+                    process_record_frames(
+                        &record,
+                        &mut cursor.frames,
+                        &mut cursor.chunker,
+                        |chunk| {
+                            recognized.push(chunk);
+                            Ok(())
+                        },
+                    )?;
+                    cursor.through_sequence = Some(record.sequence);
+                    Ok(())
+                },
+            );
+            /* A track whose records cannot be read is this pass's answer for
+             * that track and not for the meeting: the other track may still
+             * have words in it, and the post-stop pass reads the audio again
+             * from the beginning. */
+            if visited.is_err() {
+                return Err(ProcessingFailure::EngineFailure);
+            }
+            // Speech that is still running when the records run out is cut here
+            // rather than held back: a recap that is one utterance short of now
+            // is what a person pressed the button for. The chunker keeps its
+            // overlap, so the next pass resumes mid-sentence rather than
+            // starting from silence.
+            recognized.extend(cursor.chunker.finish(true));
+            for chunk in recognized {
+                let text = engine.transcribe(&asr_plan, &chunk.samples)?;
+                if text.trim().is_empty() {
+                    continue;
+                }
+                live.append(LiveSegment {
+                    start_offset_ns: chunk.start_offset_ns,
+                    end_offset_ns: chunk.end_offset_ns,
+                    text,
+                });
+            }
+        }
+        Ok(())
     }
 
     fn wait_for_capture(&self, cancelled: &AtomicBool) -> Result<(), ProcessingFailure> {
@@ -1784,6 +1973,233 @@ impl MeetingProcessingService {
                     revision,
                 },
             );
+        }
+    }
+}
+
+/// How often the provisional pass reads the audio a running capture has
+/// committed since its last mark.
+///
+/// Twenty seconds is the whole tuning story, and it is a constant rather than
+/// a setting on purpose. Shorter than this and each pass is one ASR call over
+/// a couple of words, which costs a model load's worth of work per sentence
+/// and keeps the engine resident for a meeting nobody asked a question about.
+/// Longer and the recap a person presses for is behind the room. A press runs
+/// a pass of its own before it reads, so this interval only bounds how much
+/// work that press has left to do — which is why no slider would make it
+/// better, only wrong.
+const LIVE_PASS_INTERVAL: Duration = Duration::from_secs(20);
+
+/// One utterance recognized during capture. It has no segment id, no speaker
+/// and no revision: those belong to the stored transcript the post-stop pass
+/// writes, and this is a reading that is thrown away when capture ends. Which
+/// track it came from is not kept either — nothing tells the two apart until
+/// diarization runs, which it does after the stop.
+struct LiveSegment {
+    start_offset_ns: u64,
+    end_offset_ns: u64,
+    text: String,
+}
+
+/// Where one source track's provisional pass got to, and the VAD state it
+/// carries between passes so an utterance that spans two passes is still cut
+/// on silence rather than on the clock.
+struct LiveTrackCursor {
+    /// The last durable record this track's pass consumed. The next pass asks
+    /// for records after it, so no audio is read — or paid for — twice.
+    through_sequence: Option<u64>,
+    frames: RecordFrameBuffer,
+    chunker: SpeechChunker,
+}
+
+impl LiveTrackCursor {
+    fn open(detector: Box<dyn MeetingVad>) -> Self {
+        Self {
+            through_sequence: None,
+            frames: RecordFrameBuffer::new(),
+            chunker: SpeechChunker::new(detector),
+        }
+    }
+}
+
+/// The provisional transcript of a capture that is still running.
+///
+/// Owned by the live session and never by the store: transcript revisions are
+/// produced after the stop, from the same audio, and stay the one
+/// authoritative reading of a meeting. This is what a mid-meeting recap or
+/// question reads instead of nothing, and it dies with the capture that filled
+/// it.
+pub(crate) struct LiveTranscript {
+    segments: Mutex<Vec<LiveSegment>>,
+    /// The pass lock. Whoever holds these cursors is the pass, so the
+    /// scheduled pass and a pass a catch-up runs for itself can never read the
+    /// same records twice or interleave one utterance with another.
+    cursors: Mutex<HashMap<SourceTrackId, LiveTrackCursor>>,
+}
+
+impl LiveTranscript {
+    fn new() -> Self {
+        Self {
+            segments: Mutex::new(Vec::new()),
+            cursors: Mutex::new(HashMap::new()),
+        }
+    }
+
+    fn cursors(&self) -> MutexGuard<'_, HashMap<SourceTrackId, LiveTrackCursor>> {
+        self.cursors
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn append(&self, segment: LiveSegment) {
+        self.segments
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .push(segment);
+    }
+
+    /// What has been recognized so far, as evidence a prompt can quote.
+    ///
+    /// In start order across tracks, and cut at `max_bytes` of quoted text the
+    /// way the store's own reader cuts it — from the end, so the meeting still
+    /// reads from its beginning. Entity ids are provisional and say so: a
+    /// citation on a provisional answer names a segment that no revision will
+    /// keep, which is why such an answer is never saved.
+    fn evidence(&self, session_id: MeetingSessionId, max_bytes: usize) -> Vec<MeetingEvidence> {
+        let segments = self
+            .segments
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut ordered: Vec<&LiveSegment> = segments.iter().collect();
+        ordered.sort_by_key(|segment| (segment.start_offset_ns, segment.end_offset_ns));
+        let mut evidence = Vec::new();
+        let mut used = 0_usize;
+        for (ordinal, segment) in ordered.into_iter().enumerate() {
+            if used.saturating_add(segment.text.len()) > max_bytes {
+                break;
+            }
+            used = used.saturating_add(segment.text.len());
+            evidence.push(MeetingEvidence {
+                citation: MeetingCitation {
+                    kind: CitationKind::Transcript,
+                    session_id,
+                    entity_id: format!("provisional-{ordinal}"),
+                    start_offset_ns: Some(segment.start_offset_ns),
+                    end_offset_ns: Some(segment.end_offset_ns),
+                },
+                text: segment.text.clone(),
+            });
+        }
+        evidence
+    }
+
+    /// How far into the meeting the provisional transcript has been read.
+    fn through_offset_ns(&self) -> Option<u64> {
+        self.segments
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .iter()
+            .map(|segment| segment.end_offset_ns)
+            .max()
+    }
+}
+
+/// The background pass over one running capture, and the transcript it fills.
+///
+/// One thread per capturing session, started with capture and stopped with it.
+/// It sleeps between passes on a condvar rather than a timer, so a stop is
+/// waited for by at most the pass in flight, and it holds no lock while it
+/// sleeps.
+pub(crate) struct LiveTranscriptWorker {
+    live: Arc<LiveTranscript>,
+    stopped: Arc<(Mutex<bool>, Condvar)>,
+    handle: Option<JoinHandle<()>>,
+}
+
+impl LiveTranscriptWorker {
+    pub(crate) fn start(
+        service: Arc<MeetingProcessingService>,
+        store: Arc<MeetingStore>,
+        session_id: MeetingSessionId,
+    ) -> Self {
+        let live = Arc::new(LiveTranscript::new());
+        let stopped = Arc::new((Mutex::new(false), Condvar::new()));
+        let worker_live = Arc::clone(&live);
+        let worker_stopped = Arc::clone(&stopped);
+        let handle = thread::spawn(move || {
+            run_live_pass_worker(service, store, session_id, worker_live, worker_stopped);
+        });
+        Self {
+            live,
+            stopped,
+            handle: Some(handle),
+        }
+    }
+
+    /// The transcript this worker fills, for a reader that has to survive the
+    /// worker being stopped underneath it.
+    pub(crate) fn transcript(&self) -> Arc<LiveTranscript> {
+        Arc::clone(&self.live)
+    }
+
+    fn stop(&mut self) {
+        let (stopped, wake) = &*self.stopped;
+        *stopped
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = true;
+        wake.notify_all();
+        if let Some(handle) = self.handle.take() {
+            /* A pass that panicked has already lost this meeting's provisional
+             * transcript and nothing else; the audio and the stop are
+             * untouched, so there is nothing here to fail. */
+            let _ = handle.join();
+        }
+    }
+}
+
+/// The pass ends with the capture, and a capture ends by dropping the record
+/// that owns it — a stop, a discard, a delete. Stopping here rather than at
+/// each of those keeps the thread from outliving a path nobody thought to
+/// update.
+impl Drop for LiveTranscriptWorker {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
+fn run_live_pass_worker(
+    service: Arc<MeetingProcessingService>,
+    store: Arc<MeetingStore>,
+    session_id: MeetingSessionId,
+    live: Arc<LiveTranscript>,
+    stopped: Arc<(Mutex<bool>, Condvar)>,
+) {
+    let (flag, wake) = &*stopped;
+    // One line per capture, not one per pass. A model that is not installed,
+    // or a track that cannot be read, is the same fact every twenty seconds
+    // for as long as the meeting runs, and a log nobody can read past is worse
+    // than no log at all.
+    let mut reported = false;
+    loop {
+        {
+            let guard = flag.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            if *guard {
+                return;
+            }
+            let (guard, _) = wake
+                .wait_timeout(guard, LIVE_PASS_INTERVAL)
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if *guard {
+                return;
+            }
+        }
+        if let Err(error) = service.live_pass(&store, session_id, &live) {
+            if !reported {
+                reported = true;
+                log::warn!(
+                    "No provisional transcript for the running meeting {session_id:?}: {error:?}"
+                );
+            }
         }
     }
 }
@@ -2068,7 +2484,7 @@ fn prime_diarizer(
     diarizer: &mut MeetingDiarizationSession,
 ) -> Result<(), DiarizationError> {
     let mut push_failure = None;
-    let visited = store.visit_durable_track_records(session_id, track_id, |record| {
+    let visited = store.visit_durable_track_records(session_id, track_id, None, |record| {
         let samples = downmix_and_resample(&record)?;
         if let Err(error) = diarizer.push_priming_audio(&samples, record.start_offset_ns) {
             push_failure = Some(error);

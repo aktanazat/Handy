@@ -91,6 +91,9 @@ export interface MeetingCatchUp {
   bullets: string[];
   through_offset_ns: number | null;
   segment_count: number;
+  /** Read from the transcript Sona recognized while the meeting was running,
+   *  rather than from the stored one written after the stop. */
+  provisional: boolean;
 }
 
 /** How long the notes pane waits after the last keystroke before saving. */

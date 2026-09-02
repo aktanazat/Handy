@@ -3885,7 +3885,20 @@ export type MeetingAnalytics = { talk: MeetingTalkMetrics; trackers: TrackerResu
  * Everything the meeting review surface needs from this module in one read.
  */
 export type MeetingAnalyticsSnapshot = { session_id: MeetingSessionId; input_revision: number; computed_at_utc_ms: number; analytics: MeetingAnalytics; action_items: MeetingActionItemState[]; notes: MeetingUserNotes }
-export type MeetingAnswer = { question_id: MeetingQuestionId; session_id: MeetingSessionId; scope: MeetingQuestionScope; question: string | null; state: MeetingAnswerState; answer: string | null; citations: MeetingCitation[]; input_revision: number; revision: number; created_at_utc_ms: number }
+export type MeetingAnswer = { question_id: MeetingQuestionId; session_id: MeetingSessionId; scope: MeetingQuestionScope; question: string | null; state: MeetingAnswerState; answer: string | null; citations: MeetingCitation[]; input_revision: number; revision: number; created_at_utc_ms: number;
+/**
+ * How far into the meeting the evidence behind this answer reached, for a
+ * provisional answer. `None` once the transcript has landed: a finished
+ * meeting's answer was read from all of it.
+ */
+through_offset_ns: number | null;
+/**
+ * Read from the provisional transcript of a capture that was still
+ * running. A provisional answer is never saved as history — the segments
+ * it cites belong to an in-memory reading that no revision keeps — so it
+ * is returned to the asker and nowhere else.
+ */
+provisional: boolean }
 export type MeetingAnswerState = "supported" | "insufficient_evidence" | "unavailable" | "out_of_date" | "forgotten"
 export type MeetingArtifactChangedEvent = MeetingEventPayload
 export type MeetingArtifactId = string
@@ -4006,11 +4019,20 @@ export type MeetingAutomationSeries = { series_key: string; title: string; last_
 /**
  * A short recap of the transcript captured so far.
  */
-export type MeetingCatchUp = { state: MeetingCatchUpState; bullets: string[]; through_offset_ns: number | null; segment_count: number }
+export type MeetingCatchUp = { state: MeetingCatchUpState; bullets: string[]; through_offset_ns: number | null; segment_count: number;
+/**
+ * Read from the provisional transcript of a capture that is still
+ * running, rather than from a stored transcript revision. The recap is as
+ * of `through_offset_ns` and the words behind it were recognized without
+ * the second pass — diarization, edits, speaker names — that a stored
+ * revision has had.
+ */
+provisional: boolean }
 /**
  * Why a catch-up request produced what it did. `NoTranscriptYet` is the
- * normal answer while audio is still being captured: this app transcribes
- * after capture stops, so there is nothing to summarize until then.
+ * answer while there is nothing to read: before the provisional pass over a
+ * running capture has recognized any speech, and for a finished meeting whose
+ * transcript is empty.
  */
 export type MeetingCatchUpState = "ready" | "no_transcript_yet" | "model_unavailable" | "failed"
 export type MeetingCitation = { kind: CitationKind; session_id: MeetingSessionId; entity_id: string; start_offset_ns: number | null; end_offset_ns?: number | null }

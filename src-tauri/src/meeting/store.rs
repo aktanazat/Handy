@@ -4700,6 +4700,8 @@ impl MeetingStore {
                 input_revision: expected_revision,
                 revision: 0,
                 created_at_utc_ms: requested_at_utc_ms,
+                through_offset_ns: None,
+                provisional: false,
             },
         ))
     }
@@ -5340,10 +5342,17 @@ impl MeetingStore {
             transaction.commit()?;
             return Ok(receipt);
         }
-        if !matches!(
-            current.phase,
-            MeetingPhase::ReviewReady | MeetingPhase::RecoveryRequired
-        ) {
+        // The transcript a saved answer cites has to be one that will still be
+        // there tomorrow, so history is only written for a meeting whose
+        // revision has landed. A question asked while capture is still running
+        // is answered from the provisional transcript and records its receipt
+        // and nothing else: its citations name segments no revision will keep.
+        if save_history
+            && !matches!(
+                current.phase,
+                MeetingPhase::ReviewReady | MeetingPhase::RecoveryRequired
+            )
+        {
             return Err(StoreError::Conflict);
         }
         if save_history {
@@ -6389,14 +6398,21 @@ impl MeetingStore {
         Ok(path)
     }
 
-    /// Streams independently authenticated durable records in sequence order.
+    /// Streams independently authenticated durable records in sequence order,
+    /// starting after `after_sequence` — `None` for the whole track.
     /// The metadata lookup releases the database mutex before decryption and
     /// callback work, so callers can checkpoint transcript batches without
     /// retaining a meeting-sized PCM buffer.
+    ///
+    /// A mark is what lets the provisional pass over a running capture read
+    /// only the records that arrived since its last one. Records are committed
+    /// after their bytes are synced, so a committed record is always readable
+    /// here even while the writer is still appending to the same file.
     pub(crate) fn visit_durable_track_records<F>(
         &self,
         session_id: MeetingSessionId,
         track_id: SourceTrackId,
+        after_sequence: Option<u64>,
         mut visitor: F,
     ) -> Result<(), StoreError>
     where
@@ -6416,7 +6432,7 @@ impl MeetingStore {
         let files = self.track_files(session_id, track_id);
         let key = self.track_key(session_id, track_id)?;
         let mut file = File::open(&files.records)?;
-        let mut after_sequence = None;
+        let mut after_sequence = after_sequence;
 
         loop {
             let descriptor = {
@@ -6766,13 +6782,24 @@ impl MeetingTrackWriter {
         )?;
         self.next_sequence = next_packet_sequence;
         self.pending.push(pending);
+        // The interval is measured from the last durable end, and from the
+        // first pending record when nothing is durable yet. Without that
+        // second case the comparison has no left-hand side on a fresh track,
+        // so the first checkpoint never arrives and the whole meeting is held
+        // in memory until the seal — which is also what left an interrupted
+        // capture with no committed records to recover from, and a running
+        // capture with nothing on disk for a mid-meeting reader.
+        let measured_from_ns = self.durable_end_offset_ns.or_else(|| {
+            self.pending
+                .first()
+                .and_then(|record| record.start_offset_ns)
+        });
         let should_checkpoint = self
             .pending
             .last()
             .and_then(|record| record.end_offset_ns)
-            .zip(self.durable_end_offset_ns)
-            .map(|(end, durable)| end.saturating_sub(durable) >= self.checkpoint_interval_ns)
-            .unwrap_or(false);
+            .zip(measured_from_ns)
+            .is_some_and(|(end, from)| end.saturating_sub(from) >= self.checkpoint_interval_ns);
         if should_checkpoint {
             self.checkpoint()?;
         }
@@ -8017,6 +8044,10 @@ fn question_history_for_session(
                     input_revision: from_i64(input_revision)?,
                     revision: from_i64(revision)?,
                     created_at_utc_ms: created_at,
+                    /* A saved answer was read from a landed transcript: that
+                     * is the only kind history holds. */
+                    through_offset_ns: None,
+                    provisional: false,
                 })
             },
         )
@@ -11079,6 +11110,71 @@ mod tests {
         );
     }
 
+    /// Audio a running capture has produced reaches the record index before
+    /// anything seals the track, and a reader can ask for only what arrived
+    /// after the last one it read.
+    ///
+    /// Both halves are what a mid-meeting reading of a live capture rests on,
+    /// and the first is also what a launch that ends without a stop has to
+    /// recover from.
+    #[test]
+    fn a_writer_commits_records_before_the_track_is_sealed() {
+        let (_directory, store) = store();
+        let bridge = TimestampBridge {
+            native_anchor_value: 0,
+            native_timescale: 1_000_000_000,
+            host_monotonic_anchor_ns: 0,
+            session_offset_ns: 0,
+        };
+        let (session_id, track_id, storage) = microphone_track(&store, bridge);
+        let mut writer = store
+            .open_track_writer(session_id, track_id, storage)
+            .unwrap();
+        let samples = vec![0.25; usize::try_from(TEST_PACKET_FRAMES).unwrap()];
+
+        assert_eq!(
+            writer
+                .accept(captured_packet(track_id, 0, Some(0)), &samples)
+                .unwrap(),
+            PacketPushResult::Accepted
+        );
+
+        let mut committed = Vec::new();
+        store
+            .visit_durable_track_records(session_id, track_id, None, |record| {
+                committed.push(record.sequence);
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(
+            committed,
+            vec![0],
+            "a packet past the checkpoint interval is committed, not held until the seal"
+        );
+
+        assert_eq!(
+            writer
+                .accept(
+                    captured_packet(track_id, 1, Some(test_packet_duration_ns())),
+                    &samples
+                )
+                .unwrap(),
+            PacketPushResult::Accepted
+        );
+        let mut since = Vec::new();
+        store
+            .visit_durable_track_records(session_id, track_id, Some(0), |record| {
+                since.push(record.sequence);
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(
+            since,
+            vec![1],
+            "a mark reads what arrived after it and pays for nothing before it"
+        );
+    }
+
     #[test]
     fn capture_clock_stall_records_one_timed_gap_and_keeps_later_audio() {
         let (_directory, store) = store();
@@ -11379,6 +11475,8 @@ mod tests {
             input_revision: revision,
             revision: 0,
             created_at_utc_ms: 3,
+            through_offset_ns: None,
+            provisional: false,
         };
         let receipt = store
             .record_question_answer(
@@ -11423,6 +11521,8 @@ mod tests {
             input_revision: revision,
             revision: 0,
             created_at_utc_ms: 3,
+            through_offset_ns: None,
+            provisional: false,
         };
         let stale_receipt = store
             .record_question_answer(
@@ -11447,6 +11547,8 @@ mod tests {
             input_revision: revision,
             revision: 0,
             created_at_utc_ms: 4,
+            through_offset_ns: None,
+            provisional: false,
         };
         store
             .record_question_answer(
@@ -12604,7 +12706,10 @@ mod tests {
         assert_eq!(trashed.len(), 1);
         assert_eq!(trashed[0].job_id, job_id);
         assert_eq!(trashed[0].title, "Design sync");
-        assert_eq!(trashed[0].deleted_at_utc_ms, trashed[0].expires_at_utc_ms - TRASH_RETENTION_MS);
+        assert_eq!(
+            trashed[0].deleted_at_utc_ms,
+            trashed[0].expires_at_utc_ms - TRASH_RETENTION_MS
+        );
 
         let restored = store
             .restore_trashed_meeting(job_id, 20)
@@ -12670,7 +12775,10 @@ mod tests {
              the restore and the sweep all read it that way"
         );
 
-        assert!(store.meeting_trash(deleted_at).expect("trash list").is_empty());
+        assert!(store
+            .meeting_trash(deleted_at)
+            .expect("trash list")
+            .is_empty());
         assert_eq!(
             store.restore_trashed_meeting(job_id, deleted_at),
             Err(StoreError::NotFound)

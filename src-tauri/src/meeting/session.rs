@@ -20,7 +20,8 @@ use super::loop_types::{
 };
 use super::people_types::{PersonDetailResult, PersonId, PersonLinkConfidence};
 use super::processing::{
-    write_relationship_summary, MeetingProcessingService, ProcessingOrigin,
+    write_relationship_summary, LiveTranscript, LiveTranscriptWorker, MeetingProcessingService,
+    ProcessingOrigin,
     QuestionGenerationRequest,
 };
 use super::store::{
@@ -453,6 +454,10 @@ struct ActorState {
 struct ActiveCapture {
     session_id: MeetingSessionId,
     sources: HashMap<SourceKind, ActiveSource>,
+    /// The provisional transcript of this capture and the pass that fills it.
+    /// It stops when this record is dropped, which is what every path that
+    /// ends a capture — stop, discard, delete — already does.
+    live: LiveTranscriptWorker,
 }
 
 struct ActiveSource {
@@ -1621,6 +1626,11 @@ impl MeetingSessionManager {
         actor.active = Some(ActiveCapture {
             session_id: request.session_id,
             sources: active_sources,
+            live: LiveTranscriptWorker::start(
+                Arc::clone(&self.processing),
+                Arc::clone(&store),
+                request.session_id,
+            ),
         });
         actor.tray_session_id = None;
         drop(actor);
@@ -1873,8 +1883,11 @@ impl MeetingSessionManager {
         self.processing.set_capture_active(false);
         self.release_keep_awake();
         actor.tray_session_id = Some(request.session_id);
-        drop(active);
         drop(actor);
+        // The lock goes first: dropping this record ends the provisional pass,
+        // and joining a pass that is mid-recognition must not hold every other
+        // meeting command behind it.
+        drop(active);
         self.processing.submit(
             Arc::clone(&store),
             request.session_id,
@@ -3044,6 +3057,7 @@ impl MeetingSessionManager {
                 return Err(MeetingCommandError::NotFound);
             }
         }
+        let live = self.live_transcript(request.session_id);
         let (receipt, answer) = self
             .processing
             .ask_question(
@@ -3058,6 +3072,7 @@ impl MeetingSessionManager {
                     scope: request.scope,
                     save_history: request.save_history,
                 },
+                live.as_deref(),
             )
             .map_err(map_processing_error)?;
         let snapshot = store
@@ -3200,9 +3215,26 @@ impl MeetingSessionManager {
         session_id: MeetingSessionId,
     ) -> Result<MeetingCatchUp, MeetingCommandError> {
         let store = self.store().await?;
+        let live = self.live_transcript(session_id);
         self.processing
-            .catch_up(&store, session_id)
+            .catch_up(&store, session_id, live.as_deref())
             .map_err(map_processing_error)
+    }
+
+    /// The provisional transcript of the capture that is running now, when the
+    /// running capture is this meeting's.
+    ///
+    /// Cloned out from under the actor lock, because reading it means
+    /// recognizing audio and generating text and no other meeting command may
+    /// be made to wait for either. A meeting that has stopped has no live
+    /// transcript here, which is what sends its readers to the stored
+    /// revision.
+    fn live_transcript(&self, session_id: MeetingSessionId) -> Option<Arc<LiveTranscript>> {
+        self.actor_lock()
+            .active
+            .as_ref()
+            .filter(|active| active.session_id == session_id)
+            .map(|active| active.live.transcript())
     }
 
     fn default_notes_template(&self) -> MeetingNotesTemplate {
@@ -4020,6 +4052,7 @@ fn write_imported_transcript(
 
 #[cfg(test)]
 mod tests {
+    use super::super::analytics::MeetingCatchUpState;
     use super::*;
     use crate::secrets::{MemorySecretBackend, SecretManager};
     use tempfile::TempDir;
@@ -4028,6 +4061,9 @@ mod tests {
         kind: SourceKind,
         starts: Arc<std::sync::atomic::AtomicUsize>,
         aborts: Arc<std::sync::atomic::AtomicUsize>,
+        /// Where `start` leaves the lane it was handed, so a test can push
+        /// audio down the real ingest path instead of pretending it did.
+        lane: Arc<Mutex<Option<PacketSink>>>,
     }
 
     impl MeetingCaptureSource for FakeSource {
@@ -4048,9 +4084,13 @@ mod tests {
             &mut self,
             plan: SourceStartPlan,
             _anchor: SessionClockAnchor,
-            _sink: PacketSink,
+            sink: PacketSink,
         ) -> Result<SourceStartReport, MeetingCaptureError> {
             self.starts.fetch_add(1, Ordering::AcqRel);
+            *self
+                .lane
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(sink);
             Ok(SourceStartReport {
                 track_id: plan.track_id,
                 source_kind: plan.source_kind,
@@ -4099,6 +4139,7 @@ mod tests {
         starts: Arc<std::sync::atomic::AtomicUsize>,
         aborts: Arc<std::sync::atomic::AtomicUsize>,
         unavailable: Option<SourceKind>,
+        lane: Arc<Mutex<Option<PacketSink>>>,
     }
 
     impl MeetingSourceProvider for FakeSources {
@@ -4135,6 +4176,7 @@ mod tests {
                 kind: source_kind,
                 starts: Arc::clone(&self.starts),
                 aborts: Arc::clone(&self.aborts),
+                lane: Arc::clone(&self.lane),
             }))
         }
     }
@@ -4159,6 +4201,7 @@ mod tests {
                 starts: Arc::clone(&starts),
                 aborts: Arc::clone(&aborts),
                 unavailable: None,
+                lane: Arc::new(Mutex::new(None)),
             }),
         );
         (directory, manager, starts, aborts)
@@ -4496,6 +4539,7 @@ mod tests {
                 starts: Arc::clone(&starts),
                 aborts: Arc::clone(&aborts),
                 unavailable: None,
+                lane: Arc::new(Mutex::new(None)),
             }),
         );
         let snapshot = review_ready_session(&manager);
@@ -4509,6 +4553,7 @@ mod tests {
                 starts,
                 aborts,
                 unavailable: None,
+                lane: Arc::new(Mutex::new(None)),
             }),
         );
         assert!(tauri::async_runtime::block_on(
@@ -4536,6 +4581,7 @@ mod tests {
                 starts: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
                 aborts: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
                 unavailable: Some(SourceKind::SystemAudio),
+                lane: Arc::new(Mutex::new(None)),
             }),
         );
         let event = CalendarEventSummary {
@@ -4600,6 +4646,7 @@ mod tests {
                 starts: Arc::clone(&starts),
                 aborts,
                 unavailable: Some(SourceKind::SystemAudio),
+                lane: Arc::new(Mutex::new(None)),
             }),
         );
         let preflight = tauri::async_runtime::block_on(manager.create_preflight(
@@ -4862,6 +4909,10 @@ mod tests {
         ) -> Result<String, ProcessingFailure> {
             Ok(String::new())
         }
+
+        fn is_busy(&self) -> bool {
+            false
+        }
     }
 
     /// The cold-start race, as a double: the availability probe passes because
@@ -4894,6 +4945,10 @@ mod tests {
         ) -> Result<String, ProcessingFailure> {
             Err(ProcessingFailure::EngineFailure)
         }
+
+        fn is_busy(&self) -> bool {
+            false
+        }
     }
 
     /// An engine that dies where nothing catches it but `run`.
@@ -4924,6 +4979,10 @@ mod tests {
             _samples: &[f32],
         ) -> Result<String, ProcessingFailure> {
             Ok(String::new())
+        }
+
+        fn is_busy(&self) -> bool {
+            false
         }
     }
 
@@ -5424,6 +5483,10 @@ mod tests {
         ) -> Result<String, ProcessingFailure> {
             Ok("imported words".to_string())
         }
+
+        fn is_busy(&self) -> bool {
+            false
+        }
     }
 
     /// Everything is speech, so the chunker cuts on length alone and the fixture
@@ -5659,5 +5722,452 @@ mod tests {
 
         assert_eq!(snapshot.title, "Board call");
         assert_eq!(snapshot.started_at_utc_ms, Some(modified));
+    }
+
+    /* ------------------------------------- the recap while capture is running */
+
+    /// An engine that recognizes every chunk it is handed as one fixed line,
+    /// and that can be told the shared engine is busy with somebody's
+    /// dictation. The call count is how a test sees a pass that should not
+    /// have run at all.
+    struct LineEngine {
+        line: &'static str,
+        busy: Arc<AtomicBool>,
+        calls: Arc<std::sync::atomic::AtomicUsize>,
+    }
+
+    impl super::super::processing::MeetingTranscriptEngine for LineEngine {
+        fn selected_model_id(&self) -> Option<String> {
+            Some("fake-asr".to_string())
+        }
+
+        fn plan_for(&self, _run_plan: &MeetingRunPlan) -> Option<crate::modes::AsrPlan> {
+            Some(crate::modes::AsrPlan::from_settings(
+                &crate::settings::AppSettings::default(),
+            ))
+        }
+
+        fn engine_id(&self) -> &'static str {
+            "fake-asr"
+        }
+
+        fn transcribe(
+            &self,
+            _plan: &crate::modes::AsrPlan,
+            _samples: &[f32],
+        ) -> Result<String, ProcessingFailure> {
+            self.calls.fetch_add(1, Ordering::AcqRel);
+            Ok(self.line.to_string())
+        }
+
+        fn is_busy(&self) -> bool {
+            self.busy.load(Ordering::Acquire)
+        }
+    }
+
+    /// Voice activity by loudness. These tests have no app handle and so no
+    /// bundled detector, and what they need from one is only that a frame of
+    /// pushed audio counts as speech.
+    struct LoudVad;
+
+    impl super::super::processing::MeetingVad for LoudVad {
+        fn is_voice(&mut self, frame: &[f32]) -> Result<bool, ProcessingFailure> {
+            Ok(frame.iter().any(|sample| sample.abs() > 0.01))
+        }
+    }
+
+    struct LoudVadFactory;
+
+    impl super::super::processing::MeetingVadFactory for LoudVadFactory {
+        fn open(
+            &self,
+            _source_kind: SourceKind,
+        ) -> Result<Box<dyn super::super::processing::MeetingVad>, ProcessingFailure> {
+            Ok(Box::new(LoudVad))
+        }
+    }
+
+    /// A text engine that answers with one fixed document, for tests about
+    /// which transcript a recap read rather than about what a model wrote.
+    struct FixedGenerator {
+        available: bool,
+        output: String,
+    }
+
+    impl super::super::processing::MeetingTextGenerator for FixedGenerator {
+        fn is_available(&self) -> bool {
+            self.available
+        }
+
+        fn model_id(&self) -> &'static str {
+            "fixed"
+        }
+
+        fn model_version(&self) -> &'static str {
+            "fixed-v1"
+        }
+
+        fn max_input_bytes(&self) -> usize {
+            usize::MAX
+        }
+
+        fn generate(
+            &self,
+            _system_prompt: &str,
+            _evidence: &str,
+            _max_tokens: i32,
+        ) -> Result<String, super::super::processing::MeetingTextGenerationError> {
+            Ok(self.output.clone())
+        }
+    }
+
+    const RECAP_BULLET: &str = "Pricing stayed open.";
+    const RECAP_OUTPUT: &str = r#"{"bullets":["Pricing stayed open."]}"#;
+
+    /// One microphone-only capture, running, with the doubles a recap needs.
+    /// Microphone-only because one source is one lane to push audio into, and
+    /// that is the whole difference this harness cares about.
+    fn capturing_meeting(
+        engine: Arc<dyn super::super::processing::MeetingTranscriptEngine>,
+        generator: Arc<dyn super::super::processing::MeetingTextGenerator>,
+    ) -> (
+        TempDir,
+        MeetingSessionManager,
+        MeetingSessionId,
+        Arc<Mutex<Option<PacketSink>>>,
+    ) {
+        let directory = TempDir::new().unwrap();
+        let secrets = Arc::new(SecretManager::with_backend(Arc::new(
+            MemorySecretBackend::new(),
+        )));
+        let lane = Arc::new(Mutex::new(None));
+        let manager = MeetingSessionManager::with_parts(
+            None,
+            Some(directory.path().join("meetings")),
+            secrets,
+            Arc::new(FakeSources {
+                starts: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                aborts: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                unavailable: Some(SourceKind::SystemAudio),
+                lane: Arc::clone(&lane),
+            }),
+        );
+        manager.processing.set_transcript_engine(engine);
+        manager.processing.set_vad_factory(Arc::new(LoudVadFactory));
+        manager.processing.set_text_generators(
+            generator,
+            Arc::new(FixedGenerator {
+                available: false,
+                output: String::new(),
+            }),
+        );
+        let preflight = tauri::async_runtime::block_on(manager.create_preflight(
+            MeetingPreflightCreateRequest {
+                operation_id: MeetingOperationId::new(),
+                expected_revision: 0,
+                title: "Live recap".to_string(),
+                origin: MeetingOrigin::Manual,
+                suggestion_id: None,
+                calendar_event_key: None,
+                requested_sources: vec![SourceKind::Microphone],
+                required_sources: vec![SourceKind::Microphone],
+                accepted_known_missing_sources: Vec::new(),
+                degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+                destination: ProcessingDestination::Local,
+                remote_acknowledgement: None,
+                microphone_device_uid: None,
+                frozen_system_audio_application_bundle_ids: Vec::new(),
+            },
+        ))
+        .unwrap();
+        let started = tauri::async_runtime::block_on(manager.start(MeetingStartRequest {
+            operation_id: MeetingOperationId::new(),
+            session_id: preflight.snapshot.session_id,
+            expected_revision: preflight.snapshot.revision,
+            consent: MeetingConsentInput {
+                policy_version: 1,
+                microphone_acknowledged: true,
+                system_audio_acknowledged: true,
+                known_missing_sources_acknowledged: Vec::new(),
+                degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+                destination: ProcessingDestination::Local,
+                remote_acknowledgement: None,
+            },
+        }))
+        .unwrap();
+        assert_eq!(started.snapshot.phase, MeetingPhase::CapturingRecording);
+        (directory, manager, started.snapshot.session_id, lane)
+    }
+
+    /// Push a second and a half of loud audio into the capture lane and wait
+    /// for the ingest worker to commit it.
+    ///
+    /// The wait is the point: a provisional pass reads records that have
+    /// landed on disk, never the ring, so a test that reads before the commit
+    /// is testing a race rather than the feature.
+    fn capture_audio(
+        lane: &Arc<Mutex<Option<PacketSink>>>,
+        manager: &MeetingSessionManager,
+        session_id: MeetingSessionId,
+    ) {
+        const FRAMES: u32 = 4_800;
+        const PACKETS: u64 = 15;
+        let store = tauri::async_runtime::block_on(manager.store()).unwrap();
+        let track_id = store.session_snapshot(session_id).unwrap().sources[0]
+            .track_id
+            .expect("a started microphone track");
+        let samples = vec![0.4_f32; FRAMES as usize];
+        {
+            let mut guard = lane
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let lane = guard.as_mut().expect("the source was handed a lane");
+            for sequence in 0..PACKETS {
+                let offset_ns = i64::try_from(sequence).unwrap() * 100_000_000;
+                assert_eq!(
+                    lane.try_push_interleaved(
+                        CapturedPacket {
+                            track_id,
+                            source_epoch: SourceEpoch::new(0),
+                            format_epoch: 0,
+                            sequence,
+                            native_timestamp_value: Some(offset_ns),
+                            native_timestamp_timescale: Some(1_000_000_000),
+                            host_monotonic_anchor_ns: Some(u64::try_from(offset_ns).unwrap()),
+                            sample_rate_hz: 48_000,
+                            channels: 1,
+                            frame_count: FRAMES,
+                            discontinuity_flags: PacketDiscontinuityFlags::default(),
+                        },
+                        &samples,
+                    ),
+                    PacketPushResult::Accepted
+                );
+            }
+        }
+        for _ in 0..500 {
+            if store
+                .session_snapshot(session_id)
+                .unwrap()
+                .sources
+                .iter()
+                .any(|source| source.last_durable_offset_ns.is_some())
+            {
+                return;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        panic!("the ingest worker never committed a durable record");
+    }
+
+    fn line_engine(busy: &Arc<AtomicBool>, calls: &Arc<std::sync::atomic::AtomicUsize>) -> Arc<LineEngine> {
+        Arc::new(LineEngine {
+            line: "We left pricing open.",
+            busy: Arc::clone(busy),
+            calls: Arc::clone(calls),
+        })
+    }
+
+    /// The recap a person presses for during the meeting, which used to be the
+    /// app saying it would have one later. It reads words recognized during
+    /// capture and says so.
+    #[test]
+    fn catch_up_during_capture_reads_the_provisional_transcript() {
+        let busy = Arc::new(AtomicBool::new(false));
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let (_directory, manager, session_id, lane) = capturing_meeting(
+            line_engine(&busy, &calls),
+            Arc::new(FixedGenerator {
+                available: true,
+                output: RECAP_OUTPUT.to_string(),
+            }),
+        );
+        capture_audio(&lane, &manager, session_id);
+
+        let recap = tauri::async_runtime::block_on(manager.catch_up(session_id)).unwrap();
+
+        assert_eq!(recap.state, MeetingCatchUpState::Ready);
+        assert_eq!(recap.bullets, vec![RECAP_BULLET.to_string()]);
+        assert!(recap.provisional, "a recap of a running capture is provisional");
+        assert_eq!(recap.segment_count, 1);
+        assert!(
+            recap.through_offset_ns.is_some_and(|offset| offset > 0),
+            "a provisional recap says how far into the meeting it read"
+        );
+        assert!(
+            calls.load(Ordering::Acquire) >= 1,
+            "the press recognizes the audio captured since the last pass"
+        );
+    }
+
+    /// After the stop the stored revision is the meeting, and the provisional
+    /// reading is gone. Nothing recognizes audio for a recap any more: the
+    /// transcript it reads was written by the post-stop pass.
+    #[test]
+    fn catch_up_after_the_stop_reads_the_stored_transcript() {
+        let busy = Arc::new(AtomicBool::new(false));
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let (_directory, manager, session_id, lane) = capturing_meeting(
+            line_engine(&busy, &calls),
+            Arc::new(FixedGenerator {
+                available: true,
+                output: RECAP_OUTPUT.to_string(),
+            }),
+        );
+        capture_audio(&lane, &manager, session_id);
+        let revision = tauri::async_runtime::block_on(async {
+            manager
+                .store()
+                .await
+                .unwrap()
+                .session_snapshot(session_id)
+                .unwrap()
+                .revision
+        });
+        tauri::async_runtime::block_on(manager.stop(MeetingMutationRequest {
+            operation_id: MeetingOperationId::new(),
+            session_id,
+            expected_revision: revision,
+        }))
+        .unwrap();
+        let after_processing = calls.load(Ordering::Acquire);
+
+        let recap = tauri::async_runtime::block_on(manager.catch_up(session_id)).unwrap();
+
+        assert_eq!(recap.state, MeetingCatchUpState::Ready);
+        assert_eq!(recap.bullets, vec![RECAP_BULLET.to_string()]);
+        assert!(
+            !recap.provisional,
+            "a stopped meeting is recapped from its stored transcript"
+        );
+        assert_eq!(
+            calls.load(Ordering::Acquire),
+            after_processing,
+            "a recap after the stop recognizes nothing: the transcript is already written"
+        );
+    }
+
+    /// A Mac with no engine to write text says so, mid-meeting as anywhere
+    /// else. The provisional transcript exists — the words were recognized —
+    /// and there is still no recap, which is the honest answer.
+    #[test]
+    fn catch_up_during_capture_reports_a_missing_text_engine() {
+        let busy = Arc::new(AtomicBool::new(false));
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let (_directory, manager, session_id, lane) = capturing_meeting(
+            line_engine(&busy, &calls),
+            Arc::new(FixedGenerator {
+                available: false,
+                output: RECAP_OUTPUT.to_string(),
+            }),
+        );
+        capture_audio(&lane, &manager, session_id);
+
+        let recap = tauri::async_runtime::block_on(manager.catch_up(session_id)).unwrap();
+
+        assert_eq!(recap.state, MeetingCatchUpState::ModelUnavailable);
+        assert!(recap.bullets.is_empty(), "no engine writes no bullets");
+        assert!(recap.provisional);
+    }
+
+    /// The dictation somebody is waiting on comes first. While the shared
+    /// engine is busy no pass runs, and the recap is the one a meeting with
+    /// nothing recognized yet gets — not a partial one, and not a queue behind
+    /// the words a person is watching for.
+    #[test]
+    fn a_busy_engine_runs_no_provisional_pass() {
+        let busy = Arc::new(AtomicBool::new(true));
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let (_directory, manager, session_id, lane) = capturing_meeting(
+            line_engine(&busy, &calls),
+            Arc::new(FixedGenerator {
+                available: true,
+                output: RECAP_OUTPUT.to_string(),
+            }),
+        );
+        capture_audio(&lane, &manager, session_id);
+
+        let while_busy = tauri::async_runtime::block_on(manager.catch_up(session_id)).unwrap();
+
+        assert_eq!(while_busy.state, MeetingCatchUpState::NoTranscriptYet);
+        assert_eq!(
+            calls.load(Ordering::Acquire),
+            0,
+            "a busy engine is not asked to recognize a meeting's audio"
+        );
+
+        busy.store(false, Ordering::Release);
+        let once_free = tauri::async_runtime::block_on(manager.catch_up(session_id)).unwrap();
+
+        assert_eq!(once_free.state, MeetingCatchUpState::Ready);
+        assert_eq!(
+            calls.load(Ordering::Acquire),
+            1,
+            "the audio the skipped pass left behind is read by the next one"
+        );
+    }
+
+    /// A question asked while the meeting runs is answered from the same
+    /// provisional transcript, and is not written into question history: its
+    /// citations name a reading no revision keeps. The receipt still records
+    /// that it was asked, which is what makes the asking auditable.
+    #[test]
+    fn a_question_during_capture_is_answered_provisionally_and_not_saved() {
+        let busy = Arc::new(AtomicBool::new(false));
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let (_directory, manager, session_id, lane) = capturing_meeting(
+            line_engine(&busy, &calls),
+            Arc::new(FixedGenerator {
+                available: true,
+                output: String::new(),
+            }),
+        );
+        capture_audio(&lane, &manager, session_id);
+        manager.processing.set_text_generators(
+            Arc::new(FixedGenerator {
+                available: true,
+                output: format!(
+                    r#"{{"sentences":[{{"text":"Pricing is still open.","citations":[{{"kind":"transcript","session_id":"{}","entity_id":"provisional-0"}}]}}]}}"#,
+                    session_id.uuid()
+                ),
+            }),
+            Arc::new(FixedGenerator {
+                available: false,
+                output: String::new(),
+            }),
+        );
+        let store = tauri::async_runtime::block_on(manager.store()).unwrap();
+        let revision = store.session_snapshot(session_id).unwrap().revision;
+
+        let result = tauri::async_runtime::block_on(manager.question_ask(MeetingQuestionRequest {
+            operation_id: MeetingOperationId::new(),
+            session_id,
+            expected_revision: revision,
+            question_id: MeetingQuestionId::new(),
+            question: "Where did we land on pricing?".to_string(),
+            scope: MeetingQuestionScope::ThisMeeting,
+            save_history: true,
+        }))
+        .unwrap();
+
+        assert_eq!(result.answer.state, MeetingAnswerState::Supported);
+        assert_eq!(
+            result.answer.answer.as_deref(),
+            Some("Pricing is still open.")
+        );
+        assert!(
+            result.answer.provisional,
+            "an answer read from a running capture says so"
+        );
+        assert!(result.answer.through_offset_ns.is_some_and(|offset| offset > 0));
+        assert_eq!(result.receipt.result, OperationResult::Committed);
+        assert!(
+            store
+                .review_snapshot(session_id)
+                .unwrap()
+                .questions
+                .is_empty(),
+            "a provisional answer is returned, not kept as history"
+        );
     }
 }

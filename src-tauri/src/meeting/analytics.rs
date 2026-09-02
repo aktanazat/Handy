@@ -203,8 +203,9 @@ pub struct MeetingAnalyticsSnapshot {
 }
 
 /// Why a catch-up request produced what it did. `NoTranscriptYet` is the
-/// normal answer while audio is still being captured: this app transcribes
-/// after capture stops, so there is nothing to summarize until then.
+/// answer while there is nothing to read: before the provisional pass over a
+/// running capture has recognized any speech, and for a finished meeting whose
+/// transcript is empty.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum MeetingCatchUpState {
@@ -221,15 +222,22 @@ pub struct MeetingCatchUp {
     pub bullets: Vec<String>,
     pub through_offset_ns: Option<u64>,
     pub segment_count: u32,
+    /// Read from the provisional transcript of a capture that is still
+    /// running, rather than from a stored transcript revision. The recap is as
+    /// of `through_offset_ns` and the words behind it were recognized without
+    /// the second pass — diarization, edits, speaker names — that a stored
+    /// revision has had.
+    pub provisional: bool,
 }
 
 impl MeetingCatchUp {
-    pub fn empty(state: MeetingCatchUpState, segment_count: u32) -> Self {
+    pub fn empty(state: MeetingCatchUpState, segment_count: u32, provisional: bool) -> Self {
         Self {
             state,
             bullets: Vec::new(),
             through_offset_ns: None,
             segment_count,
+            provisional,
         }
     }
 }

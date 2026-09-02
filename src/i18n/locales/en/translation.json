@@ -2377,7 +2377,9 @@
       "catchUp": "Catch me up",
       "catchingUp": "Catching up…",
       "catchUpTitle": "So far",
-      "catchUpNoTranscript": "Nothing to recap yet. Sona transcribes after you stop recording, so a recap is available once the transcript starts arriving.",
+      "catchUpNoTranscript": "Nothing to recap: this meeting has no transcript.",
+      "catchUpNothingHeardYet": "Nothing to recap yet. Sona is still catching up with the room — try again in a moment.",
+      "catchUpAsOf": "As of {{time}}, provisional",
       "catchUpUnavailable": "The on-device model is unavailable, so no recap was written.",
       "catchUpFailed": "Sona could not build a recap. Try again.",
       "templates": {

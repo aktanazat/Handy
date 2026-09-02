@@ -1658,6 +1658,27 @@ impl TranscriptionManager {
         Some(plan)
     }
 
+    /// Whether the one native engine is already committed to work somebody is
+    /// waiting on: a dictation recording, a streaming worker, a media import,
+    /// or a load in flight.
+    ///
+    /// These are the same facts the idle watcher reads to decide it must not
+    /// unload — asked with a batch allowance of zero, because any batch decode
+    /// in flight is also somebody's turn. A background pass over a running
+    /// meeting asks before it starts and skips its turn when the answer is
+    /// yes: a provisional transcript is worth less than the words a person is
+    /// waiting to see appear.
+    pub fn engine_busy(&self) -> bool {
+        automatic_unload_blocked(
+            &self.app_handle,
+            &self.transition,
+            &self.active_stream_worker,
+            &self.active_media_imports,
+            &self.active_batch_uses,
+            0,
+        )
+    }
+
     /// The compute backend the currently-loaded engine is bound to, for
     /// diagnostics (e.g. confirming `--device-index` actually bound a GPU rather
     /// than falling back to CPU/auto). transcribe-cpp (whisper-family) reports

@@ -280,6 +280,8 @@ const SNAPSHOT: MeetingReviewSnapshot = {
       input_revision: 4,
       revision: 1,
       created_at_utc_ms: 1_760_000_300_000,
+      through_offset_ns: null,
+      provisional: false,
     },
   ],
   diarization: {

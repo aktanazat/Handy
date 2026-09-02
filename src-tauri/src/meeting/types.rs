@@ -1195,6 +1195,15 @@ pub struct MeetingAnswer {
     pub input_revision: u64,
     pub revision: u64,
     pub created_at_utc_ms: i64,
+    /// How far into the meeting the evidence behind this answer reached, for a
+    /// provisional answer. `None` once the transcript has landed: a finished
+    /// meeting's answer was read from all of it.
+    pub through_offset_ns: Option<u64>,
+    /// Read from the provisional transcript of a capture that was still
+    /// running. A provisional answer is never saved as history — the segments
+    /// it cites belong to an in-memory reading that no revision keeps — so it
+    /// is returned to the asker and nowhere else.
+    pub provisional: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
