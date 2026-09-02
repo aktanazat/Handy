@@ -156,8 +156,7 @@ mod suggestion_observer {
             let Ok(bundle_id) = CString::new(bundle_id) else {
                 return BrowserTitleRead::Unreadable;
             };
-            // SAFETY: the handle is the retained Swift observer this value owns
-            // until `stop`, and Swift reads the C string only during the call.
+            // SAFETY: the handle is retained until `stop`; the C string outlives the call.
             let flags = unsafe {
                 sona_meeting_suggestions_refresh(
                     ptr::with_exposed_provenance_mut(handle),

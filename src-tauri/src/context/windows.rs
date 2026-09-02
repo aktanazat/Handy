@@ -187,6 +187,7 @@ fn automation() -> Option<IUIAutomation2> {
     // it, which is why the result is ignored and the apartment is never torn
     // down here: an existing single-threaded apartment answers
     // `RPC_E_CHANGED_MODE` and keeps working.
+    // SAFETY: CoInitializeEx takes no caller-owned pointer input.
     let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
     // SAFETY: CUIAutomation8 is an in-process class and takes no caller-owned pointer input.
     unsafe { CoCreateInstance(&CUIAutomation8, None, CLSCTX_INPROC_SERVER).ok() }
