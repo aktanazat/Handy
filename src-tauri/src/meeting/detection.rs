@@ -52,7 +52,7 @@ use crate::meeting::people_types::PersonBriefingRow;
 use crate::meeting::session::{MeetingSessionManager, MeetingTitleSetRequest};
 use crate::meeting::types::{
     MeetingArtifactState, MeetingNavigationDestination, MeetingOperationId, MeetingPhase,
-    MeetingSessionId, MeetingSessionSnapshot,
+    MeetingSessionId, MeetingSessionSnapshot, SourceKind,
 };
 use crate::meeting::workflow_types::WorkflowEventKind;
 use crate::settings::AppSettings;
@@ -377,6 +377,9 @@ struct TrackedCapture {
     session_id: MeetingSessionId,
     trigger_bundle_id: Option<String>,
     event_end_utc_ms: Option<i64>,
+    /// The lanes the session actually started, as its snapshot reported them.
+    /// A stop rule about a device applies only to a capture listening to it.
+    sources: Vec<SourceKind>,
     /// What the default output device has done since a call app's capture
     /// started. `None` for every other capture, whose stop rules do not read
     /// the output at all.
@@ -385,7 +388,7 @@ struct TrackedCapture {
 
 impl TrackedCapture {
     fn new(
-        session_id: MeetingSessionId,
+        snapshot: &MeetingSessionSnapshot,
         trigger_bundle_id: Option<String>,
         event_end_utc_ms: Option<i64>,
     ) -> Self {
@@ -394,11 +397,21 @@ impl TrackedCapture {
             .is_some_and(apps::is_call_app_bundle_id)
             .then(machine::CallOutputWatch::default);
         Self {
-            session_id,
+            session_id: snapshot.session_id,
             trigger_bundle_id,
             event_end_utc_ms,
+            sources: snapshot
+                .sources
+                .iter()
+                .map(|source| source.source_kind)
+                .collect(),
             call_output,
         }
+    }
+
+    /// True when this capture records the default input device itself.
+    fn microphone_lane(&self) -> bool {
+        self.sources.contains(&SourceKind::Microphone)
     }
 }
 
@@ -507,13 +520,15 @@ impl RuntimeState {
 
     /// The pending recording card that names `session_id`, by ritual id.
     fn recording_card_id(&self, session_id: MeetingSessionId) -> Option<String> {
-        self.panel.iter().find_map(|(ritual_id, pending)| match pending {
-            PendingPanel::Ritual(PendingRitual {
-                ritual: MeetingRitual::Recording(card),
-                ..
-            }) if card.session_id == session_id => Some(ritual_id.to_string()),
-            _ => None,
-        })
+        self.panel
+            .iter()
+            .find_map(|(ritual_id, pending)| match pending {
+                PendingPanel::Ritual(PendingRitual {
+                    ritual: MeetingRitual::Recording(card),
+                    ..
+                }) if card.session_id == session_id => Some(ritual_id.to_string()),
+                _ => None,
+            })
     }
 
     /// Starts tracking a capture, and remembers it for the cross-link window.
@@ -1140,10 +1155,8 @@ impl DetectionRuntime {
     fn start_call_recording(self: &Arc<Self>, bundle_id: String, app_name: String) {
         let runtime = Arc::clone(self);
         tauri::async_runtime::spawn(async move {
-            let granted = apps::grants_auto_record(
-                &crate::settings::get_settings(&runtime.app),
-                &bundle_id,
-            );
+            let granted =
+                apps::grants_auto_record(&crate::settings::get_settings(&runtime.app), &bundle_id);
             if !granted {
                 return;
             }
@@ -1502,11 +1515,7 @@ impl DetectionRuntime {
         event
     }
 
-    fn raise(
-        self: &Arc<Self>,
-        prompt: PromptKind,
-        calendar_event: Option<CalendarEventSummary>,
-    ) {
+    fn raise(self: &Arc<Self>, prompt: PromptKind, calendar_event: Option<CalendarEventSummary>) {
         let prompt_id = Uuid::new_v4().to_string();
         let show_introduction =
             tauri::async_runtime::block_on(self.meetings.consent_panel_introduction_needed());
@@ -1951,7 +1960,7 @@ impl DetectionRuntime {
         let mut state = self.lock();
         state.begin_tracked(
             TrackedCapture::new(
-                snapshot.session_id,
+                snapshot,
                 trigger_bundle_id.clone(),
                 context.event_end_utc_ms,
             ),
@@ -2083,11 +2092,7 @@ impl DetectionRuntime {
             }
         }
         self.lock().begin_tracked(
-            TrackedCapture::new(
-                snapshot.session_id,
-                trigger_bundle_id.clone(),
-                event_end_utc_ms,
-            ),
+            TrackedCapture::new(&snapshot, trigger_bundle_id.clone(), event_end_utc_ms),
             RecentCapture {
                 session_id: snapshot.session_id.uuid().to_string(),
                 trigger_bundle_id,
@@ -2140,6 +2145,7 @@ impl DetectionRuntime {
             last_voiced_utc_ms: None,
             self_holds_input_device: sona_holds,
             device_running_somewhere: mic == MicSignal::Active,
+            microphone_lane: tracked.microphone_lane(),
             trigger_app_running: tracked
                 .trigger_bundle_id
                 .as_deref()
@@ -2545,19 +2551,15 @@ impl InputDeviceObserver for WakeOnInputChange {
     /// on CoreAudio's thread.
     fn output_device_changed(&self) {
         let state = self.state.lock();
-        let call_app_seen = state
-            .last_status
+        let call_app_seen = state.last_status.as_ref().is_some_and(|status| {
+            status
+                .running_meeting_apps
+                .iter()
+                .any(|bundle_id| apps::is_call_app_bundle_id(bundle_id))
+        }) || state
+            .tracked
             .as_ref()
-            .is_some_and(|status| {
-                status
-                    .running_meeting_apps
-                    .iter()
-                    .any(|bundle_id| apps::is_call_app_bundle_id(bundle_id))
-            })
-            || state
-                .tracked
-                .as_ref()
-                .is_some_and(|tracked| tracked.call_output.is_some());
+            .is_some_and(|tracked| tracked.call_output.is_some());
         drop(state);
         if call_app_seen {
             self.wakeup.wake();
@@ -2779,10 +2781,7 @@ mod tests {
             )
         };
 
-        assert_eq!(
-            calendar_prompt.linked_event_end(),
-            Some(block.end_utc_ms)
-        );
+        assert_eq!(calendar_prompt.linked_event_end(), Some(block.end_utc_ms));
         assert_eq!(
             prompt_retraction(
                 &calendar_prompt,
@@ -2860,8 +2859,65 @@ mod tests {
         ));
     }
 
+    /// A capturing session as the store snapshots it, with the lanes it
+    /// started.
+    fn capturing(session_id: MeetingSessionId, sources: &[SourceKind]) -> MeetingSessionSnapshot {
+        use crate::meeting::types::{
+            CaptureCompleteness, MeetingSourceSnapshot, ProcessingStatus, SourceAvailability,
+            SourceHealth, StorageAvailability,
+        };
+        MeetingSessionSnapshot {
+            session_id,
+            phase: MeetingPhase::CapturingRecording,
+            revision: 1,
+            title: "FaceTime call, 3:15 PM".to_string(),
+            started_at_utc_ms: Some(1_700_000_000_000),
+            elapsed_offset_ns: None,
+            sources: sources
+                .iter()
+                .map(|source_kind| MeetingSourceSnapshot {
+                    track_id: None,
+                    source_kind: *source_kind,
+                    required: true,
+                    availability: SourceAvailability::Available,
+                    health: SourceHealth::NotStarted,
+                    format: None,
+                    last_durable_offset_ns: None,
+                    gap_count: 0,
+                })
+                .collect(),
+            open_capture_window_started_at_ns: None,
+            capture_completeness: CaptureCompleteness::NotStarted,
+            storage: StorageAvailability::Available,
+            processing_status: ProcessingStatus::Pending,
+            preflight_local_processing: None,
+            retention_deadline_utc_ms: None,
+            allowed_actions: Vec::new(),
+        }
+    }
+
     fn tracked_call(session_id: MeetingSessionId) -> TrackedCapture {
-        TrackedCapture::new(session_id, Some("com.apple.facetime".to_string()), None)
+        TrackedCapture::new(
+            &capturing(session_id, &SourceKind::ALL),
+            Some("com.apple.facetime".to_string()),
+            None,
+        )
+    }
+
+    /* FS5 in the detection map: a capture whose microphone lane was toggled
+     * off is not listening to the input device, so the device going idle says
+     * nothing about its meeting. The lanes come from the session's snapshot. */
+    #[test]
+    fn a_capture_records_which_lanes_it_started() {
+        let session_id = MeetingSessionId::new();
+
+        let system_audio_only = TrackedCapture::new(
+            &capturing(session_id, &[SourceKind::SystemAudio]),
+            Some("com.google.chrome".to_string()),
+            None,
+        );
+        assert!(!system_audio_only.microphone_lane());
+        assert!(tracked_call(session_id).microphone_lane());
     }
 
     /* Only a call app's capture watches the output device, and the watch folds
@@ -2872,7 +2928,7 @@ mod tests {
         let session_id = MeetingSessionId::new();
         let mut state = RuntimeState::default();
         state.tracked = Some(TrackedCapture::new(
-            session_id,
+            &capturing(session_id, &SourceKind::ALL),
             Some("us.zoom.xos".to_string()),
             None,
         ));
@@ -2924,6 +2980,7 @@ mod tests {
                     last_voiced_utc_ms: None,
                     self_holds_input_device: false,
                     device_running_somewhere: true,
+                    microphone_lane: true,
                     call_output: None,
                     trigger_app_running: true,
                     slept_since_start: state.slept,

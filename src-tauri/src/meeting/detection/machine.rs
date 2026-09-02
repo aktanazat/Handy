@@ -796,6 +796,11 @@ pub struct StopInputs {
     /// is the process keeping it raised.
     pub self_holds_input_device: bool,
     pub device_running_somewhere: bool,
+    /// True when this capture records the default input device itself. The
+    /// idle rule is about that device, so it applies only to a capture whose
+    /// own inputs include it: a system-audio-only capture is not listening to
+    /// the microphone, and nothing holding it says nothing about the meeting.
+    pub microphone_lane: bool,
     /// What the default *output* device has done during this capture. Present
     /// only for a capture a call app triggered, where it is the one liveness
     /// signal Sona's own microphone does not pollute.
@@ -932,7 +937,12 @@ pub fn evaluate_stop(inputs: &StopInputs, policy: &StopPolicy) -> Option<StopTri
     {
         return Some(StopTrigger::CallEnded);
     }
-    if !inputs.self_holds_input_device && !inputs.device_running_somewhere {
+    // §5.5 condition 3 proper, scoped to a capture that is listening to the
+    // device at all. Sona's own microphone lane keeps it raised, so a false
+    // reading here means that lane is gone; a capture with no such lane has
+    // nothing to read.
+    if inputs.microphone_lane && !inputs.self_holds_input_device && !inputs.device_running_somewhere
+    {
         return Some(StopTrigger::InputDeviceIdle);
     }
     if let (true, Some(last_voiced_utc_ms)) =
@@ -1694,6 +1704,7 @@ mod tests {
             last_voiced_utc_ms: Some(NOW),
             self_holds_input_device: true,
             device_running_somewhere: true,
+            microphone_lane: true,
             call_output: None,
             trigger_app_running: true,
             slept_since_start: false,
@@ -1793,8 +1804,8 @@ mod tests {
             ),
             None
         );
-        // A system-audio-only capture does not hold the input device, so the
-        // meeting app dropping the microphone is real evidence.
+        // A microphone-lane capture with nothing holding the device means that
+        // lane is gone, and the capture with it.
         assert_eq!(
             evaluate_stop(
                 &StopInputs {
@@ -1805,6 +1816,26 @@ mod tests {
                 &StopPolicy::default()
             ),
             Some(StopTrigger::InputDeviceIdle)
+        );
+    }
+
+    /* FS5 in the detection map: a capture whose microphone lane was toggled off
+     * on the countdown card is not listening to the input device. Nothing
+     * holding it — a browser call on a Bluetooth microphone the property never
+     * reports — is not evidence about that capture's inputs. */
+    #[test]
+    fn a_system_audio_only_capture_survives_an_idle_input_device() {
+        assert_eq!(
+            evaluate_stop(
+                &StopInputs {
+                    microphone_lane: false,
+                    self_holds_input_device: false,
+                    device_running_somewhere: false,
+                    ..stop_inputs()
+                },
+                &StopPolicy::default()
+            ),
+            None
         );
     }
 
@@ -2177,6 +2208,7 @@ mod tests {
             last_voiced_utc_ms: None,
             self_holds_input_device: false,
             device_running_somewhere: true,
+            microphone_lane: true,
             call_output: Some(CallOutputWatch::default()),
             trigger_app_running: true,
             slept_since_start: false,
@@ -2202,7 +2234,10 @@ mod tests {
             ..call_recording()
         };
 
-        assert_eq!(evaluate_stop(&hung_up, &policy), Some(StopTrigger::CallEnded));
+        assert_eq!(
+            evaluate_stop(&hung_up, &policy),
+            Some(StopTrigger::CallEnded)
+        );
     }
 
     /* AirPods connecting mid-call: the default output changes, the monitor
