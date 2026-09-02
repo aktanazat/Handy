@@ -1,0 +1,627 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CA0000000000000000000001 /* CanonicalRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000001 /* CanonicalRecord.swift */; };
+		CA0000000000000000000002 /* SonaCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* SonaCrypto.swift */; };
+		CA0000000000000000000003 /* DeviceRecordingObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* DeviceRecordingObject.swift */; };
+		CA0000000000000000000004 /* VaultKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000004 /* VaultKeychain.swift */; };
+		CA0000000000000000000005 /* Pairing.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000005 /* Pairing.swift */; };
+		CA0000000000000000000006 /* CompanionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000006 /* CompanionClient.swift */; };
+		CA0000000000000000000007 /* UploadQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000007 /* UploadQueue.swift */; };
+		CA0000000000000000000008 /* PCMResampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* PCMResampler.swift */; };
+		CA0000000000000000000009 /* SonaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000009 /* SonaApp.swift */; };
+		CA000000000000000000000A /* RecordingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000A /* RecordingScreen.swift */; };
+		CA000000000000000000000B /* PairingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000B /* PairingScreen.swift */; };
+		CA000000000000000000000C /* PhoneRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000C /* PhoneRecorder.swift */; };
+		CA000000000000000000000D /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000D /* AppModel.swift */; };
+		CA0000000000000000000019 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000019 /* Theme.swift */; };
+		CA0000000000000000000017 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000017 /* Localizable.strings */; };
+		CB0000000000000000000019 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000019 /* Theme.swift */; };
+		CB0000000000000000000018 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000018 /* Localizable.strings */; };
+		CC0000000000000000000019 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000019 /* Theme.swift */; };
+		CA000000000000000000001C /* CallOfferMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001C /* CallOfferMachine.swift */; };
+		CA000000000000000000001D /* CallOffers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001D /* CallOffers.swift */; };
+		CC000000000000000000001C /* CallOfferMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001C /* CallOfferMachine.swift */; };
+		CC000000000000000000001E /* CallOfferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001E /* CallOfferTests.swift */; };
+		CA0000000000000000000014 /* Sona Watch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000014 /* Sona Watch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CB000000000000000000000E /* SonaWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000E /* SonaWatchApp.swift */; };
+		CB000000000000000000000F /* WatchRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000F /* WatchRecorder.swift */; };
+		CC0000000000000000000001 /* CanonicalRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000001 /* CanonicalRecord.swift */; };
+		CC0000000000000000000002 /* SonaCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* SonaCrypto.swift */; };
+		CC0000000000000000000003 /* DeviceRecordingObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* DeviceRecordingObject.swift */; };
+		CC0000000000000000000004 /* VaultKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000004 /* VaultKeychain.swift */; };
+		CC0000000000000000000005 /* Pairing.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000005 /* Pairing.swift */; };
+		CC0000000000000000000006 /* CompanionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000006 /* CompanionClient.swift */; };
+		CC0000000000000000000007 /* UploadQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000007 /* UploadQueue.swift */; };
+		CC0000000000000000000008 /* PCMResampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* PCMResampler.swift */; };
+		CC0000000000000000000010 /* CryptoVectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000010 /* CryptoVectorTests.swift */; };
+		CC0000000000000000000011 /* DeviceRecordingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000011 /* DeviceRecordingTests.swift */; };
+		CC0000000000000000000012 /* crypto-v1.json in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000012 /* crypto-v1.json */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E20000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E00000000000000000000002;
+			remoteInfo = "Sona Watch";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D10000000000000000000004 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				CA0000000000000000000014 /* Sona Watch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		BB0000000000000000000001 /* CanonicalRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanonicalRecord.swift; sourceTree = "<group>"; };
+		BB0000000000000000000002 /* SonaCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonaCrypto.swift; sourceTree = "<group>"; };
+		BB0000000000000000000003 /* DeviceRecordingObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceRecordingObject.swift; sourceTree = "<group>"; };
+		BB0000000000000000000004 /* VaultKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultKeychain.swift; sourceTree = "<group>"; };
+		BB0000000000000000000005 /* Pairing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pairing.swift; sourceTree = "<group>"; };
+		BB0000000000000000000006 /* CompanionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionClient.swift; sourceTree = "<group>"; };
+		BB0000000000000000000007 /* UploadQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadQueue.swift; sourceTree = "<group>"; };
+		BB0000000000000000000008 /* PCMResampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCMResampler.swift; sourceTree = "<group>"; };
+		BB0000000000000000000009 /* SonaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonaApp.swift; sourceTree = "<group>"; };
+		BB000000000000000000000A /* RecordingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingScreen.swift; sourceTree = "<group>"; };
+		BB000000000000000000000B /* PairingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingScreen.swift; sourceTree = "<group>"; };
+		BB000000000000000000000C /* PhoneRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneRecorder.swift; sourceTree = "<group>"; };
+		BB000000000000000000000D /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		BB0000000000000000000016 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BB0000000000000000000019 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		BB000000000000000000001C /* CallOfferMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallOfferMachine.swift; sourceTree = "<group>"; };
+		BB000000000000000000001D /* CallOffers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallOffers.swift; sourceTree = "<group>"; };
+		BB000000000000000000001E /* CallOfferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallOfferTests.swift; sourceTree = "<group>"; };
+		BB000000000000000000001A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		BB000000000000000000001B /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		BB000000000000000000000E /* SonaWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonaWatchApp.swift; sourceTree = "<group>"; };
+		BB000000000000000000000F /* WatchRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRecorder.swift; sourceTree = "<group>"; };
+		BB0000000000000000000010 /* CryptoVectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoVectorTests.swift; sourceTree = "<group>"; };
+		BB0000000000000000000011 /* DeviceRecordingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceRecordingTests.swift; sourceTree = "<group>"; };
+		BB0000000000000000000012 /* crypto-v1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "crypto-v1.json"; sourceTree = "<group>"; };
+		BB0000000000000000000013 /* Sona.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sona.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB0000000000000000000014 /* Sona Watch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Sona Watch.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB0000000000000000000015 /* SonaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SonaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D10000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D20000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D30000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		BB0000000000000000000017 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				BB000000000000000000001A /* en */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		BB0000000000000000000018 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				BB000000000000000000001B /* en */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin PBXGroup section */
+		AA0000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000004 /* Shared */,
+				AA0000000000000000000005 /* Sona */,
+				AA0000000000000000000006 /* SonaWatch */,
+				AA0000000000000000000007 /* SonaTests */,
+				AA0000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000013 /* Sona.app */,
+				BB0000000000000000000014 /* Sona Watch.app */,
+				BB0000000000000000000015 /* SonaTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000004 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000001 /* CanonicalRecord.swift */,
+				BB0000000000000000000002 /* SonaCrypto.swift */,
+				BB0000000000000000000003 /* DeviceRecordingObject.swift */,
+				BB0000000000000000000004 /* VaultKeychain.swift */,
+				BB0000000000000000000005 /* Pairing.swift */,
+				BB0000000000000000000006 /* CompanionClient.swift */,
+				BB0000000000000000000007 /* UploadQueue.swift */,
+				BB0000000000000000000008 /* PCMResampler.swift */,
+				BB0000000000000000000019 /* Theme.swift */,
+				BB000000000000000000001C /* CallOfferMachine.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000005 /* Sona */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000009 /* SonaApp.swift */,
+				BB000000000000000000000D /* AppModel.swift */,
+				BB000000000000000000000C /* PhoneRecorder.swift */,
+				BB000000000000000000000A /* RecordingScreen.swift */,
+				BB000000000000000000000B /* PairingScreen.swift */,
+				BB000000000000000000001D /* CallOffers.swift */,
+				BB0000000000000000000016 /* Info.plist */,
+				BB0000000000000000000017 /* Localizable.strings */,
+			);
+			path = Sona;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000006 /* SonaWatch */ = {
+			isa = PBXGroup;
+			children = (
+				BB000000000000000000000E /* SonaWatchApp.swift */,
+				BB000000000000000000000F /* WatchRecorder.swift */,
+				BB0000000000000000000018 /* Localizable.strings */,
+			);
+			path = SonaWatch;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000007 /* SonaTests */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000010 /* CryptoVectorTests.swift */,
+				BB0000000000000000000011 /* DeviceRecordingTests.swift */,
+				BB000000000000000000001E /* CallOfferTests.swift */,
+				AA0000000000000000000008 /* Fixtures */,
+			);
+			path = SonaTests;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000008 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000012 /* crypto-v1.json */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E00000000000000000000001 /* Sona */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F00000000000000000000002 /* Build configuration list for PBXNativeTarget "Sona" */;
+			buildPhases = (
+				D10000000000000000000001 /* Sources */,
+				D10000000000000000000002 /* Frameworks */,
+				D10000000000000000000003 /* Resources */,
+				D10000000000000000000004 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E10000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = Sona;
+			productName = Sona;
+			productReference = BB0000000000000000000013 /* Sona.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E00000000000000000000002 /* Sona Watch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F00000000000000000000003 /* Build configuration list for PBXNativeTarget "Sona Watch" */;
+			buildPhases = (
+				D20000000000000000000001 /* Sources */,
+				D20000000000000000000003 /* Frameworks */,
+				D20000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Sona Watch";
+			productName = "Sona Watch";
+			productReference = BB0000000000000000000014 /* Sona Watch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E00000000000000000000003 /* SonaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F00000000000000000000004 /* Build configuration list for PBXNativeTarget "SonaTests" */;
+			buildPhases = (
+				D30000000000000000000001 /* Sources */,
+				D30000000000000000000003 /* Frameworks */,
+				D30000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SonaTests;
+			productName = SonaTests;
+			productReference = BB0000000000000000000015 /* SonaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					E00000000000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+						DevelopmentTeam = AAVB324H37;
+						ProvisioningStyle = Automatic;
+					};
+					E00000000000000000000002 = {
+						CreatedOnToolsVersion = 16.0;
+						DevelopmentTeam = AAVB324H37;
+						ProvisioningStyle = Automatic;
+					};
+					E00000000000000000000003 = {
+						CreatedOnToolsVersion = 16.0;
+						DevelopmentTeam = AAVB324H37;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = F00000000000000000000001 /* Build configuration list for PBXProject "Sona" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AA0000000000000000000002;
+			productRefGroup = AA0000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E00000000000000000000001 /* Sona */,
+				E00000000000000000000002 /* Sona Watch */,
+				E00000000000000000000003 /* SonaTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D10000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA0000000000000000000017 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D20000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CB0000000000000000000018 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D30000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CC0000000000000000000012 /* crypto-v1.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D10000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA0000000000000000000001 /* CanonicalRecord.swift in Sources */,
+				CA0000000000000000000002 /* SonaCrypto.swift in Sources */,
+				CA0000000000000000000003 /* DeviceRecordingObject.swift in Sources */,
+				CA0000000000000000000004 /* VaultKeychain.swift in Sources */,
+				CA0000000000000000000005 /* Pairing.swift in Sources */,
+				CA0000000000000000000006 /* CompanionClient.swift in Sources */,
+				CA0000000000000000000007 /* UploadQueue.swift in Sources */,
+				CA0000000000000000000008 /* PCMResampler.swift in Sources */,
+				CA0000000000000000000009 /* SonaApp.swift in Sources */,
+				CA000000000000000000000A /* RecordingScreen.swift in Sources */,
+				CA000000000000000000000B /* PairingScreen.swift in Sources */,
+				CA000000000000000000000C /* PhoneRecorder.swift in Sources */,
+				CA000000000000000000000D /* AppModel.swift in Sources */,
+				CA0000000000000000000019 /* Theme.swift in Sources */,
+				CA000000000000000000001C /* CallOfferMachine.swift in Sources */,
+				CA000000000000000000001D /* CallOffers.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D20000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CB000000000000000000000E /* SonaWatchApp.swift in Sources */,
+				CB000000000000000000000F /* WatchRecorder.swift in Sources */,
+				CB0000000000000000000019 /* Theme.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D30000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CC0000000000000000000001 /* CanonicalRecord.swift in Sources */,
+				CC0000000000000000000002 /* SonaCrypto.swift in Sources */,
+				CC0000000000000000000003 /* DeviceRecordingObject.swift in Sources */,
+				CC0000000000000000000004 /* VaultKeychain.swift in Sources */,
+				CC0000000000000000000005 /* Pairing.swift in Sources */,
+				CC0000000000000000000006 /* CompanionClient.swift in Sources */,
+				CC0000000000000000000007 /* UploadQueue.swift in Sources */,
+				CC0000000000000000000008 /* PCMResampler.swift in Sources */,
+				CC0000000000000000000019 /* Theme.swift in Sources */,
+				CC000000000000000000001C /* CallOfferMachine.swift in Sources */,
+				CC000000000000000000001E /* CallOfferTests.swift in Sources */,
+				CC0000000000000000000010 /* CryptoVectorTests.swift in Sources */,
+				CC0000000000000000000011 /* DeviceRecordingTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E10000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E00000000000000000000002 /* Sona Watch */;
+			targetProxy = E20000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		F10000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		F10000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F10000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AAVB324H37;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Sona;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Sona records audio only while you have a recording open.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = Sona/Info.plist;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aktanazat.sona.mobile;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		F10000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AAVB324H37;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Sona;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Sona records audio only while you have a recording open.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = Sona/Info.plist;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aktanazat.sona.mobile;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		F10000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AAVB324H37;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Sona;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Sona records audio only while you have a recording open.";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.aktanazat.sona.mobile;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aktanazat.sona.mobile.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		F10000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AAVB324H37;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Sona;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Sona records audio only while you have a recording open.";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.aktanazat.sona.mobile;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aktanazat.sona.mobile.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		F10000000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AAVB324H37;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aktanazat.sona.mobile.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		F10000000000000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AAVB324H37;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aktanazat.sona.mobile.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F00000000000000000000001 /* Build configuration list for PBXProject "Sona" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000000000000000000001 /* Debug */,
+				F10000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F00000000000000000000002 /* Build configuration list for PBXNativeTarget "Sona" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000000000000000000003 /* Debug */,
+				F10000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F00000000000000000000003 /* Build configuration list for PBXNativeTarget "Sona Watch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000000000000000000005 /* Debug */,
+				F10000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F00000000000000000000004 /* Build configuration list for PBXNativeTarget "SonaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000000000000000000007 /* Debug */,
+				F10000000000000000000008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AA0000000000000000000001 /* Project object */;
+}

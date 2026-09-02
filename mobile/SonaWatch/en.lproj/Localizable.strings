@@ -1,0 +1,12 @@
+/* Everything the watch shows. */
+
+"watch.record" = "Record";
+"watch.stop" = "Stop";
+"watch.ready" = "Ready";
+"watch.recording" = "Recording";
+"watch.sent" = "Sent to your phone";
+"watch.noPhone" = "Waiting for your phone";
+"watch.microphoneOff" = "Microphone access is off in Settings";
+"watch.microphoneUnavailable" = "The microphone did not start";
+"a11y.watch.record" = "Start recording";
+"a11y.watch.stop" = "Stop recording";

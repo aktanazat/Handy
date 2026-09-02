@@ -1,0 +1,58 @@
+/* Every string the phone shows. Sentence case, plain words, no exclamation marks. */
+
+"status.ready" = "Ready";
+"status.recording" = "Recording";
+"status.uploading" = "Uploading";
+"status.waiting" = "Waiting for a connection";
+"status.saved" = "Saved to your Mac";
+"status.notSaved" = "That recording was not saved";
+"status.microphoneOff" = "Microphone access is off in Settings";
+"status.microphoneUnavailable" = "The microphone did not start";
+"status.interrupted" = "Another app took the microphone";
+
+"control.record" = "Record";
+"control.stop" = "Stop";
+
+"pairing.line.notPaired" = "Not paired with a Mac";
+"pairing.line.paired" = "Paired with your Mac";
+"pairing.line.hint" = "Tap to pair";
+
+"consent.title" = "Before you record";
+"consent.body1" = "Sona records this phone's microphone, and only while a recording is open. Nothing is captured until you tap record, and no transcript is made here.";
+"consent.body2" = "Recordings are encrypted on this phone and uploaded to your own vault, which only your devices can read. They wait here until they upload. Everyone in the room should know they are being recorded.";
+"consent.action" = "Start";
+
+"pair.title" = "Pair with your Mac";
+"pair.address" = "Vault address";
+"pair.vaultId" = "Vault id";
+"pair.where" = "Both are on your Mac under Settings, Advanced, Sync.";
+"pair.create" = "Create a pairing code";
+"pair.finish" = "Finish pairing";
+"pair.show" = "Show this code to your Mac, then approve it there.";
+"pair.fingerprint" = "Fingerprint";
+"pair.copy" = "Copy the code";
+"pair.close" = "Close";
+"pair.needFields" = "Enter the vault address and id from your Mac first.";
+"pair.badEndpoint" = "That is not a vault address.";
+"pair.notApproved" = "Not approved yet. Approve this phone on your Mac, then try again.";
+"pair.done" = "Paired. Recordings will upload to your vault.";
+"pair.failed" = "Pairing did not finish.";
+
+"a11y.record" = "Start recording";
+"a11y.stop" = "Stop recording";
+"a11y.elapsed" = "Elapsed time";
+"a11y.pair" = "Pair this phone with your Mac";
+"a11y.qr" = "Pairing code as a QR code";
+
+"consent.notifications" = "Sona also asks to send notifications, so it can offer to record a note after a phone call. It cannot hear calls.";
+
+"call.onCall.title" = "On a call";
+"call.onCall.body" = "Sona can't hear calls on iPhone, but tap here when it ends to record what mattered.";
+"call.afterCall.title" = "Call ended, %d min";
+"call.afterCall.body" = "Record a note about it?";
+"call.toggle" = "Offer to record after calls";
+"call.toggle.detail" = "A notification when a call ends. Sona never hears the call itself.";
+
+"title.phone" = "Phone recording";
+"title.watch" = "Watch recording";
+"title.afterCall" = "After a call,";
