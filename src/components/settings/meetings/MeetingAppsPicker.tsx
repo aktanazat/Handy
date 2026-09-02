@@ -344,6 +344,13 @@ export const MeetingAppsPicker: React.FC = () => {
         <Notice tone="muted" live={false}>
           {t("settingsV2.apps.browsersAutomatic")}
         </Notice>
+        {/* What the switch spends. The consent receipt a standing app grant
+         * writes (session.rs start_from_standing_app) acknowledges both
+         * sources, and it may only claim what was on screen when the switch
+         * was flipped: this sentence is that screen. */}
+        <Notice tone="muted" live={false}>
+          {t("settingsV2.apps.autoRecordSources")}
+        </Notice>
         {/* Consent law is the one thing a switch labelled "Record
          * automatically" cannot say for itself. */}
         <Notice tone="muted" live={false}>

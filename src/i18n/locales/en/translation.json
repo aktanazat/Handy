@@ -3071,6 +3071,7 @@
       "browsersAutomatic": "A call in a browser tab is noticed without being listed here.",
       "runningNow": "Running now",
       "autoRecord": "Record automatically",
+      "autoRecordSources": "Record automatically captures your microphone and this Mac's audio output whenever that app is in a call.",
       "autoRecordConsent": "Some places require everyone on a call to agree to recording.",
       "add": "Add an app",
       "addTitle": "Add a meeting app",

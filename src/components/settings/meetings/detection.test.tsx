@@ -162,8 +162,11 @@ describe("first paint", () => {
     }
     expect(markup).toContain("browser");
     /* Consent law is the one thing the auto-record switch cannot say for
-     * itself, so the list says it once. */
+     * itself, so the list says it once. What the switch spends is said on the
+     * same screen: the standing-app receipt acknowledges both sources, and it
+     * may claim only what was readable when the switch was flipped. */
     expect(markup).toContain("Record automatically");
+    expect(markup).toContain("captures your microphone and this Mac");
     expect(markup).toContain(
       "Some places require everyone on a call to agree to recording.",
     );
@@ -219,6 +222,7 @@ describe("english catalogue", () => {
     "settingsV2.apps.browsersAutomatic",
     "settingsV2.apps.runningNow",
     "settingsV2.apps.autoRecord",
+    "settingsV2.apps.autoRecordSources",
     "settingsV2.apps.autoRecordConsent",
     "settingsV2.apps.add",
     "settingsV2.apps.addTitle",

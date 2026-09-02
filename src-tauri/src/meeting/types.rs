@@ -591,12 +591,14 @@ pub enum MeetingConsentProvenance {
 
 /// The consent policy every acknowledgement on this machine is stamped with.
 ///
-/// Every other consent row echoes the number the frontend sent
-/// (`MEETING_CONSENT_POLICY_VERSION` in MeetingStartGate.tsx), because every
-/// other acknowledgement is a click on a surface the frontend drew. A standing
-/// per-application grant is acknowledged in settings and spent later with no
-/// frontend in the loop, so the backend needs the same number in its own hand.
-/// The two must move together.
+/// Every consent row a frontend surface produces echoes the number the
+/// frontend sent (`MEETING_CONSENT_POLICY_VERSION` in MeetingStartGate.tsx),
+/// because that acknowledgement is a click on a surface the frontend drew.
+/// Two rows have no frontend in the loop — an import, where choosing the
+/// file is the acknowledgement, and a standing per-application grant,
+/// acknowledged in settings and spent later — so the backend needs the same
+/// number in its own hand. This is its only Rust copy; it and the frontend's
+/// must move together.
 pub const MEETING_CONSENT_POLICY_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]

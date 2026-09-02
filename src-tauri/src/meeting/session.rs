@@ -82,12 +82,6 @@ const IMPORT_AUDIO_FORMAT: AudioFormat = AudioFormat {
 /// segment's words came from needs that said rather than inferred.
 const IMPORT_TRANSCRIPT_ENGINE_ID: &str = "import";
 
-/// The consent policy an import records, mirroring the frontend's
-/// `MEETING_CONSENT_POLICY_VERSION`. An import has no consent panel to read it
-/// from, so the one acknowledgement it records — the operator choosing a file —
-/// is stamped with the same version a live start would carry.
-const MEETING_CONSENT_POLICY_VERSION: u32 = 1;
-
 pub trait MeetingSourceProvider: Send + Sync {
     fn probe(&self, source_kind: SourceKind) -> SourceProbe;
 
@@ -1279,7 +1273,13 @@ impl MeetingSessionManager {
         bundle_id: String,
     ) -> Result<MeetingMutationResult, MeetingCommandError> {
         let consent = MeetingConsentInput {
-            policy_version: crate::meeting::types::MEETING_CONSENT_POLICY_VERSION,
+            policy_version: MEETING_CONSENT_POLICY_VERSION,
+            // Both sources, because the switch says both: the sentence under
+            // the app list (`settingsV2.apps.autoRecordSources`) names the
+            // microphone and the Mac's audio output, and switching "Record
+            // automatically" on beneath it is the acknowledgement this row
+            // records. A series grant stores what the operator ticked on the
+            // consent screen; the app grant has no per-source choice to store.
             microphone_acknowledged: true,
             system_audio_acknowledged: true,
             known_missing_sources_acknowledged: Vec::new(),
