@@ -2430,7 +2430,8 @@
         "soloEvent": "Der nächste Termin hat weniger als zwei Teilnehmende und liest sich daher als blockierte Zeit.",
         "unknownApp": "Etwas nutzt das Mikrofon, aber es ist keine bekannte Besprechungs-App.",
         "browserUnreadable": "Ein Browser ist im Vordergrund, aber sein Tab-Titel ist nicht lesbar.",
-        "browserNotMeeting": "Ein Browser ist im Vordergrund und sein Tab ist kein Anruf."
+        "browserNotMeeting": "Ein Browser ist im Vordergrund und sein Tab ist kein Anruf.",
+        "appPresentNotInUse": "Eine Meeting-App ist geöffnet, aber du hast seit dem Einschalten des Mikrofons nicht zu ihr gewechselt."
       }
     },
     "preview": {

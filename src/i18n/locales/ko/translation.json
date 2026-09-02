@@ -2424,7 +2424,8 @@
         "soloEvent": "다음 일정의 참석자가 두 명 미만이어서 확보한 시간으로 읽힙니다.",
         "unknownApp": "무언가 마이크를 쓰고 있지만, 알려진 미팅 앱은 아닙니다.",
         "browserUnreadable": "브라우저가 앞에 있지만 탭 제목을 읽을 수 없습니다.",
-        "browserNotMeeting": "브라우저가 앞에 있고 그 탭은 통화가 아닙니다."
+        "browserNotMeeting": "브라우저가 앞에 있고 그 탭은 통화가 아닙니다.",
+        "appPresentNotInUse": "회의 앱이 열려 있지만, 마이크가 켜진 후 해당 앱으로 전환하지 않았습니다."
       }
     },
     "preview": {

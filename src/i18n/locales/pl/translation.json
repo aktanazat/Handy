@@ -2442,7 +2442,8 @@
         "soloEvent": "Najbliższe wydarzenie ma mniej niż dwóch uczestników, więc czyta się jako zablokowany czas.",
         "unknownApp": "Coś używa mikrofonu, ale nie jest to znana aplikacja do spotkań.",
         "browserUnreadable": "Przeglądarka jest na pierwszym planie, ale nie da się odczytać tytułu jej karty.",
-        "browserNotMeeting": "Przeglądarka jest na pierwszym planie, a jej karta nie jest rozmową."
+        "browserNotMeeting": "Przeglądarka jest na pierwszym planie, a jej karta nie jest rozmową.",
+        "appPresentNotInUse": "Aplikacja do spotkań jest otwarta, ale nie przełączono się na nią od włączenia mikrofonu."
       }
     },
     "preview": {

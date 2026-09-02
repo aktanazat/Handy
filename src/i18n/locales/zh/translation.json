@@ -2424,7 +2424,8 @@
         "soloEvent": "下一个日程的参与者少于两位，因此被读作占位时间。",
         "unknownApp": "有东西在使用麦克风，但不是已知的会议应用。",
         "browserUnreadable": "前台是浏览器，但无法读取它的标签页标题。",
-        "browserNotMeeting": "前台是浏览器，且它的标签页不是通话。"
+        "browserNotMeeting": "前台是浏览器，且它的标签页不是通话。",
+        "appPresentNotInUse": "已打开会议应用，但自麦克风开启后你尚未切换到该应用。"
       }
     },
     "preview": {

@@ -2430,7 +2430,8 @@
         "soloEvent": "De volgende afspraak heeft minder dan twee deelnemers, dus die leest als geblokkeerde tijd.",
         "unknownApp": "Iets gebruikt de microfoon, maar het is geen bekende vergaderapp.",
         "browserUnreadable": "Er staat een browser op de voorgrond, maar de titel van het tabblad is niet leesbaar.",
-        "browserNotMeeting": "Er staat een browser op de voorgrond en het tabblad is geen gesprek."
+        "browserNotMeeting": "Er staat een browser op de voorgrond en het tabblad is geen gesprek.",
+        "appPresentNotInUse": "Er is een vergader-app geopend, maar je hebt er niet naar gewisseld sinds de microfoon aanging."
       }
     },
     "preview": {

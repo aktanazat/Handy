@@ -2436,7 +2436,8 @@
         "soloEvent": "Le prochain événement compte moins de deux participants : il se lit comme du temps bloqué.",
         "unknownApp": "Quelque chose utilise le microphone, mais ce n'est pas une app de réunion connue.",
         "browserUnreadable": "Un navigateur est au premier plan, mais le titre de son onglet est illisible.",
-        "browserNotMeeting": "Un navigateur est au premier plan et son onglet n'est pas un appel."
+        "browserNotMeeting": "Un navigateur est au premier plan et son onglet n'est pas un appel.",
+        "appPresentNotInUse": "Une app de réunion est ouverte, mais vous n'y êtes pas passé depuis l'activation du micro."
       }
     },
     "preview": {

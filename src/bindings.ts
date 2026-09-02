@@ -5816,7 +5816,12 @@ export type SuppressReason =
 /**
  * §5.3 case 7 — a browser is in front and its title is not a meeting.
  */
-"browser_title_not_meeting"
+"browser_title_not_meeting" |
+/**
+ * A meeting app is running, but the operator has not been in front of it
+ * since the microphone went active. Presence is not participation.
+ */
+"app_present_not_in_use"
 /**
  * UI appearance mode. `System` follows the OS `prefers-color-scheme`; `Light`
  * and `Dark` force one of the two palettes Sona already ships.

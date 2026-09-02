@@ -2442,7 +2442,8 @@
         "soloEvent": "Nejbližší událost má méně než dva účastníky, čte se tedy jako blokovaný čas.",
         "unknownApp": "Něco používá mikrofon, ale není to známá aplikace pro schůzky.",
         "browserUnreadable": "V popředí je prohlížeč, ale název jeho panelu nelze přečíst.",
-        "browserNotMeeting": "V popředí je prohlížeč a jeho panel není hovor."
+        "browserNotMeeting": "V popředí je prohlížeč a jeho panel není hovor.",
+        "appPresentNotInUse": "Aplikace pro schůzky je otevřená, ale od zapnutí mikrofonu jste do ní nepřepnuli."
       }
     },
     "preview": {

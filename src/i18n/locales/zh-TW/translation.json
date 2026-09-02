@@ -2424,7 +2424,8 @@
         "soloEvent": "下一個行程的參與者少於兩位，因此被讀作佔位時間。",
         "unknownApp": "有東西在使用麥克風，但不是已知的會議應用程式。",
         "browserUnreadable": "前景是瀏覽器，但無法讀取它的標籤頁標題。",
-        "browserNotMeeting": "前景是瀏覽器，且它的標籤頁不是通話。"
+        "browserNotMeeting": "前景是瀏覽器，且它的標籤頁不是通話。",
+        "appPresentNotInUse": "已開啟會議 App，但自麥克風啟用後你尚未切換至該 App。"
       }
     },
     "preview": {

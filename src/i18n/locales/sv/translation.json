@@ -2430,7 +2430,8 @@
         "soloEvent": "Nästa händelse har färre än två deltagare, så den läses som blockerad tid.",
         "unknownApp": "Något använder mikrofonen, men det är inte en känd mötesapp.",
         "browserUnreadable": "En webbläsare ligger främst, men dess fliktitel går inte att läsa.",
-        "browserNotMeeting": "En webbläsare ligger främst och dess flik är inte ett samtal."
+        "browserNotMeeting": "En webbläsare ligger främst och dess flik är inte ett samtal.",
+        "appPresentNotInUse": "En mötesapp är öppen, men du har inte växlat till den sedan mikrofonen slogs på."
       }
     },
     "preview": {

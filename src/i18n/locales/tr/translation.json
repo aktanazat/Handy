@@ -2430,7 +2430,8 @@
         "soloEvent": "Sıradaki etkinliğin ikiden az katılımcısı var, bu yüzden bloke edilmiş zaman olarak okunuyor.",
         "unknownApp": "Bir şey mikrofonu kullanıyor ama bilinen bir toplantı uygulaması değil.",
         "browserUnreadable": "Önde bir tarayıcı var ama sekmesinin başlığı okunamıyor.",
-        "browserNotMeeting": "Önde bir tarayıcı var ve sekmesi bir görüşme değil."
+        "browserNotMeeting": "Önde bir tarayıcı var ve sekmesi bir görüşme değil.",
+        "appPresentNotInUse": "Bir toplantı uygulaması açık, ancak mikrofon açıldığından beri ona geçiş yapmadınız."
       }
     },
     "preview": {
