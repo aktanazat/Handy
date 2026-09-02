@@ -1518,6 +1518,8 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::meeting_resume,
             commands::meeting::meeting_stop,
             commands::meeting::meeting_discard,
+            commands::meeting::meeting_import_recording,
+            commands::meeting::meeting_import_transcript,
             commands::meeting::meeting_recovery_list,
             commands::meeting::meeting_recovery_finalize,
             commands::meeting::meeting_list,

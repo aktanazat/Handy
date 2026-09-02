@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useMeetingImport } from "@/hooks/useMeetingImport";
 import { eventFacts, suggestionFacts } from "../MeetingPreviewCard";
 import type {
   MeetingsController,
@@ -48,6 +49,12 @@ export const useMeetingsController = ({
     reportMeetingError: outcomes.reportMeetingError,
   });
   const actionBindings = useMeetingActionBindings(mutations);
+  const meetingImport = useMeetingImport({
+    onImported: (sessionId) => {
+      void workflow.transitions.openSession(sessionId);
+      void feed.refreshHome();
+    },
+  });
   const homeActions = useMeetingHomeActions({
     transitions: workflow.transitions,
     readMeeting,
@@ -71,12 +78,16 @@ export const useMeetingsController = ({
         error: feed.homeError,
         sources: setup.sources,
         starting: pendingAction === "start",
+        importing: meetingImport.importing,
         focusStart: startRequest > 0,
       },
       actions: {
         onSourcesChange: setup.setSources,
         onStart: () => {
           void startFlow.startMeeting(setup.startOptions("manual"));
+        },
+        onImport: () => {
+          void meetingImport.start();
         },
         onStartSuggestion: (suggestion) => {
           void startFlow.startMeeting(

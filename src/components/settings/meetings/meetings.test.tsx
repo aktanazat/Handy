@@ -328,9 +328,11 @@ const homeMarkup = (
       error={null}
       sources={["microphone", "system_audio"]}
       starting={false}
+      importing={false}
       focusStart={false}
       onSourcesChange={noop}
       onStart={noop}
+      onImport={noop}
       onStartSuggestion={noop}
       onStartEvent={noop}
       onOpenMeeting={noop}
@@ -382,6 +384,27 @@ describe("starting a meeting", () => {
     const markup = homeMarkup({ sources: [] });
     expect(buttonTag(markup, "Start recording")).toContain("disabled");
     expect(markup).toContain("Choose at least one source.");
+  });
+
+  /* Importing is the second way a meeting begins, so it sits in the same row as
+   * the press that records one — not behind a menu, and not as a second card
+   * repeating the promise the first one already makes. */
+  test("importing a file is offered beside the press that records", () => {
+    const markup = homeMarkup({});
+    expect(markup).toContain('data-slot="meeting-import"');
+    expect(occurrences(markup, ">Import</button>")).toBe(1);
+    // Still one assurance sentence and one Start: the row grew a control, not
+    // a second call to action.
+    expect(occurrences(markup, ASSURANCE)).toBe(1);
+    expect(occurrences(markup, ">Start recording</button>")).toBe(1);
+  });
+
+  /* An import in flight cannot be started twice, and says so where the press
+   * was — the same rule Start follows while it is starting. */
+  test("an import in flight is stated on its own control, not on Start", () => {
+    const markup = homeMarkup({ importing: true });
+    expect(buttonTag(markup, "Importing…")).toContain('disabled=""');
+    expect(buttonTag(markup, "Start recording")).not.toContain('disabled=""');
   });
 });
 

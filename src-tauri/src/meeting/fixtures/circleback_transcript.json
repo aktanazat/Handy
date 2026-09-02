@@ -1,0 +1,13 @@
+[
+  {
+    "speaker": "John Appleseed",
+    "text": "Hey, how's it going?",
+    "timestamp": 4.56
+  },
+  {
+    "speaker": "Samantha Grey",
+    "text": "Going well, just testing the Circleback API.",
+    "timestamp": 18.32
+  },
+  { "speaker": null, "text": "Sorry, joining late.", "timestamp": 32 }
+]

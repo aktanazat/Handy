@@ -1643,6 +1643,10 @@ pub(crate) struct TranscriptSegmentInput {
     pub end_offset_ns: u64,
     pub text: String,
     pub confidence_milli: Option<u16>,
+    /// The speaker this utterance is already attributed to, for a transcript
+    /// that arrived with names on it. `None` — every recognizer segment — takes
+    /// the track's default speaker and waits for diarization to say more.
+    pub speaker: Option<String>,
 }
 
 pub(crate) struct DiarizationAssignmentInput {
@@ -4833,7 +4837,12 @@ impl MeetingStore {
             if source_kind != segment.source_kind {
                 return Err(StoreError::Invalid);
             }
-            let speaker_id = source_speaker_for(&transaction, session_id, source_kind)?;
+            let speaker_id = match segment.speaker.as_deref().map(str::trim) {
+                Some(display_name) if !display_name.is_empty() => {
+                    named_speaker_for(&transaction, session_id, source_kind, display_name)?
+                }
+                _ => source_speaker_for(&transaction, session_id, source_kind)?,
+            };
             let ordinal = next_ordinal
                 .checked_add(i64::try_from(index).map_err(|_| StoreError::Corrupt)?)
                 .ok_or(StoreError::Corrupt)?;
@@ -4887,6 +4896,30 @@ impl MeetingStore {
         mark_artifacts_out_of_date(&transaction, session_id)?;
         rebuild_search_documents_in(&transaction, session_id)?;
         transaction.commit()?;
+        Ok(())
+    }
+
+    /// File the session under the moment its audio was recorded rather than the
+    /// moment it was imported.
+    ///
+    /// Every surface that dates a meeting reads `started_at_utc_ms`, so an
+    /// imported recording of last Tuesday's call has to carry last Tuesday.
+    /// `ended_at_utc_ms` is deliberately left to the ReviewReady transition:
+    /// that field is when the meeting finished being processed, which for an
+    /// import genuinely is now.
+    pub(crate) fn set_imported_start(
+        &self,
+        session_id: MeetingSessionId,
+        started_at_utc_ms: i64,
+    ) -> Result<(), StoreError> {
+        let connection = self.connection()?;
+        let changed = connection.execute(
+            "UPDATE meeting_sessions SET started_at_utc_ms = ?1 WHERE id = ?2",
+            params![started_at_utc_ms, id(session_id)],
+        )?;
+        if changed == 0 {
+            return Err(StoreError::NotFound);
+        }
         Ok(())
     }
 

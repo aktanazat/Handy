@@ -11,16 +11,18 @@ use crate::meeting::series_types::{
     MeetingSeriesRemoteRoster, MeetingSeriesTemplateSetRequest,
 };
 use crate::meeting::session::{
-    MeetingActionItemDoneRequest, MeetingConsentPanelSessionState, MeetingConsentPanelStartRequest,
-    MeetingMutationRequest, MeetingMutationResult, MeetingNoteCreateRequest,
-    MeetingNoteDeleteRequest, MeetingNoteUpdateRequest, MeetingPreflightCreateRequest,
-    MeetingPreflightRefreshRequest, MeetingQuestionRequest, MeetingQuestionResult,
-    MeetingReenhanceRequest, MeetingRemovalResult, MeetingSegmentEditRequest,
-    MeetingSessionManager, MeetingSpeakerMergeRequest, MeetingSpeakerRenameRequest,
-    MeetingStartRequest, MeetingTitleSetRequest, MeetingUserNotesSaveRequest,
+    ImportRecordingRequest, MeetingActionItemDoneRequest, MeetingConsentPanelSessionState,
+    MeetingConsentPanelStartRequest, MeetingMutationRequest, MeetingMutationResult,
+    MeetingNoteCreateRequest, MeetingNoteDeleteRequest, MeetingNoteUpdateRequest,
+    MeetingPreflightCreateRequest, MeetingPreflightRefreshRequest, MeetingQuestionRequest,
+    MeetingQuestionResult, MeetingReenhanceRequest, MeetingRemovalResult,
+    MeetingSegmentEditRequest, MeetingSessionManager, MeetingSpeakerMergeRequest,
+    MeetingSpeakerRenameRequest, MeetingStartRequest, MeetingTitleSetRequest,
+    MeetingUserNotesSaveRequest,
 };
 use crate::meeting::suggestions::MeetingSuggestion;
 use crate::meeting::types::*;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::State;
 
@@ -209,6 +211,28 @@ pub async fn meeting_discard(
         detection.track_ended(session_id);
     }
     result
+}
+
+/// Bring a recording in as a meeting. Returns the session, already in
+/// `Processing`: the frontend shows it and watches `meeting:session-changed`,
+/// exactly as it does after a stop.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_import_recording(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    request: ImportRecordingRequest,
+) -> Result<MeetingSessionSnapshot, MeetingCommandError> {
+    manager.import_recording(request).await
+}
+
+/// Bring another note-taker's transcript export in as a meeting.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_import_transcript(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    path: PathBuf,
+) -> Result<MeetingSessionSnapshot, MeetingCommandError> {
+    manager.import_transcript(path).await
 }
 
 #[tauri::command]

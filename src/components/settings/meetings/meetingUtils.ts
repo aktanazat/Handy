@@ -87,6 +87,7 @@ const MEETING_ERROR_KEYS = {
   export_failed: "meetings.errors.export_failed",
   local_model_unavailable: "meetings.errors.local_model_unavailable",
   remote_unavailable: "meetings.errors.remote_unavailable",
+  import_unreadable: "meetings.errors.import_unreadable",
 } as const satisfies Record<MeetingCommandError, string>;
 
 export const meetingErrorKey = (error: MeetingCommandError) =>

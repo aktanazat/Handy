@@ -18,10 +18,13 @@ export interface CommandPaletteAction {
 }
 
 /* Actions outside the destination list use the same glyph wherever they
- * appear. New meeting deliberately shares Meetings' destination glyph. */
+ * appear. New meeting deliberately shares Meetings' destination glyph, and
+ * importing a meeting shares the file glyph the dictation import already
+ * uses — both bring a file in, and the label is what tells them apart. */
 export const commandActionIcons = {
   newMeeting: destinationIcons.meetings,
   importAudio: FileAudio,
+  importMeeting: FileAudio,
   openRecordings: FolderOpen,
   openAgent: MessageSquare,
   newPrompt: Sparkles,

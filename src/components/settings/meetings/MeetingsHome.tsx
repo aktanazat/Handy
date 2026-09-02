@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, FileAudio } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MeetingRetentionPolicy, SourceKind } from "@/bindings";
 import {
@@ -38,9 +38,11 @@ interface MeetingStartCardProps {
   sources: SourceKind[];
   retention: MeetingRetentionPolicy | null;
   starting: boolean;
+  importing: boolean;
   focusStart: boolean;
   onSourcesChange: (sources: SourceKind[]) => void;
   onStart: () => void;
+  onImport: () => void;
   onOpenSettings?: () => void;
 }
 
@@ -52,9 +54,11 @@ const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
   sources,
   retention,
   starting,
+  importing,
   focusStart,
   onSourcesChange,
   onStart,
+  onImport,
   onOpenSettings,
 }) => {
   const { t } = useTranslation();
@@ -88,6 +92,22 @@ const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
           {starting
             ? t("meetings.start.starting", "Starting…")
             : t("meetings.start.action", "Start recording")}
+        </Button>
+        {/* The other way a meeting begins: audio that was already recorded, or
+         * a transcript another note-taker wrote. Beside the press that records
+         * one, because it produces the same thing. */}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onImport}
+          disabled={importing}
+          data-slot="meeting-import"
+          data-testid="meeting-import"
+        >
+          <FileAudio aria-hidden="true" className="size-4" />
+          {importing
+            ? t("meetings.import.importing")
+            : t("meetings.import.action")}
         </Button>
         <span
           role="group"
@@ -166,9 +186,11 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
   error,
   sources,
   starting,
+  importing,
   focusStart,
   onSourcesChange,
   onStart,
+  onImport,
   onStartSuggestion,
   onStartEvent,
   onOpenMeeting,
@@ -191,9 +213,11 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
         sources={sources}
         retention={retention}
         starting={starting}
+        importing={importing}
         focusStart={focusStart}
         onSourcesChange={onSourcesChange}
         onStart={onStart}
+        onImport={onImport}
         onOpenSettings={onOpenSettings}
       />
 

@@ -1755,6 +1755,7 @@
     "noResults": "Nothing found",
     "newMeeting": "New meeting",
     "importAudio": "Import audio",
+    "importMeeting": "Import a recording or transcript",
     "openRecordings": "Open recordings folder",
     "openAgent": "Open agent",
     "runPrompt": "Run a prompt",
@@ -1962,6 +1963,12 @@
       "localOnly": "Local only",
       "retention": "Kept: {{policy}}"
     },
+    "import": {
+      "action": "Import",
+      "importing": "Importing…",
+      "recordingFilter": "Recording",
+      "transcriptFilter": "Transcript export"
+    },
     "gate": {
       "title": "Recording did not start",
       "readyTitle": "Ready to record",
@@ -2102,7 +2109,8 @@
       "export_cancelled": "Export was cancelled. No completed export was created.",
       "export_failed": "Export failed. No completed export was created.",
       "local_model_unavailable": "A local model is unavailable for this meeting.",
-      "remote_unavailable": "The selected remote destination is unavailable."
+      "remote_unavailable": "The selected remote destination is unavailable.",
+      "import_unreadable": "Sona could not read that file as a recording or a transcript export."
     },
     "discard": {
       "liveTitle": "Stop and discard this session?",

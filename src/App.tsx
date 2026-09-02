@@ -39,6 +39,7 @@ import {
 import { usePromptShellStore } from "./components/settings/meetings/promptTargets";
 import { WhatsNewGate } from "./components/whats-new";
 import { useAudioImport } from "./hooks/useAudioImport";
+import { useMeetingImport } from "./hooks/useMeetingImport";
 import { useShellTravel } from "./hooks/useShellTravel";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -414,6 +415,7 @@ interface CommandActionDeps {
   onNavigate: (section: SidebarSection) => void;
   onNewMeeting: () => void;
   onImportAudio: () => void;
+  onImportMeeting: () => void;
   onOpenRecordings: () => void;
   onOpenAgent: () => void;
 }
@@ -424,6 +426,7 @@ const buildCommandActions = ({
   onNavigate,
   onNewMeeting,
   onImportAudio,
+  onImportMeeting,
   onOpenRecordings,
   onOpenAgent,
 }: CommandActionDeps): CommandPaletteAction[] => [
@@ -445,6 +448,13 @@ const buildCommandActions = ({
     label: t("commandPalette.importAudio"),
     icon: commandActionIcons.importAudio,
     run: onImportAudio,
+  },
+  {
+    id: "action-import-meeting",
+    group: "actions",
+    label: t("commandPalette.importMeeting"),
+    icon: commandActionIcons.importMeeting,
+    run: onImportMeeting,
   },
   {
     id: "action-recordings",
@@ -910,6 +920,11 @@ function App() {
   };
 
   const { start: startAudioImport } = useAudioImport();
+  /* The palette imports a meeting from wherever the app happens to be, so it
+   * routes to the imported meeting the same way an Overview link does. */
+  const { start: startMeetingImport } = useMeetingImport({
+    onImported: openMeeting,
+  });
 
   const openRecordingsFolder = useCallback(async () => {
     try {
@@ -941,6 +956,7 @@ function App() {
         setMeetingStartRequest((current) => current + 1);
       }),
     onImportAudio: () => void startAudioImport(),
+    onImportMeeting: () => void startMeetingImport(),
     onOpenRecordings: () => void openRecordingsFolder(),
     onOpenAgent: openChat,
   });

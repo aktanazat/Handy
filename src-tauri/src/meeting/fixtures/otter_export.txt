@@ -1,0 +1,11 @@
+Weekly product sync
+Transcribed by Otter.ai
+
+Priya Raman  0:02
+Let's start with the pricing page. The new tiers are live behind a flag.
+
+Tom Alvarez  0:19
+I can flip the flag on Thursday once the copy review is done.
+
+Priya Raman  1:04
+Thursday works. I'll write the changelog entry today.

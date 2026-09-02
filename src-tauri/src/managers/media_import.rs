@@ -114,7 +114,9 @@ impl AudioImportError {
         }
     }
 
-    fn decode() -> Self {
+    /// Also the token a streaming caller returns from its own sink to stop the
+    /// decode; the caller reports its real reason itself.
+    pub(crate) fn decode() -> Self {
         Self {
             code: AudioImportFailureCode::Decode,
             message: "The media file could not be decoded.",
@@ -160,10 +162,10 @@ impl std::fmt::Display for AudioImportError {
 impl std::error::Error for AudioImportError {}
 
 #[derive(Debug)]
-struct ValidatedMediaPath {
-    canonical_path: PathBuf,
-    extension: String,
-    file_name: String,
+pub(crate) struct ValidatedMediaPath {
+    pub(crate) canonical_path: PathBuf,
+    pub(crate) extension: String,
+    pub(crate) file_name: String,
 }
 
 struct PendingJob {
@@ -594,7 +596,9 @@ pub(crate) fn validate_audio_import_path(path: &Path) -> std::result::Result<(),
     validate_media_path(path).map(|_| ())
 }
 
-fn validate_media_path(path: &Path) -> std::result::Result<ValidatedMediaPath, AudioImportError> {
+pub(crate) fn validate_media_path(
+    path: &Path,
+) -> std::result::Result<ValidatedMediaPath, AudioImportError> {
     let canonical_path = fs::canonicalize(path).map_err(|_| AudioImportError::invalid_file())?;
     let metadata = fs::metadata(&canonical_path).map_err(|_| AudioImportError::invalid_file())?;
     if !metadata.file_type().is_file() {
@@ -623,17 +627,55 @@ fn is_supported_extension(extension: &str) -> bool {
 }
 
 #[derive(Debug)]
-enum DecodeFailure {
+pub(crate) enum DecodeFailure {
     Cancelled,
     Failed(AudioImportError),
 }
 
+/// Decode one media file into a fixed 16 kHz mono f32 stream, appended whole.
+/// Used by the dictation-history import, which needs the audio in one buffer to
+/// hand to a single ASR call.
 fn decode_media(
     path: &Path,
     extension: &str,
     cancellation: &AtomicBool,
     mut progress: impl FnMut(usize),
 ) -> std::result::Result<Vec<f32>, DecodeFailure> {
+    let mut output = Vec::new();
+    let mut next_progress = IMPORT_PROGRESS_SAMPLES;
+    decode_media_into(
+        path,
+        extension,
+        cancellation,
+        MAX_MEDIA_IMPORT_SAMPLES,
+        |frame| {
+            append_emitted(&mut output, frame)?;
+            if output.len() >= next_progress {
+                progress(output.len());
+                next_progress = next_progress.saturating_add(IMPORT_PROGRESS_SAMPLES);
+            }
+            Ok(())
+        },
+    )?;
+    Ok(output)
+}
+
+/// The one Symphonia decode path in the app: probe, pick the audio track,
+/// downmix to mono and resample to `WHISPER_SAMPLE_RATE`, handing each
+/// resampled frame to `emit` as it is produced.
+///
+/// `max_samples` is the caller's memory or duration ceiling in emitted 16 kHz
+/// samples, checked against what has actually been emitted rather than against
+/// container metadata. A caller that streams its frames straight to disk can
+/// pass a ceiling far above what it could hold in memory; one that accumulates
+/// cannot. Returns the number of samples emitted.
+pub(crate) fn decode_media_into(
+    path: &Path,
+    extension: &str,
+    cancellation: &AtomicBool,
+    max_samples: usize,
+    mut emit: impl FnMut(&[f32]) -> std::result::Result<(), AudioImportError>,
+) -> std::result::Result<usize, DecodeFailure> {
     let file =
         File::open(path).map_err(|_| DecodeFailure::Failed(AudioImportError::invalid_file()))?;
     let media_stream = MediaSourceStream::new(Box::new(file), Default::default());
@@ -686,9 +728,13 @@ fn decode_media(
     let mut sample_buffer: Option<SampleBuffer<f32>> = None;
     let mut sample_capacity = 0_usize;
     let mut downmixed = Vec::new();
-    let mut output = Vec::new();
+    let mut sink = FrameSink {
+        emit: &mut emit,
+        max_samples,
+        emitted: 0,
+        failure: None,
+    };
     let mut decoded_source_frames = 0_u64;
-    let mut next_progress = IMPORT_PROGRESS_SAMPLES;
 
     loop {
         if cancellation.load(Ordering::Acquire) {
@@ -774,22 +820,12 @@ fn decode_media(
             downmixed.push(frame.iter().copied().sum::<f32>() * downmix_scale);
         }
 
-        let mut cap_exceeded = false;
         let Some(resampler) = resampler.as_mut() else {
             return Err(DecodeFailure::Failed(AudioImportError::decode()));
         };
-        resampler.push(&downmixed, |frame| {
-            if append_emitted(&mut output, frame).is_err() {
-                cap_exceeded = true;
-                return;
-            }
-            if output.len() >= next_progress {
-                progress(output.len());
-                next_progress = next_progress.saturating_add(IMPORT_PROGRESS_SAMPLES);
-            }
-        });
-        if cap_exceeded {
-            return Err(DecodeFailure::Failed(AudioImportError::duration_limit()));
+        resampler.push(&downmixed, |frame| sink.accept(frame));
+        if let Some(error) = sink.failure.take() {
+            return Err(DecodeFailure::Failed(error));
         }
     }
 
@@ -802,39 +838,55 @@ fn decode_media(
     let Some(resampler) = resampler.as_mut() else {
         return Err(DecodeFailure::Failed(AudioImportError::decode()));
     };
-    let mut cap_exceeded = false;
-    resampler.finish(|frame| {
-        if append_emitted(&mut output, frame).is_err() {
-            cap_exceeded = true;
-            return;
-        }
-        if output.len() >= next_progress {
-            progress(output.len());
-            next_progress = next_progress.saturating_add(IMPORT_PROGRESS_SAMPLES);
-        }
-    });
-    if cap_exceeded {
-        return Err(DecodeFailure::Failed(AudioImportError::duration_limit()));
+    resampler.finish(|frame| sink.accept(frame));
+    if let Some(error) = sink.failure.take() {
+        return Err(DecodeFailure::Failed(error));
     }
-    if output.is_empty() {
+    if sink.emitted == 0 {
         return Err(DecodeFailure::Failed(AudioImportError::decode()));
     }
-    Ok(output)
+    Ok(sink.emitted)
 }
 
-fn exceeds_sample_cap(emitted_samples: usize, incoming_samples: usize) -> bool {
+/// The resampler's output side of one decode.
+///
+/// `FrameResampler` emits through an infallible callback, so a refusal — the
+/// caller's ceiling, or the caller's own write failing — is parked here and
+/// collected by the decode loop that owns the error type. Once parked, later
+/// frames are dropped rather than partially applied.
+struct FrameSink<'emit, F> {
+    emit: &'emit mut F,
+    max_samples: usize,
+    emitted: usize,
+    failure: Option<AudioImportError>,
+}
+
+impl<F: FnMut(&[f32]) -> std::result::Result<(), AudioImportError>> FrameSink<'_, F> {
+    fn accept(&mut self, frame: &[f32]) {
+        if self.failure.is_some() {
+            return;
+        }
+        if exceeds_sample_cap(self.emitted, frame.len(), self.max_samples) {
+            self.failure = Some(AudioImportError::duration_limit());
+            return;
+        }
+        match (self.emit)(frame) {
+            Ok(()) => self.emitted = self.emitted.saturating_add(frame.len()),
+            Err(error) => self.failure = Some(error),
+        }
+    }
+}
+
+fn exceeds_sample_cap(emitted_samples: usize, incoming_samples: usize, max_samples: usize) -> bool {
     emitted_samples
         .checked_add(incoming_samples)
-        .is_none_or(|length| length > MAX_MEDIA_IMPORT_SAMPLES)
+        .is_none_or(|length| length > max_samples)
 }
 
 fn append_emitted(
     output: &mut Vec<f32>,
     frame: &[f32],
 ) -> std::result::Result<(), AudioImportError> {
-    if exceeds_sample_cap(output.len(), frame.len()) {
-        return Err(AudioImportError::duration_limit());
-    }
     output
         .try_reserve_exact(frame.len())
         .map_err(|_| AudioImportError::decode())?;
@@ -1230,9 +1282,10 @@ mod tests {
 
     #[test]
     fn cap_is_checked_from_emitted_samples_without_metadata() {
-        assert!(!exceeds_sample_cap(MAX_MEDIA_IMPORT_SAMPLES, 0));
-        assert!(exceeds_sample_cap(MAX_MEDIA_IMPORT_SAMPLES, 1));
-        assert!(exceeds_sample_cap(usize::MAX, 1));
+        let cap = MAX_MEDIA_IMPORT_SAMPLES;
+        assert!(!exceeds_sample_cap(cap, 0, cap));
+        assert!(exceeds_sample_cap(cap, 1, cap));
+        assert!(exceeds_sample_cap(usize::MAX, 1, cap));
         assert_eq!(duration_ms(MAX_MEDIA_IMPORT_SAMPLES), Some(1_800_000));
     }
 

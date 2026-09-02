@@ -89,12 +89,14 @@ export interface MeetingsHomeScreenModel {
   error: string | null;
   sources: SourceKind[];
   starting: boolean;
+  importing: boolean;
   focusStart: boolean;
 }
 
 export interface MeetingsHomeScreenActions {
   onSourcesChange: (sources: SourceKind[]) => void;
   onStart: () => void;
+  onImport: () => void;
   onStartSuggestion: (suggestion: MeetingSuggestion) => void;
   onStartEvent: (event: CalendarEventSummary) => void;
   onOpenMeeting: (sessionId: string) => void;

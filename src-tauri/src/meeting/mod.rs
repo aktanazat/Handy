@@ -12,6 +12,7 @@ pub mod digest;
 pub mod document_types;
 pub mod export;
 pub mod follow_up;
+pub mod import_formats;
 pub mod keep_awake;
 pub mod learning;
 pub mod learning_types;

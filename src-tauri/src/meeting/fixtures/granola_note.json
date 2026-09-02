@@ -1,0 +1,26 @@
+{
+  "id": "not_1d3tmYTlCICgjy",
+  "title": "Quarterly yoghurt budget review",
+  "owner": { "name": "Oat Benson", "email": "oat@granola.ai" },
+  "summary": "The quarterly yoghurt budget review was a success.",
+  "transcript": [
+    {
+      "speaker": {
+        "source": "microphone",
+        "attribution": "me",
+        "name": "Oat Benson"
+      },
+      "text": "I'm done pretending. Greek is the only yoghurt that deserves us.",
+      "start_time": "2026-04-08T15:00:04.000Z",
+      "end_time": "2026-04-08T15:00:09.500Z"
+    },
+    {
+      "speaker": { "source": "speaker", "diarization_label": "Speaker B" },
+      "text": "Finally. Regular yoghurt is just milk that gave up halfway.",
+      "start_time": "2026-04-08T15:00:10.250Z",
+      "end_time": "2026-04-08T15:00:14.000Z"
+    }
+  ],
+  "hasMore": false,
+  "cursor": null
+}

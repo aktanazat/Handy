@@ -343,8 +343,8 @@ pub(crate) struct PromptGenerationRequest {
     pub produced_at_utc_ms: i64,
 }
 
-/// Where a processing job was submitted from, which is what decides where it
-/// lands when it does not succeed.
+/// Where a processing job was submitted from, which is what decides which
+/// passes it runs and where it lands when it does not succeed.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum ProcessingOrigin {
     /// A stop. A failure here is this meeting's answer: it moves on to review,
@@ -354,6 +354,10 @@ pub(crate) enum ProcessingOrigin {
     /// pool it came from — the audio is still the only copy of the meeting and
     /// nobody has read it yet.
     Recovery,
+    /// An imported transcript. The transcript is already written and there is
+    /// no audio behind it, so this run starts at the passes that read text:
+    /// transcription and diarization have nothing to work from and are skipped.
+    ImportedTranscript,
 }
 
 #[derive(Clone)]
@@ -410,6 +414,15 @@ impl MeetingProcessingService {
             .transcript_engine
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(engine);
+    }
+
+    /// The detector slot, for tests that need speech without a bundled model.
+    #[cfg(test)]
+    pub(crate) fn set_vad_factory(&self, factory: Arc<dyn MeetingVadFactory>) {
+        *self
+            .vad_factory
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = factory;
     }
 
     /// The two generator slots, for tests that need to choose what each engine
@@ -819,7 +832,7 @@ impl MeetingProcessingService {
         // a persisted status, is what closes that window. Nothing in-memory is
         // read afterwards — the status is written through a fresh connection.
         let outcome = catch_unwind(AssertUnwindSafe(|| {
-            self.process(&store, session_id, &cancelled)
+            self.process(&store, session_id, &cancelled, origin)
         }))
         .unwrap_or_else(|_| {
             log::error!("Meeting processing panicked for session {session_id:?}");
@@ -934,6 +947,7 @@ impl MeetingProcessingService {
         store: &MeetingStore,
         session_id: MeetingSessionId,
         cancelled: &AtomicBool,
+        origin: ProcessingOrigin,
     ) -> Result<(), ProcessingFailure> {
         let plan = store
             .processing_plan(session_id)
@@ -941,6 +955,58 @@ impl MeetingProcessingService {
         if !matches!(plan.destination, ProcessingDestination::Local) {
             return Err(ProcessingFailure::RemoteUnavailable);
         }
+        // An imported transcript arrives already written, with no audio behind
+        // it, so this run starts below the two passes that need audio. One run
+        // still owns both kinds of meeting: the terminal status, the review
+        // transition, the finalization workflow and the automations are the
+        // same either way, and skipping the audio passes here rather than
+        // teaching each of them to tolerate an empty track is what keeps that
+        // true.
+        if origin != ProcessingOrigin::ImportedTranscript {
+            self.transcribe_and_diarize(store, session_id, &plan, cancelled)?;
+        }
+        if cancelled.load(Ordering::Acquire) {
+            return Err(ProcessingFailure::Cancelled);
+        }
+        let input_revision = store
+            .session_snapshot(session_id)
+            .map_err(|_| ProcessingFailure::EngineFailure)?
+            .revision;
+        // Metrics come from the transcript, not from the generated notes, so
+        // they are derived before generation and survive a model that is
+        // unavailable or fails.
+        let _ = self.refresh_analytics(store, session_id, input_revision);
+        match self.generate_artifacts(store, session_id, input_revision) {
+            Ok(
+                ArtifactGenerationOutcome::Generated { .. }
+                | ArtifactGenerationOutcome::Cached { .. },
+            ) => {
+                self.emit_current(store, "meeting:artifact-changed", session_id);
+            }
+            /* A meeting with no notes still reaches review, where the transcript
+             * and the reason are waiting and the operator can ask again. That
+             * has always been true of an unavailable engine; a relay nobody
+             * could reach joins the same arm. */
+            Ok(
+                ArtifactGenerationOutcome::NoSpeech
+                | ArtifactGenerationOutcome::Unavailable
+                | ArtifactGenerationOutcome::Unreachable
+                | ArtifactGenerationOutcome::Failed,
+            ) => {}
+            Err(_) => {}
+        }
+        Ok(())
+    }
+
+    /// The two passes that read captured audio: one transcript revision over
+    /// every track, then diarization over the system-audio track.
+    fn transcribe_and_diarize(
+        &self,
+        store: &MeetingStore,
+        session_id: MeetingSessionId,
+        plan: &MeetingRunPlan,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ProcessingFailure> {
         let engine = self
             .transcript_engine
             .lock()
@@ -948,7 +1014,7 @@ impl MeetingProcessingService {
             .clone()
             .ok_or(ProcessingFailure::LocalModelUnavailable)?;
         let mut asr_plan = engine
-            .plan_for(&plan)
+            .plan_for(plan)
             .ok_or(ProcessingFailure::LocalModelUnavailable)?;
         // Loop 4: a series the user gave standing consent to primes this one
         // session's transcription. The blob was assembled onto the session and
@@ -999,36 +1065,6 @@ impl MeetingProcessingService {
             &tracks,
             cancelled,
         );
-        if cancelled.load(Ordering::Acquire) {
-            return Err(ProcessingFailure::Cancelled);
-        }
-        let input_revision = store
-            .session_snapshot(session_id)
-            .map_err(|_| ProcessingFailure::EngineFailure)?
-            .revision;
-        // Metrics come from the transcript, not from the generated notes, so
-        // they are derived before generation and survive a model that is
-        // unavailable or fails.
-        let _ = self.refresh_analytics(store, session_id, input_revision);
-        match self.generate_artifacts(store, session_id, input_revision) {
-            Ok(
-                ArtifactGenerationOutcome::Generated { .. }
-                | ArtifactGenerationOutcome::Cached { .. },
-            ) => {
-                self.emit_current(store, "meeting:artifact-changed", session_id);
-            }
-            /* A meeting with no notes still reaches review, where the transcript
-             * and the reason are waiting and the operator can ask again. That
-             * has always been true of an unavailable engine; a relay nobody
-             * could reach joins the same arm. */
-            Ok(
-                ArtifactGenerationOutcome::NoSpeech
-                | ArtifactGenerationOutcome::Unavailable
-                | ArtifactGenerationOutcome::Unreachable
-                | ArtifactGenerationOutcome::Failed,
-            ) => {}
-            Err(_) => {}
-        }
         Ok(())
     }
 
@@ -1132,6 +1168,7 @@ impl MeetingProcessingService {
                     end_offset_ns: chunk.end_offset_ns,
                     text,
                     confidence_milli: None,
+                    speaker: None,
                 }],
             )
             .map_err(|_| ProcessingFailure::EngineFailure)

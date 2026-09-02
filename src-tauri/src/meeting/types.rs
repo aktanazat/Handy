@@ -320,6 +320,8 @@ pub enum MeetingOrigin {
     Manual,
     Suggestion,
     Cli,
+    /// A recording or transcript brought in from a file rather than captured.
+    Import,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
@@ -355,6 +357,10 @@ pub enum MeetingCommandError {
     ExportFailed,
     LocalModelUnavailable,
     RemoteUnavailable,
+    /// The file offered for import is not a recording or transcript export
+    /// Sona can read. Every refusal reaching the operator says this, because
+    /// they all have the same answer: choose a different file.
+    ImportUnreadable,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]

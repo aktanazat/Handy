@@ -11,6 +11,7 @@ use super::follow_up::{
     MeetingFollowUpDraft, MeetingFollowUpMail, MeetingFollowUpMailBody,
     MeetingFollowUpMailRequest, MeetingFollowUpSource, FOLLOW_UP_MAX_TOKENS,
 };
+use super::import_formats::{read_transcript_export, resolve_spans, ImportedSegment};
 use super::keep_awake::MeetingKeepAwake;
 use super::ledger;
 use super::loop_types::{
@@ -24,18 +25,23 @@ use super::processing::{
 };
 use super::store::{
     InterruptedRecovery, MeetingStore, MeetingTrackWriter, RecoveredMeeting, SegmentEdit,
-    StoreError, StoreMutation, StoreTransition, TrackCreation, STORE_SCHEMA_VERSION,
+    StoreError, StoreMutation, StoreTransition, TrackCreation, TranscriptRevisionInput,
+    TranscriptSegmentInput, STORE_SCHEMA_VERSION,
 };
 use super::suggestions::{
     MeetingSuggestion, MeetingSuggestionService, MeetingSuggestionSignal, MeetingSuggestionSink,
 };
 use super::types::*;
 use crate::analytics::DashboardTrendRequest;
+use crate::audio_toolkit::constants::WHISPER_SAMPLE_RATE;
+use crate::managers::media_import::{
+    decode_media_into, validate_media_path, AudioImportError, DecodeFailure, ValidatedMediaPath,
+};
 use crate::secrets::{SecretManager, SecretResolveError};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
@@ -52,6 +58,35 @@ const DEFAULT_SOURCE_DESCRIPTOR_CAPACITY: u32 = 128;
 const RETENTION_SWEEP_INTERVAL: Duration = Duration::from_secs(15 * 60);
 const RETENTION_OPERATION_NAMESPACE: Uuid =
     Uuid::from_u128(0x5192_4d08_51d9_4f31_a369_1f2d_a7de_c9d4);
+
+/// The largest imported recording Sona will decode, in emitted 16 kHz mono
+/// samples: twelve hours.
+///
+/// This is not a memory bound. The decode streams one resampled frame at a time
+/// into the session's track file, so a two-hour import holds no more than a
+/// two-minute one — about 30 ms of audio. What the ceiling bounds is the
+/// meeting: its size on disk, and how long the transcript pass will run before
+/// anybody sees notes. Twelve hours is past the longest meeting anyone records
+/// and short of the point where an accidental video library becomes a meeting.
+const MAX_IMPORT_RECORDING_SAMPLES: usize = 16_000 * 60 * 60 * 12;
+
+/// The fixed format `media_import`'s Symphonia path resamples every source to,
+/// and therefore the format an imported track records.
+const IMPORT_AUDIO_FORMAT: AudioFormat = AudioFormat {
+    sample_rate_hz: WHISPER_SAMPLE_RATE,
+    channels: 1,
+};
+
+/// The engine credited with an imported transcript revision. No recognizer ran:
+/// the text came from another product's export, and a reader auditing where a
+/// segment's words came from needs that said rather than inferred.
+const IMPORT_TRANSCRIPT_ENGINE_ID: &str = "import";
+
+/// The consent policy an import records, mirroring the frontend's
+/// `MEETING_CONSENT_POLICY_VERSION`. An import has no consent panel to read it
+/// from, so the one acknowledgement it records — the operator choosing a file —
+/// is stamped with the same version a live start would carry.
+const MEETING_CONSENT_POLICY_VERSION: u32 = 1;
 
 pub trait MeetingSourceProvider: Send + Sync {
     fn probe(&self, source_kind: SourceKind) -> SourceProbe;
@@ -341,6 +376,31 @@ pub struct MeetingReenhanceRequest {
     pub body: String,
     pub template: MeetingNotesTemplate,
     pub expected_note_revision: u64,
+}
+
+/// One recording to bring in as a meeting.
+///
+/// `title` and `recorded_at_utc_ms` are what the caller knows and the file may
+/// not: a phone that recorded the audio knows when it did, and a picker on this
+/// Mac knows only the file. Either falls back to the file itself — its name, and
+/// the moment it was last written.
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub struct ImportRecordingRequest {
+    pub path: PathBuf,
+    pub title: Option<String>,
+    pub recorded_at_utc_ms: Option<i64>,
+    pub origin: RecordingOrigin,
+}
+
+/// Where an imported recording came from. Recorded on the track's descriptor,
+/// so a meeting can say afterwards that its audio arrived from a paired phone
+/// rather than from a file somebody dropped in.
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum RecordingOrigin {
+    LocalFile,
+    PairedDevice { device_id: String },
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
@@ -1825,6 +1885,366 @@ impl MeetingSessionManager {
             .map_err(map_store_error)?;
         self.emit_session_changed(&snapshot);
         Ok(MeetingMutationResult { receipt, snapshot })
+    }
+
+    /// Turn a recording on disk into a meeting.
+    ///
+    /// The file is decoded through the one Symphonia path in the app into the
+    /// fixed 16 kHz mono stream a live microphone produces, and written to a
+    /// microphone-kind source track through the same `MeetingTrackWriter` the
+    /// capture worker writes through. The session then walks the phases and
+    /// writes the events a stopped recording does — `preflight_created`,
+    /// `start_authorized`, `capture_started`, `stop_requested`,
+    /// `capture_sealed` — and hands off to `MeetingProcessingService::submit`
+    /// exactly as `stop` does, so transcript, diarization, notes, ledger,
+    /// people, analytics and export run unchanged and cannot tell the
+    /// difference.
+    ///
+    /// A failure anywhere after the session exists discards it. Half an import
+    /// is not a meeting, and leaving one behind would put a session whose audio
+    /// was never written into the recovery pool for every later launch to offer
+    /// and fail to finish.
+    pub async fn import_recording(
+        &self,
+        request: ImportRecordingRequest,
+    ) -> Result<MeetingSessionSnapshot, MeetingCommandError> {
+        let media = validate_media_path(&request.path).map_err(|error| {
+            log::warn!(
+                "Meeting import refused {}: {error}",
+                request.path.display()
+            );
+            MeetingCommandError::ImportUnreadable
+        })?;
+        let store = self.store().await?;
+        let session_id = self
+            .open_imported_session(
+                &store,
+                import_title(request.title.as_deref(), &media.canonical_path),
+                request
+                    .recorded_at_utc_ms
+                    .or_else(|| file_modified_utc_ms(&media.canonical_path))
+                    .unwrap_or_else(utc_now_ms),
+            )
+            .await?;
+        match self
+            .write_imported_audio(Arc::clone(&store), session_id, media, &request.origin)
+            .await
+        {
+            Ok(()) => {}
+            Err(error) => return Err(self.abandon_import(session_id, error).await),
+        }
+        match self.seal_imported_capture(&store, session_id, None).await {
+            Ok(snapshot) => {
+                self.processing
+                    .submit(store, session_id, ProcessingOrigin::Stop);
+                self.emit_session_changed(&snapshot);
+                Ok(snapshot)
+            }
+            Err(error) => Err(self.abandon_import(session_id, error).await),
+        }
+    }
+
+    /// Turn another note-taker's transcript export into a meeting.
+    ///
+    /// There is no audio to write, so the session carries an empty
+    /// microphone-kind track and one transcript revision stamped `import`, with
+    /// the vendor's speaker names on its segments. Processing then runs from
+    /// `ProcessingOrigin::ImportedTranscript`, which skips the two passes that
+    /// read audio and runs the rest: analytics, notes, ledger, and — through
+    /// the same review transition every meeting takes — people and automations.
+    pub async fn import_transcript(
+        &self,
+        path: PathBuf,
+    ) -> Result<MeetingSessionSnapshot, MeetingCommandError> {
+        let parsed = read_transcript_export(&path).map_err(|error| {
+            log::warn!(
+                "Meeting transcript import refused {}: {}",
+                path.display(),
+                error.0
+            );
+            MeetingCommandError::ImportUnreadable
+        })?;
+        let store = self.store().await?;
+        let spans = resolve_spans(&parsed.segments);
+        let duration_ns = spans
+            .last()
+            .map_or(0, |(_, end)| end.saturating_mul(1_000_000));
+        let session_id = self
+            .open_imported_session(
+                &store,
+                parsed.title.clone(),
+                parsed
+                    .started_at_utc_ms
+                    .or_else(|| file_modified_utc_ms(&path))
+                    .unwrap_or_else(utc_now_ms),
+            )
+            .await?;
+        let track_id = match self.create_import_track(&store, session_id, &RecordingOrigin::LocalFile)
+        {
+            Ok(track_id) => track_id,
+            Err(error) => return Err(self.abandon_import(session_id, error).await),
+        };
+        let snapshot = match self
+            .seal_imported_capture(&store, session_id, Some(duration_ns))
+            .await
+        {
+            Ok(snapshot) => snapshot,
+            Err(error) => return Err(self.abandon_import(session_id, error).await),
+        };
+        // The transcript is written in the Processing phase, where a live
+        // meeting's transcript is written too, so a reader arriving mid-import
+        // sees a meeting being processed rather than one with a partial
+        // transcript already published.
+        if let Err(error) =
+            write_imported_transcript(&store, session_id, track_id, &parsed.segments, &spans)
+        {
+            return Err(self.abandon_import(session_id, error).await);
+        }
+        self.processing
+            .submit(store, session_id, ProcessingOrigin::ImportedTranscript);
+        self.emit_session_changed(&snapshot);
+        Ok(snapshot)
+    }
+
+    /// Create the session, authorize its plan, and stamp it with the moment the
+    /// audio was recorded. Returns a session in `Starting`.
+    ///
+    /// The preflight is built rather than probed: an import has no device to
+    /// ask, and recording a live microphone's current availability against a
+    /// file that was captured last Tuesday would be a fact about the wrong
+    /// thing. Destination is always local, because the bytes are already on
+    /// this Mac and no remote consent rail was crossed to get them here.
+    async fn open_imported_session(
+        &self,
+        store: &Arc<MeetingStore>,
+        title: String,
+        recorded_at_utc_ms: i64,
+    ) -> Result<MeetingSessionId, MeetingCommandError> {
+        let session_id = MeetingSessionId::new();
+        let (retention_policy, _) = store.default_retention_policy().map_err(map_store_error)?;
+        let preflight = MeetingPreflightSnapshot {
+            session_id,
+            revision: 0,
+            proposed_title: title.clone(),
+            origin: MeetingOrigin::Import,
+            sources: vec![MeetingSourceSnapshot {
+                track_id: None,
+                source_kind: SourceKind::Microphone,
+                required: true,
+                availability: SourceAvailability::Available,
+                health: SourceHealth::Healthy,
+                format: Some(IMPORT_AUDIO_FORMAT),
+                last_durable_offset_ns: None,
+                gap_count: 0,
+            }],
+            storage: StorageAvailability::Available,
+            local_processing: self.processing.local_processing_availability(),
+            destination: ProcessingDestination::Local,
+            microphone_device_uid: None,
+            frozen_system_audio_application_bundle_ids: Vec::new(),
+            accepted_known_missing_sources: Vec::new(),
+            degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+            required_acknowledgements: vec![SourceKind::Microphone],
+            allowed_actions: vec![AllowedMeetingAction::Start],
+        };
+        store
+            .create_preflight(
+                StoreMutation {
+                    operation_id: MeetingOperationId::new(),
+                    requested_at_utc_ms: utc_now_ms(),
+                    session_id,
+                    expected_revision: 0,
+                    command: MeetingCommandKind::PreflightCreate,
+                },
+                title,
+                MeetingOrigin::Import,
+                preflight.clone(),
+                retention_policy,
+            )
+            .map_err(map_store_error)?;
+        let consent = MeetingConsentInput {
+            policy_version: MEETING_CONSENT_POLICY_VERSION,
+            // Choosing the file is the acknowledgement. No stream was opened
+            // and no room was listened to; the operator handed Sona a recording
+            // they already had.
+            microphone_acknowledged: true,
+            system_audio_acknowledged: false,
+            known_missing_sources_acknowledged: Vec::new(),
+            degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+            destination: ProcessingDestination::Local,
+            remote_acknowledgement: None,
+        };
+        let attempt_number = store
+            .next_plan_attempt(session_id)
+            .map_err(map_store_error)?;
+        let mut plan = self.build_plan(session_id, 0, attempt_number, &preflight, &consent, store)?;
+        // The imported audio's own zero, so a stamp on a record maps back to
+        // when the recording was made rather than when it was read off disk.
+        plan.session_clock_anchor.wall_start_utc_ms = recorded_at_utc_ms;
+        let receipt = store
+            .start_with_plan_and_consent(
+                MeetingOperationId::new(),
+                recorded_at_utc_ms,
+                &plan,
+                &MeetingConsent {
+                    consent_id: plan.consent_id,
+                    session_id,
+                    attempt_number,
+                    preflight_revision: 0,
+                    policy_version: consent.policy_version,
+                    acknowledged_at_utc_ms: utc_now_ms(),
+                    provenance: MeetingConsentProvenance::Direct,
+                    microphone_acknowledged: true,
+                    system_audio_acknowledged: false,
+                    known_missing_sources_acknowledged: Vec::new(),
+                    degraded_start_policy: consent.degraded_start_policy,
+                    destination: consent.destination.clone(),
+                    remote_acknowledgement: None,
+                },
+                0,
+            )
+            .map_err(map_store_error)?;
+        if receipt.result != OperationResult::Committed {
+            return Err(MeetingCommandError::InvalidTransition);
+        }
+        store
+            .set_imported_start(session_id, recorded_at_utc_ms)
+            .map_err(map_store_error)?;
+        Ok(session_id)
+    }
+
+    /// The one microphone-kind track an import writes to. `origin` is kept on
+    /// the track descriptor, the slot a live source uses for its own provenance.
+    fn create_import_track(
+        &self,
+        store: &Arc<MeetingStore>,
+        session_id: MeetingSessionId,
+        origin: &RecordingOrigin,
+    ) -> Result<SourceTrackId, MeetingCommandError> {
+        let plan = store.processing_plan(session_id).map_err(map_store_error)?;
+        let descriptor_json =
+            serde_json::to_string(origin).map_err(|_| MeetingCommandError::InvalidRequest)?;
+        let track_id = SourceTrackId::new();
+        store
+            .create_track(TrackCreation {
+                session_id,
+                plan_id: plan.plan_id,
+                source_kind: SourceKind::Microphone,
+                required: true,
+                requested: true,
+                descriptor_json: &descriptor_json,
+                report: import_start_report(track_id),
+            })
+            .map_err(map_store_error)?;
+        Ok(track_id)
+    }
+
+    /// Decode the file into the session's track, one resampled frame at a time.
+    ///
+    /// The decode runs on a blocking thread because it is CPU-bound for as long
+    /// as the recording is.
+    async fn write_imported_audio(
+        &self,
+        store: Arc<MeetingStore>,
+        session_id: MeetingSessionId,
+        media: ValidatedMediaPath,
+        origin: &RecordingOrigin,
+    ) -> Result<(), MeetingCommandError> {
+        let track_id = self.create_import_track(&store, session_id, origin)?;
+        let plan = store.processing_plan(session_id).map_err(map_store_error)?;
+        let writer = store
+            .open_track_writer(session_id, track_id, plan.storage.clone())
+            .map_err(map_store_error)?;
+        tauri::async_runtime::spawn_blocking(move || decode_into_track(writer, track_id, &media))
+            .await
+            .map_err(|_| MeetingCommandError::StorageUnavailable)?
+    }
+
+    /// Walk the phases a stopped recording walks and land in `Processing`.
+    /// `duration_ns` overrides the capture window's end for an import with no
+    /// audio behind it, where there are no durable records to measure.
+    async fn seal_imported_capture(
+        &self,
+        store: &Arc<MeetingStore>,
+        session_id: MeetingSessionId,
+        duration_ns: Option<u64>,
+    ) -> Result<MeetingSessionSnapshot, MeetingCommandError> {
+        store
+            .open_capture_window(session_id, 0)
+            .map_err(map_store_error)?;
+        for (allowed_from, next_phase, event_kind) in [
+            (MeetingPhase::Starting, MeetingPhase::CapturingRecording, "capture_started"),
+            (MeetingPhase::CapturingRecording, MeetingPhase::Stopping, "stop_requested"),
+        ] {
+            let snapshot = store.session_snapshot(session_id).map_err(map_store_error)?;
+            store
+                .transition(StoreTransition {
+                    operation_id: None,
+                    actor: OperationActor::System,
+                    command: MeetingCommandKind::Start,
+                    requested_at_utc_ms: utc_now_ms(),
+                    session_id,
+                    expected_revision: snapshot.revision,
+                    allowed_from: &[allowed_from],
+                    next_phase,
+                    event_kind,
+                    reason_codes: Vec::new(),
+                })
+                .map_err(map_store_error)?;
+        }
+        let stopping = store.session_snapshot(session_id).map_err(map_store_error)?;
+        store
+            .close_open_capture_window(
+                session_id,
+                duration_ns.unwrap_or_else(|| stopping.elapsed_offset_ns.unwrap_or(0)),
+                "stopped",
+            )
+            .map_err(map_store_error)?;
+        store
+            .transition(StoreTransition {
+                operation_id: None,
+                actor: OperationActor::System,
+                command: MeetingCommandKind::Stop,
+                requested_at_utc_ms: utc_now_ms(),
+                session_id,
+                expected_revision: stopping.revision,
+                allowed_from: &[MeetingPhase::Stopping],
+                next_phase: MeetingPhase::Processing,
+                event_kind: "capture_sealed",
+                reason_codes: Vec::new(),
+            })
+            .map_err(map_store_error)?;
+        store.session_snapshot(session_id).map_err(map_store_error)
+    }
+
+    /// Throw away a session whose import did not finish, and return the error
+    /// that stopped it. A cleanup that itself fails is logged and not allowed to
+    /// replace the operator's answer.
+    async fn abandon_import(
+        &self,
+        session_id: MeetingSessionId,
+        error: MeetingCommandError,
+    ) -> MeetingCommandError {
+        let Ok(store) = self.store().await else {
+            return error;
+        };
+        let Ok(snapshot) = store.session_snapshot(session_id) else {
+            return error;
+        };
+        if let Err(cleanup) = self
+            .delete_with_cause(
+                MeetingMutationRequest {
+                    operation_id: MeetingOperationId::new(),
+                    session_id,
+                    expected_revision: snapshot.revision,
+                },
+                DeletionCause::Discard,
+            )
+            .await
+        {
+            log::warn!("A failed meeting import could not be discarded: {cleanup:?}");
+        }
+        error
     }
 
     pub async fn discard(
@@ -3440,6 +3860,164 @@ fn retention_operation_id(session_id: MeetingSessionId) -> MeetingOperationId {
     ))
 }
 
+/// The title an import files under: what the caller asked for, else the file's
+/// own name, else the same placeholder a meeting started from the tray carries
+/// until its notes name it.
+fn import_title(requested: Option<&str>, path: &Path) -> String {
+    requested
+        .map(str::trim)
+        .filter(|title| !title.is_empty())
+        .map(str::to_string)
+        .or_else(|| {
+            path.file_stem()
+                .map(|stem| stem.to_string_lossy().trim().to_string())
+                .filter(|stem| !stem.is_empty())
+        })
+        .unwrap_or_else(|| MANUAL_DEFAULT_TITLE.to_string())
+}
+
+/// When the file was last written, as the recording's own timestamp.
+fn file_modified_utc_ms(path: &Path) -> Option<i64> {
+    let modified = std::fs::metadata(path).ok()?.modified().ok()?;
+    Some(chrono::DateTime::<chrono::Utc>::from(modified).timestamp_millis())
+}
+
+/// The imported timeline's zero.
+///
+/// Native timestamps on an imported packet are sample indices at
+/// `WHISPER_SAMPLE_RATE`, anchored at the file's first sample, so a record's
+/// session offset is derived from the audio itself. Nothing about when the
+/// decode ran enters the timeline — the same rule the live sources follow.
+const fn import_timestamp_bridge() -> TimestampBridge {
+    TimestampBridge {
+        native_anchor_value: 0,
+        native_timescale: WHISPER_SAMPLE_RATE,
+        host_monotonic_anchor_ns: 0,
+        session_offset_ns: 0,
+    }
+}
+
+/// What a live source reports when it starts, for a source that is a file.
+fn import_start_report(track_id: SourceTrackId) -> SourceStartReport {
+    SourceStartReport {
+        track_id,
+        source_kind: SourceKind::Microphone,
+        format: IMPORT_AUDIO_FORMAT,
+        epoch: SourceEpoch::new(0),
+        format_epoch: 0,
+        timestamp_bridge: import_timestamp_bridge(),
+    }
+}
+
+/// Write one decoded recording to its track. Runs on a blocking thread.
+///
+/// The decoder hands over one resampled frame at a time and each becomes one
+/// record, so a live capture callback and an imported frame reach disk through
+/// the same `accept_with_bridge` and produce the same records. The real-time
+/// packet lane is skipped deliberately: it exists so an audio callback can never
+/// block on the writer, and a file has no callback to protect.
+fn decode_into_track(
+    mut writer: MeetingTrackWriter,
+    track_id: SourceTrackId,
+    media: &ValidatedMediaPath,
+) -> Result<(), MeetingCommandError> {
+    let bridge = import_timestamp_bridge();
+    let mut sequence = 0_u64;
+    let mut frame_index = 0_u64;
+    // A write that fails stops the decode. The decoder's own error type is the
+    // only thing its callback can return, so the store's answer is parked here
+    // and is the one reported.
+    let mut store_error: Option<StoreError> = None;
+    let decoded = decode_media_into(
+        &media.canonical_path,
+        &media.extension,
+        &AtomicBool::new(false),
+        MAX_IMPORT_RECORDING_SAMPLES,
+        |frame| {
+            let packet = CapturedPacket {
+                track_id,
+                source_epoch: SourceEpoch::new(0),
+                format_epoch: 0,
+                sequence,
+                native_timestamp_value: i64::try_from(frame_index).ok(),
+                native_timestamp_timescale: Some(WHISPER_SAMPLE_RATE),
+                host_monotonic_anchor_ns: Some(0),
+                sample_rate_hz: IMPORT_AUDIO_FORMAT.sample_rate_hz,
+                channels: IMPORT_AUDIO_FORMAT.channels,
+                frame_count: u32::try_from(frame.len())
+                    .map_err(|_| AudioImportError::decode())?,
+                discontinuity_flags: PacketDiscontinuityFlags::default(),
+            };
+            match writer.accept_with_bridge(packet, frame, bridge) {
+                Ok(_) => {
+                    sequence = sequence.saturating_add(1);
+                    frame_index = frame_index.saturating_add(u64::from(packet.frame_count));
+                    Ok(())
+                }
+                Err(error) => {
+                    store_error = Some(error);
+                    Err(AudioImportError::decode())
+                }
+            }
+        },
+    );
+    if let Some(error) = store_error {
+        return Err(map_store_error(error));
+    }
+    match decoded {
+        Ok(_) => writer.seal().map_err(map_store_error),
+        Err(DecodeFailure::Cancelled) => Err(MeetingCommandError::ImportUnreadable),
+        Err(DecodeFailure::Failed(error)) => {
+            log::warn!(
+                "Meeting import could not decode {}: {error}",
+                media.file_name
+            );
+            Err(MeetingCommandError::ImportUnreadable)
+        }
+    }
+}
+
+/// Write an imported transcript as this session's transcript revision, with the
+/// vendor's speaker names on the segments rather than as a diarization overlay:
+/// on an imported transcript the names are the attribution, not a guess over it.
+fn write_imported_transcript(
+    store: &Arc<MeetingStore>,
+    session_id: MeetingSessionId,
+    track_id: SourceTrackId,
+    segments: &[ImportedSegment],
+    spans: &[(u64, u64)],
+) -> Result<(), MeetingCommandError> {
+    let revision_id = store
+        .begin_transcript_revision(TranscriptRevisionInput {
+            session_id,
+            engine_id: IMPORT_TRANSCRIPT_ENGINE_ID,
+            model_version: None,
+            destination: &ProcessingDestination::Local,
+            source_set: &[SourceKind::Microphone],
+            language: "und",
+        })
+        .map_err(map_store_error)?;
+    let inputs = segments
+        .iter()
+        .zip(spans)
+        .map(|(segment, (start_ms, end_ms))| TranscriptSegmentInput {
+            track_id,
+            source_kind: SourceKind::Microphone,
+            start_offset_ns: start_ms.saturating_mul(1_000_000),
+            end_offset_ns: end_ms.saturating_mul(1_000_000),
+            text: segment.text.clone(),
+            confidence_milli: None,
+            speaker: segment.speaker.clone(),
+        })
+        .collect::<Vec<_>>();
+    store
+        .append_transcript_segments(session_id, revision_id, &inputs)
+        .map_err(map_store_error)?;
+    store
+        .complete_transcript_revision(session_id, revision_id)
+        .map_err(map_store_error)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4818,5 +5396,268 @@ mod tests {
             manager.recovery_operation_id(session_id),
             "a per-launch namespace is what keeps yesterday's receipt from silencing today's attempt"
         );
+    }
+
+    /// An engine that returns the same words for every chunk, so a segment's
+    /// presence and its offsets are what a test reads.
+    struct TranscribingEngine;
+
+    impl super::super::processing::MeetingTranscriptEngine for TranscribingEngine {
+        fn selected_model_id(&self) -> Option<String> {
+            Some("fake-asr".to_string())
+        }
+
+        fn plan_for(&self, _run_plan: &MeetingRunPlan) -> Option<crate::modes::AsrPlan> {
+            Some(crate::modes::AsrPlan::from_settings(
+                &crate::settings::AppSettings::default(),
+            ))
+        }
+
+        fn engine_id(&self) -> &'static str {
+            "fake-asr"
+        }
+
+        fn transcribe(
+            &self,
+            _plan: &crate::modes::AsrPlan,
+            _samples: &[f32],
+        ) -> Result<String, ProcessingFailure> {
+            Ok("imported words".to_string())
+        }
+    }
+
+    /// Everything is speech, so the chunker cuts on length alone and the fixture
+    /// does not have to be shaped like a voice.
+    struct AlwaysVoice;
+
+    impl super::super::processing::MeetingVad for AlwaysVoice {
+        fn is_voice(&mut self, _frame: &[f32]) -> Result<bool, ProcessingFailure> {
+            Ok(true)
+        }
+    }
+
+    struct AlwaysVoiceFactory;
+
+    impl super::super::processing::MeetingVadFactory for AlwaysVoiceFactory {
+        fn open(
+            &self,
+            _source_kind: SourceKind,
+        ) -> Result<Box<dyn super::super::processing::MeetingVad>, ProcessingFailure> {
+            Ok(Box::new(AlwaysVoice))
+        }
+    }
+
+    /// A complete 16 kHz mono WAV. The decoder verifies a WAV's declared frame
+    /// count against what it decodes, so the fixture has to be whole.
+    fn write_mono_wav(path: &Path, samples: usize) {
+        let specification = hound::WavSpec {
+            channels: 1,
+            sample_rate: 16_000,
+            bits_per_sample: 32,
+            sample_format: hound::SampleFormat::Float,
+        };
+        let mut writer = hound::WavWriter::create(path, specification).expect("create wav");
+        for index in 0..samples {
+            let phase = index as f32 / 16_000.0 * std::f32::consts::TAU * 220.0;
+            writer.write_sample(phase.sin() * 0.4).expect("write sample");
+        }
+        writer.finalize().expect("finalize wav");
+    }
+
+    fn importing_manager() -> (TempDir, Arc<MeetingSessionManager>) {
+        let (directory, manager, _backend) = mounted_manager();
+        manager
+            .processing
+            .set_transcript_engine(Arc::new(TranscribingEngine));
+        manager
+            .processing
+            .set_vad_factory(Arc::new(AlwaysVoiceFactory));
+        (directory, manager)
+    }
+
+    fn retained_meetings(manager: &MeetingSessionManager) -> Vec<MeetingHistorySummary> {
+        tauri::async_runtime::block_on(manager.store())
+            .unwrap()
+            .list_sessions(None, 100, &MeetingListFilter::default())
+            .unwrap()
+            .entries
+    }
+
+    /// The whole point of the import: what lands is a meeting, not a special
+    /// kind of one. It reaches the phase a stopped recording reaches, through
+    /// the same processing job, with a transcript over a microphone track whose
+    /// records were written by the capture writer.
+    #[test]
+    fn an_imported_recording_reaches_review_with_a_transcript() {
+        let (files, manager) = importing_manager();
+        let path = files.path().join("Team sync.wav");
+        write_mono_wav(&path, 16_000);
+
+        let snapshot =
+            tauri::async_runtime::block_on(manager.import_recording(ImportRecordingRequest {
+                path,
+                title: None,
+                recorded_at_utc_ms: Some(1_700_000_000_000),
+                origin: RecordingOrigin::LocalFile,
+            }))
+            .expect("the recording imports");
+
+        // Handed back mid-pipeline, exactly as `stop` hands a meeting back.
+        assert_eq!(snapshot.phase, MeetingPhase::Processing);
+        assert_eq!(snapshot.title, "Team sync");
+        assert_eq!(snapshot.started_at_utc_ms, Some(1_700_000_000_000));
+
+        let review = tauri::async_runtime::block_on(manager.get(snapshot.session_id))
+            .expect("the imported meeting is readable");
+        assert_eq!(review.session.phase, MeetingPhase::ReviewReady);
+        assert_eq!(review.tracks.len(), 1);
+        assert_eq!(review.tracks[0].source_kind, SourceKind::Microphone);
+        assert_eq!(
+            review.tracks[0].format,
+            Some(AudioFormat {
+                sample_rate_hz: 16_000,
+                channels: 1
+            })
+        );
+        assert!(
+            review.tracks[0].durable_record_count > 0,
+            "the decode was written through the capture writer"
+        );
+        assert!(
+            review
+                .transcript
+                .iter()
+                .all(|segment| segment.base.text == "imported words"),
+            "every segment came from the engine, over decoded audio"
+        );
+        assert!(!review.transcript.is_empty());
+        assert!(
+            review.gaps.is_empty(),
+            "a file has no dropped packets to report"
+        );
+    }
+
+    /// A transcript-only import has no audio, so the two passes that read audio
+    /// are skipped and the meeting still arrives at review — with the vendor's
+    /// speaker names as the attribution on its segments.
+    #[test]
+    fn an_imported_transcript_reaches_review_with_its_speakers() {
+        let (files, manager) = importing_manager();
+        let path = files.path().join("otter_export.txt");
+        std::fs::write(
+            &path,
+            include_str!("fixtures/otter_export.txt"),
+        )
+        .unwrap();
+
+        let snapshot = tauri::async_runtime::block_on(manager.import_transcript(path))
+            .expect("the transcript imports");
+        assert_eq!(snapshot.title, "Weekly product sync");
+
+        let review = tauri::async_runtime::block_on(manager.get(snapshot.session_id))
+            .expect("the imported meeting is readable");
+        assert_eq!(review.session.phase, MeetingPhase::ReviewReady);
+        assert_eq!(review.tracks.len(), 1);
+        assert_eq!(
+            review.tracks[0].durable_record_count, 0,
+            "a transcript import writes no audio"
+        );
+        assert_eq!(
+            review
+                .transcript
+                .iter()
+                .map(|segment| segment.base.text.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "Let's start with the pricing page. The new tiers are live behind a flag.",
+                "I can flip the flag on Thursday once the copy review is done.",
+                "Thursday works. I'll write the changelog entry today.",
+            ]
+        );
+        let mut speakers = review
+            .speakers
+            .iter()
+            .map(|speaker| speaker.display_name.as_str())
+            .collect::<Vec<_>>();
+        speakers.sort_unstable();
+        assert_eq!(speakers, vec!["Priya Raman", "Tom Alvarez"]);
+        // The same speaker in two turns is one speaker, and the review screen's
+        // rename and merge act on it exactly as they do on a diarized one.
+        assert_eq!(
+            review.transcript[0].assigned_speaker_id,
+            review.transcript[2].assigned_speaker_id
+        );
+        assert_ne!(
+            review.transcript[0].assigned_speaker_id,
+            review.transcript[1].assigned_speaker_id
+        );
+    }
+
+    /// Refusal is the whole contract for bad input: a typed error, and nothing
+    /// left in the store. A session that kept its phase would be offered by
+    /// every later launch's recovery pass and fail there forever.
+    #[test]
+    fn unreadable_input_is_refused_and_leaves_no_meeting_behind() {
+        let (files, manager) = importing_manager();
+
+        let prose = files.path().join("notes.txt");
+        std::fs::write(&prose, "Some notes I typed after the call.\n").unwrap();
+        assert_eq!(
+            tauri::async_runtime::block_on(manager.import_transcript(prose)),
+            Err(MeetingCommandError::ImportUnreadable)
+        );
+
+        let unsupported = files.path().join("deck.key");
+        std::fs::write(&unsupported, b"not audio").unwrap();
+        assert_eq!(
+            tauri::async_runtime::block_on(manager.import_recording(ImportRecordingRequest {
+                path: unsupported,
+                title: None,
+                recorded_at_utc_ms: None,
+                origin: RecordingOrigin::LocalFile,
+            })),
+            Err(MeetingCommandError::ImportUnreadable)
+        );
+
+        // A supported extension over bytes that are not audio: the session is
+        // already open by the time the decode gives up, so this is the arm that
+        // has to clean up after itself.
+        let corrupt = files.path().join("call.wav");
+        std::fs::write(&corrupt, b"RIFF____WAVEfmt not really a wav at all").unwrap();
+        assert_eq!(
+            tauri::async_runtime::block_on(manager.import_recording(ImportRecordingRequest {
+                path: corrupt,
+                title: None,
+                recorded_at_utc_ms: None,
+                origin: RecordingOrigin::LocalFile,
+            })),
+            Err(MeetingCommandError::ImportUnreadable)
+        );
+
+        assert!(retained_meetings(&manager).is_empty());
+    }
+
+    /// The recording's own moment, not the moment somebody got round to
+    /// importing it: a meeting is filed under when it happened.
+    #[test]
+    fn an_import_without_a_stated_time_is_filed_under_the_files_own() {
+        let (files, manager) = importing_manager();
+        let path = files.path().join("call.wav");
+        write_mono_wav(&path, 8_000);
+        let modified = file_modified_utc_ms(&path).expect("the fixture has an mtime");
+
+        let snapshot =
+            tauri::async_runtime::block_on(manager.import_recording(ImportRecordingRequest {
+                path,
+                title: Some("  Board call  ".to_string()),
+                recorded_at_utc_ms: None,
+                origin: RecordingOrigin::PairedDevice {
+                    device_id: "phone-1".to_string(),
+                },
+            }))
+            .expect("the recording imports");
+
+        assert_eq!(snapshot.title, "Board call");
+        assert_eq!(snapshot.started_at_utc_ms, Some(modified));
     }
 }
