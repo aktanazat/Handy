@@ -368,6 +368,25 @@ test.describe("the palette's content", () => {
     );
   });
 
+  /* The keyboard half of the same contract: typing narrows to one destination,
+   * which cmdk selects, and Enter is the press. */
+  test("Enter on the one matched destination navigates too", async ({
+    page,
+  }) => {
+    await openApp(page);
+    await page.keyboard.press("Meta+k");
+
+    await page.getByRole("combobox").fill("Settings");
+    const option = page.getByRole("option", { name: "Settings", exact: true });
+    await expect(option).toHaveAttribute("data-selected", "true");
+    await page.keyboard.press("Enter");
+
+    await expect(palette(page)).toHaveCount(0);
+    await expect(
+      sidebarNav(page).getByRole("button", { name: "Settings", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+  });
+
   /* ⌘K's second half, which nothing covered until a live run reported it
    * broken. Two characters in, the field is a search of the corpus, and the
    * plane's page becomes one titled section per kind.
