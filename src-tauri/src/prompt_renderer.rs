@@ -202,8 +202,7 @@ pub fn render_instruction(prompt: InstructionRenderInput<'_>) -> RenderedPrompt 
 }
 
 fn serialize_envelope(envelope: &impl Serialize) -> String {
-    // SAFETY: every envelope field is an owned String, a &'static str, an
-    // Option of those, or a struct of those, so serde_json cannot fail here.
+    // SAFETY: an envelope is Strings, &'static strs and structs of those; serde_json cannot fail.
     serde_json::to_string(envelope).expect("prompt envelope types serialize")
 }
 

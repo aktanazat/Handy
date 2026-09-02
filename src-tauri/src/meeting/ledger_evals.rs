@@ -102,12 +102,15 @@ fn fixture_with(
     session_id: MeetingSessionId,
     id_of: impl Fn(usize) -> TranscriptSegmentId,
 ) -> Fixture {
+    // PANIC: the transcript is checked in; one that does not parse is a broken fixture.
     let imported = parse_transcript_export("messy_two_party", TRANSCRIPT).expect("fixture parses");
     let spans = resolve_spans(&imported.segments);
     let mut speakers: HashMap<String, SpeakerId> = HashMap::new();
     let mut segments = Vec::new();
     let mut transcript = Vec::new();
+    // PANIC: every turn in the checked-in transcript names its speaker.
     for (index, (segment, (start_ms, end_ms))) in imported.segments.iter().zip(spans).enumerate() {
+        // PANIC: as above.
         let name = segment.speaker.clone().expect("every turn is attributed");
         let next = u128::try_from(speakers.len() + 1).unwrap_or(u128::MAX);
         let speaker_id = *speakers
@@ -190,7 +193,9 @@ impl Fixture {
     /// gets, so its timestamps are derived from its citations and never
     /// written by hand.
     fn expected(&self) -> MeetingLedger {
+        // PANIC: the expected ledger is checked in and hand-written to validate.
         let raw: RawLedgerOutput = serde_json::from_str(EXPECTED).expect("expected ledger parses");
+        // PANIC: as above.
         validate_ledger_output(&raw, &self.evidence.transcript).expect("expected ledger validates")
     }
 }
@@ -711,6 +716,7 @@ impl ChatEndpointGenerator {
     /// `SONA_LEDGER_EVAL_MODEL` the model it should answer with.
     fn from_env() -> Option<Self> {
         let base_url = std::env::var("SONA_LEDGER_EVAL_BASE_URL").ok()?;
+        // PANIC: an endpoint without a model is a misconfigured run, not a reason to fall back.
         let model = std::env::var("SONA_LEDGER_EVAL_MODEL")
             .expect("SONA_LEDGER_EVAL_MODEL names the model at SONA_LEDGER_EVAL_BASE_URL");
         Some(Self { base_url, model })
@@ -836,8 +842,8 @@ impl MeetingTextGenerator for Recording<'_> {
 /// goes through the same acceptance seam a meeting's does, checks and caveats
 /// included. The whole scorecard is printed before anything is asserted, so
 /// one failed line does not hide the rest.
-#[test]
 #[ignore = "asks a model: cargo test --lib ledger_evals -- --ignored --nocapture"]
+#[test]
 fn messy_two_party_with_model() {
     let (_directory, store) = super::store::workflow_core_tests::store();
     let session_id = super::store::workflow_core_tests::meeting(&store, "Pricing sync", NOW);

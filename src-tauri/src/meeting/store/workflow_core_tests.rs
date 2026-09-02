@@ -224,7 +224,9 @@ pub(crate) fn current_artifact(
     content: &serde_json::Value,
     generated_at_utc_ms: i64,
 ) {
+    // PANIC: a fixture that cannot reach the store is a broken test.
     let connection = store.connection().unwrap();
+    // PANIC: the meeting row was written by [`meeting`] before this is called.
     let transcript_revision_id: Option<String> = connection
         .query_row(
             "SELECT current_transcript_revision_id FROM meeting_sessions WHERE id = ?1",
@@ -232,8 +234,10 @@ pub(crate) fn current_artifact(
             |row| row.get(0),
         )
         .unwrap();
+    // PANIC: a fixture that cannot write its rows is a broken test.
     let transcript_revision_id = transcript_revision_id.unwrap_or_else(|| {
         let revision_id = Uuid::new_v4().to_string();
+        // PANIC: as above; the revision row is the fixture's own.
         connection
             .execute(
                 "INSERT INTO meeting_transcript_revisions (
@@ -246,6 +250,7 @@ pub(crate) fn current_artifact(
         revision_id
     });
     let artifact_id = Uuid::new_v4();
+    // PANIC: as above; the artifact row is the fixture's own.
     connection
         .execute(
             "INSERT INTO meeting_artifact_revisions (
@@ -325,7 +330,9 @@ pub(crate) fn transcript_segments(
             params![revision_id.to_string(), meeting_id.uuid().to_string()],
         )
         .unwrap();
+    // PANIC: a fixture that cannot write its rows is a broken test.
     for (ordinal, text) in (0u64..).zip(texts) {
+        // PANIC: as above; each segment row is the fixture's own.
         connection
             .execute(
                 "INSERT INTO meeting_transcript_segments (
