@@ -2211,18 +2211,8 @@
       "actionDone": "وسم هذا البند بأنه منجز",
       "unassigned": "غير مُعيَّن",
       "noDueDate": "بلا تاريخ استحقاق",
-      "questions": "اسأل هذا الاجتماع",
-      "questionsDescription": "تستخدم الإجابات هذا الاجتماع فقط وتستشهد بالنص المؤيد، ولا تُكتب على سيرفرك إلا عندما يوجّهها ذكاء الاجتماعات إلى هناك.",
-      "questionPlaceholder": "اطرح سؤالًا عن هذا الاجتماع",
-      "ask": "اسأل",
-      "noQuestions": "لا توجد إجابات محلية محفوظة.",
-      "question": "سؤال",
-      "insufficientEvidence": "لم يُعثر على مقطع مؤيد في هذا الاجتماع.",
-      "forget": "نسيان هذه الإجابة",
       "searchPlaceholder": "البحث في هذا الاجتماع",
       "noSearchResults": "لا توجد مطابقات محلية دقيقة.",
-      "askUnavailable": "يتطلب طرح الأسئلة نصًا مكتملًا.",
-      "asking": "جارٍ سؤال هذا الاجتماع…",
       "droppedFrames": "الإطارات المفقودة: {{total}}",
       "hitKind": {
         "manualNote": "ملاحظة يدوية",
@@ -2232,15 +2222,12 @@
       "processingDescription": "تظهر الملاحظات المولّدة والإجابات المحلية بمجرد اكتمال النص.",
       "processingTitle": "لا يزال Sona يعالج هذا الاجتماع",
       "remoteProcessingUnavailable": "لم تصبح الوجهة البعيدة متاحة قط، لذا لم يُولَّد أي شيء. تتم إعادة التوليد على جهاز Mac هذا.",
-      "sonaAnswered": "أجاب Sona",
       "tabs": {
         "insights": "الرؤى",
         "ledger": "السجل",
-        "questions": "الأسئلة",
         "transcript": "النص"
       },
-      "tabsLabel": "أقسام مراجعة الاجتماع",
-      "youAsked": "سألت"
+      "tabsLabel": "أقسام مراجعة الاجتماع"
     },
     "ledger": {
       "title": "السجل",

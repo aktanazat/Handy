@@ -2187,18 +2187,8 @@
       "actionDone": "Mark this action item done",
       "unassigned": "Unassigned",
       "noDueDate": "No due date",
-      "questions": "Ask this meeting",
-      "questionsDescription": "Answers use only this meeting and cite the supporting transcript, and are written on your server only when meeting intelligence routes them there.",
-      "questionPlaceholder": "Ask a question about this meeting",
-      "ask": "Ask",
-      "noQuestions": "No saved local answers.",
-      "question": "Question",
-      "insufficientEvidence": "No supporting passage was found in this meeting.",
-      "forget": "Forget this answer",
       "searchPlaceholder": "Search this meeting",
       "noSearchResults": "No exact local matches.",
-      "askUnavailable": "Asking needs a finished transcript.",
-      "asking": "Asking this meeting…",
       "droppedFrames": "Dropped frames: {{total}}",
       "hitKind": {
         "manualNote": "Manual note",
@@ -2208,15 +2198,12 @@
       "processingDescription": "Generated notes and local answers appear once the transcript is complete.",
       "processingTitle": "Sona is still processing this meeting",
       "remoteProcessingUnavailable": "The remote destination never became available, so nothing was generated. Regenerating runs on this Mac.",
-      "sonaAnswered": "Sona answered",
       "tabs": {
         "insights": "Insights",
         "ledger": "Ledger",
-        "questions": "Questions",
         "transcript": "Transcript"
       },
-      "tabsLabel": "Meeting review sections",
-      "youAsked": "You asked"
+      "tabsLabel": "Meeting review sections"
     },
     "ledger": {
       "title": "Ledger",

@@ -2193,18 +2193,8 @@
       "actionDone": "Marcar esta tarea como hecha",
       "unassigned": "Sin asignar",
       "noDueDate": "Sin fecha límite",
-      "questions": "Preguntar a esta reunión",
-      "questionsDescription": "Las respuestas usan solo esta reunión y citan la transcripción que las respalda, y se escriben en tu servidor solo cuando la inteligencia de reuniones las envía allí.",
-      "questionPlaceholder": "Haz una pregunta sobre esta reunión",
-      "ask": "Preguntar",
-      "noQuestions": "No hay respuestas locales guardadas.",
-      "question": "Pregunta",
-      "insufficientEvidence": "No se encontró ningún pasaje que lo respalde en esta reunión.",
-      "forget": "Olvidar esta respuesta",
       "searchPlaceholder": "Buscar en esta reunión",
       "noSearchResults": "Sin coincidencias exactas en local.",
-      "askUnavailable": "Preguntar requiere una transcripción terminada.",
-      "asking": "Preguntando a esta reunión…",
       "droppedFrames": "Fotogramas perdidos: {{total}}",
       "hitKind": {
         "manualNote": "Nota manual",
@@ -2214,15 +2204,12 @@
       "processingDescription": "Las notas generadas y las respuestas locales aparecen cuando la transcripción está completa.",
       "processingTitle": "Sona todavía está procesando esta reunión",
       "remoteProcessingUnavailable": "El destino remoto nunca estuvo disponible, así que no se generó nada. La regeneración se ejecuta en este Mac.",
-      "sonaAnswered": "Sona respondió",
       "tabs": {
         "insights": "Conclusiones",
         "ledger": "Registro",
-        "questions": "Preguntas",
         "transcript": "Transcripción"
       },
-      "tabsLabel": "Secciones de revisión de la reunión",
-      "youAsked": "Preguntaste"
+      "tabsLabel": "Secciones de revisión de la reunión"
     },
     "ledger": {
       "title": "Registro",

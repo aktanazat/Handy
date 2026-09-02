@@ -2193,18 +2193,8 @@
       "actionDone": "Marcar esta tarefa como feita",
       "unassigned": "Sem atribuição",
       "noDueDate": "Sem prazo",
-      "questions": "Perguntar a esta reunião",
-      "questionsDescription": "As respostas usam apenas esta reunião e citam a transcrição que as apoia, e só são escritas no teu servidor quando a inteligência de reuniões as encaminha para lá.",
-      "questionPlaceholder": "Faça uma pergunta sobre esta reunião",
-      "ask": "Perguntar",
-      "noQuestions": "Nenhuma resposta local salva.",
-      "question": "Pergunta",
-      "insufficientEvidence": "Não foi encontrado nenhum trecho de apoio nesta reunião.",
-      "forget": "Esquecer esta resposta",
       "searchPlaceholder": "Pesquisar nesta reunião",
       "noSearchResults": "Nenhuma correspondência exata local.",
-      "askUnavailable": "Fazer perguntas requer uma transcrição concluída.",
-      "asking": "A consultar esta reunião…",
       "droppedFrames": "Frames perdidos: {{total}}",
       "hitKind": {
         "manualNote": "Nota manual",
@@ -2214,15 +2204,12 @@
       "processingDescription": "As notas geradas e as respostas locais aparecem assim que a transcrição estiver completa.",
       "processingTitle": "O Sona ainda está a processar esta reunião",
       "remoteProcessingUnavailable": "O destino remoto nunca ficou disponível, por isso nada foi gerado. A regeneração é executada neste Mac.",
-      "sonaAnswered": "O Sona respondeu",
       "tabs": {
         "insights": "Insights",
         "ledger": "Registo",
-        "questions": "Perguntas",
         "transcript": "Transcrição"
       },
-      "tabsLabel": "Secções de revisão da reunião",
-      "youAsked": "Você perguntou"
+      "tabsLabel": "Secções de revisão da reunião"
     },
     "ledger": {
       "title": "Registo",

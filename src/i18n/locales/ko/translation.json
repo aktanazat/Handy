@@ -2181,18 +2181,8 @@
       "actionDone": "이 실행 항목을 완료로 표시",
       "unassigned": "미배정",
       "noDueDate": "기한 없음",
-      "questions": "이 회의에 질문",
-      "questionsDescription": "답변은 이 회의만 사용하고 근거가 되는 전사를 인용하며, 회의 인텔리전스가 그쪽으로 보낼 때에만 사용자의 서버에서 작성됩니다.",
-      "questionPlaceholder": "이 회의에 대해 질문하기",
-      "ask": "질문",
-      "noQuestions": "저장된 로컬 답변이 없습니다.",
-      "question": "질문",
-      "insufficientEvidence": "이 회의에서 근거가 되는 대목을 찾지 못했습니다.",
-      "forget": "이 답변 지우기",
       "searchPlaceholder": "이 회의 검색",
       "noSearchResults": "정확히 일치하는 로컬 결과가 없습니다.",
-      "askUnavailable": "질문하려면 완료된 전사가 필요합니다.",
-      "asking": "이 회의에 질문하는 중…",
       "droppedFrames": "누락된 프레임: {{total}}",
       "hitKind": {
         "manualNote": "수동 메모",
@@ -2202,15 +2192,12 @@
       "processingDescription": "전사가 완료되면 생성된 노트와 로컬 답변이 표시됩니다.",
       "processingTitle": "Sona가 아직 이 회의를 처리하는 중입니다",
       "remoteProcessingUnavailable": "원격 대상을 사용할 수 없어 아무것도 생성되지 않았습니다. 재생성은 이 Mac에서 실행됩니다.",
-      "sonaAnswered": "Sona의 답변",
       "tabs": {
         "insights": "인사이트",
         "ledger": "기록부",
-        "questions": "질문",
         "transcript": "전사"
       },
-      "tabsLabel": "회의 검토 섹션",
-      "youAsked": "내 질문"
+      "tabsLabel": "회의 검토 섹션"
     },
     "ledger": {
       "title": "기록부",

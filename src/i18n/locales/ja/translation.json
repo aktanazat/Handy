@@ -2181,18 +2181,8 @@
       "actionDone": "このアクション項目を完了にする",
       "unassigned": "未割り当て",
       "noDueDate": "期限なし",
-      "questions": "このミーティングに質問",
-      "questionsDescription": "回答はこのミーティングだけを使い、裏付けとなる文字起こしを引用します。会議インテリジェンスがそちらに振り向けたときだけ、あなたのサーバー上で書かれます。",
-      "questionPlaceholder": "このミーティングについて質問する",
-      "ask": "質問",
-      "noQuestions": "保存されたローカルの回答はありません。",
-      "question": "質問",
-      "insufficientEvidence": "このミーティングには裏付けとなる箇所が見つかりませんでした。",
-      "forget": "この回答を忘れる",
       "searchPlaceholder": "このミーティングを検索",
       "noSearchResults": "完全に一致するローカルの結果はありません。",
-      "askUnavailable": "質問には完了した文字起こしが必要です。",
-      "asking": "このミーティングに質問中…",
       "droppedFrames": "ドロップフレーム: {{total}}",
       "hitKind": {
         "manualNote": "手動メモ",
@@ -2202,15 +2192,12 @@
       "processingDescription": "文字起こしが完了すると、生成ノートとローカルの回答が表示されます。",
       "processingTitle": "Sona はまだこのミーティングを処理中です",
       "remoteProcessingUnavailable": "リモートの送信先が利用可能にならなかったため、何も生成されませんでした。再生成はこの Mac 上で実行されます。",
-      "sonaAnswered": "Sona の回答",
       "tabs": {
         "insights": "インサイト",
         "ledger": "台帳",
-        "questions": "質問",
         "transcript": "文字起こし"
       },
-      "tabsLabel": "ミーティングレビューのセクション",
-      "youAsked": "あなたの質問"
+      "tabsLabel": "ミーティングレビューのセクション"
     },
     "ledger": {
       "title": "台帳",

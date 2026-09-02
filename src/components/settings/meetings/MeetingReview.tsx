@@ -32,7 +32,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/vg/tabs";
 import { CloudMeetingActions } from "../../cloud-sync/CloudMeetingActions";
 import type { SegmentJump } from "./review/Citations";
 import { InsightsTab } from "./review/InsightsTab";
-import { QuestionsTab } from "./review/QuestionsTab";
 import { TalkTimeRow } from "./review/TalkTimeRow";
 import { TranscriptTab } from "./review/TranscriptTab";
 import { MeetingLedgerSection } from "./MeetingLedgerSection";
@@ -54,21 +53,17 @@ import {
 } from "./meetingAnalytics";
 import { useOpenPromptTarget } from "./promptTargets";
 
-/* The review surface holds five jobs: read the transcript, fix it, read what
- * was generated from it, ask the meeting a question, and get the record out.
- * They are four tabs plus a persistent export bar, because a person doing one
- * of them is never doing the others at the same time.
+/* The review surface holds four jobs: read the transcript, fix it, read what
+ * was generated from it, and get the record out. They are three tabs plus a
+ * persistent export bar, because a person doing one of them is never doing
+ * the others at the same time. Asking the meeting a question is the chat
+ * column's job, with every meeting in reach rather than one.
  *
- * A citation is a jump: every generated claim, saved answer and search hit
- * that points at a transcript segment scrolls that segment into view and
- * marks it, which is the whole reason citations exist. */
+ * A citation is a jump: every generated claim and search hit that points at
+ * a transcript segment scrolls that segment into view and marks it, which is
+ * the whole reason citations exist. */
 
-const REVIEW_TAB_IDS = [
-  "transcript",
-  "insights",
-  "ledger",
-  "questions",
-] as const;
+const REVIEW_TAB_IDS = ["transcript", "insights", "ledger"] as const;
 
 type ReviewTab = (typeof REVIEW_TAB_IDS)[number];
 
@@ -176,8 +171,6 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
   const [newNote, setNewNote] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHits, setSearchHits] = useState<MeetingSearchHit[] | null>(null);
-  const [question, setQuestion] = useState("");
-  const [askingQuestion, setAskingQuestion] = useState(false);
   const [exportingLedger, setExportingLedger] = useState(false);
   const [analytics, setAnalytics] = useState<MeetingAnalyticsSnapshot | null>(
     null,
@@ -187,8 +180,6 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
   const [loopsBusy, setLoopsBusy] = useState(false);
   const editable = snapshot.session.allowed_actions.includes("edit");
   const canRegenerate = snapshot.session.allowed_actions.includes("regenerate");
-  const canAskQuestion =
-    snapshot.session.allowed_actions.includes("ask_question");
   const canExport =
     snapshot.can_export && snapshot.session.allowed_actions.includes("export");
   const canDelete = snapshot.session.allowed_actions.includes("delete");
@@ -379,65 +370,6 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
     };
   }, [searchQuery, searchTranscript, t]);
 
-  const askQuestion = async () => {
-    const text = question.trim();
-    if (text.length === 0) return;
-
-    setAskingQuestion(true);
-    try {
-      const result = await commands.meetingQuestionAsk({
-        operation_id: crypto.randomUUID(),
-        session_id: snapshot.session.session_id,
-        expected_revision: snapshot.session.revision,
-        question_id: crypto.randomUUID(),
-        question: text,
-        scope: { kind: "this_meeting" },
-        save_history: true,
-      });
-      if (result.status === "error") {
-        toast.error(t(meetingErrorKey(result.error)));
-        if (result.error === "stale_revision") await onRefresh();
-        return;
-      }
-      if (result.data.receipt.reason_codes.includes("duplicate_operation")) {
-        toast.info(t("meetings.receipts.duplicate"));
-      }
-      setQuestion("");
-      await onRefresh();
-    } catch {
-      toast.error(t("meetings.errors.operation"));
-    } finally {
-      setAskingQuestion(false);
-    }
-  };
-
-  const forgetQuestion = async (questionId: string) => {
-    setAskingQuestion(true);
-    try {
-      const result = await commands.meetingQuestionForget(
-        {
-          operation_id: crypto.randomUUID(),
-          session_id: snapshot.session.session_id,
-          expected_revision: snapshot.session.revision,
-        },
-        questionId,
-      );
-      if (result.status === "error") {
-        toast.error(t(meetingErrorKey(result.error)));
-        if (result.error === "stale_revision") await onRefresh();
-        return;
-      }
-      if (result.data.receipt.reason_codes.includes("duplicate_operation")) {
-        toast.info(t("meetings.receipts.duplicate"));
-      }
-      await onRefresh();
-    } catch {
-      toast.error(t("meetings.errors.operation"));
-    } finally {
-      setAskingQuestion(false);
-    }
-  };
-
   /* The ledger page is written from an already-recorded revision, so it takes
    * no operation id and no expected revision: it mutates nothing. A cancelled
    * save dialog is the person changing their mind, not a failure, so it says
@@ -470,7 +402,6 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
     transcript: t("meetings.review.tabs.transcript", "Transcript"),
     insights: t("meetings.review.tabs.insights", "Insights"),
     ledger: t("meetings.review.tabs.ledger", "Ledger"),
-    questions: t("meetings.review.tabs.questions", "Questions"),
   } satisfies Record<ReviewTab, string>;
 
   return (
@@ -576,19 +507,6 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
             loops={loops}
             people={people}
             onLoopChange={(row, change) => void changeLoop(row, change)}
-          />
-        </TabsContent>
-
-        <TabsContent value="questions" className={TAB_PANEL_CLASSES}>
-          <QuestionsTab
-            snapshot={snapshot}
-            canAskQuestion={canAskQuestion}
-            question={question}
-            askingQuestion={askingQuestion}
-            onQuestionChange={setQuestion}
-            onAskQuestion={askQuestion}
-            onForgetQuestion={forgetQuestion}
-            onJumpToSegment={jumpToSegment}
           />
         </TabsContent>
       </Tabs>

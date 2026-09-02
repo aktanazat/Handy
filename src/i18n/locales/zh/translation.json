@@ -2181,18 +2181,8 @@
       "actionDone": "把这条行动项标记为完成",
       "unassigned": "未分配",
       "noDueDate": "无截止日期",
-      "questions": "向此会议提问",
-      "questionsDescription": "回答只使用这场会议，并引用支撑它的转录；只有会议智能把它们转到那里时，才会在你的服务器上撰写。",
-      "questionPlaceholder": "就这场会议提问",
-      "ask": "提问",
-      "noQuestions": "没有保存的本地回答。",
-      "question": "问题",
-      "insufficientEvidence": "在这场会议里没有找到可以支撑的段落。",
-      "forget": "忘掉这条回答",
       "searchPlaceholder": "搜索这场会议",
       "noSearchResults": "没有完全匹配的本地结果。",
-      "askUnavailable": "提问需要已完成的转录。",
-      "asking": "正在向此会议提问…",
       "droppedFrames": "丢帧数：{{total}}",
       "hitKind": {
         "manualNote": "手动笔记",
@@ -2202,15 +2192,12 @@
       "processingDescription": "转录完成后即会显示生成的笔记和本地回答。",
       "processingTitle": "Sona 仍在处理此会议",
       "remoteProcessingUnavailable": "远程目标始终不可用，因此未生成任何内容。重新生成将在这台 Mac 上运行。",
-      "sonaAnswered": "Sona 的回答",
       "tabs": {
         "insights": "洞察",
         "ledger": "台账",
-        "questions": "问题",
         "transcript": "转录"
       },
-      "tabsLabel": "会议回顾栏目",
-      "youAsked": "你的提问"
+      "tabsLabel": "会议回顾栏目"
     },
     "ledger": {
       "title": "台账",

@@ -21,7 +21,6 @@ import { meetingCardStatus } from "./home/MeetingStatusChip";
 import { MeetingLive } from "./MeetingLive";
 import { MeetingStartGate } from "./MeetingStartGate";
 import { InsightsTab } from "./review/InsightsTab";
-import { QuestionsTab } from "./review/QuestionsTab";
 import { MeetingReview, nextReviewTab } from "./MeetingReview";
 import { MeetingsHome } from "./MeetingsHome";
 import { MeetingLedgerSection } from "./MeetingLedgerSection";
@@ -819,16 +818,17 @@ describe("meeting review", () => {
     /* The strip is Radix now, so the ids that wire a tab to its panel are
      * generated rather than authored — asserting them would pin a detail the
      * kit owns. The contract is the roles and the selected state. */
-    expect(occurrences(markup, 'role="tab"')).toBe(4);
-    /* Every tab is a word you could say out loud: the questions tab is
-     * "Questions", not the "Q&A" abbreviation it used to carry. */
-    for (const label of ["Transcript", "Insights", "Ledger", "Questions"]) {
+    expect(occurrences(markup, 'role="tab"')).toBe(3);
+    /* Every tab is a word you could say out loud. Asking the meeting a
+     * question moved to the chat column, so there is no Questions tab. */
+    for (const label of ["Transcript", "Insights", "Ledger"]) {
       expect(markup).toContain(`>${label}<`);
     }
-    /* All four panels are rendered so the strip is navigable without JS, but
-     * exactly one is open. This meeting has generated notes, so that is the
-     * one: the transcript is the evidence behind them, one press away. */
-    expect(occurrences(markup, 'role="tabpanel"')).toBe(4);
+    expect(markup).not.toContain(">Questions<");
+    /* All three panels are rendered so the strip is navigable without JS, but
+     * only the chosen one is active. Generated notes are what somebody came
+     * back for: the transcript is the evidence behind them, one press away. */
+    expect(occurrences(markup, 'role="tabpanel"')).toBe(3);
     expect(occurrences(markup, 'data-state="active"')).toBe(2);
     expect(buttonTag(markup, "Insights")).toContain('data-state="active"');
     expect(buttonTag(markup, "Transcript")).not.toContain(
@@ -1043,59 +1043,6 @@ describe("insights panel", () => {
       "The remote destination never became available, so nothing was generated. Regenerating runs on this Mac.",
     );
     expect(markup).toContain("No generated notes are available yet.");
-  });
-});
-
-describe("question panel", () => {
-  const questionsMarkup = (
-    overrides: Partial<React.ComponentProps<typeof QuestionsTab>>,
-  ) =>
-    render(
-      <QuestionsTab
-        snapshot={SNAPSHOT}
-        canAskQuestion
-        question=""
-        askingQuestion={false}
-        onQuestionChange={noop}
-        onAskQuestion={noop}
-        onForgetQuestion={noop}
-        onJumpToSegment={noop}
-        {...overrides}
-      />,
-    );
-
-  test("separates the question from the answer and cites the transcript", () => {
-    const markup = questionsMarkup({});
-    expect(markup).toContain(">You asked<");
-    expect(markup).toContain(">Sona answered<");
-    expect(markup).toContain("What did we decide about the release?");
-    expect(markup).toContain("You agreed to ship on Thursday.");
-    expect(markup).toContain(">Transcript 0:12</button>");
-    expect(markup).toContain(">Forget this answer<");
-    expect(markup).toContain(">Ask<");
-  });
-
-  /* The description is a consent sentence, so it is asserted rather than
-   * assumed: the question path resolves D14's engine chooser, and a surface
-   * that promised the answer was written on this Mac would be making a claim
-   * `text_generator_for_session` does not keep. */
-  test("names where the answer is written without claiming it is local", () => {
-    const markup = questionsMarkup({});
-    expect(markup).toContain("Answers use only this meeting");
-    expect(markup).toContain(
-      "written on your server only when meeting intelligence routes them there",
-    );
-    expect(markup).not.toContain("this local meeting");
-  });
-
-  test("says why asking is unavailable and offers no dead control", () => {
-    const markup = questionsMarkup({
-      snapshot: { ...SNAPSHOT, questions: [] },
-      canAskQuestion: false,
-    });
-    expect(markup).toContain("Asking needs a finished transcript.");
-    expect(markup).toContain("No saved local answers.");
-    expect(buttonTag(markup, "Ask")).toContain("disabled");
   });
 });
 

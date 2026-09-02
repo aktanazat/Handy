@@ -2187,18 +2187,8 @@
       "actionDone": "Markér denne handling som udført",
       "unassigned": "Ikke tildelt",
       "noDueDate": "Ingen frist",
-      "questions": "Spørg dette møde",
-      "questionsDescription": "Svarene bruger kun dette møde og citerer den understøttende transskription, og de skrives kun på din server, når mødeintelligens sender dem derhen.",
-      "questionPlaceholder": "Stil et spørgsmål om dette møde",
-      "ask": "Spørg",
-      "noQuestions": "Ingen gemte lokale svar.",
-      "question": "Spørgsmål",
-      "insufficientEvidence": "Der blev ikke fundet nogen understøttende passage i dette møde.",
-      "forget": "Glem dette svar",
       "searchPlaceholder": "Søg i dette møde",
       "noSearchResults": "Ingen præcise lokale match.",
-      "askUnavailable": "Spørgsmål kræver en færdig transskription.",
-      "asking": "Spørger dette møde…",
       "droppedFrames": "Tabte frames: {{total}}",
       "hitKind": {
         "manualNote": "Manuel note",
@@ -2208,15 +2198,12 @@
       "processingDescription": "Genererede noter og lokale svar vises, når transskriptionen er færdig.",
       "processingTitle": "Sona behandler stadig dette møde",
       "remoteProcessingUnavailable": "Fjerndestinationen blev aldrig tilgængelig, så intet blev genereret. Regenerering kører på denne Mac.",
-      "sonaAnswered": "Sona svarede",
       "tabs": {
         "insights": "Indsigter",
         "ledger": "Register",
-        "questions": "Spørgsmål",
         "transcript": "Transskription"
       },
-      "tabsLabel": "Sektioner til mødegennemgang",
-      "youAsked": "Du spurgte"
+      "tabsLabel": "Sektioner til mødegennemgang"
     },
     "ledger": {
       "title": "Register",

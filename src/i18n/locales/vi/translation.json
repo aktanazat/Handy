@@ -2181,18 +2181,8 @@
       "actionDone": "Đánh dấu việc cần làm này là đã xong",
       "unassigned": "Chưa gán",
       "noDueDate": "Không có hạn",
-      "questions": "Hỏi cuộc họp này",
-      "questionsDescription": "Câu trả lời chỉ dùng cuộc họp này và dẫn lại đoạn bản ghi thoại làm căn cứ, và chỉ được viết trên máy chủ của bạn khi trí tuệ cho cuộc họp chuyển chúng tới đó.",
-      "questionPlaceholder": "Đặt câu hỏi về cuộc họp này",
-      "ask": "Hỏi",
-      "noQuestions": "Không có câu trả lời cục bộ nào đã lưu.",
-      "question": "Câu hỏi",
-      "insufficientEvidence": "Không tìm thấy đoạn nào trong cuộc họp này làm căn cứ.",
-      "forget": "Quên câu trả lời này",
       "searchPlaceholder": "Tìm trong cuộc họp này",
       "noSearchResults": "Không có kết quả khớp chính xác trên máy.",
-      "askUnavailable": "Việc hỏi cần một bản ghi thoại đã hoàn tất.",
-      "asking": "Đang hỏi cuộc họp này…",
       "droppedFrames": "Khung hình bị mất: {{total}}",
       "hitKind": {
         "manualNote": "Ghi chú thủ công",
@@ -2202,15 +2192,12 @@
       "processingDescription": "Ghi chú được tạo và câu trả lời cục bộ sẽ xuất hiện khi bản ghi thoại hoàn tất.",
       "processingTitle": "Sona vẫn đang xử lý cuộc họp này",
       "remoteProcessingUnavailable": "Đích từ xa không bao giờ khả dụng, nên không có gì được tạo. Việc tạo lại sẽ chạy trên máy Mac này.",
-      "sonaAnswered": "Sona đã trả lời",
       "tabs": {
         "insights": "Thông tin chuyên sâu",
         "ledger": "Sổ ghi",
-        "questions": "Câu hỏi",
         "transcript": "Bản ghi thoại"
       },
-      "tabsLabel": "Các phần xem lại cuộc họp",
-      "youAsked": "Bạn đã hỏi"
+      "tabsLabel": "Các phần xem lại cuộc họp"
     },
     "ledger": {
       "title": "Sổ ghi",

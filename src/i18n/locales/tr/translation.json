@@ -2187,18 +2187,8 @@
       "actionDone": "Bu maddeyi yapıldı olarak işaretle",
       "unassigned": "Atanmamış",
       "noDueDate": "Bitiş tarihi yok",
-      "questions": "Bu toplantıya sor",
-      "questionsDescription": "Yanıtlar yalnızca bu toplantıyı kullanır ve destekleyen transkripti alıntılar; kendi sunucunda ise yalnızca toplantı zekâsı onları oraya yönlendirdiğinde yazılır.",
-      "questionPlaceholder": "Bu toplantı hakkında bir soru sorun",
-      "ask": "Sor",
-      "noQuestions": "Kayıtlı yerel yanıt yok.",
-      "question": "Soru",
-      "insufficientEvidence": "Bu toplantıda destekleyici bir bölüm bulunamadı.",
-      "forget": "Bu yanıtı unut",
       "searchPlaceholder": "Bu toplantıda ara",
       "noSearchResults": "Tam yerel eşleşme yok.",
-      "askUnavailable": "Soru sormak için tamamlanmış bir transkript gerekir.",
-      "asking": "Bu toplantıya soruluyor…",
       "droppedFrames": "Düşen kareler: {{total}}",
       "hitKind": {
         "manualNote": "Elle alınan not",
@@ -2208,15 +2198,12 @@
       "processingDescription": "Oluşturulan notlar ve yerel yanıtlar transkript tamamlanınca görünür.",
       "processingTitle": "Sona bu toplantıyı hâlâ işliyor",
       "remoteProcessingUnavailable": "Uzak hedef hiç kullanılabilir olmadı, bu yüzden hiçbir şey oluşturulmadı. Yeniden oluşturma bu Mac üzerinde çalışır.",
-      "sonaAnswered": "Sona yanıtladı",
       "tabs": {
         "insights": "İçgörüler",
         "ledger": "Kayıt defteri",
-        "questions": "Sorular",
         "transcript": "Transkript"
       },
-      "tabsLabel": "Toplantı inceleme bölümleri",
-      "youAsked": "Siz sordunuz"
+      "tabsLabel": "Toplantı inceleme bölümleri"
     },
     "ledger": {
       "title": "Kayıt defteri",

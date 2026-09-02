@@ -154,7 +154,7 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
       <SettingsSection
         label={t("meetings.review.transcript")}
         action={
-          <div className="relative">
+          <div className="relative min-w-40 flex-1 sm:max-w-72">
             <Search
               aria-hidden="true"
               className="pointer-events-none absolute start-2 top-1/2 size-3 -translate-y-1/2 text-gray-700"
@@ -170,7 +170,7 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
               }}
               placeholder={t("meetings.review.searchPlaceholder")}
               aria-label={t("meetings.review.searchPlaceholder")}
-              className="h-7 w-48 ps-7 text-[13px] md:text-[13px]"
+              className="h-7 w-full ps-7 text-[13px] md:text-[13px]"
             />
           </div>
         }

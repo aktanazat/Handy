@@ -2187,18 +2187,8 @@
       "actionDone": "Deze actie als gedaan markeren",
       "unassigned": "Niet toegewezen",
       "noDueDate": "Geen deadline",
-      "questions": "Deze vergadering vragen",
-      "questionsDescription": "Antwoorden gebruiken alleen deze vergadering en citeren het ondersteunende transcript, en ze worden alleen op je server geschreven als vergaderintelligentie ze daarheen stuurt.",
-      "questionPlaceholder": "Stel een vraag over deze vergadering",
-      "ask": "Vragen",
-      "noQuestions": "Geen opgeslagen lokale antwoorden.",
-      "question": "Vraag",
-      "insufficientEvidence": "Er is in deze vergadering geen ondersteunende passage gevonden.",
-      "forget": "Dit antwoord vergeten",
       "searchPlaceholder": "Deze vergadering doorzoeken",
       "noSearchResults": "Geen exacte lokale overeenkomsten.",
-      "askUnavailable": "Vragen stellen vereist een voltooid transcript.",
-      "asking": "Deze vergadering wordt bevraagd…",
       "droppedFrames": "Verloren frames: {{total}}",
       "hitKind": {
         "manualNote": "Handmatige notitie",
@@ -2208,15 +2198,12 @@
       "processingDescription": "Gegenereerde notities en lokale antwoorden verschijnen zodra het transcript voltooid is.",
       "processingTitle": "Sona verwerkt deze vergadering nog",
       "remoteProcessingUnavailable": "De externe bestemming werd nooit beschikbaar, dus er is niets gegenereerd. Opnieuw genereren gebeurt op deze Mac.",
-      "sonaAnswered": "Sona antwoordde",
       "tabs": {
         "insights": "Inzichten",
         "ledger": "Register",
-        "questions": "Vragen",
         "transcript": "Transcript"
       },
-      "tabsLabel": "Secties vergaderoverzicht",
-      "youAsked": "Je vroeg"
+      "tabsLabel": "Secties vergaderoverzicht"
     },
     "ledger": {
       "title": "Register",

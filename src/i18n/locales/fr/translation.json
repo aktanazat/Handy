@@ -2193,18 +2193,8 @@
       "actionDone": "Marquer cette action comme faite",
       "unassigned": "Non attribué",
       "noDueDate": "Aucune échéance",
-      "questions": "Interroger cette réunion",
-      "questionsDescription": "Les réponses utilisent uniquement cette réunion et citent la transcription à l'appui, et elles ne sont écrites sur ton serveur que lorsque l'intelligence des réunions les y envoie.",
-      "questionPlaceholder": "Posez une question sur cette réunion",
-      "ask": "Interroger",
-      "noQuestions": "Aucune réponse locale enregistrée.",
-      "question": "Question",
-      "insufficientEvidence": "Aucun passage à l'appui n'a été trouvé dans cette réunion.",
-      "forget": "Oublier cette réponse",
       "searchPlaceholder": "Rechercher dans cette réunion",
       "noSearchResults": "Aucune correspondance exacte en local.",
-      "askUnavailable": "Poser une question nécessite une transcription terminée.",
-      "asking": "Interrogation de cette réunion…",
       "droppedFrames": "Trames perdues : {{total}}",
       "hitKind": {
         "manualNote": "Note manuelle",
@@ -2214,15 +2204,12 @@
       "processingDescription": "Les notes générées et les réponses locales apparaissent une fois la transcription terminée.",
       "processingTitle": "Sona traite encore cette réunion",
       "remoteProcessingUnavailable": "La destination distante n'a jamais été disponible, donc rien n'a été généré. La régénération s'exécute sur ce Mac.",
-      "sonaAnswered": "Sona a répondu",
       "tabs": {
         "insights": "Analyses",
         "ledger": "Registre",
-        "questions": "Questions",
         "transcript": "Transcription"
       },
-      "tabsLabel": "Sections de revue de réunion",
-      "youAsked": "Vous avez demandé"
+      "tabsLabel": "Sections de revue de réunion"
     },
     "ledger": {
       "title": "Registre",

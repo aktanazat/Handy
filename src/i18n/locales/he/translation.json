@@ -2193,18 +2193,8 @@
       "actionDone": "סמן את הפעולה הזאת כבוצעה",
       "unassigned": "לא מוקצה",
       "noDueDate": "בלי תאריך יעד",
-      "questions": "שאל את הפגישה",
-      "questionsDescription": "התשובות מסתמכות רק על הפגישה הזאת ומצטטות את התמלול התומך, והן נכתבות על השרת שלך רק כשבינת הפגישות מנתבת אותן לשם.",
-      "questionPlaceholder": "שאל שאלה על הפגישה הזאת",
-      "ask": "שאל",
-      "noQuestions": "אין תשובות מקומיות שמורות.",
-      "question": "שאלה",
-      "insufficientEvidence": "לא נמצא קטע תומך בפגישה הזאת.",
-      "forget": "שכח את התשובה הזאת",
       "searchPlaceholder": "חיפוש בפגישה הזאת",
       "noSearchResults": "אין התאמות מקומיות מדויקות.",
-      "askUnavailable": "שאילת שאלות דורשת תמלול שהושלם.",
-      "asking": "שואל את הפגישה…",
       "droppedFrames": "פריימים שאבדו: {{total}}",
       "hitKind": {
         "manualNote": "הערה ידנית",
@@ -2214,15 +2204,12 @@
       "processingDescription": "הערות שנוצרו ותשובות מקומיות יופיעו לאחר שהתמלול יושלם.",
       "processingTitle": "Sona עדיין מעבד את הפגישה הזו",
       "remoteProcessingUnavailable": "היעד המרוחק לא הפך לזמין, ולכן לא נוצר דבר. יצירה מחדש מתבצעת במחשב Mac זה.",
-      "sonaAnswered": "Sona ענה",
       "tabs": {
         "insights": "תובנות",
         "ledger": "רישום",
-        "questions": "שאלות",
         "transcript": "תמלול"
       },
-      "tabsLabel": "מקטעי סקירת פגישה",
-      "youAsked": "שאלת"
+      "tabsLabel": "מקטעי סקירת פגישה"
     },
     "ledger": {
       "title": "רישום",

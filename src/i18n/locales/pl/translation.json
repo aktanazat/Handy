@@ -2199,18 +2199,8 @@
       "actionDone": "Oznacz to zadanie jako wykonane",
       "unassigned": "Nieprzypisane",
       "noDueDate": "Bez terminu",
-      "questions": "Zapytaj to spotkanie",
-      "questionsDescription": "Odpowiedzi korzystają tylko z tego spotkania i przytaczają potwierdzający fragment transkrypcji, a na twoim serwerze są pisane tylko wtedy, gdy inteligencja spotkań je tam skieruje.",
-      "questionPlaceholder": "Zadaj pytanie o to spotkanie",
-      "ask": "Zapytaj",
-      "noQuestions": "Brak zapisanych lokalnych odpowiedzi.",
-      "question": "Pytanie",
-      "insufficientEvidence": "Nie znaleziono w tym spotkaniu fragmentu, który by to potwierdzał.",
-      "forget": "Zapomnij tę odpowiedź",
       "searchPlaceholder": "Szukaj w tym spotkaniu",
       "noSearchResults": "Brak dokładnych trafień lokalnych.",
-      "askUnavailable": "Zadawanie pytań wymaga ukończonej transkrypcji.",
-      "asking": "Pytanie o to spotkanie…",
       "droppedFrames": "Utracone klatki: {{total}}",
       "hitKind": {
         "manualNote": "Notatka ręczna",
@@ -2220,15 +2210,12 @@
       "processingDescription": "Wygenerowane notatki i lokalne odpowiedzi pojawią się po ukończeniu transkrypcji.",
       "processingTitle": "Sona wciąż przetwarza to spotkanie",
       "remoteProcessingUnavailable": "Zdalne miejsce docelowe nigdy nie stało się dostępne, więc nic nie zostało wygenerowane. Ponowne generowanie odbywa się na tym Macu.",
-      "sonaAnswered": "Sona odpowiedziała",
       "tabs": {
         "insights": "Wnioski",
         "ledger": "Rejestr",
-        "questions": "Pytania",
         "transcript": "Transkrypcja"
       },
-      "tabsLabel": "Sekcje przeglądu spotkania",
-      "youAsked": "Twoje pytanie"
+      "tabsLabel": "Sekcje przeglądu spotkania"
     },
     "ledger": {
       "title": "Rejestr",

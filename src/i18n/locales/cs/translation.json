@@ -2199,18 +2199,8 @@
       "actionDone": "Označit tento úkol jako hotový",
       "unassigned": "Nepřiřazeno",
       "noDueDate": "Bez termínu",
-      "questions": "Dotázat se této schůzky",
-      "questionsDescription": "Odpovědi vycházejí jen z této schůzky a citují podpůrný přepis, a na tvém serveru se píší jen tehdy, když je tam inteligence schůzek nasměruje.",
-      "questionPlaceholder": "Zadejte otázku k této schůzce",
-      "ask": "Dotázat se",
-      "noQuestions": "Žádné uložené místní odpovědi.",
-      "question": "Otázka",
-      "insufficientEvidence": "V této schůzce se nenašla žádná podpůrná pasáž.",
-      "forget": "Zapomenout tuto odpověď",
       "searchPlaceholder": "Hledat v této schůzce",
       "noSearchResults": "Žádné přesné místní shody.",
-      "askUnavailable": "Dotazy vyžadují dokončený přepis.",
-      "asking": "Dotazování na tuto schůzku…",
       "droppedFrames": "Ztracené snímky: {{total}}",
       "hitKind": {
         "manualNote": "Ruční poznámka",
@@ -2220,15 +2210,12 @@
       "processingDescription": "Generované poznámky a místní odpovědi se zobrazí po dokončení přepisu.",
       "processingTitle": "Sona tuto schůzku stále zpracovává",
       "remoteProcessingUnavailable": "Vzdálený cíl nebyl nikdy dostupný, takže se nic nevygenerovalo. Opětovné generování proběhne na tomto Macu.",
-      "sonaAnswered": "Sona odpověděla",
       "tabs": {
         "insights": "Postřehy",
         "ledger": "Registr",
-        "questions": "Otázky",
         "transcript": "Přepis"
       },
-      "tabsLabel": "Sekce přehledu schůzky",
-      "youAsked": "Zeptali jste se"
+      "tabsLabel": "Sekce přehledu schůzky"
     },
     "ledger": {
       "title": "Registr",

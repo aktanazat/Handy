@@ -2181,18 +2181,8 @@
       "actionDone": "把這條行動項目標記為完成",
       "unassigned": "未指派",
       "noDueDate": "無期限",
-      "questions": "詢問這場會議",
-      "questionsDescription": "回答只使用這場會議，並引用支撐它的逐字稿；只有會議智慧把它們轉到那裡時，才會在你的伺服器上撰寫。",
-      "questionPlaceholder": "就這場會議提問",
-      "ask": "提問",
-      "noQuestions": "沒有儲存的本機回答。",
-      "question": "問題",
-      "insufficientEvidence": "在這場會議裡沒有找到可以支撐的段落。",
-      "forget": "忘掉這條回答",
       "searchPlaceholder": "搜尋這場會議",
       "noSearchResults": "沒有完全符合的本機結果。",
-      "askUnavailable": "提問需要已完成的逐字稿。",
-      "asking": "正在詢問這場會議…",
       "droppedFrames": "丟失影格：{{total}}",
       "hitKind": {
         "manualNote": "手動筆記",
@@ -2202,15 +2192,12 @@
       "processingDescription": "逐字稿完成後，生成的筆記和本機回答就會出現。",
       "processingTitle": "Sona 仍在處理這場會議",
       "remoteProcessingUnavailable": "遠端目的地一直無法使用，因此未生成任何內容。重新生成會在這台 Mac 上執行。",
-      "sonaAnswered": "Sona 的回答",
       "tabs": {
         "insights": "洞察",
         "ledger": "紀錄簿",
-        "questions": "問題",
         "transcript": "逐字稿"
       },
-      "tabsLabel": "會議回顧區段",
-      "youAsked": "你的提問"
+      "tabsLabel": "會議回顧區段"
     },
     "ledger": {
       "title": "紀錄簿",

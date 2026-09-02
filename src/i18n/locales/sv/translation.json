@@ -2187,18 +2187,8 @@
       "actionDone": "Markera den här punkten som klar",
       "unassigned": "Ej tilldelad",
       "noDueDate": "Inget slutdatum",
-      "questions": "Fråga det här mötet",
-      "questionsDescription": "Svaren använder bara det här mötet och citerar det stödjande transkriptet, och de skrivs på din server bara när mötesintelligens skickar dem dit.",
-      "questionPlaceholder": "Ställ en fråga om det här mötet",
-      "ask": "Fråga",
-      "noQuestions": "Inga sparade lokala svar.",
-      "question": "Fråga",
-      "insufficientEvidence": "Ingen stödjande passage hittades i det här mötet.",
-      "forget": "Glöm det här svaret",
       "searchPlaceholder": "Sök i det här mötet",
       "noSearchResults": "Inga exakta lokala träffar.",
-      "askUnavailable": "Frågor kräver ett färdigt transkript.",
-      "asking": "Frågar detta möte…",
       "droppedFrames": "Tappade bildrutor: {{total}}",
       "hitKind": {
         "manualNote": "Manuell anteckning",
@@ -2208,15 +2198,12 @@
       "processingDescription": "Genererade anteckningar och lokala svar visas när transkriptet är klart.",
       "processingTitle": "Sona bearbetar fortfarande detta möte",
       "remoteProcessingUnavailable": "Fjärrdestinationen blev aldrig tillgänglig, så inget genererades. Omgenerering körs på den här datorn.",
-      "sonaAnswered": "Sona svarade",
       "tabs": {
         "insights": "Insikter",
         "ledger": "Register",
-        "questions": "Frågor",
         "transcript": "Transkript"
       },
-      "tabsLabel": "Sektioner för mötesgenomgång",
-      "youAsked": "Du frågade"
+      "tabsLabel": "Sektioner för mötesgenomgång"
     },
     "ledger": {
       "title": "Register",

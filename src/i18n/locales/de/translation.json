@@ -2187,18 +2187,8 @@
       "actionDone": "Diese Aufgabe als erledigt markieren",
       "unassigned": "Nicht zugewiesen",
       "noDueDate": "Kein Fälligkeitsdatum",
-      "questions": "Diese Besprechung fragen",
-      "questionsDescription": "Antworten nutzen nur diese Besprechung und zitieren die belegende Transkriptstelle, und sie werden nur dann auf deinem Server geschrieben, wenn Meeting-Intelligenz sie dorthin leitet.",
-      "questionPlaceholder": "Stellen Sie eine Frage zu dieser Besprechung",
-      "ask": "Fragen",
-      "noQuestions": "Keine gespeicherten lokalen Antworten.",
-      "question": "Frage",
-      "insufficientEvidence": "In dieser Besprechung wurde keine belegende Passage gefunden.",
-      "forget": "Diese Antwort vergessen",
       "searchPlaceholder": "Diese Besprechung durchsuchen",
       "noSearchResults": "Keine genauen lokalen Treffer.",
-      "askUnavailable": "Fragen erfordern ein fertiges Transkript.",
-      "asking": "Dieses Meeting wird befragt…",
       "droppedFrames": "Verlorene Frames: {{total}}",
       "hitKind": {
         "manualNote": "Manuelle Notiz",
@@ -2208,15 +2198,12 @@
       "processingDescription": "Generierte Notizen und lokale Antworten erscheinen, sobald das Transkript fertig ist.",
       "processingTitle": "Sona verarbeitet dieses Meeting noch",
       "remoteProcessingUnavailable": "Das entfernte Ziel wurde nie verfügbar, daher wurde nichts generiert. Die Neuerstellung läuft auf diesem Mac.",
-      "sonaAnswered": "Sona hat geantwortet",
       "tabs": {
         "insights": "Einblicke",
         "ledger": "Register",
-        "questions": "Fragen",
         "transcript": "Transkript"
       },
-      "tabsLabel": "Abschnitte der Meeting-Übersicht",
-      "youAsked": "Du hast gefragt"
+      "tabsLabel": "Abschnitte der Meeting-Übersicht"
     },
     "ledger": {
       "title": "Register",
