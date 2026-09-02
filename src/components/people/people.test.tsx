@@ -23,6 +23,7 @@ import {
   PreviouslyTogetherBandView,
   previouslyTogetherRows,
 } from "@/components/settings/meetings/review/PreviouslyTogetherBand";
+import { OrganizationView } from "./OrganizationView";
 import { PeopleListView } from "./PeopleList";
 import { PersonDetailView } from "./PersonDetailView";
 import { monthlyMeetingCadence } from "./peopleModel";
@@ -61,6 +62,11 @@ const PERSON: Person = {
   aliases: ["Dana R."],
   calendar_emails: ["dana@example.com"],
   organization: "Acme",
+  summary: {
+    text: "Dana runs pricing at Acme.",
+    generated_at_utc_ms: JUNE,
+    model_id: "apple-intelligence",
+  },
   created_at_utc_ms: JANUARY,
   updated_at_utc_ms: JUNE,
 };
@@ -71,6 +77,7 @@ const OTHER_PERSON: Person = {
   aliases: [],
   calendar_emails: ["amir@example.com"],
   organization: null,
+  summary: null,
 };
 const ENTRY: PersonListEntry = {
   person: PERSON,
@@ -186,6 +193,7 @@ const list = (
       entries={entries}
       error={false}
       onOpenPerson={noop}
+      onOpenOrganization={noop}
       onRetry={noop}
     />,
   );
@@ -208,6 +216,8 @@ const detail = (personDetail: PersonDetail, documents: Document[]) =>
       onImportDocument={noop}
       onDeleteDocument={noop}
       onOpenMeeting={noop}
+      onOpenOrganization={noop}
+      onRegenerateSummary={noop}
     />,
   );
 
@@ -241,6 +251,61 @@ describe("People list", () => {
     expect(markup).not.toContain("Launch sync");
     expect(markup).not.toContain(">Dismiss</button>");
     expect(markup).not.toContain(">Confirm</button>");
+  });
+
+  /* The strip is derived from the rows already on screen, so it can only ever
+   * name an organization somebody in the list carries — and a list where
+   * nobody does draws no strip rather than an empty one. */
+  test("names the organizations the loaded people carry, once each", () => {
+    const markup = list([ENTRY, { ...ENTRY, person: { ...PERSON } }]);
+
+    expect(markup).toContain('data-slot="organizations-strip"');
+    expect(occurrences(markup, 'data-slot="organization-chip"')).toBe(1);
+    expect(markup).toContain("Organizations");
+
+    expect(list([OTHER_ENTRY])).not.toContain(
+      'data-slot="organizations-strip"',
+    );
+  });
+});
+
+describe("organization detail", () => {
+  const organization = () =>
+    render(
+      <OrganizationView
+        detail={{
+          name: "Acme",
+          people: [ENTRY],
+          recent_meetings: [
+            {
+              id: CONFIRMED_LINK.meeting.id,
+              title: "Planning",
+              at_utc_ms: JANUARY,
+              headline: "The launch checklist still needs an owner.",
+              series_number: 2,
+            },
+          ],
+          open_loops: DETAIL.open_loops,
+        }}
+        onBack={noop}
+        onOpenPerson={noop}
+        onOpenMeeting={noop}
+      />,
+    );
+
+  test("reads across its people: who is here, what you met about, what is open", () => {
+    const markup = organization();
+
+    expect(markup).toContain("max-w-[760px]");
+    expect(markup).toContain("Acme");
+    expect(markup).toContain("1 person");
+    expect(occurrences(markup, 'data-slot="organization-person"')).toBe(1);
+    expect(occurrences(markup, 'data-slot="organization-meeting"')).toBe(1);
+    expect(occurrences(markup, 'data-slot="organization-loop"')).toBe(1);
+    expect(markup).toContain("Who owns the launch checklist?");
+    /* An organization is a slice of People, not a fourth noun: nothing here
+     * renames, merges or deletes anything. */
+    expect(markup).not.toContain('aria-label="Person actions"');
   });
 });
 
@@ -282,10 +347,34 @@ describe("person detail", () => {
     expect(markup).toContain("Title");
   });
 
+  /* Three sentences under the name, with the engine that wrote them and a way
+   * to ask again. A person Sona has never had an engine for still gets the
+   * button, because it is the only way to ask for a first paragraph. */
+  test("shows the relationship paragraph with its engine and a regenerate action", () => {
+    const written = detail(DETAIL, []);
+
+    expect(written).toContain('data-slot="person-summary"');
+    expect(written).toContain("Dana runs pricing at Acme.");
+    expect(written).toContain("Written by apple-intelligence");
+    expect(written).toContain(">Regenerate</button>");
+
+    const blank = detail(
+      { ...DETAIL, person: { ...PERSON, summary: null } },
+      [],
+    );
+
+    expect(blank).toContain("No summary yet.");
+    expect(blank).toContain(">Regenerate</button>");
+    expect(blank).not.toContain("Written by");
+  });
+
   test("renders cadence, relationship facts, links, and imported context", () => {
     const markup = detail(DETAIL, [DOCUMENT]);
+    /* The organization is a link to its own page now, so the label is a
+     * control and the meeting count follows it as text. */
     expect(markup).toContain('data-slot="person-organization"');
-    expect(markup).toContain("Acme · 2 meetings");
+    expect(markup).toContain(">Acme</button>");
+    expect(markup).toContain("2 meetings");
 
     const cadenceBars =
       markup.match(

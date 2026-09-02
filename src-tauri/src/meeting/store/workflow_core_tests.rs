@@ -415,6 +415,139 @@ fn people_organization_recompute_prefers_frequency_then_newest_and_is_idempotent
     );
 }
 
+/* An organization page is the union of its people's pages, so what it has to
+ * get right is the union: everybody who carries the label, every meeting once
+ * however many of them were in it, and nobody from anywhere else. */
+#[test]
+fn organization_detail_unions_its_people_and_counts_a_shared_meeting_once() {
+    let (_directory, store) = store();
+    let alice = person(&store, "Alice Doe", &[], &["alice@acme.com"]);
+    let dana = person(&store, "Dana Reyes", &[], &["dana@acme.com"]);
+    let outsider = person(&store, "Bob Stone", &[], &["bob@beta.io"]);
+    let shared = calendar_link(&store, alice, "alice@acme.com", 10);
+    link(&store, shared, dana, "calendar", "confirmed");
+    let later = calendar_link(&store, dana, "dana@acme.com", 20);
+    calendar_link(&store, outsider, "bob@beta.io", 30);
+    artifact(&store, shared, "Pricing is still open.");
+    let connection = store.connection().unwrap();
+    recompute_organizations_in(&connection).unwrap();
+    drop(connection);
+
+    let detail = store.organization_detail("acme").unwrap().detail;
+
+    assert_eq!(detail.name, "Acme");
+    assert_eq!(
+        detail
+            .people
+            .iter()
+            .map(|entry| entry.person.display_name.as_str())
+            .collect::<Vec<_>>(),
+        ["Alice Doe", "Dana Reyes"],
+        "everybody carrying the label, and nobody from Beta"
+    );
+    assert_eq!(
+        detail
+            .recent_meetings
+            .iter()
+            .map(|meeting| meeting.id)
+            .collect::<Vec<_>>(),
+        [later, shared],
+        "newest first, and the meeting both of them were in appears once"
+    );
+    assert_eq!(
+        detail
+            .open_loops
+            .iter()
+            .map(|open_loop| open_loop.text.as_str())
+            .collect::<Vec<_>>(),
+        ["Ship the integration"],
+        "what is open with anybody here"
+    );
+}
+
+/* The label a person's header shows and the slug a `sona://organization/…`
+ * link carries are the same lookup key, because both are slugified on the way
+ * in. A label nobody carries is a missing page rather than an empty one. */
+#[test]
+fn organization_detail_answers_to_the_label_and_refuses_an_unknown_one() {
+    let (_directory, store) = store();
+    let dana = person(&store, "Dana Reyes", &[], &["dana@acme.com"]);
+    calendar_link(&store, dana, "dana@acme.com", 10);
+    let connection = store.connection().unwrap();
+    recompute_organizations_in(&connection).unwrap();
+    drop(connection);
+
+    for key in ["Acme", "acme", " ACME "] {
+        assert_eq!(store.organization_detail(key).unwrap().detail.name, "Acme");
+    }
+    assert!(matches!(
+        store.organization_detail("beta"),
+        Err(StoreError::NotFound)
+    ));
+}
+
+/* A relationship paragraph is a projection, not identity: it lands on the row
+ * with its engine and its clock, and it does not move the fence a rename is
+ * halfway through using. */
+#[test]
+fn a_person_summary_is_stored_with_its_engine_and_leaves_the_fence_alone() {
+    let (_directory, store) = store();
+    let person_id = person(&store, "Dana Reyes", &[], &[]);
+    let before = store.people_list().unwrap().revision;
+
+    store
+        .set_person_summary(
+            person_id,
+            crate::meeting::people_types::PersonSummary {
+                text: "Dana runs pricing.".to_string(),
+                generated_at_utc_ms: 4_218,
+                model_id: "apple-intelligence".to_string(),
+            },
+        )
+        .unwrap();
+
+    let summary = store
+        .person_detail(person_id)
+        .unwrap()
+        .detail
+        .person
+        .summary
+        .expect("the paragraph is on the row");
+    assert_eq!(summary.text, "Dana runs pricing.");
+    assert_eq!(summary.generated_at_utc_ms, 4_218);
+    assert_eq!(summary.model_id, "apple-intelligence");
+    assert_eq!(store.people_list().unwrap().revision, before);
+    assert!(matches!(
+        store.set_person_summary(
+            PersonId::new(),
+            crate::meeting::people_types::PersonSummary {
+                text: "Nobody.".to_string(),
+                generated_at_utc_ms: 1,
+                model_id: "apple-intelligence".to_string(),
+            },
+        ),
+        Err(StoreError::NotFound)
+    ));
+}
+
+/* The people confirmed in one meeting: what the artifact pass reads to know
+ * whose paragraph the meeting it just finished changed. A guess is not a
+ * person to write a summary under. */
+#[test]
+fn person_ids_for_meeting_keeps_confirmed_links_only() {
+    let (_directory, store) = store();
+    let meeting_id = meeting(&store, "Review", 1);
+    let confirmed = person(&store, "Dana Reyes", &[], &[]);
+    let suggested = person(&store, "Amir Khan", &[], &[]);
+    link(&store, meeting_id, confirmed, "calendar", "confirmed");
+    link(&store, meeting_id, suggested, "title", "suggested");
+
+    assert_eq!(
+        store.person_ids_for_meeting(meeting_id).unwrap(),
+        vec![confirmed]
+    );
+}
+
 #[test]
 fn meeting_deletion_cascades_links_without_deleting_people() {
     let (_directory, store) = store();

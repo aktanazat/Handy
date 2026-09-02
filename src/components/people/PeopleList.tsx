@@ -3,6 +3,7 @@ import { AlertCircle, ChevronRight, LoaderCircle, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PersonListEntry } from "@/bindings";
 import {
+  Microlabel,
   SETTINGS_SURFACE,
   SettingsPage,
   SettingsSurface,
@@ -10,13 +11,56 @@ import {
 import { Button } from "@/components/vg/button";
 import { formatEntryTimestamp } from "@/lib/utils/format";
 import { EmptyStateRow } from "./EmptyStateRow";
+import { organizationsFromEntries } from "./peopleModel";
 
 export interface PeopleListViewProps {
   entries: PersonListEntry[] | null;
   error: boolean;
   onOpenPerson: (personId: string) => void;
+  onOpenOrganization: (organization: string) => void;
   onRetry: () => void;
 }
+
+/* The organizations the list already carries, as a strip above it.
+ *
+ * Derived from the loaded rows rather than asked for: every person row already
+ * says which organization they are at, so a second command for the same fact
+ * would be a second answer to it. A corpus with no calendar domains on it draws
+ * nothing here, which is the honest empty state — there is no organization to
+ * name. */
+const OrganizationStrip: React.FC<{
+  entries: readonly PersonListEntry[];
+  onOpen: (organization: string) => void;
+}> = ({ entries, onOpen }) => {
+  const { t } = useTranslation();
+  const organizations = organizationsFromEntries(entries);
+  if (organizations.length === 0) return null;
+
+  return (
+    <SettingsSurface data-slot="organizations-strip">
+      <div className="flex flex-col gap-2 px-4 py-3">
+        <Microlabel>{t("organizations.title")}</Microlabel>
+        <div className="flex flex-wrap gap-1.5">
+          {organizations.map((organization) => (
+            <Button
+              key={organization.name}
+              type="button"
+              variant="outline"
+              size="sm"
+              data-slot="organization-chip"
+              onClick={() => onOpen(organization.name)}
+            >
+              <span>{organization.name}</span>
+              <span className="text-gray-800 tabular-nums">
+                {organization.count}
+              </span>
+            </Button>
+          ))}
+        </div>
+      </div>
+    </SettingsSurface>
+  );
+};
 
 /* One person, one line: who they are, how many meetings you have had, and
  * when the last one was. Everything else about them — the meetings
@@ -79,6 +123,7 @@ export const PeopleListView: React.FC<PeopleListViewProps> = ({
   entries,
   error,
   onOpenPerson,
+  onOpenOrganization,
   onRetry,
 }) => {
   const { t } = useTranslation();
@@ -114,20 +159,23 @@ export const PeopleListView: React.FC<PeopleListViewProps> = ({
           <EmptyStateRow icon={Users}>{t("people.list.empty")}</EmptyStateRow>
         </SettingsSurface>
       ) : (
-        <ul
-          role="list"
-          aria-label={t("people.title")}
-          data-slot="people-list"
-          className={SETTINGS_SURFACE}
-        >
-          {entries.map((entry) => (
-            <PersonRow
-              key={entry.person.id}
-              entry={entry}
-              onOpen={() => onOpenPerson(entry.person.id)}
-            />
-          ))}
-        </ul>
+        <>
+          <OrganizationStrip entries={entries} onOpen={onOpenOrganization} />
+          <ul
+            role="list"
+            aria-label={t("people.title")}
+            data-slot="people-list"
+            className={SETTINGS_SURFACE}
+          >
+            {entries.map((entry) => (
+              <PersonRow
+                key={entry.person.id}
+                entry={entry}
+                onOpen={() => onOpenPerson(entry.person.id)}
+              />
+            ))}
+          </ul>
+        </>
       )}
     </SettingsPage>
   );

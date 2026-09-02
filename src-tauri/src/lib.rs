@@ -318,6 +318,9 @@ pub(crate) fn dispatch_deep_link(app: &AppHandle, raw: &str) -> bool {
                 },
             );
         }
+        deeplink::DeepLinkAction::OpenOrganization(slug) => {
+            show_query_link(app, query::QueryLinkTarget::Organization { slug });
+        }
         deeplink::DeepLinkAction::OpenDictation(history_id) => {
             show_query_link(app, query::QueryLinkTarget::Dictation { history_id });
         }
@@ -363,7 +366,7 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
             };
         (
             Arc::new(apps::WorkspaceApps) as Arc<dyn apps::RunningAppsSource>,
-            Arc::new(calendar::EventKitCalendar::new()) as Arc<dyn calendar::CalendarSource>,
+            calendar::platform_calendar(),
             prompts,
             probe_screen_recording as fn() -> ScreenRecordingPermission,
         )
@@ -371,7 +374,7 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
     #[cfg(not(target_os = "macos"))]
     let (running_apps, calendar_source, prompts, screen_recording_probe) = (
         Arc::new(apps::NoRunningApps) as Arc<dyn apps::RunningAppsSource>,
-        Arc::new(calendar::NoCalendar) as Arc<dyn calendar::CalendarSource>,
+        calendar::platform_calendar(),
         Arc::new(notify::NoPrompts) as Arc<dyn notify::PromptPresenter>,
         (|| ScreenRecordingPermission::NotGranted) as fn() -> ScreenRecordingPermission,
     );
@@ -1555,6 +1558,8 @@ pub fn run(cli_args: CliArgs) {
             commands::upcoming::meeting_upcoming_events,
             commands::people::people_list,
             commands::people::person_detail,
+            commands::people::organization_detail,
+            commands::people::person_summary_regenerate,
             commands::people::person_context,
             commands::people::meeting_people_context,
             commands::people::person_rename,

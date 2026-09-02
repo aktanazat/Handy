@@ -62,6 +62,11 @@ interface PersonRequest {
   nonce: number;
 }
 
+interface OrganizationRequest {
+  slug: string;
+  nonce: number;
+}
+
 interface SearchRequest {
   query: string;
   nonce: number;
@@ -73,6 +78,7 @@ interface SettingsContentProps {
   meetingNavigationRequest: MeetingNavigationPayload | null;
   meetingStartRequest: number;
   personRequest: PersonRequest | null;
+  organizationRequest: OrganizationRequest | null;
   onSectionChange: (section: SidebarSection) => void;
   onOpenMeeting: (meetingId: string) => void;
 }
@@ -83,6 +89,7 @@ const renderSettingsContent = ({
   meetingNavigationRequest,
   meetingStartRequest,
   personRequest,
+  organizationRequest,
   onSectionChange,
   onOpenMeeting,
 }: SettingsContentProps) => {
@@ -114,6 +121,7 @@ const renderSettingsContent = ({
       <PeopleComponent
         onOpenMeeting={onOpenMeeting}
         personRequest={personRequest}
+        organizationRequest={organizationRequest}
       />
     );
   }
@@ -173,6 +181,7 @@ export interface AppContentProps {
   meetingNavigationRequest: MeetingNavigationPayload | null;
   meetingStartRequest: number;
   personRequest: PersonRequest | null;
+  organizationRequest: OrganizationRequest | null;
   commandOpen: boolean;
   commandActions: CommandPaletteAction[];
   commandSeed: SearchRequest | null;
@@ -204,6 +213,7 @@ export const AppContent = ({
   meetingNavigationRequest,
   meetingStartRequest,
   personRequest,
+  organizationRequest,
   commandOpen,
   commandActions,
   commandSeed,
@@ -365,6 +375,7 @@ export const AppContent = ({
                   meetingNavigationRequest,
                   meetingStartRequest,
                   personRequest,
+                  organizationRequest,
                   onSectionChange,
                   onOpenMeeting,
                 })}
@@ -610,6 +621,8 @@ function App() {
   const [personRequest, setPersonRequest] = useState<PersonRequest | null>(
     null,
   );
+  const [organizationRequest, setOrganizationRequest] =
+    useState<OrganizationRequest | null>(null);
   const { settings, updateSetting } = useSettings();
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
@@ -715,6 +728,14 @@ function App() {
         if (target.kind === "person") {
           setPersonRequest((current) => ({
             personId: target.person_id,
+            nonce: (current?.nonce ?? 0) + 1,
+          }));
+          runViewTransition(() => setCurrentSection("people"));
+          return;
+        }
+        if (target.kind === "organization") {
+          setOrganizationRequest((current) => ({
+            slug: target.slug,
             nonce: (current?.nonce ?? 0) + 1,
           }));
           runViewTransition(() => setCurrentSection("people"));
@@ -928,6 +949,7 @@ function App() {
         meetingNavigationRequest={meetingNavigationRequest}
         meetingStartRequest={meetingStartRequest}
         personRequest={personRequest}
+        organizationRequest={organizationRequest}
         chatOpen={chatOpen}
         onChatOpenChange={setChatOpen}
         commandOpen={commandOpen}

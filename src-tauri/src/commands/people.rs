@@ -1,7 +1,8 @@
 use crate::meeting::people_types::{
-    MeetingPeopleContextResult, OpenLoopsInboxResult, PeopleListResult, PeopleMutationResult,
-    PersonContextResult, PersonDeleteRequest, PersonDetailResult, PersonId, PersonLinkRequest,
-    PersonMergeRequest, PersonRenameRequest, PersonSplitRequest, VocabularyCandidatesResult,
+    MeetingPeopleContextResult, OpenLoopsInboxResult, OrganizationDetailResult, PeopleListResult,
+    PeopleMutationResult, PersonContextResult, PersonDeleteRequest, PersonDetailResult, PersonId,
+    PersonLinkRequest, PersonMergeRequest, PersonRenameRequest, PersonSplitRequest,
+    VocabularyCandidatesResult,
 };
 use crate::meeting::session::MeetingSessionManager;
 use crate::meeting::types::{MeetingCommandError, MeetingSessionId};
@@ -23,6 +24,29 @@ pub async fn person_detail(
     person_id: PersonId,
 ) -> Result<PersonDetailResult, MeetingCommandError> {
     manager.person_detail(person_id).await
+}
+
+/// One organization page: its people, and what they collectively left open.
+///
+/// `slug` is what `sona://organization/<slug>` carries. The store slugifies
+/// whatever it is given, so a caller holding the label a person's header shows
+/// may pass that instead of deriving the slug a second time.
+#[tauri::command]
+#[specta::specta]
+pub async fn organization_detail(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    slug: String,
+) -> Result<OrganizationDetailResult, MeetingCommandError> {
+    manager.organization_detail(slug).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn person_summary_regenerate(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    person_id: PersonId,
+) -> Result<PersonDetailResult, MeetingCommandError> {
+    manager.person_summary_regenerate(person_id).await
 }
 
 #[tauri::command]

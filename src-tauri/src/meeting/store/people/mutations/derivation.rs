@@ -32,6 +32,7 @@ pub(in crate::meeting::store) fn derive_calendar_links_in(
             aliases: Vec::new(),
             calendar_emails: vec![email.clone()],
             organization: None,
+            summary: None,
             created_at_utc_ms: now_utc_ms,
             updated_at_utc_ms: now_utc_ms,
         });
@@ -201,6 +202,7 @@ pub(in crate::meeting::store) fn derive_speaker_link_in(
         aliases: Vec::new(),
         calendar_emails: Vec::new(),
         organization: None,
+        summary: None,
         created_at_utc_ms: now_utc_ms,
         updated_at_utc_ms: now_utc_ms,
     });

@@ -123,7 +123,7 @@ async function refusalOf(argv: readonly string[]): Promise<SonaCliError> {
 }
 
 describe("tool to argv", () => {
-  test("every tool maps onto one read-only sona verb", () => {
+  test("every tool maps onto one headless sona verb", () => {
     expect(TOOLS.map((definition) => definition.name)).toEqual([
       "sona_search",
       "sona_meetings",
@@ -131,6 +131,8 @@ describe("tool to argv", () => {
       "sona_transcript",
       "sona_action_items",
       "sona_people",
+      "sona_upcoming",
+      "sona_loop_resolve",
     ]);
     expect(
       TOOLS.map((definition) => definition.argv(minimalInput(definition))[0]),
@@ -141,7 +143,27 @@ describe("tool to argv", () => {
       "--transcript",
       "--loops",
       "--people",
+      "--upcoming",
+      "--loop-resolve",
     ]);
+  });
+
+  test("upcoming takes only a row count", () => {
+    expect(tool("sona_upcoming").argv({})).toEqual(["--upcoming"]);
+    expect(tool("sona_upcoming").argv({ limit: 3 })).toEqual([
+      "--upcoming",
+      "--limit",
+      "3",
+    ]);
+  });
+
+  /* The one tool that writes. Its loop id goes through verbatim, and its
+   * schema says so is required, so a call without one never spawns anything. */
+  test("resolving a loop carries the loop id and nothing else", () => {
+    expect(
+      tool("sona_loop_resolve").argv({ loop_id: "abc:loop:0123456789abcdef" }),
+    ).toEqual(["--loop-resolve", "abc:loop:0123456789abcdef"]);
+    expect(() => tool("sona_loop_resolve").argv({})).toThrow(SonaInputError);
   });
 
   test("search carries its scope and limit", () => {
@@ -266,6 +288,27 @@ describe("running sona", () => {
     expect(refused.settingsPath).toBe("Settings > Agents > External access");
     expect(refused.exitCode).toBe(1);
     expect(refused.message).toContain("External access is off");
+  });
+
+  /* The mutation row is a second grant, and its refusal names its own row. A
+   * caller that read the corpus a moment ago still has to be told which switch
+   * this one needs. */
+  test("a mutation refusal names the mutations row, not the read one", async () => {
+    stub({
+      stderr: JSON.stringify({
+        schema_version: 1,
+        error: "consent_required",
+        message:
+          "External mutations are off. Turn on Settings > Agents > External mutations in Sona to allow changes to the corpus.",
+        settings_path: "Settings > Agents > External mutations",
+      }),
+      exit: 1,
+    });
+
+    const refused = await refusalOf(["--loop-resolve", "abc:loop:0123"]);
+
+    expect(refused.code).toBe("consent_required");
+    expect(refused.settingsPath).toBe("Settings > Agents > External mutations");
   });
 
   test("a refusal is found past the log lines printed beside it", async () => {

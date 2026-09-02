@@ -10,10 +10,11 @@ use super::{
 };
 use crate::meeting::detection::machine::{CalendarAttendee, CalendarEventSummary};
 use crate::meeting::people_types::{
-    MeetingPeopleContextResult, MeetingPersonContextRow, OpenLoopsInboxResult, PeopleListResult,
-    PersonBriefingLastMeeting, PersonBriefingRow, PersonContextResult, PersonDetail,
-    PersonDetailResult, PersonId, PersonLinkConfidence, PersonLinkSource, PersonListEntry,
-    PersonListLastMeeting, PersonMeetingLink,
+    organization_slug, MeetingPeopleContextResult, MeetingPersonContextRow, OpenLoopsInboxResult,
+    OrganizationDetail, OrganizationDetailResult, PeopleListResult, PersonBriefingLastMeeting,
+    PersonBriefingRow, PersonContextResult, PersonDetail, PersonDetailResult, PersonId,
+    PersonLinkConfidence, PersonLinkSource, PersonListEntry, PersonListLastMeeting,
+    PersonMeetingLink,
 };
 use crate::meeting::store::workflows::{
     workflow_succeeded_for_calendar_event_in, workflow_succeeded_for_session_in,
@@ -175,6 +176,55 @@ impl MeetingStore {
         }
         Ok(organizations)
     }
+
+    /// One organization page: its people, and what they collectively left open.
+    ///
+    /// `slug` is matched through [`organization_slug`] on both sides, so the
+    /// label a person's header shows resolves here as readily as the slug a
+    /// `sona://organization/<slug>` link carries. A slug nobody carries is
+    /// [`StoreError::NotFound`] rather than an empty page: an organization
+    /// exists only as the people on it.
+    pub(crate) fn organization_detail(
+        &self,
+        slug: &str,
+    ) -> Result<OrganizationDetailResult, StoreError> {
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction()?;
+        let result = organization_detail_in(&transaction, slug)?;
+        transaction.commit()?;
+        Ok(result)
+    }
+
+    /// The people confirmed to have been in one meeting.
+    ///
+    /// The artifact pass reads this to know whose relationship paragraph the
+    /// meeting that just landed changed. Confirmed only: a suggested link is a
+    /// guess, and writing a summary from one would put a guess under a name.
+    pub(crate) fn person_ids_for_meeting(
+        &self,
+        meeting_id: MeetingSessionId,
+    ) -> Result<Vec<PersonId>, StoreError> {
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(
+            "SELECT p.id
+               FROM meeting_person_links l
+               JOIN persons p ON p.id = l.person_id
+              WHERE l.meeting_id = ?1 AND l.confidence = 'confirmed'
+              ORDER BY p.display_name COLLATE NOCASE, p.id",
+        )?;
+        let ids = statement
+            .query_map([meeting_id.uuid().to_string()], |row| {
+                row.get::<_, String>(0)
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        ids.into_iter()
+            .map(|id| {
+                Uuid::parse_str(&id)
+                    .map(PersonId)
+                    .map_err(|_| StoreError::Corrupt)
+            })
+            .collect()
+    }
 }
 
 fn people_list_in(connection: &Connection) -> Result<PeopleListResult, StoreError> {
@@ -182,6 +232,7 @@ fn people_list_in(connection: &Connection) -> Result<PeopleListResult, StoreErro
     let mut statement = connection.prepare(
         "SELECT p.id, p.display_name, p.aliases_json, p.calendar_emails_json,
                 p.organization, p.created_at_utc_ms, p.updated_at_utc_ms,
+                p.summary, p.summary_generated_at_utc_ms, p.summary_model_id,
                 SUM(CASE WHEN l.confidence = 'confirmed' THEN 1 ELSE 0 END),
                 lm.at_utc_ms,
                 SUM(CASE WHEN l.confidence = 'suggested' THEN 1 ELSE 0 END),
@@ -215,13 +266,13 @@ fn people_list_in(connection: &Connection) -> Result<PeopleListResult, StoreErro
         .query_map([], |row| {
             Ok((
                 person_from_row(row)?,
-                row.get::<_, i64>(7)?,
-                row.get::<_, Option<i64>>(8)?,
-                row.get::<_, i64>(9)?,
-                row.get::<_, String>(10)?,
-                row.get::<_, Option<String>>(11)?,
-                row.get::<_, Option<String>>(12)?,
-                row.get::<_, Option<String>>(13)?,
+                row.get::<_, i64>(10)?,
+                row.get::<_, Option<i64>>(11)?,
+                row.get::<_, i64>(12)?,
+                row.get::<_, String>(13)?,
+                row.get::<_, Option<String>>(14)?,
+                row.get::<_, Option<String>>(15)?,
+                row.get::<_, Option<String>>(16)?,
             ))
         })?
         .collect::<Result<Vec<_>, _>>()?;
@@ -299,6 +350,79 @@ fn person_detail_in(
             commitments: facts.commitments,
             talk_share_avg_permille,
             documents,
+        },
+    })
+}
+
+/// How many meetings and how many open loops an organization page carries.
+///
+/// An organization is a handful of people, and its page answers "where does
+/// this account stand" rather than "list everything". The number is the plane's
+/// own page size, because these are the same rows out of the same corpus.
+const ORGANIZATION_PAGE_ROWS: usize = 25;
+
+fn organization_detail_in(
+    connection: &Connection,
+    slug: &str,
+) -> Result<OrganizationDetailResult, StoreError> {
+    let slug = organization_slug(slug);
+    let list = people_list_in(connection)?;
+    let people = list
+        .entries
+        .into_iter()
+        .filter(|entry| {
+            entry
+                .person
+                .organization
+                .as_deref()
+                .is_some_and(|organization| organization_slug(organization) == slug)
+        })
+        .collect::<Vec<_>>();
+    let name = people
+        .first()
+        .and_then(|entry| entry.person.organization.clone())
+        .ok_or(StoreError::NotFound)?;
+
+    let mut recent_meetings = Vec::new();
+    let mut seen_meetings = HashSet::new();
+    let mut open_loops = Vec::new();
+    for entry in &people {
+        let mut facts = facts_for_person_in(connection, &entry.person)?;
+        gate_continuity_facts_in(connection, &mut facts)?;
+        for meeting in facts.meetings {
+            // Two people from one organization in one meeting is the ordinary
+            // case, and the meeting happened once.
+            if seen_meetings.insert(meeting.id) {
+                recent_meetings.push(meeting);
+            }
+        }
+        // Already open-only: `facts_for_person_in` keeps a loop row on a
+        // person's page only while it is open.
+        open_loops.extend(facts.open_loops);
+    }
+    recent_meetings.sort_by(|left, right| {
+        right
+            .at_utc_ms
+            .cmp(&left.at_utc_ms)
+            .then_with(|| left.id.uuid().cmp(&right.id.uuid()))
+    });
+    recent_meetings.truncate(ORGANIZATION_PAGE_ROWS);
+    open_loops.sort_by(|left, right| {
+        right
+            .at_utc_ms
+            .cmp(&left.at_utc_ms)
+            .then_with(|| left.loop_id.as_str().cmp(right.loop_id.as_str()))
+    });
+    open_loops.truncate(ORGANIZATION_PAGE_ROWS);
+
+    Ok(OrganizationDetailResult {
+        schema_version: SCHEMA_VERSION,
+        revision: list.revision,
+        detail: OrganizationDetail {
+            name,
+            people,
+            recent_meetings,
+            open_loops,
         },
     })
 }

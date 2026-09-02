@@ -1554,6 +1554,10 @@
         "label": "External access",
         "rowDescription": "Lets other programs on this Mac read your meetings, dictations, people and open loops through Sona's command-line tool and MCP server. It is read-only and stays off until you turn it on."
       },
+      "externalMutations": {
+        "label": "External mutations",
+        "rowDescription": "Lets those same programs mark a loop done. Separate from External access, and off until you turn it on: reading your meetings is not the same as changing them."
+      },
       "workspaceNavigation": "Agent views",
       "sonaAgent": {
         "title": "Sona agent",
@@ -2750,6 +2754,11 @@
       "stale": "People changed on another screen. Reload and try again.",
       "operation": "Couldn't update People. Try again."
     },
+    "summary": {
+      "empty": "No summary yet.",
+      "regenerate": "Regenerate",
+      "provenance": "Written by {{model}} on {{date}}"
+    },
     "review": {
       "personDetails": "Person details",
       "previouslyTogether": "Previously together",
@@ -2779,6 +2788,16 @@
       "brief": "Waiting on {{name}}: {{text}}",
       "briefOverdue": "Overdue with {{name}}: {{text}}",
       "briefIOwe": "You owe: {{text}}"
+    }
+  },
+  "organizations": {
+    "title": "Organizations",
+    "detail": {
+      "people_one": "1 person",
+      "people_other": "{{count}} people",
+      "peopleHere": "People here",
+      "noPeople": "Nobody here yet.",
+      "recentMeetings": "Recent meetings"
     }
   },
   "libraryV2": {

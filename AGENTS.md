@@ -202,11 +202,13 @@ Sona supports command-line parameters on all platforms for integration with scri
 | `--no-tray`              | Launch without system tray (closing window quits the app)  |
 | `--debug`                | Enable debug mode with verbose (Trace) logging             |
 
-**Read-only corpus queries (D15):** one JSON value on stdout, one JSON refusal
-on stderr, and nothing else on either. All of them require
+**Headless corpus verbs (D15):** one JSON value on stdout, one JSON refusal on
+stderr, and nothing else on either. The reads require
 `Settings > Agents > External access`, which is off on install; while it is off
-every one refuses with `{"error":"consent_required","settings_path":…}`. None
-of them writes.
+every one refuses with `{"error":"consent_required","settings_path":…}`. The one
+verb that writes needs `Settings > Agents > External mutations` as well — a
+second row, also off on install, because reading the corpus and changing it are
+different grants.
 
 | Flag                                                | Description                                                       |
 | --------------------------------------------------- | ----------------------------------------------------------------- |
@@ -217,11 +219,13 @@ of them writes.
 | `--loops [--status open\|done] [--mine\|--waiting]` | Loops and commitments across the corpus                           |
 | `--people <NAME>`                                   | Look a person up by name, alias or calendar address               |
 | `--events [--after <ID>]`                           | Receipts and workflow runs, newest first                          |
+| `--upcoming [--limit N]`                            | Today plus the next seven local days of calendar                  |
+| `--loop-resolve <LOOP_ID>`                          | **Writes.** Marks one loop done, prints the `OperationReceipt`    |
 
 Exit codes: 0 answered, 2 bad input (`invalid_request`), 1 everything else
 (`consent_required`, `unavailable`, `not_found`, `failed`). The plane lives in
 `query/external.rs`; `tools/sona-mcp/` is a thin MCP server over exactly these
-flags.
+flags, and `skills/sona/SKILL.md` is the agent-facing reference for both.
 
 **Key design decisions:**
 

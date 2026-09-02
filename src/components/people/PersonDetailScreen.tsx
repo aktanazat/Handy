@@ -40,6 +40,9 @@ interface PersonDetailScreenProps {
    * absence is resolved here, once, and every surface under this line takes a
    * route it can rely on. */
   onOpenMeeting?: (meetingId: string) => void;
+  /** Opens the organization page the header's label names. Absent at the same
+   * caller `onOpenMeeting` is absent at, and for the same reason. */
+  onOpenOrganization?: (organization: string) => void;
 }
 
 export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
@@ -48,6 +51,7 @@ export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
   onPersonChange,
   onDeleted,
   onOpenMeeting,
+  onOpenOrganization,
 }) => {
   const { t } = useTranslation();
   const [pending, setPending] = useState(false);
@@ -238,6 +242,21 @@ export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
       .finally(() => setPending(false));
   };
 
+  /* One model call on the person's own pack, so the button stays pressed until
+   * the paragraph is back. A Mac with no engine answers with the page
+   * unchanged, which is why there is nothing to report on success. */
+  const regenerateSummary = () => {
+    setPending(true);
+    void commands
+      .personSummaryRegenerate(personId)
+      .then(async (result) => {
+        if (result.status === "error") reportMutationError(result.error);
+        await reload();
+      })
+      .catch(() => reportMutationError(null))
+      .finally(() => setPending(false));
+  };
+
   if (loaded !== null) {
     return (
       <PersonDetailView
@@ -256,6 +275,8 @@ export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
         onImportDocument={() => void importDocument()}
         onDeleteDocument={deleteDocument}
         onOpenMeeting={onOpenMeeting ?? (() => {})}
+        onOpenOrganization={onOpenOrganization}
+        onRegenerateSummary={regenerateSummary}
       />
     );
   }

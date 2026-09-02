@@ -272,6 +272,11 @@ pub enum QueryLinkTarget {
     Person {
         person_id: PersonId,
     },
+    /// Everybody at one organization. A slug rather than an id: an
+    /// organization is derived from calendar domains, not stored as a row.
+    Organization {
+        slug: String,
+    },
     Dictation {
         history_id: i64,
     },
@@ -306,6 +311,18 @@ pub fn meeting_link(session_id: MeetingSessionId) -> String {
 /// `sona://person/<id>` — the person's page.
 pub fn person_link(person_id: PersonId) -> String {
     format!("sona://person/{}", person_id.uuid())
+}
+
+/// `sona://organization/<slug>` — the organization's page.
+///
+/// The slug is derived here rather than carried, so a caller that holds only
+/// the label a person's header shows can build the address without knowing the
+/// rule.
+pub fn organization_link(organization: &str) -> String {
+    format!(
+        "sona://organization/{}",
+        crate::meeting::people_types::organization_slug(organization)
+    )
 }
 
 /// `sona://loop/<id>` — the loop's meeting review, at the loop.

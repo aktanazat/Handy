@@ -101,6 +101,25 @@ impl CalendarSource for NoCalendar {
     }
 }
 
+/// This platform's calendar, or the one that answers nothing where there is
+/// none.
+///
+/// One factory rather than a `cfg` at each callsite: the detection loop builds
+/// one at startup and the headless `--upcoming` read builds one per
+/// invocation, and a second `cfg` pick would be a second answer to which
+/// calendar this build reads. Cheap either way — the EventKit store is created
+/// on first use, not here.
+pub fn platform_calendar() -> std::sync::Arc<dyn CalendarSource> {
+    #[cfg(target_os = "macos")]
+    {
+        std::sync::Arc::new(EventKitCalendar::new())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        std::sync::Arc::new(NoCalendar)
+    }
+}
+
 /// Places the nearest event relative to `now`. Pure, so the T-60s boundary and
 /// the started/ended transitions are testable without a calendar.
 pub fn calendar_signal(event: Option<CalendarEventSummary>, now_utc_ms: i64) -> CalendarSignal {

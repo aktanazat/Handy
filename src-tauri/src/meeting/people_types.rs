@@ -41,6 +41,21 @@ pub enum PersonLinkConfidence {
     Suggested,
 }
 
+/// The relationship paragraph on a person's page: three sentences generated
+/// from that person's evidence pack, and the two facts that make it readable.
+///
+/// One struct rather than three optional columns on [`Person`], because a
+/// paragraph with no engine behind it and an engine with no paragraph are both
+/// states the store cannot produce and no reader should have to handle.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct PersonSummary {
+    pub text: String,
+    pub generated_at_utc_ms: i64,
+    /// The engine that wrote it, as [`crate::meeting::processing::MeetingTextGenerator::model_id`]
+    /// reports it.
+    pub model_id: String,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct Person {
     pub id: PersonId,
@@ -48,8 +63,30 @@ pub struct Person {
     pub aliases: Vec<String>,
     pub calendar_emails: Vec<String>,
     pub organization: Option<String>,
+    /// Absent until an artifact pass has had an engine to write it with.
+    pub summary: Option<PersonSummary>,
     pub created_at_utc_ms: i64,
     pub updated_at_utc_ms: i64,
+}
+
+/// The address of an organization page: the display name, lower-cased, with
+/// every run of other characters collapsed to one hyphen.
+///
+/// Written once and applied to both sides of a lookup, so `organization_detail`
+/// answers to the slug a `sona://organization/<slug>` link carries *and* to the
+/// label a person's header shows. `Person::organization` is derived from an
+/// email domain, so in practice it is already one ASCII word — the collapsing
+/// is what keeps a hand-written link and a two-word label meeting in the middle.
+pub fn organization_slug(name: &str) -> String {
+    let mut slug = String::with_capacity(name.len());
+    for character in name.chars() {
+        if character.is_ascii_alphanumeric() {
+            slug.extend(character.to_lowercase());
+        } else if !slug.ends_with('-') {
+            slug.push('-');
+        }
+    }
+    slug.trim_matches('-').to_string()
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
@@ -158,6 +195,32 @@ pub struct PersonDetailResult {
     pub schema_version: u32,
     pub revision: u64,
     pub detail: PersonDetail,
+}
+
+/// One organization, read across the people who carry it.
+///
+/// Every field is a union of what its people already answer, in the same
+/// shapes: an organization is not a stored noun in this corpus — no row, no
+/// identity, no mutation — it is the set of people whose calendar addresses
+/// landed on one domain. So this page reuses the person row, the person's
+/// meeting summary and the person's loop, and adds nothing of its own beyond
+/// the union.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct OrganizationDetail {
+    /// The label as its people carry it, not the slug it was looked up by.
+    pub name: String,
+    pub people: Vec<PersonListEntry>,
+    /// Meetings with anybody here, newest first, deduplicated across people.
+    pub recent_meetings: Vec<PersonMeetingSummary>,
+    /// What is still open with anybody here, newest first.
+    pub open_loops: Vec<PersonOpenLoop>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct OrganizationDetailResult {
+    pub schema_version: u32,
+    pub revision: u64,
+    pub detail: OrganizationDetail,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
@@ -273,4 +336,28 @@ pub struct PeopleMutationResult {
     pub revision: u64,
     pub person: Option<Person>,
     pub removed: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::organization_slug;
+
+    /// The rule both sides of an organization lookup run: a label slugifies to
+    /// the slug a link carries, and a slug slugifies to itself.
+    #[test]
+    fn a_label_and_its_slug_agree() {
+        for (label, slug) in [
+            ("Acme", "acme"),
+            ("acme", "acme"),
+            ("  ACME  ", "acme"),
+            ("Northstar Labs", "northstar-labs"),
+            ("northstar-labs", "northstar-labs"),
+            ("Acme (EU) / Ltd.", "acme-eu-ltd"),
+            ("", ""),
+            ("···", ""),
+        ] {
+            assert_eq!(organization_slug(label), slug, "{label:?}");
+            assert_eq!(organization_slug(slug), slug, "{slug:?} is stable");
+        }
+    }
 }

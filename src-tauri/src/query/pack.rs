@@ -43,10 +43,13 @@
 //! absence on the wire would put the fact of the exclusion on the server that
 //! was not allowed to see the series.
 
-use super::{QueryError, QueryRow, QueryRowKind, QueryScope, QUERY_SCHEMA_VERSION};
+use super::{
+    loop_link, meeting_link, QueryError, QueryRow, QueryRowKind, QueryScope, QUERY_SCHEMA_VERSION,
+};
 use crate::agent_panel::protocol::MAX_CONTEXT_PACK_BYTES;
 use crate::managers::history::HistoryManager;
 use crate::meeting::loop_types::MeetingLoopId;
+use crate::meeting::people_types::{PersonDetail, PersonLinkConfidence};
 use crate::meeting::session::MeetingSessionManager;
 use crate::meeting::store::MeetingStore;
 use crate::meeting::types::MeetingSessionId;
@@ -106,6 +109,69 @@ pub async fn for_question(
     let store = meetings.store().await?;
     let rows = without_excluded_series(&store, page.entries);
     Ok(build(question, rows, page.next_cursor.is_some()))
+}
+
+/// Assemble the pack for one person: their meetings, and what is open with them.
+///
+/// Store-only and synchronous, unlike [`for_question`], because its one caller
+/// is the artifact pass — which holds a mounted store on a job thread and no
+/// async runtime, and whose question is a person rather than a search. The rows
+/// are that person's own facts read straight off their page, so no index is
+/// consulted and no dictation is drawn in: a dictation belongs to nobody.
+///
+/// The detail is passed in rather than read here: the caller needs the person's
+/// name for its prompt anyway, and one read answers both.
+///
+/// Everything else is the same pack: the same header, the same byte ceiling,
+/// and the same series exclusion — this bundle can ride to the operator's relay
+/// exactly as a question's can, so a series kept on this Mac is dropped here
+/// too.
+pub(crate) fn for_person(store: &MeetingStore, detail: &PersonDetail) -> QueryPack {
+    let mut rows = Vec::new();
+    for link in detail
+        .links
+        .iter()
+        .filter(|link| link.confidence == PersonLinkConfidence::Confirmed)
+        .take(PACK_HITS)
+    {
+        rows.push(QueryRow {
+            kind: QueryRowKind::Meeting,
+            id: link.meeting.id.uuid().to_string(),
+            title: link.meeting.title.clone(),
+            snippet: link
+                .meeting
+                .headline
+                .clone()
+                .unwrap_or_else(|| link.meeting.title.clone()),
+            when_utc_ms: link.meeting.at_utc_ms,
+            link: meeting_link(link.meeting.id),
+        });
+    }
+    for open_loop in detail.open_loops.iter().take(PACK_HITS) {
+        rows.push(QueryRow {
+            kind: QueryRowKind::Loop,
+            id: open_loop.loop_id.as_str().to_string(),
+            title: open_loop.text.clone(),
+            snippet: open_loop.title.clone(),
+            when_utc_ms: open_loop.at_utc_ms,
+            link: loop_link(&open_loop.loop_id),
+        });
+    }
+    for commitment in detail.commitments.iter().take(PACK_HITS) {
+        rows.push(QueryRow {
+            kind: QueryRowKind::Loop,
+            id: commitment.loop_id.as_str().to_string(),
+            title: commitment.text.clone(),
+            snippet: commitment.title.clone(),
+            when_utc_ms: commitment.at_utc_ms,
+            link: loop_link(&commitment.loop_id),
+        });
+    }
+    build(
+        &detail.person.display_name,
+        without_excluded_series(store, rows),
+        false,
+    )
 }
 
 /// Drop the rows whose series the operator kept on this Mac.

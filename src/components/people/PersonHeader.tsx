@@ -37,6 +37,11 @@ interface PersonHeaderProps {
   onBack: () => void;
   onRename: (displayName: string) => void;
   onMerge: (targetPersonId: string) => void;
+  /* Absent in the person dialog the meeting-review band opens: a modal has no
+   * place to put a page, and a label that looks like a link and goes nowhere
+   * is worse than a label. The same absence `onOpenMeeting` resolves one level
+   * up, for the same reason. */
+  onOpenOrganization?: (organization: string) => void;
   onDelete: () => void;
   onSplit: (
     request: Omit<PersonSplitRequest, "source_person_id" | "expected_revision">,
@@ -67,6 +72,7 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
   onMerge,
   onDelete,
   onSplit,
+  onOpenOrganization,
 }) => {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
@@ -83,6 +89,7 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
   const meetingsLabel = t("people.list.meetings", {
     count: links.filter((link) => link.confidence === "confirmed").length,
   });
+  const organization = person.organization ?? "";
 
   /* One commit path. Enter and Escape both blur the field; Escape puts the
    * saved name back first, so leaving the field is the only thing that ever
@@ -148,10 +155,25 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
           <p className="text-[11px] leading-4 text-gray-800 tabular-nums">
             {person.organization === null ? (
               meetingsLabel
-            ) : (
+            ) : onOpenOrganization === undefined ? (
               <span data-slot="person-organization">
                 {`${person.organization} · ${meetingsLabel}`}
               </span>
+            ) : (
+              /* The label is the link. An organization has a page of its own —
+               * everybody Sona knows there, and what is open across them — and
+               * this is the only place the name already appears. */
+              <>
+                <button
+                  type="button"
+                  data-slot="person-organization"
+                  onClick={() => onOpenOrganization(organization)}
+                  className="-mx-1 rounded px-1 underline decoration-gray-alpha-400 underline-offset-2 hover:text-gray-1000 hover:decoration-gray-700 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                >
+                  {organization}
+                </button>
+                {` · ${meetingsLabel}`}
+              </>
             )}
           </p>
         </div>

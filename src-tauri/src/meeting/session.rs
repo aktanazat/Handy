@@ -17,7 +17,11 @@ use super::loop_types::{
     MeetingLoopAssignRequest, MeetingLoopMutationResult, MeetingLoopReopenRequest,
     MeetingLoopResolveRequest, MeetingLoopsResult,
 };
-use super::processing::{MeetingProcessingService, ProcessingOrigin, QuestionGenerationRequest};
+use super::people_types::{PersonDetailResult, PersonId, PersonLinkConfidence};
+use super::processing::{
+    write_relationship_summary, MeetingProcessingService, ProcessingOrigin,
+    QuestionGenerationRequest,
+};
 use super::store::{
     InterruptedRecovery, MeetingStore, MeetingTrackWriter, RecoveredMeeting, SegmentEdit,
     StoreError, StoreMutation, StoreTransition, TrackCreation, STORE_SCHEMA_VERSION,
@@ -2208,6 +2212,40 @@ impl MeetingSessionManager {
             .map_err(map_store_error)?;
         self.emit_artifact_changed(session_id, result.loops.revision);
         Ok(result)
+    }
+
+    /// Rewrites one person's relationship paragraph now, and hands back their
+    /// page.
+    ///
+    /// The engine follows the person's most recent confirmed meeting, because
+    /// D14 routes a meeting's text by that meeting's series and this paragraph
+    /// is written out of those meetings' evidence. A person with no meeting has
+    /// no engine to pick and nothing to summarize; a Mac with no engine at all
+    /// writes nothing. Both return the page unchanged rather than an error: the
+    /// button did what it could, and the paragraph already there is still true.
+    pub async fn person_summary_regenerate(
+        &self,
+        person_id: PersonId,
+    ) -> Result<PersonDetailResult, MeetingCommandError> {
+        let store = self.store().await?;
+        let detail = store.person_detail(person_id).map_err(map_store_error)?;
+        let session_id = detail
+            .detail
+            .links
+            .iter()
+            .find(|link| link.confidence == PersonLinkConfidence::Confirmed)
+            .map(|link| link.meeting.id);
+        if let Some(session_id) = session_id {
+            if let Some(generator) = self
+                .processing
+                .text_generator_for_session(&store, session_id)
+            {
+                write_relationship_summary(&store, person_id, generator.as_ref())
+                    .map_err(map_store_error)?;
+                return store.person_detail(person_id).map_err(map_store_error);
+            }
+        }
+        Ok(detail)
     }
 
     pub async fn speaker_rename(

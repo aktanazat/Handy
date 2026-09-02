@@ -32,6 +32,11 @@ use std::collections::HashMap;
 /// a year-long calendar scan.
 pub const MAX_UPCOMING_DAYS: u32 = 30;
 
+/// How far ahead the section looks by default: today and the next seven days.
+/// D28's window, and what `sona --upcoming` reads, so a script and the pane
+/// answer the same question.
+pub const UPCOMING_DEFAULT_DAYS: u32 = 7;
+
 /// `[start, end)` in UTC milliseconds, covering today plus `days` more local
 /// calendar days.
 ///

@@ -1,4 +1,4 @@
-import type { PersonMeetingLink } from "@/bindings";
+import type { PersonListEntry, PersonMeetingLink } from "@/bindings";
 
 export const confirmedPersonLinks = (
   links: readonly PersonMeetingLink[],
@@ -39,4 +39,25 @@ export const latestConfirmedMeetingAt = (
     }
   }
   return latest;
+};
+
+/** The organizations the loaded people carry, with how many of them carry each.
+ *
+ * Derived from the list that is already on screen rather than read back from
+ * the backend: `organization` is a field on every person row, so a second
+ * command for the same fact would be a second answer to it. Sorted by name so
+ * the strip does not reorder when a meeting lands.
+ */
+export const organizationsFromEntries = (
+  entries: readonly PersonListEntry[],
+): { name: string; count: number }[] => {
+  const counts = new Map<string, number>();
+  for (const entry of entries) {
+    const organization = entry.person.organization;
+    if (organization === null) continue;
+    counts.set(organization, (counts.get(organization) ?? 0) + 1);
+  }
+  return [...counts]
+    .map(([name, count]) => ({ name, count }))
+    .sort((left, right) => left.name.localeCompare(right.name));
 };

@@ -2076,6 +2076,29 @@ async personDetail(personId: PersonId) : Promise<Result<PersonDetailResult, Meet
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * One organization page: its people, and what they collectively left open.
+ *
+ * `slug` is what `sona://organization/<slug>` carries. The store slugifies
+ * whatever it is given, so a caller holding the label a person's header shows
+ * may pass that instead of deriving the slug a second time.
+ */
+async organizationDetail(slug: string) : Promise<Result<OrganizationDetailResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("organization_detail", { slug }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async personSummaryRegenerate(personId: PersonId) : Promise<Result<PersonDetailResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("person_summary_regenerate", { personId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async personContext(personIds: PersonId[]) : Promise<Result<PersonContextResult, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("person_context", { personIds }) };
@@ -3116,7 +3139,19 @@ meeting_remote_intelligence_enabled?: boolean;
  * `consent_required` while this is false, so turning it on is the whole
  * grant. Read-only either way — nothing on that surface mutates.
  */
-external_query_enabled?: boolean }
+external_query_enabled?: boolean;
+/**
+ * D15. Whether those same outside processes may *change* the corpus —
+ * today `sona --loop-resolve <loop_id>` and the MCP tool over it.
+ *
+ * A second grant beside the read one rather than a level above it: a
+ * person who let a script read their meetings has not answered the
+ * question of whether it may close their loops, and reading the two
+ * answers off one switch would answer it for them. Off on install, and
+ * inert on its own — a mutation verb needs this row, and every read still
+ * needs the row above.
+ */
+external_mutations_enabled?: boolean }
 /**
  * Window material. `Solid` paints Sona's own surfaces edge to edge; `Glass`
  * makes the window background transparent so the native vibrancy view shows
@@ -4898,6 +4933,30 @@ export type OpenLoopsInboxResult = { schema_version: number; revision: number; e
 export type OperationActor = "user" | "system"
 export type OperationReceipt = { schema_version: number; operation_id: MeetingOperationId; session_id: MeetingSessionId | null; actor: OperationActor; command: MeetingCommandKind; expected_revision: number; from_phase: MeetingPhase | null; to_phase: MeetingPhase | null; requested_at_utc_ms: number; committed_at_utc_ms: number | null; result: OperationResult; reason_codes: MeetingReasonCode[]; new_revision: number | null; effect_ids: string[] }
 export type OperationResult = "committed" | "rejected" | "failed"
+/**
+ * One organization, read across the people who carry it.
+ *
+ * Every field is a union of what its people already answer, in the same
+ * shapes: an organization is not a stored noun in this corpus — no row, no
+ * identity, no mutation — it is the set of people whose calendar addresses
+ * landed on one domain. So this page reuses the person row, the person's
+ * meeting summary and the person's loop, and adds nothing of its own beyond
+ * the union.
+ */
+export type OrganizationDetail = {
+/**
+ * The label as its people carry it, not the slug it was looked up by.
+ */
+name: string; people: PersonListEntry[];
+/**
+ * Meetings with anybody here, newest first, deduplicated across people.
+ */
+recent_meetings: PersonMeetingSummary[];
+/**
+ * What is still open with anybody here, newest first.
+ */
+open_loops: PersonOpenLoop[] }
+export type OrganizationDetailResult = { schema_version: number; revision: number; detail: OrganizationDetail }
 export type OrtAcceleratorSetting = "auto" | "cpu" | "cuda" | "directml" | "rocm"
 export type OverlayPosition = "top" | "bottom"
 /**
@@ -4928,7 +4987,11 @@ export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_
 export type PeopleListResult = { schema_version: number; revision: number; entries: PersonListEntry[] }
 export type PeopleMutationResult = { schema_version: number; revision: number; person: Person | null; removed: boolean }
 export type PermissionAccess = "allowed" | "denied" | "unknown"
-export type Person = { id: PersonId; display_name: string; aliases: string[]; calendar_emails: string[]; organization: string | null; created_at_utc_ms: number; updated_at_utc_ms: number }
+export type Person = { id: PersonId; display_name: string; aliases: string[]; calendar_emails: string[]; organization: string | null;
+/**
+ * Absent until an artifact pass has had an engine to write it with.
+ */
+summary: PersonSummary | null; created_at_utc_ms: number; updated_at_utc_ms: number }
 export type PersonBriefingLastMeeting = { id: MeetingSessionId; title: string; at_utc_ms: number; headline: string | null }
 export type PersonBriefingRow = { person_id: PersonId; display_name: string; meetings_count: number; last: PersonBriefingLastMeeting | null; open_loops: PersonOpenLoop[]; commitments: PersonCommitment[] }
 export type PersonCommitment = { loop_id: MeetingLoopId; meeting_id: MeetingSessionId; title: string; at_utc_ms: number; text: string; status: MeetingLoopStatus;
@@ -4985,6 +5048,20 @@ carried_into_meeting_id: MeetingSessionId | null }
 export type PersonRenameRequest = { person_id: PersonId; display_name: string; expected_revision: number }
 export type PersonSplitRequest = { source_person_id: PersonId; target: PersonSplitTarget; meeting_ids: MeetingSessionId[]; aliases: string[]; calendar_emails: string[]; document_ids: DocumentId[]; expected_revision: number }
 export type PersonSplitTarget = { kind: "create"; display_name: string } | { kind: "existing"; person_id: PersonId }
+/**
+ * The relationship paragraph on a person's page: three sentences generated
+ * from that person's evidence pack, and the two facts that make it readable.
+ *
+ * One struct rather than three optional columns on [`Person`], because a
+ * paragraph with no engine behind it and an engine with no paragraph are both
+ * states the store cannot produce and no reader should have to handle.
+ */
+export type PersonSummary = { text: string; generated_at_utc_ms: number;
+/**
+ * The engine that wrote it, as [`crate::meeting::processing::MeetingTextGenerator::model_id`]
+ * reports it.
+ */
+model_id: string }
 /**
  * One paragraph of the user's own writing, injected into the rewrite prompt as
  * a voice-matching example. Samples are the user's text, so they are never
@@ -5096,7 +5173,12 @@ export type QueryLinkRequestedEvent = QueryLinkPayload
  * third channel never appears: meeting *lifecycle* navigation belongs to the
  * meeting event; opening a query-plane address belongs here.
  */
-export type QueryLinkTarget = { kind: "person"; person_id: PersonId } | { kind: "dictation"; history_id: number } |
+export type QueryLinkTarget = { kind: "person"; person_id: PersonId } |
+/**
+ * Everybody at one organization. A slug rather than an id: an
+ * organization is derived from calendar domains, not stored as a row.
+ */
+{ kind: "organization"; slug: string } | { kind: "dictation"; history_id: number } |
 /**
  * The search surface, with the question the link carried. Empty means the
  * link named no question, which is what the ⌘K chord does.

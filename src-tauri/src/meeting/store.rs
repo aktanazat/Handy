@@ -1229,6 +1229,25 @@ static MIGRATIONS: &[M] = &[
         ALTER TABLE meeting_sessions ADD COLUMN disclosure_json TEXT;
         ",
     ),
+    // The relationship paragraph a person's page reads under their name.
+    //
+    // Three columns beside `organization` rather than a table of its own: it is
+    // one paragraph per person, written by the same artifact pass that recomputes
+    // the organization, and it is as disposable as that projection — regenerating
+    // it is one model call away, so nothing here is backfilled and a person
+    // Sona has never processed a meeting for simply has none.
+    //
+    // `summary_generated_at_utc_ms` and `summary_model_id` travel with the text
+    // because a paragraph whose engine is not named cannot be read honestly: the
+    // same three sentences mean something different written on this Mac and
+    // written on the operator's own server.
+    M::up(
+        "
+        ALTER TABLE persons ADD COLUMN summary TEXT;
+        ALTER TABLE persons ADD COLUMN summary_generated_at_utc_ms INTEGER;
+        ALTER TABLE persons ADD COLUMN summary_model_id TEXT;
+        ",
+    ),
 ];
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StoreError {

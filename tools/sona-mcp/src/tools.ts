@@ -1,12 +1,16 @@
-/* The six tools, as data.
+/* The eight tools, as data.
  *
  * Each one is a name, a schema an agent reads, and the argv it becomes. The
- * mapping is 1:1 with `sona`'s read-only flags and deliberately does nothing
+ * mapping is 1:1 with `sona`'s headless flags and deliberately does nothing
  * else: no defaults invented here, no ranges re-checked here. Sona owns what a
  * scope is, what a limit may be and what a meeting id looks like, and it
  * answers a bad one with a typed JSON refusal this server passes straight
  * back. A second validator here would be a second opinion, and the two would
  * drift.
+ *
+ * Seven of them read. `sona_loop_resolve` writes, and it is gated on its own
+ * settings row rather than the read one — Sona refuses it with
+ * `consent_required` naming that row, which this server forwards unchanged.
  *
  * The only checking below is what building an argv actually requires: a
  * required string has to be there, or there is no command to run. */
@@ -260,5 +264,39 @@ export const TOOLS: readonly ToolDefinition[] = [
       text(input, "name", true),
       ...optional("--limit", count(input, "limit")),
     ],
+  },
+  {
+    name: "sona_upcoming",
+    title: "List upcoming meetings",
+    description:
+      "List today and the next seven days of calendar: each event's title, times, attendees, join link, and — for a recurring one — its series key and whether it records itself. Returns calendar_access, so an empty list under anything but 'authorized' means Sona has no calendar grant rather than a free week.",
+    inputSchema: {
+      type: "object",
+      properties: { limit: LIMIT },
+      additionalProperties: false,
+    },
+    argv: (input) => [
+      "--upcoming",
+      ...optional("--limit", count(input, "limit")),
+    ],
+  },
+  {
+    name: "sona_loop_resolve",
+    title: "Resolve a Sona loop",
+    description:
+      "Mark one loop or commitment done, and get back the operation receipt. This is the only tool here that changes anything, so it needs Settings > Agents > External mutations as well as external access; while that row is off it refuses with consent_required and names it. The receipt's result is 'committed' when the write landed and 'rejected' when the meeting moved underneath it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        loop_id: {
+          type: "string",
+          description:
+            "The loop's own address, as it appears in a sona://loop/<id> link or in the id field of a sona_action_items row.",
+        },
+      },
+      required: ["loop_id"],
+      additionalProperties: false,
+    },
+    argv: (input) => ["--loop-resolve", text(input, "loop_id", true)],
   },
 ];

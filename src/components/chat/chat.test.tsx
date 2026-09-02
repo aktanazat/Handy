@@ -742,6 +742,7 @@ const shell = (chatOpen: boolean): string => {
         meetingNavigationRequest={null}
         meetingStartRequest={0}
         personRequest={null}
+        organizationRequest={null}
         commandOpen={false}
         commandActions={[]}
         commandSeed={null}

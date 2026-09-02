@@ -13,7 +13,7 @@ use super::{
 };
 use crate::meeting::people_types::{
     PeopleMutationResult, Person, PersonId, PersonLinkConfidence, PersonLinkSource,
-    PersonSplitRequest, PersonSplitTarget,
+    PersonSplitRequest, PersonSplitTarget, PersonSummary,
 };
 use crate::meeting::store::documents::bump_document_revision_in;
 use crate::meeting::store::{MeetingStore, StoreError};
@@ -128,6 +128,7 @@ impl MeetingStore {
                     aliases: Vec::new(),
                     calendar_emails: Vec::new(),
                     organization: None,
+                    summary: None,
                     created_at_utc_ms: now_utc_ms,
                     updated_at_utc_ms: now_utc_ms,
                 };
@@ -370,6 +371,37 @@ impl MeetingStore {
         let person = person_by_id_in(&transaction, person_id)?;
         transaction.commit()?;
         Ok(mutation_result(revision, Some(person), false))
+    }
+
+    /// Writes one person's relationship paragraph.
+    ///
+    /// No fence and no revision bump, unlike every mutation above it. Those
+    /// guard *identity* — a name, a merge, a link — which two screens can
+    /// disagree about. A paragraph is a projection of meetings that have
+    /// already happened, regenerated on demand and thrown away by the next
+    /// pass, so fencing it would make an artifact finishing in the background
+    /// invalidate the rename a person is halfway through typing.
+    pub(crate) fn set_person_summary(
+        &self,
+        person_id: PersonId,
+        summary: PersonSummary,
+    ) -> Result<(), StoreError> {
+        let connection = self.connection()?;
+        let written = connection.execute(
+            "UPDATE persons
+                SET summary = ?1, summary_generated_at_utc_ms = ?2, summary_model_id = ?3
+              WHERE id = ?4",
+            params![
+                summary.text,
+                summary.generated_at_utc_ms,
+                summary.model_id,
+                person_id.uuid().to_string()
+            ],
+        )?;
+        if written == 0 {
+            return Err(StoreError::NotFound);
+        }
+        Ok(())
     }
 
     fn mutate_person_link(

@@ -29,6 +29,13 @@ pub enum DeepLinkAction {
     OpenMeeting(Uuid),
     /// `sona://person/<uuid>` — open one person's page.
     OpenPerson(Uuid),
+    /// `sona://organization/<slug>` — open the page for everybody at one
+    /// organization.
+    ///
+    /// A slug rather than a uuid because an organization is not a stored row in
+    /// this corpus: it is the set of people whose calendar addresses landed on
+    /// one domain, so its only stable address is its own name.
+    OpenOrganization(String),
     /// `sona://loop/<id>` — open the review of the meeting this loop belongs
     /// to.
     ///
@@ -106,6 +113,12 @@ pub fn parse_deep_link(raw: &str) -> Option<DeepLinkAction> {
             return None;
         };
         return uuid(person_id).map(DeepLinkAction::OpenPerson);
+    }
+    if route.eq_ignore_ascii_case("organization") {
+        let [slug] = segments[..] else {
+            return None;
+        };
+        return non_empty(slug).map(DeepLinkAction::OpenOrganization);
     }
     if route.eq_ignore_ascii_case("loop") {
         let [loop_id] = segments[..] else {
@@ -221,6 +234,10 @@ mod tests {
             parse_deep_link("sona://search?q=pricing%20tier"),
             Some(DeepLinkAction::Search("pricing tier".to_string()))
         );
+        assert_eq!(
+            parse_deep_link("sona://organization/acme"),
+            Some(DeepLinkAction::OpenOrganization("acme".to_string()))
+        );
     }
 
     #[test]
@@ -251,6 +268,9 @@ mod tests {
         assert_eq!(parse_deep_link("sona://dictation/0"), None);
         assert_eq!(parse_deep_link("sona://dictation/-3"), None);
         assert_eq!(parse_deep_link("sona://dictation"), None);
+        assert_eq!(parse_deep_link("sona://organization"), None);
+        assert_eq!(parse_deep_link("sona://organization/"), None);
+        assert_eq!(parse_deep_link("sona://organization/acme/extra"), None);
     }
 
     /// The plane builds these strings and this table parses them. A round trip
@@ -291,6 +311,10 @@ mod tests {
             Some(DeepLinkAction::Search(
                 "what did I promise Steven?".to_string()
             ))
+        );
+        assert_eq!(
+            parse_deep_link(&crate::query::organization_link("Acme")),
+            Some(DeepLinkAction::OpenOrganization("acme".to_string()))
         );
     }
 

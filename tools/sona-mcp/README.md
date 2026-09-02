@@ -1,14 +1,16 @@
 # sona-mcp
 
-A read-only MCP server over Sona's meeting corpus. Six tools, stdio transport,
-no state: each call spawns the installed Sona binary with one of its read-only
+An MCP server over Sona's meeting corpus. Eight tools, stdio transport, no
+state: each call spawns the installed Sona binary with one of its headless
 flags and hands the JSON back.
 
-Everything it can reach is behind one switch. **Settings > Agents > External
-access** is off on install, and while it is off every tool refuses with
-`consent_required` and says where the switch is. Nothing on this surface
-writes — there is no tool here that can change a meeting, resolve a loop, or
-rename a person.
+Everything it can reach is behind consent rows that are off on install.
+**Settings > Agents > External access** gates the seven reads; while it is off
+they refuse with `consent_required` and say where the switch is. The one tool
+that writes — `sona_loop_resolve` — needs **Settings > Agents > External
+mutations** as well, which is a separate row: letting a script read your
+meetings is not agreeing to let it close your loops. Nothing else on this
+surface writes.
 
 ## Install
 
@@ -45,6 +47,8 @@ claude mcp add sona --env SONA_BIN=/path/to/sona/src-tauri/target/debug/sona \
 | `sona_transcript`   | `meeting_id`                 | `sona --transcript <id>`                        |
 | `sona_action_items` | `status?`, `side?`, `limit?` | `sona --loops [--status …] [--mine\|--waiting]` |
 | `sona_people`       | `name`, `limit?`             | `sona --people <name> [--limit …]`              |
+| `sona_upcoming`     | `limit?`                     | `sona --upcoming [--limit …]`                   |
+| `sona_loop_resolve` | `loop_id`                    | `sona --loop-resolve <loop_id>` — **writes**    |
 
 `scope` is one of `all`, `meetings`, `dictations`, `people`, `loops`. `status`
 is `open` or `done`. `side` is `mine` (what you owe) or `waiting` (what

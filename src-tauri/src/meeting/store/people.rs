@@ -10,7 +10,7 @@ pub(super) use queries::{calendar_context_in, continuity_summary_in};
 pub(super) use vocabulary::vocabulary_candidates_in;
 
 use super::StoreError;
-use crate::meeting::people_types::{Person, PersonId};
+use crate::meeting::people_types::{Person, PersonId, PersonSummary};
 use rusqlite::{Connection, OptionalExtension};
 use std::collections::HashSet;
 use uuid::Uuid;
@@ -51,7 +51,8 @@ pub(super) fn person_by_id_in(
     connection
         .query_row(
             "SELECT id, display_name, aliases_json, calendar_emails_json,
-                    organization, created_at_utc_ms, updated_at_utc_ms
+                    organization, created_at_utc_ms, updated_at_utc_ms,
+                    summary, summary_generated_at_utc_ms, summary_model_id
                FROM persons WHERE id = ?1",
             [person_id.uuid().to_string()],
             person_from_row,
@@ -63,7 +64,8 @@ pub(super) fn person_by_id_in(
 pub(super) fn all_people_in(connection: &Connection) -> Result<Vec<Person>, StoreError> {
     let mut statement = connection.prepare(
         "SELECT id, display_name, aliases_json, calendar_emails_json,
-                organization, created_at_utc_ms, updated_at_utc_ms
+                organization, created_at_utc_ms, updated_at_utc_ms,
+                summary, summary_generated_at_utc_ms, summary_model_id
            FROM persons ORDER BY display_name COLLATE NOCASE, id",
     )?;
     let people = statement
@@ -87,8 +89,27 @@ fn person_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Person> {
         aliases,
         calendar_emails,
         organization: row.get(4)?,
+        summary: person_summary_from_row(row)?,
         created_at_utc_ms: row.get(5)?,
         updated_at_utc_ms: row.get(6)?,
+    })
+}
+
+/// The three summary columns as one value, or `None` while the person has no
+/// paragraph. A row with some of the three present and some absent is a state
+/// the writer cannot produce, so it reads as no summary rather than as a
+/// corruption a person's page would refuse to load over.
+fn person_summary_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Option<PersonSummary>> {
+    let text: Option<String> = row.get(7)?;
+    let generated_at_utc_ms: Option<i64> = row.get(8)?;
+    let model_id: Option<String> = row.get(9)?;
+    Ok(match (text, generated_at_utc_ms, model_id) {
+        (Some(text), Some(generated_at_utc_ms), Some(model_id)) => Some(PersonSummary {
+            text,
+            generated_at_utc_ms,
+            model_id,
+        }),
+        _ => None,
     })
 }
 

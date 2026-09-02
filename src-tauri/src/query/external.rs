@@ -37,26 +37,32 @@ use super::{
 };
 use crate::cli::CliArgs;
 use crate::managers::history::HistoryManager;
+use crate::meeting::detection::calendar::{CalendarAccess, CalendarSource};
 use crate::meeting::loop_types::{
-    MeetingLoopDirection, MeetingLoopKind, MeetingLoopRow, MeetingLoopStatus,
+    MeetingLoopDirection, MeetingLoopId, MeetingLoopKind, MeetingLoopResolution,
+    MeetingLoopResolveRequest, MeetingLoopRow, MeetingLoopStatus,
 };
 use crate::meeting::people_types::{PersonListEntry, PersonMeetingHeadline};
 use crate::meeting::session::MeetingSessionManager;
 use crate::meeting::store::MeetingStore;
 use crate::meeting::types::{
-    EffectiveTranscriptSegment, MeetingHistoryHeadline, MeetingHistorySummary, MeetingListFilter,
-    MeetingPhase, MeetingReviewSnapshot, MeetingSessionId,
+    EffectiveTranscriptSegment, MeetingCommandError, MeetingHistoryHeadline, MeetingHistorySummary,
+    MeetingListFilter, MeetingOperationId, MeetingPhase, MeetingReviewSnapshot, MeetingSessionId,
+    OperationReceipt, OperationResult,
 };
+use crate::meeting::upcoming::{upcoming_window, UPCOMING_DEFAULT_DAYS};
+use crate::meeting::upcoming_types::MeetingUpcomingRow;
 use crate::settings::AppSettings;
 use chrono::{Local, NaiveDate, TimeZone};
 use serde::Serialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Where a person turns this on. Named in the refusal so an agent that is
+/// Where a person turns each scope on. Named in the refusal so an agent that is
 /// refused can say where to click; written once so the CLI, the MCP server and
-/// the settings row cannot drift apart about what the row is called.
+/// the settings rows cannot drift apart about what the rows are called.
 pub const EXTERNAL_ACCESS_SETTING_PATH: &str = "Settings > Agents > External access";
+pub const EXTERNAL_MUTATIONS_SETTING_PATH: &str = "Settings > Agents > External mutations";
 
 /// How many rows a verb returns when the caller names no limit, and the most
 /// it will return when they name a large one. The plane's own page sizes,
@@ -70,23 +76,63 @@ const MAX_LIMIT: usize = 100;
 /// what a person who closes loops will ever have.
 const LOOP_SCAN_DEPTH: usize = 500;
 
-/// Whether the operator has opened the corpus to processes outside this app.
+/// What a verb needs the operator to have allowed.
 ///
-/// A two-state type rather than a `bool` because it is the only thing standing
-/// between an agent on this Mac and every meeting on it, and a `true` at a
-/// callsite says nothing about which `true` it is.
+/// Two scopes rather than one, and not a ladder: reading the corpus and
+/// changing it are different questions, and a person who let a script read
+/// their meetings has not said whether it may close their loops. A `Mutate`
+/// verb therefore checks its own row and only its own row — there is no state
+/// in which mutations are on and this surface silently reads more than the read
+/// row allows, because every read verb is `Read` and asks for that one.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ExternalConsent {
-    Granted,
-    Withheld,
+pub enum ExternalScope {
+    Read,
+    Mutate,
+}
+
+impl ExternalScope {
+    /// The settings row that opens this scope.
+    const fn settings_path(self) -> &'static str {
+        match self {
+            Self::Read => EXTERNAL_ACCESS_SETTING_PATH,
+            Self::Mutate => EXTERNAL_MUTATIONS_SETTING_PATH,
+        }
+    }
+
+    /// What the refusal says. Whole sentences rather than a fragment stitched
+    /// into one template: each scope names a different row and grants a
+    /// different thing, and this copy is what an agent repeats to its human.
+    const fn refusal(self) -> &'static str {
+        match self {
+            Self::Read => "External access is off. Turn on Settings > Agents > External access in Sona to allow read-only corpus queries.",
+            Self::Mutate => "External mutations are off. Turn on Settings > Agents > External mutations in Sona to allow changes to the corpus.",
+        }
+    }
+}
+
+/// Which scopes the operator has opened to processes outside this app.
+///
+/// One value carrying both answers rather than a `bool` per callsite, because
+/// it is the only thing standing between an agent on this Mac and every meeting
+/// on it, and a `true` at a callsite says nothing about which `true` it is.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ExternalConsent {
+    reads: bool,
+    mutations: bool,
 }
 
 impl ExternalConsent {
     pub fn from_settings(settings: &AppSettings) -> Self {
-        if settings.external_query_enabled {
-            Self::Granted
-        } else {
-            Self::Withheld
+        Self {
+            reads: settings.external_query_enabled,
+            mutations: settings.external_mutations_enabled,
+        }
+    }
+
+    const fn allows(self, scope: ExternalScope) -> bool {
+        match scope {
+            ExternalScope::Read => self.reads,
+            ExternalScope::Mutate => self.mutations,
         }
     }
 }
@@ -96,8 +142,8 @@ impl ExternalConsent {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ExternalErrorCode {
-    /// External access is off. The one refusal that is a choice rather than a
-    /// fault, which is why it carries the settings path.
+    /// The scope this verb needs is off. The one refusal that is a choice
+    /// rather than a fault, which is why it carries the settings path.
     ConsentRequired,
     /// The corpus cannot be opened: the OS keychain is locked or refused, or
     /// meeting storage failed to mount.
@@ -144,14 +190,12 @@ impl ExternalError {
         }
     }
 
-    fn consent_required() -> Self {
+    fn consent_required(scope: ExternalScope) -> Self {
         Self {
             schema_version: QUERY_SCHEMA_VERSION,
             error: ExternalErrorCode::ConsentRequired,
-            message: format!(
-                "External access is off. Turn on {EXTERNAL_ACCESS_SETTING_PATH} in Sona to allow read-only corpus queries."
-            ),
-            settings_path: Some(EXTERNAL_ACCESS_SETTING_PATH),
+            message: scope.refusal().to_string(),
+            settings_path: Some(scope.settings_path()),
         }
     }
 
@@ -193,7 +237,7 @@ pub enum ExternalLoopSide {
     WaitingOn,
 }
 
-/// One read the corpus can answer, after the flags have been checked.
+/// One thing the corpus can answer or do, after the flags have been checked.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExternalRequest {
     Search {
@@ -227,23 +271,43 @@ pub enum ExternalRequest {
         after_id: Option<String>,
         limit: usize,
     },
+    Upcoming {
+        limit: usize,
+    },
+    /// The one verb here that writes.
+    LoopResolve {
+        loop_id: MeetingLoopId,
+    },
 }
 
-/// A read the operator has allowed.
-///
-/// The gate is this type rather than a check inside [`answer`]: the only way
-/// to obtain one is [`AllowedRead::new`], which takes the consent, so there is
-/// no signature in this module that reads the corpus without one having been
-/// presented. A future verb cannot forget the check, because it cannot be
-/// called without it.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AllowedRead(ExternalRequest);
+impl ExternalRequest {
+    /// Which grant this verb needs. The whole write/read split, in one match:
+    /// adding a verb without answering this question does not compile.
+    pub const fn scope(&self) -> ExternalScope {
+        match self {
+            Self::LoopResolve { .. } => ExternalScope::Mutate,
+            _ => ExternalScope::Read,
+        }
+    }
+}
 
-impl AllowedRead {
+/// A request the operator has allowed.
+///
+/// The gate is this type rather than a check inside [`answer`]: the only way to
+/// obtain one is [`AllowedRequest::new`], which takes the consent and asks the
+/// request which scope it needs, so there is no signature in this module that
+/// touches the corpus without one having been presented. A future verb cannot
+/// forget the check, because it cannot be called without it.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AllowedRequest(ExternalRequest);
+
+impl AllowedRequest {
     pub fn new(consent: ExternalConsent, request: ExternalRequest) -> Result<Self, ExternalError> {
-        match consent {
-            ExternalConsent::Granted => Ok(Self(request)),
-            ExternalConsent::Withheld => Err(ExternalError::consent_required()),
+        let scope = request.scope();
+        if consent.allows(scope) {
+            Ok(Self(request))
+        } else {
+            Err(ExternalError::consent_required(scope))
         }
     }
 
@@ -252,7 +316,8 @@ impl AllowedRead {
     }
 }
 
-/// Whether this invocation is a corpus read rather than a dictation run.
+/// Whether this invocation is the headless corpus surface rather than a
+/// dictation run.
 ///
 /// Read by `is_headless_mode` and by the headless branch that decides which
 /// managers to build, so it has to answer without touching the corpus.
@@ -264,6 +329,8 @@ pub fn is_external_query(args: &CliArgs) -> bool {
         || args.loops
         || args.people.is_some()
         || args.events
+        || args.upcoming
+        || args.loop_resolve.is_some()
 }
 
 impl ExternalRequest {
@@ -331,8 +398,16 @@ impl ExternalRequest {
                 limit,
             });
         }
+        if args.upcoming {
+            return Ok(Self::Upcoming { limit });
+        }
+        if let Some(value) = args.loop_resolve.as_ref() {
+            return Ok(Self::LoopResolve {
+                loop_id: loop_id(value)?,
+            });
+        }
         Err(ExternalError::invalid(
-            "No read was named. Pass one of --query, --meetings, --meeting, --transcript, --loops, --people, --events.",
+            "No verb was named. Pass one of --query, --meetings, --meeting, --transcript, --loops, --people, --events, --upcoming, --loop-resolve.",
         ))
     }
 }
@@ -341,6 +416,20 @@ fn session_id(value: &str) -> Result<MeetingSessionId, ExternalError> {
     Uuid::parse_str(value.trim())
         .map(MeetingSessionId::from_uuid)
         .map_err(|_| ExternalError::invalid(format!("{value:?} is not a meeting id.")))
+}
+
+/// A loop's own address, checked as far as this surface can see: the meeting it
+/// names has to be a uuid. The rest of the id is the ledger's business, which is
+/// where a digest that matches nothing becomes a `not_found`.
+fn loop_id(value: &str) -> Result<MeetingLoopId, ExternalError> {
+    let value = value.trim();
+    let malformed = || ExternalError::invalid(format!("{value:?} is not a loop id."));
+    let id = MeetingLoopId(value.to_string());
+    id.session_id().ok_or_else(malformed)?;
+    if id.content_key().is_none_or(str::is_empty) {
+        return Err(malformed());
+    }
+    Ok(id)
 }
 
 /// Midnight local time on `date`, as UTC milliseconds.
@@ -491,6 +580,54 @@ pub struct ExternalPeoplePage {
     pub has_more: bool,
 }
 
+/// One event in the week ahead.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ExternalUpcomingRow {
+    /// The occurrence's own key, which is what starts this specific event.
+    pub event_key: String,
+    pub title: String,
+    pub start_utc_ms: i64,
+    pub end_utc_ms: i64,
+    /// Participants the calendar named, the operator's own entry excluded.
+    pub attendees: Vec<String>,
+    /// Participants including the ones the calendar refused to name, so it can
+    /// exceed `attendees.len()`.
+    pub attendee_count: u32,
+    pub calendar_name: Option<String>,
+    pub join_url: Option<String>,
+    /// Present exactly when the event repeats.
+    pub series_key: Option<String>,
+    /// A standing grant covers this series, so its occurrences record
+    /// themselves. `false` for a one-off, which has no series to grant.
+    pub always_record: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ExternalUpcomingPage {
+    pub schema_version: u32,
+    /// Whether the calendar is readable at all. An empty list under
+    /// `authorized` is a free week; an empty list under anything else is a
+    /// missing grant, and a reader has to be able to tell them apart.
+    pub calendar_access: CalendarAccess,
+    pub window_start_utc_ms: i64,
+    pub window_end_utc_ms: i64,
+    pub entries: Vec<ExternalUpcomingRow>,
+    pub has_more: bool,
+}
+
+/// One mutation, as it is printed.
+///
+/// The receipt is the store's own [`OperationReceipt`], verbatim rather than
+/// projected — unlike every row above it. A receipt is not a view of a noun, it
+/// is the audit record of a write, and an outside reader that got a reshaped
+/// copy could not compare what it did against what the app's own event stream
+/// says it did.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ExternalReceipt {
+    pub schema_version: u32,
+    pub receipt: OperationReceipt,
+}
+
 /// One answer. Serialised untagged: the verb is what the caller asked for, so
 /// repeating it in the payload would be a field nobody reads.
 #[derive(Clone, Debug, Serialize)]
@@ -503,20 +640,47 @@ pub enum ExternalResponse {
     Loops(ExternalLoopsPage),
     People(ExternalPeoplePage),
     Events(QueryEventsPage),
+    Upcoming(ExternalUpcomingPage),
+    LoopResolve(ExternalReceipt),
 }
 
-/// Answer one read the operator has allowed.
+impl ExternalResponse {
+    /// The process exit code this answer leaves.
+    ///
+    /// Zero for every read, and for a write that landed. One for a write the
+    /// fence rejected — which is an *answer*, not a refusal, so the receipt
+    /// still goes to stdout and stderr stays empty. Without this a shell doing
+    /// `sona --loop-resolve … && …` would read a rejected write as a closed
+    /// loop, and the only thing telling it otherwise would be a JSON field it
+    /// has to parse.
+    const fn exit_code(&self) -> i32 {
+        match self {
+            Self::LoopResolve(answer) => match answer.receipt.result {
+                OperationResult::Committed => 0,
+                _ => 1,
+            },
+            _ => 0,
+        }
+    }
+}
+
+/// Answer one request the operator has allowed.
 ///
-/// The five store projections are this module's; `search` and `events` are the
+/// The store projections are this module's; `search` and `events` are the
 /// plane's own pages, handed back unchanged, because a thin client that
 /// reshaped them would be a second answer to a question
 /// [`crate::query`] has already answered.
+///
+/// `calendar` is a collaborator rather than something looked up here because
+/// this process builds no detection loop: `--upcoming` needs the calendar and
+/// nothing else detection owns, and the headless branch hands over exactly that.
 pub async fn answer(
-    read: &AllowedRead,
+    allowed: &AllowedRequest,
     meetings: &Arc<MeetingSessionManager>,
     history: &Arc<HistoryManager>,
+    calendar: &dyn CalendarSource,
 ) -> Result<ExternalResponse, ExternalError> {
-    match read.request() {
+    match allowed.request() {
         ExternalRequest::Search {
             scope,
             query,
@@ -559,6 +723,12 @@ pub async fn answer(
             name,
             *limit,
         )?)),
+        ExternalRequest::Upcoming { limit } => Ok(ExternalResponse::Upcoming(
+            upcoming_page(meetings, calendar, *limit).await?,
+        )),
+        ExternalRequest::LoopResolve { loop_id } => Ok(ExternalResponse::LoopResolve(
+            resolve_loop(meetings, loop_id).await?,
+        )),
     }
 }
 
@@ -569,6 +739,116 @@ async fn store(meetings: &Arc<MeetingSessionManager>) -> Result<Arc<MeetingStore
         .store()
         .await
         .map_err(|error| QueryError::from(error).into())
+}
+
+/// The week ahead, as the Meetings home reads it, projected for an outside
+/// reader.
+///
+/// The window is the pane's own — today plus [`UPCOMING_DEFAULT_DAYS`] more
+/// local days — so a script and the screen answer the same question. `--limit`
+/// cuts the rows rather than the window: a reader asking for three wants the
+/// next three, not the next three days.
+///
+/// The calendar read blocks. It runs inline because this process has one job and
+/// this is it, unlike `meeting_upcoming_events`, which is answering a window in
+/// front of a webview.
+async fn upcoming_page(
+    meetings: &Arc<MeetingSessionManager>,
+    calendar: &dyn CalendarSource,
+    limit: usize,
+) -> Result<ExternalUpcomingPage, ExternalError> {
+    let window = upcoming_window(Local::now(), UPCOMING_DEFAULT_DAYS);
+    let occurrences = calendar.events_between(window.0, window.1);
+    let events = meetings
+        .upcoming_events(calendar.access(), window, occurrences)
+        .await
+        .map_err(|error| ExternalError::from(QueryError::from(error)))?;
+    let has_more = events.rows.len() > limit;
+    Ok(ExternalUpcomingPage {
+        schema_version: QUERY_SCHEMA_VERSION,
+        calendar_access: events.access,
+        window_start_utc_ms: events.window_start_utc_ms,
+        window_end_utc_ms: events.window_end_utc_ms,
+        entries: events
+            .rows
+            .into_iter()
+            .take(limit)
+            .map(upcoming_row)
+            .collect(),
+        has_more,
+    })
+}
+
+fn upcoming_row(row: MeetingUpcomingRow) -> ExternalUpcomingRow {
+    ExternalUpcomingRow {
+        event_key: row.event_key,
+        title: row.title,
+        start_utc_ms: row.start_utc_ms,
+        end_utc_ms: row.end_utc_ms,
+        attendees: row
+            .attendees
+            .into_iter()
+            .filter(|attendee| !attendee.is_self)
+            .map(|attendee| attendee.name)
+            .collect(),
+        attendee_count: row.attendee_count,
+        calendar_name: row.calendar_name,
+        join_url: row.join_url,
+        series_key: row.series.as_ref().map(|series| series.series_key.clone()),
+        always_record: row.series.is_some_and(|series| series.always_record),
+    }
+}
+
+/// Mark one loop done through the app's own resolve path.
+///
+/// Two steps because a mutation on this surface is fenced like every other one:
+/// the loop rows of the meeting are read to learn the revision the write must
+/// match, and the write is refused if the meeting moved in between. A CLI holds
+/// no revision across invocations, so reading it immediately before is the only
+/// honest fence available — and a rejection comes back as the receipt saying so
+/// rather than as a silent overwrite.
+async fn resolve_loop(
+    meetings: &Arc<MeetingSessionManager>,
+    loop_id: &MeetingLoopId,
+) -> Result<ExternalReceipt, ExternalError> {
+    let session_id = loop_id
+        .session_id()
+        .ok_or_else(|| ExternalError::invalid("That loop id names no meeting."))?;
+    let loops = meetings
+        .loops_list(session_id)
+        .await
+        .map_err(command_error(session_id.uuid()))?;
+    if !loops.rows.iter().any(|row| &row.loop_id == loop_id) {
+        return Err(ExternalError::new(
+            ExternalErrorCode::NotFound,
+            format!("No loop {} in this corpus.", loop_id.as_str()),
+        ));
+    }
+    let result = meetings
+        .loop_resolve(MeetingLoopResolveRequest {
+            operation_id: MeetingOperationId::new(),
+            loop_id: loop_id.clone(),
+            expected_revision: loops.revision,
+            resolution: MeetingLoopResolution::Done,
+        })
+        .await
+        .map_err(command_error(session_id.uuid()))?;
+    Ok(ExternalReceipt {
+        schema_version: QUERY_SCHEMA_VERSION,
+        receipt: result.receipt,
+    })
+}
+
+/// A meeting command's refusal, as this surface reports it. `NotFound` is the
+/// one that means something specific to a caller holding an id.
+fn command_error(session: Uuid) -> impl Fn(MeetingCommandError) -> ExternalError {
+    move |error| match error {
+        MeetingCommandError::NotFound => ExternalError::new(
+            ExternalErrorCode::NotFound,
+            format!("No meeting {session} in this corpus."),
+        ),
+        error => QueryError::from(error).into(),
+    }
 }
 
 /// One page of retained meetings, newest first.
@@ -870,7 +1150,8 @@ fn speaker_names(snapshot: &MeetingReviewSnapshot) -> Vec<String> {
         .collect()
 }
 
-/// Run one external read for the headless CLI, and report a process exit code.
+/// Run one external request for the headless CLI, and report a process exit
+/// code.
 ///
 /// Stdout carries exactly one JSON value on success; stderr carries exactly
 /// one JSON object on failure. Nothing else is printed on either, which is
@@ -881,20 +1162,21 @@ pub fn run_cli(app: &tauri::AppHandle, args: &CliArgs) -> i32 {
 
     let outcome = ExternalRequest::from_args(args)
         .and_then(|request| {
-            AllowedRead::new(
+            AllowedRequest::new(
                 ExternalConsent::from_settings(&crate::settings::get_settings(app)),
                 request,
             )
         })
-        .and_then(|read| {
+        .and_then(|allowed| {
             let meetings = app.state::<Arc<MeetingSessionManager>>();
             let history = app.state::<Arc<HistoryManager>>();
-            tauri::async_runtime::block_on(answer(&read, &meetings, &history))
+            let calendar = crate::meeting::detection::calendar::platform_calendar();
+            tauri::async_runtime::block_on(answer(&allowed, &meetings, &history, calendar.as_ref()))
         });
     let printed = match outcome {
         Ok(response) => serde_json::to_string(&response).map(|json| {
             println!("{json}");
-            0
+            response.exit_code()
         }),
         Err(error) => serde_json::to_string(&error).map(|json| {
             eprintln!("{json}");
@@ -925,6 +1207,10 @@ mod tests {
 
     const MEETING: &str = "1e1a5f0e-0000-4000-8000-000000000001";
 
+    /// The loop id `--loop-resolve` is given in the tests below: any meeting
+    /// uuid plus a content key, which is all this surface checks.
+    const LOOP: &str = "1e1a5f0e-0000-4000-8000-000000000001:loop:0123456789abcdef";
+
     fn parse(argv: &[&str]) -> CliArgs {
         let mut command = vec!["sona"];
         command.extend_from_slice(argv);
@@ -932,15 +1218,25 @@ mod tests {
     }
 
     fn request(argv: &[&str]) -> ExternalRequest {
-        ExternalRequest::from_args(&parse(argv)).expect("these flags name a read")
+        ExternalRequest::from_args(&parse(argv)).expect("these flags name a request")
     }
 
     fn refusal(argv: &[&str]) -> ExternalError {
         ExternalRequest::from_args(&parse(argv)).expect_err("these flags are refused")
     }
 
+    /// The consent as the settings rows leave it: reads on, mutations on or
+    /// off. Built from the real defaults so the test cannot disagree with the
+    /// switches about what a fresh install allows.
+    fn consent(reads: bool, mutations: bool) -> ExternalConsent {
+        let mut settings = crate::settings::get_default_settings();
+        settings.external_query_enabled = reads;
+        settings.external_mutations_enabled = mutations;
+        ExternalConsent::from_settings(&settings)
+    }
+
     #[test]
-    fn every_verb_names_its_own_read() {
+    fn every_verb_names_its_own_request() {
         assert_eq!(
             request(&["--query", "dana"]),
             ExternalRequest::Search {
@@ -989,6 +1285,18 @@ mod tests {
             ExternalRequest::Events {
                 after_id: None,
                 limit: DEFAULT_LIMIT,
+            }
+        );
+        assert_eq!(
+            request(&["--upcoming"]),
+            ExternalRequest::Upcoming {
+                limit: DEFAULT_LIMIT,
+            }
+        );
+        assert_eq!(
+            request(&["--loop-resolve", LOOP]),
+            ExternalRequest::LoopResolve {
+                loop_id: MeetingLoopId(LOOP.to_string()),
             }
         );
     }
@@ -1085,6 +1393,9 @@ mod tests {
             vec!["--transcript", "not-a-uuid"],
             vec!["--meetings", "--from", "yesterday", "--to", "2026-06-10"],
             vec!["--meetings", "--from", "2026-06-10", "--to", "2026-06-32"],
+            vec!["--loop-resolve", "not-a-loop"],
+            vec!["--loop-resolve", "loop:0123456789abcdef"],
+            vec!["--loop-resolve", MEETING],
         ] {
             let refused = refusal(&argv);
             assert_eq!(refused.error, ExternalErrorCode::InvalidRequest, "{argv:?}");
@@ -1101,6 +1412,9 @@ mod tests {
             vec!["--meetings", "--loops"],
             vec!["--query", "dana", "--events"],
             vec!["--loops", "--mine", "--waiting"],
+            vec!["--upcoming", "--loops"],
+            vec!["--loop-resolve", LOOP, "--upcoming"],
+            vec!["--loop-resolve", LOOP, "--query", "dana"],
             vec!["--scope", "people"],
             vec!["--status", "open"],
             vec!["--after", "abc"],
@@ -1130,8 +1444,8 @@ mod tests {
     /// through: a machine token it can branch on, and the settings row a human
     /// has to click.
     #[test]
-    fn a_withheld_consent_refuses_before_any_read() {
-        let refused = AllowedRead::new(ExternalConsent::Withheld, request(&["--query", "dana"]))
+    fn a_withheld_read_consent_refuses_before_any_read() {
+        let refused = AllowedRequest::new(consent(false, false), request(&["--query", "dana"]))
             .expect_err("external access is off");
 
         assert_eq!(
@@ -1148,11 +1462,11 @@ mod tests {
 
     #[test]
     fn a_granted_consent_carries_the_read_through() {
-        let read = AllowedRead::new(ExternalConsent::Granted, request(&["--loops", "--mine"]))
+        let allowed = AllowedRequest::new(consent(true, false), request(&["--loops", "--mine"]))
             .expect("external access is on");
 
         assert_eq!(
-            read.request(),
+            allowed.request(),
             &ExternalRequest::Loops {
                 status: None,
                 side: Some(ExternalLoopSide::Mine),
@@ -1161,12 +1475,41 @@ mod tests {
         );
     }
 
+    /// The whole point of the second row: a person who opened their corpus to
+    /// readers has not agreed to a script closing their loops, so the write
+    /// verb is refused on its own row and names that row rather than the read
+    /// one.
+    #[test]
+    fn reading_the_corpus_does_not_grant_changing_it() {
+        let refused = AllowedRequest::new(consent(true, false), request(&["--loop-resolve", LOOP]))
+            .expect_err("external mutations are off");
+
+        assert_eq!(refused.error, ExternalErrorCode::ConsentRequired);
+        assert_eq!(
+            refused.settings_path,
+            Some(EXTERNAL_MUTATIONS_SETTING_PATH),
+            "the refusal names the row that is off, not the one that is on"
+        );
+        assert!(
+            AllowedRequest::new(consent(true, true), request(&["--loop-resolve", LOOP])).is_ok()
+        );
+    }
+
+    /// And the other direction: the mutation row alone opens nothing to read.
+    #[test]
+    fn changing_the_corpus_does_not_grant_reading_it() {
+        let refused = AllowedRequest::new(consent(false, true), request(&["--meetings"]))
+            .expect_err("external access is off");
+
+        assert_eq!(refused.settings_path, Some(EXTERNAL_ACCESS_SETTING_PATH));
+    }
+
     /// Every refusal but the consent one is a fault rather than a choice, so
     /// only the consent refusal points at a switch.
     #[test]
     fn only_the_consent_refusal_names_a_settings_row() {
         assert_eq!(
-            ExternalError::consent_required().settings_path,
+            ExternalError::consent_required(ExternalScope::Read).settings_path,
             Some(EXTERNAL_ACCESS_SETTING_PATH)
         );
         assert_eq!(
@@ -1181,19 +1524,35 @@ mod tests {
     }
 
     #[test]
-    fn the_settings_switch_is_what_grants_access() {
-        let mut settings = crate::settings::get_default_settings();
-        assert_eq!(
-            ExternalConsent::from_settings(&settings),
-            ExternalConsent::Withheld,
-            "a fresh install is closed"
-        );
+    fn a_fresh_install_grants_neither_scope() {
+        let settings = crate::settings::get_default_settings();
+        let fresh = ExternalConsent::from_settings(&settings);
 
-        settings.external_query_enabled = true;
+        assert!(!fresh.allows(ExternalScope::Read));
+        assert!(!fresh.allows(ExternalScope::Mutate));
+        assert!(consent(true, false).allows(ExternalScope::Read));
+        assert!(consent(false, true).allows(ExternalScope::Mutate));
+    }
 
+    /// Which grant each verb asks for, in one place: everything reads except
+    /// the one flag that writes.
+    #[test]
+    fn only_loop_resolve_asks_for_the_mutation_scope() {
+        for argv in [
+            vec!["--query", "dana"],
+            vec!["--meetings"],
+            vec!["--meeting", MEETING],
+            vec!["--transcript", MEETING],
+            vec!["--loops"],
+            vec!["--people", "Dana"],
+            vec!["--events"],
+            vec!["--upcoming"],
+        ] {
+            assert_eq!(request(&argv).scope(), ExternalScope::Read, "{argv:?}");
+        }
         assert_eq!(
-            ExternalConsent::from_settings(&settings),
-            ExternalConsent::Granted
+            request(&["--loop-resolve", LOOP]).scope(),
+            ExternalScope::Mutate
         );
     }
 }

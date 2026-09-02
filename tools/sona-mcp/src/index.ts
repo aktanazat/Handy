@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
-/* The stdio MCP server over Sona's read-only query surface.
+/* The stdio MCP server over Sona's headless query surface.
  *
- * Transport and nothing else: the six tools are data in `tools.ts`, running
+ * Transport and nothing else: the eight tools are data in `tools.ts`, running
  * the binary is `cli.ts`, and this file is what turns a `tools/call` into an
  * argv and a refusal into an MCP error. Everything an agent reads here came
  * out of Sona a moment ago; this server holds no state between calls.
@@ -18,7 +18,7 @@ import {
 import { runSona, SonaCliError } from "./cli.ts";
 import { SonaInputError, TOOL_INPUT, TOOLS } from "./tools.ts";
 
-/** The server, wired to the six tools and to nothing else.
+/** The server, wired to the eight tools and to nothing else.
  *
  * Construction is separated from `connect` so a test can hold this server on
  * an in-memory transport. That is not ceremony: the ESM link between this file

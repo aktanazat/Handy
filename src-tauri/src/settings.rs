@@ -1281,6 +1281,17 @@ pub struct AppSettings {
     /// grant. Read-only either way — nothing on that surface mutates.
     #[serde(default)]
     pub external_query_enabled: bool,
+    /// D15. Whether those same outside processes may *change* the corpus —
+    /// today `sona --loop-resolve <loop_id>` and the MCP tool over it.
+    ///
+    /// A second grant beside the read one rather than a level above it: a
+    /// person who let a script read their meetings has not answered the
+    /// question of whether it may close their loops, and reading the two
+    /// answers off one switch would answer it for them. Off on install, and
+    /// inert on its own — a mutation verb needs this row, and every read still
+    /// needs the row above.
+    #[serde(default)]
+    pub external_mutations_enabled: bool,
 }
 
 fn default_model() -> String {
@@ -1867,6 +1878,7 @@ pub fn get_default_settings() -> AppSettings {
         meeting_digest_minute_of_day: default_meeting_digest_minute_of_day(),
         meeting_remote_intelligence_enabled: false,
         external_query_enabled: false,
+        external_mutations_enabled: false,
     };
     settings.modes = default_modes(&settings);
     ensure_mode_settings(&mut settings);

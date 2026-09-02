@@ -3,16 +3,21 @@ use crate::query::QueryScope;
 use clap::{ArgGroup, Parser};
 use std::path::PathBuf;
 
-/* The read-only corpus flags below are one verb per invocation, so they live
- * in a clap group rather than in seven pairwise `conflicts_with`es: the group
- * is what makes `sona --meetings --loops` a usage error clap words itself,
- * and what keeps the list in one place when an eighth verb arrives. Their
- * modifiers hang off the verb they belong to with `requires`, so a flag that
- * cannot mean anything on its own says so instead of being ignored. */
+/* The corpus flags below are one verb per invocation, so they live in a clap
+ * group rather than in pairwise `conflicts_with`es: the group is what makes
+ * `sona --meetings --loops` a usage error clap words itself, and what keeps
+ * the list in one place when the next verb arrives. Their modifiers hang off
+ * the verb they belong to with `requires`, so a flag that cannot mean anything
+ * on its own says so instead of being ignored.
+ *
+ * All but one of them read. `--loop-resolve` writes, and the group is why it
+ * cannot be smuggled in beside a read: one verb, one consent scope, one
+ * answer. */
 #[derive(Parser, Debug, Clone, Default)]
 #[command(name = "sona", about = "Sona — speech to text")]
 #[command(group(ArgGroup::new("read").args([
     "query", "meetings", "meeting", "transcript", "loops", "people", "events",
+    "upcoming", "loop_resolve",
 ])))]
 #[command(group(ArgGroup::new("loop_side").args(["mine", "waiting"])))]
 pub struct CliArgs {
@@ -140,6 +145,17 @@ pub struct CliArgs {
     /// List what has happened to the corpus, newest first, as JSON.
     #[arg(long)]
     pub events: bool,
+
+    /// List today and the next seven days of calendar as JSON — the rows the
+    /// Meetings home shows, with each recurring one's series decisions.
+    #[arg(long)]
+    pub upcoming: bool,
+
+    /// Mark one loop done and print the receipt as JSON. The one flag on this
+    /// surface that writes, so it needs its own consent row on top of the read
+    /// one: Settings > Agents > External mutations.
+    #[arg(long, value_name = "LOOP_ID")]
+    pub loop_resolve: Option<String>,
 
     /// Resume --events after this event id.
     #[arg(long, value_name = "EVENT_ID", requires = "events")]

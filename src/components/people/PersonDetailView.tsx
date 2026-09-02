@@ -16,6 +16,7 @@ import { PersonEvidence } from "./PersonEvidence";
 import { PersonHeader } from "./PersonHeader";
 import { PersonCommitments, PersonOpenLoops } from "./PersonLedgerSections";
 import { PersonMeetings } from "./PersonMeetings";
+import { PersonSummarySection } from "./PersonSummarySection";
 import {
   confirmedPersonLinks,
   latestConfirmedMeetingAt,
@@ -41,6 +42,11 @@ export interface PersonDetailViewProps {
   onDeleteDocument: (document: Document) => void;
   /** Opens the meeting a line came from. Every ledger line is a link to one. */
   onOpenMeeting: (meetingId: string) => void;
+  /** Opens the page for the organization the header names. Absent in the
+   * person dialog, which has nowhere to put one. */
+  onOpenOrganization?: (organization: string) => void;
+  /** Rewrites the relationship paragraph under the header. */
+  onRegenerateSummary: () => void;
 }
 
 export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
@@ -59,6 +65,8 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
   onImportDocument,
   onDeleteDocument,
   onOpenMeeting,
+  onOpenOrganization,
+  onRegenerateSummary,
 }) => {
   const { t } = useTranslation();
   const confirmedLinks = confirmedPersonLinks(detail.links);
@@ -100,13 +108,21 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
           onMerge={onMerge}
           onDelete={onDelete}
           onSplit={onSplit}
+          onOpenOrganization={onOpenOrganization}
         />
       }
     >
-      {/* The page reads as one catalogue: the meetings you have had, what is
-       * still open out of them, and how Sona connected this person to any of
-       * it. The measured summary and imported context sit after that, because
-       * a chart is not something you read aloud first. */}
+      {/* The paragraph first: three sentences about who this is to you, which
+       * is what the rest of the page is evidence for. Then the catalogue — the
+       * meetings you have had, what is still open out of them, and how Sona
+       * connected this person to any of it. The measured summary and imported
+       * context sit after that, because a chart is not something you read
+       * aloud first. */}
+      <PersonSummarySection
+        summary={detail.person.summary}
+        pending={pending}
+        onRegenerate={onRegenerateSummary}
+      />
       <PersonMeetings
         links={detail.links}
         pending={pending}
