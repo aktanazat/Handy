@@ -2,6 +2,7 @@ use crate::meeting::analytics::MeetingNotesTemplate;
 use crate::meeting::loop_types::MeetingLoopId;
 use crate::meeting::people_types::PersonId;
 use crate::meeting::types::{MeetingSessionId, SpeakerId};
+use crate::query::tools::{ToolCall, TOOL_ARGS};
 use crate::settings::{EnglishSpelling, OverlayPosition, OverlayStyle, Theme};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -78,6 +79,15 @@ pub(crate) const MAX_ACTION_REASON_BYTES: usize = 512;
 /// The widest free-text field an action may carry: a vocabulary term, its
 /// written form, a speaker's new name.
 pub(crate) const MAX_ACTION_TEXT_BYTES: usize = 256;
+/// How many lookups one `tool_calls` reply may ask for, and how many replies
+/// of that kind one turn may make before the panel ends it. Mirrored by
+/// `MAX_SONA_TOOL_CALLS` in `omp_bridge/sona_chat.py`; the round cap is the
+/// panel's own, because the relay never sees a whole turn.
+pub(crate) const MAX_TOOL_CALLS_PER_ROUND: usize = 4;
+pub(crate) const MAX_TOOL_ROUNDS: usize = 3;
+/// A call id is the model's own label for a lookup, echoed back beside its
+/// result. Mirrored by `MAX_SONA_TOOL_CALL_ID_CHARS`.
+const MAX_TOOL_CALL_ID_CHARS: usize = 32;
 
 const PROPOSAL_SCHEMA_JSON: &str = r#"{"$id":"SonaConfigProposalV1","type":"object","additionalProperties":false,"required":["version","summary","rationale","actions","follow_up_question","source_settings_revision"],"properties":{"version":{"const":"SonaConfigProposalV1"},"summary":{"type":"string","minLength":1,"maxLength":2048},"rationale":{"type":"string","minLength":1,"maxLength":4096},"actions":{"type":"array","maxItems":32,"items":{"type":"object","additionalProperties":false,"required":["key","value"],"properties":{"key":{"enum":["audio_feedback","audio_output_device_id","audio_volume","default_transcription_model","language","local_retention_period","material_preference","microphone_excluded_ids","microphone_favorite_order","microphone_id","mode_selection","mode_toggles","mute_while_recording","overlay_position","overlay_style","spelling_behavior","start_hidden","theme","tray_visibility","update_note_visibility"]},"value":{"type":["string","number","boolean","array","object"]}}}},"follow_up_question":{"type":["string","null"],"maxLength":2048},"source_settings_revision":{"type":"integer","minimum":0}}}"#;
 
@@ -274,10 +284,11 @@ pub struct SonaChatTurnV2 {
     pub user_message: String,
     pub recent_turns: Vec<SonaAgentChatTurnV1>,
     pub context_pack: Option<String>,
-    /// Whether the worker may put this operator's MCP servers in front of the
-    /// model for this one turn. Per-turn and never remembered: the composer
-    /// toggle resets after every send, so tools are something the reader turns
-    /// on for a question rather than a mode the app is left in.
+    /// Whether the model may ask this Mac to run Sona tools during this turn
+    /// (`query::tools`). The name and wire type are the ones the relay
+    /// already checks; the meaning moved from "the worker's own MCP servers",
+    /// which the worker never had, to lookups that run here. True for every
+    /// Ask turn under the consent gate, false for a settings turn.
     pub tools_allowed: bool,
     pub locale: String,
     pub app_version: String,
@@ -338,6 +349,15 @@ impl PanelTurnV1 {
         match self {
             Self::Config(_) => None,
             Self::Chat(turn) => turn.context_pack.as_deref(),
+        }
+    }
+
+    /// Whether this turn let the model ask for Sona tools. A config turn
+    /// never does: its workspace has no tools to offer.
+    pub(crate) const fn tools_allowed(&self) -> bool {
+        match self {
+            Self::Config(_) => false,
+            Self::Chat(turn) => turn.tools_allowed,
         }
     }
 
@@ -561,7 +581,7 @@ fn names(pack: Option<&str>, id: &str) -> bool {
 }
 
 /// What a finished job returned. `kind` is required and fail-closed: a
-/// response that does not say which of the two things it is, is not one of
+/// response that does not say which of the three things it is, is not one of
 /// them.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -581,12 +601,22 @@ pub(crate) enum SonaAgentResponseV1 {
         #[serde(default)]
         steps: Vec<SonaAgentStepV1>,
     },
+    /// Not an answer: the lookups the model wants run before it answers. The
+    /// panel runs them, appends the results to the pack, and submits the same
+    /// turn again; the reader sees only the steps.
+    ToolCalls {
+        calls: Vec<ToolCall>,
+        #[serde(default)]
+        steps: Vec<SonaAgentStepV1>,
+    },
 }
 
 impl SonaAgentResponseV1 {
     pub(crate) fn steps(&self) -> &[SonaAgentStepV1] {
         match self {
-            Self::Text { steps, .. } | Self::Proposal { steps, .. } => steps,
+            Self::Text { steps, .. }
+            | Self::Proposal { steps, .. }
+            | Self::ToolCalls { steps, .. } => steps,
         }
     }
 
@@ -625,6 +655,39 @@ impl SonaAgentResponseV1 {
                  * said it would do. */
                 for action in actions {
                     action.validate(turn.context_pack())?;
+                }
+                Ok(())
+            }
+            /* A lookup request is only meaningful on a turn that offered
+             * lookups: the assistant asking for a tool on a turn that sent
+             * no grant is claiming a permission it was never given. The
+             * checks on the calls are the relay's own, mirrored: a call the
+             * relay would have refused fails here the way a bad signature
+             * does, and one it would have passed is not refused here either.
+             * The one addition is that an id carries no control byte, since
+             * it is written verbatim on a line of the pack. Ids need not be
+             * unique: the steps are keyed by position, and the pack echoes
+             * each id beside its own result. The arguments are not checked
+             * here; every bound on them is enforced where they are run, in
+             * `query::tools::run`, and a bad one comes back to the model as
+             * an error rather than ending the turn. */
+            (Self::ToolCalls { calls, .. }, AgentPanelWorkspaceV1::SonaChat) => {
+                if !turn.tools_allowed() {
+                    return Err(ProposalValidationError::ToolsNotAllowed);
+                }
+                if calls.is_empty() || calls.len() > MAX_TOOL_CALLS_PER_ROUND {
+                    return Err(ProposalValidationError::TooManyToolCalls);
+                }
+                for call in calls {
+                    let id_chars = call.id.chars().count();
+                    if id_chars == 0
+                        || id_chars > MAX_TOOL_CALL_ID_CHARS
+                        || call.id.chars().any(char::is_control)
+                        || !TOOL_ARGS.iter().any(|(name, _)| *name == call.tool)
+                        || !call.args.is_object()
+                    {
+                        return Err(ProposalValidationError::InvalidToolCall);
+                    }
                 }
                 Ok(())
             }
@@ -684,6 +747,13 @@ pub(crate) enum ProposalValidationError {
     /// own pack never showed it.
     ForeignActionId,
     WorkspaceMismatch,
+    /// A `tool_calls` reply on a turn that sent no tools grant.
+    ToolsNotAllowed,
+    /// No calls, or more than [`MAX_TOOL_CALLS_PER_ROUND`].
+    TooManyToolCalls,
+    /// A call with an empty, oversized or control-bearing id, a tool outside
+    /// the catalogue, or arguments that are not an object.
+    InvalidToolCall,
 }
 
 impl SonaAgentTurnV1 {
@@ -1435,6 +1505,107 @@ mod tests {
             settings_change.validate(&chat, &allowed),
             Err(ProposalValidationError::WorkspaceMismatch)
         );
+    }
+
+    fn tool_calls(calls: Vec<ToolCall>) -> SonaAgentResponseV1 {
+        SonaAgentResponseV1::ToolCalls {
+            calls,
+            steps: Vec::new(),
+        }
+    }
+
+    fn lookup(id: &str, tool: &str, args: serde_json::Value) -> ToolCall {
+        ToolCall {
+            id: id.to_string(),
+            tool: tool.to_string(),
+            args,
+        }
+    }
+
+    #[test]
+    fn a_tool_calls_reply_round_trips_and_carries_no_message() {
+        let reply = tool_calls(vec![lookup(
+            "c1",
+            "word_stats",
+            serde_json::json!({"days": 90}),
+        )]);
+        let encoded = serde_json::to_value(&reply).expect("tool calls serialize");
+        assert_eq!(encoded["kind"], "tool_calls");
+        assert_eq!(encoded["calls"][0]["tool"], "word_stats");
+        assert!(encoded.get("message").is_none());
+        assert_eq!(
+            serde_json::from_value::<SonaAgentResponseV1>(encoded).expect("round-trips"),
+            reply
+        );
+        assert!(
+            serde_json::from_str::<SonaAgentResponseV1>(
+                r#"{"kind":"tool_calls","calls":[{"id":"c1","tool":"search","args":{},"extra":1}]}"#
+            )
+            .is_err(),
+            "a call with a field outside the shape is refused at the decode"
+        );
+    }
+
+    /// The grant is the turn's, so the reply is checked against the turn.
+    #[test]
+    fn a_tool_calls_reply_needs_the_turns_grant_and_a_catalogued_tool() {
+        let (snapshot, names) = snapshot();
+        let allowed = snapshot.allowed_values(&names);
+        let mut granted = chat_turn();
+        granted.tools_allowed = true;
+        let granted = PanelTurnV1::Chat(granted);
+        let ungranted = PanelTurnV1::Chat(chat_turn());
+        let config = PanelTurnV1::Config(config_turn());
+        let one = tool_calls(vec![lookup(
+            "c1",
+            "search",
+            serde_json::json!({"query": "deck"}),
+        )]);
+
+        assert_eq!(one.validate(&granted, &allowed), Ok(()));
+        assert_eq!(
+            one.validate(&ungranted, &allowed),
+            Err(ProposalValidationError::ToolsNotAllowed)
+        );
+        assert_eq!(
+            one.validate(&config, &allowed),
+            Err(ProposalValidationError::WorkspaceMismatch)
+        );
+
+        assert_eq!(
+            tool_calls(Vec::new()).validate(&granted, &allowed),
+            Err(ProposalValidationError::TooManyToolCalls)
+        );
+        let five = tool_calls(
+            (0..5)
+                .map(|index| lookup(&format!("c{index}"), "activity", serde_json::json!({})))
+                .collect(),
+        );
+        assert_eq!(
+            five.validate(&granted, &allowed),
+            Err(ProposalValidationError::TooManyToolCalls)
+        );
+        for bad in [
+            lookup("c1", "summarize", serde_json::json!({})),
+            lookup("", "search", serde_json::json!({})),
+            lookup(&"c".repeat(33), "search", serde_json::json!({})),
+            lookup("c\n1", "search", serde_json::json!({})),
+            lookup("c1", "search", serde_json::json!([])),
+        ] {
+            assert_eq!(
+                tool_calls(vec![bad.clone()]).validate(&granted, &allowed),
+                Err(ProposalValidationError::InvalidToolCall),
+                "{bad:?}"
+            );
+        }
+        /* What the relay passes, the panel passes: an id is any 1 to 32
+         * characters, spaces included, and two calls may share one. */
+        let lax = tool_calls(vec![
+            lookup("call 1", "search", serde_json::json!({})),
+            lookup("call 1", "recent", serde_json::json!({})),
+            lookup(&"ü".repeat(32), "activity", serde_json::json!({})),
+        ]);
+        assert_eq!(lax.validate(&granted, &allowed), Ok(()));
     }
 
     #[test]

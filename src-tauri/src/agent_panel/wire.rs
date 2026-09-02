@@ -49,12 +49,15 @@ impl AgentPanelTurnStateV1 {
 /// Relay errors and a relay-reported `FAILED` job collapse onto three reasons,
 /// because each asks the reader to do something different. The relay's own
 /// error text stays on the relay: it is not localized copy for this column.
+/// `TooManyLookups` is the panel's own: the model asked for a fourth round of
+/// Sona tools, and the turn ended here rather than on the relay.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum AgentPanelTurnFailureV1 {
     Unreachable,
     Refused,
     Failed,
+    TooManyLookups,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -116,6 +119,11 @@ pub struct AgentPanelStepV1 {
     pub started_after_ms: i64,
     /// `None` while the step is still running.
     pub ended_after_ms: Option<i64>,
+    /// The Sona tool this step ran, for a step the panel made itself while
+    /// answering a `tool_calls` reply. The sheet names it in the reader's
+    /// language; `label` carries the tool name as the fallback. `None` on a
+    /// step the relay reported.
+    pub tool: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]

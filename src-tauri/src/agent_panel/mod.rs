@@ -8,14 +8,18 @@ pub(crate) mod protocol;
 mod relay;
 mod wire;
 
+use crate::managers::history::HistoryManager;
+use crate::meeting::detection::calendar::CalendarSource;
+use crate::meeting::session::MeetingSessionManager;
+use crate::query::tools::{self, ToolCall, ToolResult};
 use actions::{ActionUndo, AppliedAction};
 use config::{AppliedSettings, ConfigError, SettingUndo};
 use protocol::{
     AgentPanelWorkspaceV1, PanelTurnV1, SonaAgentChatRoleV1, SonaAgentChatTurnV1,
     SonaAgentResponseV1, SonaAgentStepStateV1, SonaAgentStepV1, SonaAgentTurnV1,
     SonaAllowedValuesV1, SonaChatActionV1, SonaChatTurnV2, SonaConfigProposalV1,
-    SonaConfirmationClassV1, SonaSettingChangeV1, MAX_RECENT_TURNS, MAX_RECENT_TURN_BYTES,
-    SONA_AGENT_TURN_VERSION, SONA_CHAT_TURN_VERSION,
+    SonaConfirmationClassV1, SonaSettingChangeV1, MAX_CONTEXT_PACK_BYTES, MAX_RECENT_TURNS,
+    MAX_RECENT_TURN_BYTES, MAX_TOOL_ROUNDS, SONA_AGENT_TURN_VERSION, SONA_CHAT_TURN_VERSION,
 };
 use relay::{
     validate_pairing, RelayClient, RelayError, RelayEvent, RelayJob, RelayJobFailure,
@@ -132,6 +136,9 @@ struct ActiveTurn {
     job_id: Option<String>,
     state: AgentPanelTurnStateV1,
     event_cursor: u64,
+    /// A mover has this turn: a submission is in flight, or a tool round is
+    /// running and will resubmit when it is done. Holds a second submission
+    /// and a relay cancel off until it clears.
     submitting: bool,
     cancel_requested: bool,
     last_progress: Instant,
@@ -140,6 +147,16 @@ struct ActiveTurn {
     failure: Option<AgentPanelTurnFailureV1>,
     steps: Vec<AgentPanelStepV1>,
     actions: Vec<StoredAction>,
+    /// How many `tool_calls` replies this turn has answered so far. The
+    /// fourth ends the turn.
+    tool_rounds: usize,
+    /// The lookups the last reply asked for, waiting to be run. Taken by
+    /// `run_tool_round`; empty between rounds.
+    pending_calls: Vec<ToolCall>,
+    /// The pack the sheet sent, before any tool results were appended to
+    /// it. A retry of this turn from the sheet carries the sheet's pack, and
+    /// is matched against this rather than against the grown one.
+    base_pack: Option<String>,
 }
 
 impl ActiveTurn {
@@ -214,6 +231,7 @@ fn merge_steps(held: &mut Vec<AgentPanelStepV1>, reported: &[SonaAgentStepV1], e
                 state: step.state,
                 started_after_ms: elapsed_ms,
                 ended_after_ms: (!running).then_some(elapsed_ms),
+                tool: None,
             }),
         }
     }
@@ -566,6 +584,7 @@ impl AgentPanelManager {
                 message: turn.user_message().to_string(),
             });
             state.proposal = None;
+            let base_pack = turn.context_pack().map(str::to_string);
             state.turn = Some(ActiveTurn {
                 turn_id: turn.turn_id().to_string(),
                 workspace: turn.workspace(),
@@ -583,6 +602,9 @@ impl AgentPanelManager {
                 failure: None,
                 steps: Vec::new(),
                 actions: Vec::new(),
+                tool_rounds: 0,
+                pending_calls: Vec::new(),
+                base_pack,
             });
             state.invalidate()
         };
@@ -614,65 +636,223 @@ impl AgentPanelManager {
         if active.workspace != request.workspace
             || active.request.user_message() != request.message
             || active.request.locale() != request.locale
-            || active.request.context_pack() != request.context_pack.as_deref()
+            || active.base_pack.as_deref() != request.context_pack.as_deref()
         {
             return Err(AgentPanelCommandErrorV1::InvalidRequest);
         }
         Ok(Some(active.job_id.is_none() && !active.submitting))
     }
 
+    /// Submit the active turn, and keep submitting it while the relay answers
+    /// with lookups: a `tool_calls` reply is run here and the same turn goes
+    /// back with its results in the pack. A loop rather than a recursive
+    /// call, because an async method cannot call itself without boxing and
+    /// the rounds are a sequence, not a tree.
     async fn submit_active_turn(&self, turn_id: &str) -> Result<(), AgentPanelCommandErrorV1> {
-        let submission = {
-            let mut state = self.lock_state();
-            let (idempotency_key, request, turn_state) = {
-                let active = state
-                    .turn
-                    .as_mut()
-                    .filter(|active| active.turn_id == turn_id)
-                    .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?;
-                if active.job_id.is_some() || active.submitting {
-                    return Ok(());
-                }
-                active.submitting = true;
-                active.set_state(if active.cancel_requested {
-                    AgentPanelTurnStateV1::Canceling
-                } else {
-                    AgentPanelTurnStateV1::Submitting
-                });
-                (
-                    active.idempotency_key.clone(),
-                    active.request.clone(),
-                    active.state,
-                )
-            };
-            let invalidation_id = state.invalidate();
-            (idempotency_key, request, invalidation_id, turn_state)
-        };
-        self.emit_turn(submission.2, Some(turn_id.to_string()), Some(submission.3));
-
-        let result = match RelayClient::from_settings(&self.app, self.nonce_cache.clone()).await {
-            Ok(client) => client.submit_turn(&submission.0, &submission.1).await,
-            Err(error) => Err(error),
-        };
-        match result {
-            Ok(job) => {
-                let follow_up = self.accept_job(turn_id, job)?;
-                if follow_up.auto_apply {
-                    if let Some(proposal_id) = follow_up.proposal_id.as_deref() {
-                        self.apply_safe_appearance_proposal(proposal_id)?;
+        loop {
+            let submission = {
+                let mut state = self.lock_state();
+                let (idempotency_key, request, turn_state) = {
+                    let active = state
+                        .turn
+                        .as_mut()
+                        .filter(|active| active.turn_id == turn_id)
+                        .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?;
+                    if active.job_id.is_some() || active.submitting {
+                        return Ok(());
                     }
+                    active.submitting = true;
+                    active.set_state(if active.cancel_requested {
+                        AgentPanelTurnStateV1::Canceling
+                    } else {
+                        AgentPanelTurnStateV1::Submitting
+                    });
+                    (
+                        active.idempotency_key.clone(),
+                        active.request.clone(),
+                        active.state,
+                    )
+                };
+                let invalidation_id = state.invalidate();
+                (idempotency_key, request, invalidation_id, turn_state)
+            };
+            self.emit_turn(submission.2, Some(turn_id.to_string()), Some(submission.3));
+
+            let result = match RelayClient::from_settings(&self.app, self.nonce_cache.clone()).await
+            {
+                Ok(client) => client.submit_turn(&submission.0, &submission.1).await,
+                Err(error) => Err(error),
+            };
+            let job = match result {
+                Ok(job) => job,
+                Err(error) => {
+                    self.record_relay_error(turn_id, error, true);
+                    return Err(map_relay_error(error));
                 }
-                if follow_up.cancel_requested {
-                    self.cancel_known_turn(turn_id).await?;
-                } else if !follow_up.terminal {
-                    self.start_polling();
+            };
+            let follow_up = self.accept_job(turn_id, job)?;
+            if follow_up.auto_apply {
+                if let Some(proposal_id) = follow_up.proposal_id.as_deref() {
+                    self.apply_safe_appearance_proposal(proposal_id)?;
                 }
-                Ok(())
             }
+            if follow_up.cancel_requested {
+                self.cancel_known_turn(turn_id).await?;
+                return Ok(());
+            }
+            if follow_up.tool_calls {
+                if self.run_tool_round(turn_id).await? {
+                    continue;
+                }
+                return Ok(());
+            }
+            if !follow_up.terminal {
+                self.start_polling();
+            }
+            return Ok(());
+        }
+    }
+
+    /// Answer the lookups the last reply asked for, and ready the turn to go
+    /// back to the relay with their results. `Ok(true)` when it should be
+    /// submitted again; `Ok(false)` when the turn ended here instead, because
+    /// the reader stopped it or the model asked for a fourth round.
+    ///
+    /// The lookups run one after another, without the panel lock: each is a
+    /// store read of at most a few milliseconds, and the meeting store is one
+    /// connection behind a mutex anyway. A cancel that lands while they run
+    /// has nothing to send the relay, since the job that asked is done and
+    /// the next one was never made, so the round ends the turn itself.
+    async fn run_tool_round(&self, turn_id: &str) -> Result<bool, AgentPanelCommandErrorV1> {
+        let (calls, round, invalidation_id) = {
+            let mut state = self.lock_state();
+            let active = state
+                .turn
+                .as_mut()
+                .filter(|active| active.turn_id == turn_id)
+                .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?;
+            if active.state.is_terminal() {
+                return Ok(false);
+            }
+            if active.cancel_requested {
+                active.submitting = false;
+                active.set_state(AgentPanelTurnStateV1::Canceled);
+                let invalidation_id = state.invalidate();
+                self.emit_turn(
+                    invalidation_id,
+                    Some(turn_id.to_string()),
+                    Some(AgentPanelTurnStateV1::Canceled),
+                );
+                return Ok(false);
+            }
+            let round = active.tool_rounds + 1;
+            if round > MAX_TOOL_ROUNDS {
+                active.pending_calls.clear();
+                active.submitting = false;
+                active.fail(AgentPanelTurnFailureV1::TooManyLookups);
+                let invalidation_id = state.invalidate();
+                self.emit_turn(
+                    invalidation_id,
+                    Some(turn_id.to_string()),
+                    Some(AgentPanelTurnStateV1::Failed),
+                );
+                return Ok(false);
+            }
+            let calls = std::mem::take(&mut active.pending_calls);
+            let elapsed_ms = active.elapsed_ms();
+            for (index, call) in calls.iter().enumerate() {
+                active.steps.push(AgentPanelStepV1 {
+                    id: tool_step_id(round, index),
+                    label: call.tool.clone(),
+                    state: SonaAgentStepStateV1::Running,
+                    started_after_ms: elapsed_ms,
+                    ended_after_ms: None,
+                    tool: Some(call.tool.clone()),
+                });
+            }
+            (calls, round, state.invalidate())
+        };
+        self.emit_turn(
+            invalidation_id,
+            Some(turn_id.to_string()),
+            Some(AgentPanelTurnStateV1::Running),
+        );
+
+        let mut results = Vec::with_capacity(calls.len());
+        for call in &calls {
+            results.push(self.run_tool(call).await);
+        }
+        let idempotency_key = match relay::new_idempotency_key() {
+            Ok(key) => key,
             Err(error) => {
                 self.record_relay_error(turn_id, error, true);
-                Err(map_relay_error(error))
+                return Err(map_relay_error(error));
             }
+        };
+
+        let (invalidation_id, turn_state) = {
+            let mut state = self.lock_state();
+            let active = state
+                .turn
+                .as_mut()
+                .filter(|active| active.turn_id == turn_id)
+                .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?;
+            let elapsed_ms = active.elapsed_ms();
+            for (index, result) in results.iter().enumerate() {
+                let id = tool_step_id(round, index);
+                if let Some(step) = active.steps.iter_mut().find(|step| step.id == id) {
+                    step.state = if result.ok {
+                        SonaAgentStepStateV1::Done
+                    } else {
+                        SonaAgentStepStateV1::Failed
+                    };
+                    step.ended_after_ms = Some(elapsed_ms);
+                }
+            }
+            active.submitting = false;
+            if active.cancel_requested {
+                active.set_state(AgentPanelTurnStateV1::Canceled);
+                (state.invalidate(), AgentPanelTurnStateV1::Canceled)
+            } else {
+                if let PanelTurnV1::Chat(turn) = &mut active.request {
+                    turn.context_pack = Some(append_tool_block(
+                        turn.context_pack.as_deref().unwrap_or_default(),
+                        round,
+                        &calls,
+                        &results,
+                    ));
+                }
+                active.tool_rounds = round;
+                active.idempotency_key = idempotency_key;
+                active.event_cursor = 0;
+                active.last_progress = Instant::now();
+                active.set_state(AgentPanelTurnStateV1::Submitting);
+                (state.invalidate(), AgentPanelTurnStateV1::Submitting)
+            }
+        };
+        self.emit_turn(invalidation_id, Some(turn_id.to_string()), Some(turn_state));
+        Ok(turn_state == AgentPanelTurnStateV1::Submitting)
+    }
+
+    /// One lookup against the corpus this Mac holds. The handles are the
+    /// app's managed state; a process without them (a headless run that never
+    /// built a meeting manager) answers every call with one line of error, so
+    /// the model reads that and stops asking.
+    async fn run_tool(&self, call: &ToolCall) -> ToolResult {
+        let meetings = self.app.try_state::<Arc<MeetingSessionManager>>();
+        let history = self.app.try_state::<Arc<HistoryManager>>();
+        let calendar = self.app.try_state::<Arc<dyn CalendarSource>>();
+        match (meetings, history, calendar) {
+            (Some(meetings), Some(history), Some(calendar)) => {
+                tools::run(meetings.inner(), history.inner(), calendar.inner(), call).await
+            }
+            _ => ToolResult {
+                id: call.id.clone(),
+                tool: call.tool.clone(),
+                ok: false,
+                result: "Sona tools are not available in this process".to_string(),
+                sources: Vec::new(),
+            },
         }
     }
 
@@ -790,7 +970,7 @@ impl AgentPanelManager {
 
         let (invalidation_id, turn_state, proposal_event, follow_up) = {
             let mut state = self.lock_state();
-            let (cancel_requested, turn_state, allowed) = {
+            let (cancel_requested, turn_state, allowed, tool_calls) = {
                 let active = state
                     .turn
                     .as_mut()
@@ -803,10 +983,41 @@ impl AgentPanelManager {
                 {
                     return Err(AgentPanelCommandErrorV1::OwnershipRejected);
                 }
-                active.job_id = Some(job_id);
-                active.submitting = false;
                 active.last_progress = Instant::now();
-                active.set_state(turn_state_for_job(&relay_state, active.cancel_requested));
+                let lookups = match response.as_ref() {
+                    Some(SonaAgentResponseV1::ToolCalls { calls, .. })
+                        if relay_state == RelayJobStateV1::Succeeded =>
+                    {
+                        Some(calls)
+                    }
+                    _ => None,
+                };
+                match lookups {
+                    /* A finished job whose answer is a list of lookups has
+                     * not finished the turn, and the turn is done with the
+                     * job: nothing polls it again, and a cancel has nothing
+                     * left to send the relay, so one that already landed
+                     * ends the turn here. Otherwise the caller's tool round
+                     * is what carries the turn back to the relay, which is
+                     * what `submitting` says: it holds a second mover off
+                     * until the round has resubmitted. */
+                    Some(calls) => {
+                        active.job_id = None;
+                        active.pending_calls.clone_from(calls);
+                        if active.cancel_requested {
+                            active.submitting = false;
+                            active.set_state(AgentPanelTurnStateV1::Canceled);
+                        } else {
+                            active.submitting = true;
+                            active.set_state(AgentPanelTurnStateV1::Running);
+                        }
+                    }
+                    None => {
+                        active.job_id = Some(job_id);
+                        active.submitting = false;
+                        active.set_state(turn_state_for_job(&relay_state, active.cancel_requested));
+                    }
+                }
                 if let Some(failure) = failure {
                     active.failure.get_or_insert(turn_failure_for_job(failure));
                 }
@@ -824,6 +1035,7 @@ impl AgentPanelManager {
                     active.cancel_requested,
                     active.state,
                     active.allowed.clone(),
+                    lookups.is_some(),
                 )
             };
             state.relay_status = AgentPanelRelayStatusV1::Ready;
@@ -863,7 +1075,9 @@ impl AgentPanelManager {
                     proposal_event = Some((proposal_id, AgentPanelProposalStateV1::Pending));
                     auto_apply = auto_apply_enabled && all_safe_appearance;
                 }
-                None => {}
+                /* Nothing was said: the model asked for lookups, and the
+                 * caller runs them. */
+                Some(SonaAgentResponseV1::ToolCalls { .. }) | None => {}
             }
             let invalidation_id = state.invalidate();
             let follow_up = JobFollowUp {
@@ -871,6 +1085,7 @@ impl AgentPanelManager {
                 auto_apply,
                 cancel_requested,
                 terminal: turn_state.is_terminal(),
+                tool_calls,
             };
             (invalidation_id, turn_state, proposal_event, follow_up)
         };
@@ -1420,6 +1635,67 @@ struct JobFollowUp {
     auto_apply: bool,
     cancel_requested: bool,
     terminal: bool,
+    /// The job finished with lookups to run rather than an answer.
+    tool_calls: bool,
+}
+
+/// The step id of one lookup: the round and the call's position in it. Not
+/// the model's call id, which the relay does not hold unique, so two calls
+/// that share one are still two rows.
+fn tool_step_id(round: usize, index: usize) -> String {
+    format!("tool-{round}-{index}")
+}
+
+/// The pack with one round's results appended, inside the panel's ceiling.
+///
+/// The block is what the relay's prompt describes: a round header, then one
+/// `call` line per lookup followed by its result as JSON or its one-line
+/// error. When the whole block does not fit under [`MAX_CONTEXT_PACK_BYTES`],
+/// results are cut from the last call backwards, each replaced by a line
+/// saying so, and the header says the block was cut; a model that answered
+/// from a silently shortened block would say "the lookup returned nothing".
+/// A pack too full for even the header is returned unchanged.
+fn append_tool_block(
+    pack: &str,
+    round: usize,
+    calls: &[ToolCall],
+    results: &[ToolResult],
+) -> String {
+    let render = |kept: usize| {
+        let mut block = format!(
+            "tool results round {round} of {MAX_TOOL_ROUNDS}{}",
+            if kept < results.len() { " (cut)" } else { "" }
+        );
+        for (index, (call, result)) in calls.iter().zip(results).enumerate() {
+            // Compact JSON escapes every control byte, so the args stay on
+            // their line whatever the model put in a string.
+            let args = serde_json::to_string(&call.args).unwrap_or_else(|_| "{}".to_string());
+            block.push_str(&format!(
+                "\ncall {} {} {args} {}\n{}",
+                result.id,
+                result.tool,
+                if result.ok { "ok" } else { "error" },
+                if index < kept {
+                    result.result.as_str()
+                } else {
+                    "result cut at the pack ceiling"
+                }
+            ));
+        }
+        block
+    };
+    let separator = usize::from(!pack.is_empty()) * 2;
+    for kept in (0..=results.len()).rev() {
+        let block = render(kept);
+        if pack.len() + separator + block.len() <= MAX_CONTEXT_PACK_BYTES {
+            return if pack.is_empty() {
+                block
+            } else {
+                format!("{pack}\n\n{block}")
+            };
+        }
+    }
+    pack.to_string()
 }
 
 async fn poll_loop(app: AppHandle, generation: u64) {
@@ -1483,6 +1759,17 @@ async fn poll_once(app: &AppHandle, plan: &PollPlan) -> Result<(), AgentPanelCom
     if follow_up.cancel_requested {
         let manager = app.state::<AgentPanelManager>();
         manager.cancel_known_turn(&plan.turn_id).await?;
+        return Ok(());
+    }
+    if follow_up.tool_calls {
+        let manager = app.state::<AgentPanelManager>();
+        if manager.run_tool_round(&plan.turn_id).await? {
+            /* A resubmission that fails records its reason on the turn before
+             * returning, as the first submission did; handed to the loop, the
+             * error would stamp the turn a second time, as a protocol
+             * failure, over a relay that was merely unreachable. */
+            let _ = manager.submit_active_turn(&plan.turn_id).await;
+        }
         return Ok(());
     }
     let events = match client.get_events(&plan.job_id, plan.event_cursor).await {
@@ -1647,8 +1934,11 @@ pub(crate) async fn run_chat_turn(
     match response {
         SonaAgentResponseV1::Text { message, .. } => Ok(message),
         /* Unreachable through `validate`, which refuses a proposal from the
-         * chat workspace. Written out rather than unwrapped. */
-        SonaAgentResponseV1::Proposal { .. } => Err(ChatTurnError::Failed),
+         * chat workspace and lookups on a turn that sent no grant. Written
+         * out rather than unwrapped. */
+        SonaAgentResponseV1::Proposal { .. } | SonaAgentResponseV1::ToolCalls { .. } => {
+            Err(ChatTurnError::Failed)
+        }
     }
 }
 
@@ -2073,6 +2363,99 @@ mod tests {
     fn terminal_turns_do_not_poll() {
         assert!(AgentPanelTurnStateV1::Succeeded.is_terminal());
         assert!(!AgentPanelTurnStateV1::Running.is_terminal());
+    }
+
+    fn lookup(id: &str, tool: &str, args: serde_json::Value) -> ToolCall {
+        ToolCall {
+            id: id.to_string(),
+            tool: tool.to_string(),
+            args,
+        }
+    }
+
+    fn outcome(id: &str, tool: &str, ok: bool, result: &str) -> ToolResult {
+        ToolResult {
+            id: id.to_string(),
+            tool: tool.to_string(),
+            ok,
+            result: result.to_string(),
+            sources: Vec::new(),
+        }
+    }
+
+    /// The block is the shape the relay's prompt tells the model to expect:
+    /// one header, then a `call` line and a body per lookup.
+    #[test]
+    fn a_round_of_results_is_appended_the_way_the_prompt_describes() {
+        let calls = vec![
+            lookup("c1", "word_stats", serde_json::json!({"days": 90})),
+            lookup("c2", "search", serde_json::json!({"query": "de\nck"})),
+        ];
+        let results = vec![
+            outcome("c1", "word_stats", true, r#"{"total_words":96410}"#),
+            outcome("c2", "search", false, "unknown tool"),
+        ];
+
+        let pack = append_tool_block("sona corpus card 1\nnow: x", 1, &calls, &results);
+
+        assert_eq!(
+            pack,
+            "sona corpus card 1\nnow: x\n\n\
+             tool results round 1 of 3\n\
+             call c1 word_stats {\"days\":90} ok\n\
+             {\"total_words\":96410}\n\
+             call c2 search {\"query\":\"de\\nck\"} error\n\
+             unknown tool"
+        );
+        assert!(
+            !pack
+                .chars()
+                .any(|character| character.is_control() && character != '\n'),
+            "a newline inside an argument is escaped, not written"
+        );
+        assert_eq!(
+            append_tool_block("", 2, &calls[..1], &results[..1]),
+            "tool results round 2 of 3\ncall c1 word_stats {\"days\":90} ok\n{\"total_words\":96410}",
+            "a turn that sent no pack gets the block alone"
+        );
+    }
+
+    /// The panel's ceiling holds over the grown pack. Results are cut from
+    /// the last call backwards, each replaced by a line that says so, and the
+    /// header says the block was cut.
+    #[test]
+    fn a_block_that_does_not_fit_is_cut_from_its_last_result_and_says_so() {
+        let base = "x".repeat(MAX_CONTEXT_PACK_BYTES - 200);
+        let calls = vec![
+            lookup("c1", "recent", serde_json::json!({})),
+            lookup("c2", "activity", serde_json::json!({})),
+        ];
+        let results = vec![
+            outcome("c1", "recent", true, &"r".repeat(60)),
+            outcome("c2", "activity", true, &"a".repeat(500)),
+        ];
+
+        let pack = append_tool_block(&base, 3, &calls, &results);
+
+        assert!(pack.len() <= MAX_CONTEXT_PACK_BYTES, "{} bytes", pack.len());
+        assert!(pack.starts_with(&base));
+        assert!(pack.contains("\n\ntool results round 3 of 3 (cut)\n"));
+        assert!(pack.contains(&format!("\ncall c1 recent {{}} ok\n{}\n", "r".repeat(60))));
+        assert!(pack.ends_with("\ncall c2 activity {} ok\nresult cut at the pack ceiling"));
+
+        let full = "x".repeat(MAX_CONTEXT_PACK_BYTES);
+        assert_eq!(
+            append_tool_block(&full, 1, &calls, &results),
+            full,
+            "a pack with no room for even the header is left alone"
+        );
+    }
+
+    #[test]
+    fn a_lookup_step_is_keyed_by_round_and_position() {
+        assert_eq!(tool_step_id(1, 0), "tool-1-0");
+        assert_ne!(tool_step_id(1, 0), tool_step_id(2, 0));
+        assert_ne!(tool_step_id(1, 0), tool_step_id(1, 1));
     }
 
     /// The gate every command on this surface goes through.

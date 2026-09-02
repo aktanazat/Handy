@@ -1,4 +1,5 @@
 use crate::managers::history::HistoryManager;
+use crate::meeting::detection::calendar::CalendarSource;
 use crate::meeting::session::MeetingSessionManager;
 use crate::query::pack::QueryPack;
 use crate::query::{QueryCursor, QueryError, QueryEventsPage, QueryScope, QuerySearchPage};
@@ -35,21 +36,23 @@ pub async fn sona_query_events(
     crate::query::events(&meetings, after_id, limit).await
 }
 
-/// Assemble the evidence for one question: the top rows that matched, quoted
-/// verbatim with their `sona://` addresses, inside the ceiling the agent panel
-/// accepts on the wire.
+/// Assemble the evidence for one Ask turn: the corpus card, then the top rows
+/// that matched, quoted verbatim with their `sona://` addresses, inside the
+/// ceiling the agent panel accepts on the wire.
 ///
 /// A pack is built to be sent, so D14's per-series exclusion applies to it:
-/// rows from a series the operator kept on this Mac are not in it. See
+/// rows from a series the operator kept on this Mac are not in it, and the
+/// card neither names nor counts that series. See
 /// `query::pack::without_excluded_series`.
 #[tauri::command]
 #[specta::specta]
 pub async fn sona_query_pack(
     meetings: State<'_, Arc<MeetingSessionManager>>,
     history: State<'_, Arc<HistoryManager>>,
+    calendar: State<'_, Arc<dyn CalendarSource>>,
     question: String,
 ) -> Result<QueryPack, QueryError> {
-    crate::query::pack::for_question(&meetings, &history, &question).await
+    crate::query::pack::for_question(&meetings, &history, &calendar, &question).await
 }
 
 /// Open one `sona://` address from inside the app.

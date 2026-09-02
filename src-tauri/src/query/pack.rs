@@ -48,6 +48,7 @@ use super::{
 };
 use crate::agent_panel::protocol::MAX_CONTEXT_PACK_BYTES;
 use crate::managers::history::HistoryManager;
+use crate::meeting::detection::calendar::CalendarSource;
 use crate::meeting::loop_types::MeetingLoopId;
 use crate::meeting::people_types::{PersonDetail, PersonLinkConfidence};
 use crate::meeting::session::MeetingSessionManager;
@@ -80,21 +81,31 @@ pub struct QueryPack {
     pub sources: Vec<QueryRow>,
 }
 
-/// Assemble the pack for one question.
+/// Assemble the pack for one question: the corpus card, then the evidence.
 ///
-/// One search over every scope, the series exclusions applied, then [`build`].
-/// An empty question is [`QueryError::InvalidRequest`] rather than an empty
-/// pack: the plane refuses to match the whole corpus on no tokens, and a pack
-/// of nothing sent to a model is a question asked without its evidence.
+/// One search over every scope, the series exclusions applied, then
+/// [`build`]. An empty question is [`QueryError::InvalidRequest`] rather than
+/// an empty pack: the plane refuses to match the whole corpus on no tokens,
+/// and a pack of nothing sent to a model is a question asked without its
+/// evidence.
+///
+/// The card ([`super::card::corpus_card`]) says what the corpus is in numbers,
+/// so the model can answer an aggregate question without a lookup and pick
+/// the right tool for one that needs it. It heads the pack under the same
+/// ceiling: the evidence is cut to the room the card leaves, not the other
+/// way round, because a card is two kilobytes and a pack of quotes is whatever
+/// fits. `sources` are the quotes' rows; the card quotes nothing.
 pub async fn for_question(
     meetings: &Arc<MeetingSessionManager>,
     history: &Arc<HistoryManager>,
+    calendar: &Arc<dyn CalendarSource>,
     question: &str,
 ) -> Result<QueryPack, QueryError> {
     let question = question.trim();
     if question.is_empty() {
         return Err(QueryError::InvalidRequest);
     }
+    let card = super::card::corpus_card(meetings, history, calendar, chrono::Local::now()).await;
     let page = super::search(
         meetings,
         history,
@@ -108,7 +119,13 @@ pub async fn for_question(
     // against the store that produced the rows.
     let store = meetings.store().await?;
     let rows = without_excluded_series(&store, page.entries);
-    Ok(build(question, rows, page.next_cursor.is_some()))
+    let ceiling = MAX_CONTEXT_PACK_BYTES.saturating_sub(card.len() + 2);
+    let evidence = build_within(question, rows, page.next_cursor.is_some(), ceiling);
+    Ok(QueryPack {
+        schema_version: evidence.schema_version,
+        pack: format!("{card}\n\n{}", evidence.pack),
+        sources: evidence.sources,
+    })
 }
 
 /// Assemble the pack for one person: their meetings, and what is open with them.
@@ -237,6 +254,19 @@ fn series_opted_out_of_remote(store: &MeetingStore, session_id: MeetingSessionId
 /// output is a pure function of its arguments: no clock, no locale, no
 /// iteration order that a map could shuffle.
 pub(crate) fn build(question: &str, rows: Vec<QueryRow>, more_matches: bool) -> QueryPack {
+    build_within(question, rows, more_matches, MAX_CONTEXT_PACK_BYTES)
+}
+
+/// [`build`] under a smaller ceiling, for a pack that shares the panel's
+/// ceiling with a card in front of it. The header still names the panel's
+/// number: that is the ceiling the reader can look up, and what was dropped
+/// was dropped because of it.
+fn build_within(
+    question: &str,
+    rows: Vec<QueryRow>,
+    more_matches: bool,
+    ceiling: usize,
+) -> QueryPack {
     let question = one_line(question);
     let offered = rows.len();
     let entries = rows
@@ -251,7 +281,7 @@ pub(crate) fn build(question: &str, rows: Vec<QueryRow>, more_matches: bool) -> 
     let mut quoted = entries.len();
     loop {
         let pack = compose(&question, &entries[..quoted], offered, more_matches);
-        if pack.len() <= MAX_CONTEXT_PACK_BYTES || quoted == 0 {
+        if pack.len() <= ceiling || quoted == 0 {
             return QueryPack {
                 schema_version: QUERY_SCHEMA_VERSION,
                 pack,

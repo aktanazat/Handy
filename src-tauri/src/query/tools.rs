@@ -120,14 +120,16 @@ const STOPWORDS: [&str; 145] = [
     "our", "ours", "out", "over", "own", "re", "same", "she", "should", "shouldn", "so", "some",
     "such", "than", "that", "the", "their", "theirs", "them", "then", "there", "these", "they",
     "this", "those", "through", "to", "too", "uh", "um", "under", "until", "up", "us", "ve",
-    "very", "was", "wasn", "we", "were", "weren", "what", "when", "where", "which", "while",
-    "who", "whom", "why", "will", "with", "won", "would", "wouldn", "yeah", "yes", "you", "your",
-    "yours",
+    "very", "was", "wasn", "we", "were", "weren", "what", "when", "where", "which", "while", "who",
+    "whom", "why", "will", "with", "won", "would", "wouldn", "yeah", "yes", "you", "your", "yours",
 ];
 
-/// One lookup the model asked for. Parsed from the relay's `tool_calls` reply
-/// by the panel; `args` is whatever object the model wrote, checked here.
+/// One lookup the model asked for, as the relay's `tool_calls` reply carries
+/// it; `args` is whatever object the model wrote, checked here. Unknown
+/// fields are refused at the decode, the way every other response shape on
+/// that wire is.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ToolCall {
     pub id: String,
     pub tool: String,
@@ -372,10 +374,16 @@ fn parse(call: &ToolCall) -> Result<Request, String> {
             days: days(args, 365, 30)?,
         },
         "meeting" => Request::Meeting {
-            session_id: MeetingSessionId::from_uuid(required(uuid(args, "session_id")?, "session_id")?),
+            session_id: MeetingSessionId::from_uuid(required(
+                uuid(args, "session_id")?,
+                "session_id",
+            )?),
         },
         "transcript" => Request::Transcript {
-            session_id: MeetingSessionId::from_uuid(required(uuid(args, "session_id")?, "session_id")?),
+            session_id: MeetingSessionId::from_uuid(required(
+                uuid(args, "session_id")?,
+                "session_id",
+            )?),
             offset: count(args, "offset", 0, i64::MAX, 0)?,
             limit: count(args, "limit", 1, 200, 80)?,
         },
@@ -673,13 +681,10 @@ fn no_meeting(session_id: MeetingSessionId) -> String {
 /// RFC 3339 in the host zone, to the second: the form every `when` in a
 /// result takes, so a model comparing two of them compares like with like.
 pub(super) fn when(utc_ms: i64) -> String {
-    Local
-        .timestamp_millis_opt(utc_ms)
-        .single()
-        .map_or_else(
-            || utc_ms.to_string(),
-            |time| time.to_rfc3339_opts(SecondsFormat::Secs, false),
-        )
+    Local.timestamp_millis_opt(utc_ms).single().map_or_else(
+        || utc_ms.to_string(),
+        |time| time.to_rfc3339_opts(SecondsFormat::Secs, false),
+    )
 }
 
 /// One row as every listing renders it, with the ledger headline beside a
@@ -796,11 +801,7 @@ fn summary_row(summary: &MeetingHistorySummary) -> QueryRow {
 
 /// Dictations already read newest first, one more than the page so the
 /// listing can say whether the window holds more.
-fn recent_dictations(
-    store: &MeetingStore,
-    entries: Vec<HistoryEntry>,
-    limit: usize,
-) -> Outcome {
+fn recent_dictations(store: &MeetingStore, entries: Vec<HistoryEntry>, limit: usize) -> Outcome {
     let more = entries.len() > limit;
     let rows = entries.iter().take(limit).map(dictation_row).collect();
     listing(store, rows, more)
@@ -808,10 +809,7 @@ fn recent_dictations(
 
 /// The meeting as its review screen reads it, for the model: what was said
 /// about it, what it left open, and where it landed.
-fn meeting_result(
-    store: &MeetingStore,
-    session_id: MeetingSessionId,
-) -> Result<Outcome, String> {
+fn meeting_result(store: &MeetingStore, session_id: MeetingSessionId) -> Result<Outcome, String> {
     let snapshot = review(store, session_id)?;
     let artifacts = current_artifacts(&snapshot);
     let row = allowed_meeting(store, &snapshot)?;
@@ -1142,7 +1140,11 @@ fn person_result(store: &MeetingStore, person_id: PersonId) -> Result<Outcome, S
             .collect(),
     );
     let last_met = meetings.iter().map(|row| row.when_utc_ms).max();
-    let summary = detail.person.summary.as_ref().map(|summary| summary.text.trim());
+    let summary = detail
+        .person
+        .summary
+        .as_ref()
+        .map(|summary| summary.text.trim());
     // The person's row quotes what the plane would quote: the relationship
     // paragraph when there is one, the newest meeting's headline otherwise.
     let snippet = match (summary, meetings.first()) {
@@ -1158,7 +1160,11 @@ fn person_result(store: &MeetingStore, person_id: PersonId) -> Result<Outcome, S
         when_utc_ms: last_met.unwrap_or(detail.person.created_at_utc_ms),
         link: person_link(person_id),
     };
-    let recent = meetings.iter().take(PERSON_MEETINGS).cloned().collect::<Vec<_>>();
+    let recent = meetings
+        .iter()
+        .take(PERSON_MEETINGS)
+        .cloned()
+        .collect::<Vec<_>>();
     let value = json!({
         "id": person.id,
         "name": detail.person.display_name,
@@ -1436,15 +1442,23 @@ fn activity_result(
 
 /* -------------------------------------------------------------- meetings */
 
-fn review(store: &MeetingStore, session_id: MeetingSessionId) -> Result<MeetingReviewSnapshot, String> {
-    store.review_snapshot(session_id).map_err(|error| match error {
-        StoreError::NotFound => no_meeting(session_id),
-        error => store_refusal(error),
-    })
+fn review(
+    store: &MeetingStore,
+    session_id: MeetingSessionId,
+) -> Result<MeetingReviewSnapshot, String> {
+    store
+        .review_snapshot(session_id)
+        .map_err(|error| match error {
+            StoreError::NotFound => no_meeting(session_id),
+            error => store_refusal(error),
+        })
 }
 
 /// The meeting's own row, if its series may leave this Mac.
-fn allowed_meeting(store: &MeetingStore, snapshot: &MeetingReviewSnapshot) -> Result<QueryRow, String> {
+fn allowed_meeting(
+    store: &MeetingStore,
+    snapshot: &MeetingReviewSnapshot,
+) -> Result<QueryRow, String> {
     let session_id = snapshot.session.session_id;
     let headline = current_artifacts(snapshot)
         .and_then(|content| content.headline())
@@ -1471,12 +1485,14 @@ mod tests {
     use super::*;
     use crate::managers::history::HistoryTrendSourceTotals;
     use crate::meeting::detection::calendar::CalendarOccurrence;
-    use crate::meeting::detection::machine::{CalendarAttendee, CalendarEventSummary, ParticipationStatus};
+    use crate::meeting::detection::machine::{
+        CalendarAttendee, CalendarEventSummary, ParticipationStatus,
+    };
     use crate::meeting::loop_types::{MeetingLoopId, MeetingLoopKind};
     use crate::meeting::series_types::MeetingSeriesRemoteOptOutSetRequest;
     use crate::meeting::store::workflow_core_tests::{
-        current_artifact, event, inputs, link, person, reviewable_meeting, store,
-        transcript, transcript_segments,
+        current_artifact, event, inputs, link, person, reviewable_meeting, store, transcript,
+        transcript_segments,
     };
     use crate::meeting::types::{ManualNote, ManualNoteId, MeetingOperationId};
     use crate::meeting::upcoming::upcoming_rows;
@@ -1522,7 +1538,12 @@ mod tests {
 
     /// A series key is only ever written as a calendar fact, so the fixture
     /// writes one the way an accepted detection does.
-    fn in_series(store: &MeetingStore, session_id: MeetingSessionId, series_key: &str, title: &str) {
+    fn in_series(
+        store: &MeetingStore,
+        session_id: MeetingSessionId,
+        series_key: &str,
+        title: &str,
+    ) {
         store
             .remember_calendar_facts(
                 session_id,
@@ -1618,7 +1639,10 @@ mod tests {
                 revision,
             )
             .unwrap();
-        assert_eq!(receipt.result, crate::meeting::types::OperationResult::Committed);
+        assert_eq!(
+            receipt.result,
+            crate::meeting::types::OperationResult::Committed
+        );
     }
 
     /// The continuity run that makes a meeting's loops reachable corpus-wide.
@@ -1663,13 +1687,26 @@ mod tests {
         let excluded = reviewable_meeting(&store, "Pricing sync", WHEN);
         let allowed = reviewable_meeting(&store, "Design review", WHEN - DAY);
         for (session_id, series, line) in [
-            (excluded, "weekly-pricing", "The enterprise tier lands at forty thousand."),
-            (allowed, "weekly-design", "The empty state needs a second pass."),
+            (
+                excluded,
+                "weekly-pricing",
+                "The enterprise tier lands at forty thousand.",
+            ),
+            (
+                allowed,
+                "weekly-design",
+                "The empty state needs a second pass.",
+            ),
         ] {
             transcript(&store, session_id, line);
             in_series(&store, session_id, series, "Weekly");
             note(&store, session_id, "Typed during the call.");
-            artifact(&store, session_id, "Pricing stayed open.", "Dana's tier question stayed open.");
+            artifact(
+                &store,
+                session_id,
+                "Pricing stayed open.",
+                "Dana's tier question stayed open.",
+            );
         }
         exclude(&store, "weekly-pricing");
         Corpus {
@@ -1771,7 +1808,11 @@ mod tests {
             }
             _ => panic!("a search"),
         }
-        match parse(&call("transcript", json!({"session_id": Uuid::nil().to_string()}))).unwrap()
+        match parse(&call(
+            "transcript",
+            json!({"session_id": Uuid::nil().to_string()}),
+        ))
+        .unwrap()
         {
             Request::Transcript { offset, limit, .. } => {
                 assert_eq!((offset, limit), (0, 80));
@@ -1820,12 +1861,18 @@ mod tests {
         assert_eq!(rows[0]["when"], when(WHEN - DAY));
         assert_eq!(rows[0]["snippet"], "what matched");
         assert_eq!(rows[0]["link"], meeting_link(corpus.allowed));
-        assert_eq!(rows[0]["ledger_headline"], "Dana's tier question stayed open.");
+        assert_eq!(
+            rows[0]["ledger_headline"],
+            "Dana's tier question stayed open."
+        );
         assert_eq!(rows[1]["kind"], "dictation");
         assert!(rows[1].get("ledger_headline").is_none());
         assert_eq!(value["more"], true);
         assert_eq!(
-            sources.iter().map(|row| row.link.as_str()).collect::<Vec<_>>(),
+            sources
+                .iter()
+                .map(|row| row.link.as_str())
+                .collect::<Vec<_>>(),
             [meeting_link(corpus.allowed).as_str(), "sona://dictation/7"]
         );
         assert!(!value.to_string().contains("enterprise"));
@@ -1836,15 +1883,21 @@ mod tests {
         let corpus = corpus();
         reviewable_meeting(&corpus.store, "Kickoff", WHEN - 40 * DAY);
 
-        let (value, sources) = result_json(recent_meetings(&corpus.store, WHEN - 30 * DAY, 10).unwrap());
+        let (value, sources) =
+            result_json(recent_meetings(&corpus.store, WHEN - 30 * DAY, 10).unwrap());
 
         let rows = value["rows"].as_array().unwrap();
         assert_eq!(
-            rows.iter().map(|row| row["title"].as_str().unwrap()).collect::<Vec<_>>(),
+            rows.iter()
+                .map(|row| row["title"].as_str().unwrap())
+                .collect::<Vec<_>>(),
             ["Design review"],
             "the excluded series and the meeting outside the window are gone: {value}"
         );
-        assert_eq!(rows[0]["ledger_headline"], "Dana's tier question stayed open.");
+        assert_eq!(
+            rows[0]["ledger_headline"],
+            "Dana's tier question stayed open."
+        );
         assert_eq!(rows[0]["snippet"], "Dana's tier question stayed open.");
         assert_eq!(value["more"], false);
         assert_eq!(sources.len(), 1);
@@ -1852,7 +1905,10 @@ mod tests {
         let (value, _) = result_json(recent_meetings(&corpus.store, WHEN - 60 * DAY, 1).unwrap());
         let rows = value["rows"].as_array().unwrap();
         assert_eq!(rows[0]["title"], "Design review");
-        assert_eq!(value["more"], true, "the kickoff is behind the page: {value}");
+        assert_eq!(
+            value["more"], true,
+            "the kickoff is behind the page: {value}"
+        );
         assert_eq!(rows.len(), 1);
     }
 
@@ -1893,16 +1949,31 @@ mod tests {
         assert_eq!(value["series"]["key"], "weekly-design");
         assert_eq!(value["attendees"][0]["name"], "Dana Reyes");
         assert_eq!(value["speakers"], json!(["Speaker 1"]));
-        assert_eq!(value["ledger"]["headline"], "Dana's tier question stayed open.");
-        assert_eq!(value["ledger"]["threads"][0]["topic"], "Enterprise tier pricing");
+        assert_eq!(
+            value["ledger"]["headline"],
+            "Dana's tier question stayed open."
+        );
+        assert_eq!(
+            value["ledger"]["threads"][0]["topic"],
+            "Enterprise tier pricing"
+        );
         assert_eq!(value["ledger"]["threads"][0]["state"], "open");
         assert_eq!(value["ledger"]["threads"][0]["owner"], "Dana Reyes");
-        assert_eq!(value["ledger"]["threads"][0]["quote"], "which tier does the trial convert into");
+        assert_eq!(
+            value["ledger"]["threads"][0]["quote"],
+            "which tier does the trial convert into"
+        );
         assert_eq!(value["ledger"]["threads"][0]["at_ms"], 12000);
-        assert_eq!(value["ledger"]["open_loops"][0]["instead"], "Moved to the roadmap.");
+        assert_eq!(
+            value["ledger"]["open_loops"][0]["instead"],
+            "Moved to the roadmap."
+        );
         assert_eq!(value["ledger"]["commitments"][0]["who"], "Dana Reyes");
         assert_eq!(value["ledger"]["commitments"][0]["firmness"], "firm");
-        assert_eq!(value["ledger"]["caveats"], json!(["Audio dropped for two minutes."]));
+        assert_eq!(
+            value["ledger"]["caveats"],
+            json!(["Audio dropped for two minutes."])
+        );
         assert_eq!(value["link"], meeting_link(corpus.allowed));
         assert_eq!(sources[0].kind, QueryRowKind::Meeting);
         assert_eq!(sources[0].snippet, "Dana's tier question stayed open.");
@@ -1931,10 +2002,18 @@ mod tests {
             note(
                 &store,
                 session_id,
-                &format!("note {index}: {}", "a sentence typed during the call. ".repeat(60)),
+                &format!(
+                    "note {index}: {}",
+                    "a sentence typed during the call. ".repeat(60)
+                ),
             );
         }
-        artifact(&store, session_id, "Pricing stayed open.", "Dana's tier question stayed open.");
+        artifact(
+            &store,
+            session_id,
+            "Pricing stayed open.",
+            "Dana's tier question stayed open.",
+        );
 
         let result = finish(
             &call("meeting", Value::Null),
@@ -1942,7 +2021,11 @@ mod tests {
         );
 
         assert!(result.ok);
-        assert!(result.result.len() <= TOOL_RESULT_MAX_BYTES, "{} bytes", result.result.len());
+        assert!(
+            result.result.len() <= TOOL_RESULT_MAX_BYTES,
+            "{} bytes",
+            result.result.len()
+        );
         let value = parsed(&result.result);
         assert_eq!(value["truncated"], true);
         assert!(
@@ -1961,17 +2044,25 @@ mod tests {
     fn a_transcript_pages_by_segment_and_says_where_the_next_page_starts() {
         let corpus = corpus();
 
-        let (value, sources) = result_json(transcript_result(&corpus.store, corpus.allowed, 0, 80).unwrap());
+        let (value, sources) =
+            result_json(transcript_result(&corpus.store, corpus.allowed, 0, 80).unwrap());
 
         assert_eq!(value["total"], 1);
         assert_eq!(value["segments"][0]["index"], 0);
         assert_eq!(value["segments"][0]["speaker"], "Speaker 1");
-        assert_eq!(value["segments"][0]["text"], "The empty state needs a second pass.");
+        assert_eq!(
+            value["segments"][0]["text"],
+            "The empty state needs a second pass."
+        );
         assert_eq!(value["segments"][0]["at_ms"], 0);
-        assert!(value.get("next_offset").is_none(), "one segment is the whole transcript");
+        assert!(
+            value.get("next_offset").is_none(),
+            "one segment is the whole transcript"
+        );
         assert_eq!(sources[0].link, meeting_link(corpus.allowed));
 
-        let (value, _) = result_json(transcript_result(&corpus.store, corpus.allowed, 5, 80).unwrap());
+        let (value, _) =
+            result_json(transcript_result(&corpus.store, corpus.allowed, 5, 80).unwrap());
         assert_eq!(value["segments"], json!([]));
 
         assert_eq!(
@@ -1999,7 +2090,11 @@ mod tests {
         );
 
         assert!(result.ok);
-        assert!(result.result.len() <= TOOL_RESULT_MAX_BYTES, "{} bytes", result.result.len());
+        assert!(
+            result.result.len() <= TOOL_RESULT_MAX_BYTES,
+            "{} bytes",
+            result.result.len()
+        );
         let value = parsed(&result.result);
         assert_eq!(value["truncated"], true);
         assert_eq!(value["total"], 200);
@@ -2012,16 +2107,30 @@ mod tests {
     #[test]
     fn a_person_answers_with_their_meetings_and_what_is_open() {
         let corpus = corpus();
-        let person_id = person(&corpus.store, "Dana Reyes", &["Dana"], &["dana@example.com"]);
+        let person_id = person(
+            &corpus.store,
+            "Dana Reyes",
+            &["Dana"],
+            &["dana@example.com"],
+        );
         for session_id in [corpus.excluded, corpus.allowed] {
-            link(&corpus.store, session_id, person_id, "calendar", "confirmed");
+            link(
+                &corpus.store,
+                session_id,
+                person_id,
+                "calendar",
+                "confirmed",
+            );
         }
 
         let (value, sources) = result_json(person_result(&corpus.store, person_id).unwrap());
 
         assert_eq!(value["name"], "Dana Reyes");
         assert_eq!(value["aliases"], json!(["Dana"]));
-        assert_eq!(value["meetings"], 1, "the excluded series is not counted: {value}");
+        assert_eq!(
+            value["meetings"], 1,
+            "the excluded series is not counted: {value}"
+        );
         assert_eq!(value["last_met"], when(WHEN - DAY));
         assert_eq!(value["recent_meetings"][0]["title"], "Design review");
         assert_eq!(value["link"], person_link(person_id));
@@ -2030,7 +2139,9 @@ mod tests {
         assert!(!value.to_string().contains("Pricing sync"));
 
         assert_eq!(
-            person_result(&corpus.store, PersonId::new()).unwrap_err().starts_with("no person "),
+            person_result(&corpus.store, PersonId::new())
+                .unwrap_err()
+                .starts_with("no person "),
             true
         );
     }
@@ -2041,7 +2152,8 @@ mod tests {
         finalize(&corpus.store, corpus.excluded);
         finalize(&corpus.store, corpus.allowed);
 
-        let (value, sources) = result_json(loops_result(&corpus.store, LoopFilter::Open, None, 20).unwrap());
+        let (value, sources) =
+            result_json(loops_result(&corpus.store, LoopFilter::Open, None, 20).unwrap());
 
         let rows = value["rows"].as_array().unwrap();
         // The ledger seeds one loop per unresolved thread, open question and
@@ -2062,14 +2174,20 @@ mod tests {
         assert_eq!(rows[2]["kind"], "commitment");
         assert_eq!(rows[2]["text"], "Send the tier comparison");
         assert_eq!(
-            rows.iter().map(|row| row["link"].as_str().unwrap()).collect::<Vec<_>>(),
-            sources.iter().map(|row| row.link.as_str()).collect::<Vec<_>>(),
+            rows.iter()
+                .map(|row| row["link"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            sources
+                .iter()
+                .map(|row| row.link.as_str())
+                .collect::<Vec<_>>(),
             "one source per row, in order"
         );
         assert!(sources.iter().all(|row| row.kind == QueryRowKind::Loop));
         assert_eq!(value["more"], false);
 
-        let (value, _) = result_json(loops_result(&corpus.store, LoopFilter::Done, None, 20).unwrap());
+        let (value, _) =
+            result_json(loops_result(&corpus.store, LoopFilter::Done, None, 20).unwrap());
         assert_eq!(value["rows"], json!([]));
         let (value, _) = result_json(
             loops_result(&corpus.store, LoopFilter::Open, Some(PersonId::new()), 20).unwrap(),
@@ -2115,7 +2233,10 @@ mod tests {
 
         let listed = value["rows"].as_array().unwrap();
         assert_eq!(
-            listed.iter().map(|row| row["title"].as_str().unwrap()).collect::<Vec<_>>(),
+            listed
+                .iter()
+                .map(|row| row["title"].as_str().unwrap())
+                .collect::<Vec<_>>(),
             ["Design review", "Coffee"]
         );
         assert_eq!(listed[0]["start"], when(WHEN + 2 * DAY));
@@ -2123,7 +2244,10 @@ mod tests {
         assert_eq!(listed[0]["series"]["key"], "weekly-design");
         assert_eq!(listed[1]["series"], Value::Null);
         assert_eq!(value["calendar_access"], "authorized");
-        assert!(sources.is_empty(), "a calendar event has no sona:// address");
+        assert!(
+            sources.is_empty(),
+            "a calendar event has no sona:// address"
+        );
     }
 
     #[test]
@@ -2149,7 +2273,11 @@ mod tests {
     #[test]
     fn word_stats_ignore_stopwords_case_and_one_letter_tokens() {
         let entries = vec![
-            entry(1, WHEN / 1000, "The Deck is the deck, and I don't like THE deck."),
+            entry(
+                1,
+                WHEN / 1000,
+                "The Deck is the deck, and I don't like THE deck.",
+            ),
             entry(2, WHEN / 1000, "Friday's deck. A friday!"),
         ];
 
@@ -2227,10 +2355,17 @@ mod tests {
             })
             .collect::<Vec<_>>();
 
-        let result = finish(&call("search", Value::Null), search_result(&store, rows, false));
+        let result = finish(
+            &call("search", Value::Null),
+            search_result(&store, rows, false),
+        );
 
         assert!(result.ok);
-        assert!(result.result.len() <= TOOL_RESULT_MAX_BYTES, "{} bytes", result.result.len());
+        assert!(
+            result.result.len() <= TOOL_RESULT_MAX_BYTES,
+            "{} bytes",
+            result.result.len()
+        );
         let value = parsed(&result.result);
         assert_eq!(value["truncated"], true);
         let kept = value["rows"].as_array().unwrap().len();
@@ -2239,7 +2374,10 @@ mod tests {
         assert_eq!(value["rows"][0]["id"], "0", "the newest rows survive");
         assert_eq!(result.sources[kept - 1].id, (kept - 1).to_string());
 
-        let small = finish(&call("search", Value::Null), search_result(&store, Vec::new(), false));
+        let small = finish(
+            &call("search", Value::Null),
+            search_result(&store, Vec::new(), false),
+        );
         assert!(parsed(&small.result).get("truncated").is_none());
     }
 
@@ -2247,7 +2385,10 @@ mod tests {
     fn a_string_over_the_ceiling_is_cut_on_a_character_boundary() {
         let dictation = entry(1, WHEN / 1000, &"héllo wörld ".repeat(1_000));
 
-        let result = finish(&call("dictation", Value::Null), dictation_result(&dictation, &[]));
+        let result = finish(
+            &call("dictation", Value::Null),
+            dictation_result(&dictation, &[]),
+        );
 
         assert!(result.ok);
         assert!(result.result.len() <= TOOL_RESULT_MAX_BYTES);
@@ -2263,7 +2404,14 @@ mod tests {
         let rendered = when(WHEN);
         let parsed = DateTime::parse_from_rfc3339(&rendered).unwrap();
         assert_eq!(parsed.timestamp_millis(), WHEN);
-        assert_eq!(parsed.offset().local_minus_utc(), Local.timestamp_millis_opt(WHEN).unwrap().offset().local_minus_utc());
+        assert_eq!(
+            parsed.offset().local_minus_utc(),
+            Local
+                .timestamp_millis_opt(WHEN)
+                .unwrap()
+                .offset()
+                .local_minus_utc()
+        );
     }
 
     #[test]
@@ -2272,7 +2420,8 @@ mod tests {
         let session_id = reviewable_meeting(&store, "Ledger", WHEN);
         artifact(&store, session_id, "Summary.", "Headline.");
         finalize(&store, session_id);
-        let expected = MeetingLoopId::derive(session_id, MeetingLoopKind::Loop, "Enterprise tier pricing");
+        let expected =
+            MeetingLoopId::derive(session_id, MeetingLoopKind::Loop, "Enterprise tier pricing");
 
         let (value, _) = result_json(loops_result(&store, LoopFilter::All, None, 50).unwrap());
 
