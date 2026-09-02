@@ -2281,13 +2281,6 @@
       "out_of_date": "לא מעודכנת",
       "failed": "היצירה נכשלה"
     },
-    "answerState": {
-      "supported": "נתמכת",
-      "insufficient_evidence": "אין די ראיות",
-      "unavailable": "לא זמין",
-      "out_of_date": "לא מעודכנת",
-      "forgotten": "נשכחה"
-    },
     "diarization": {
       "not_requested": "הדוברים לא הופרדו",
       "model_unavailable": "מודל הדוברים אינו זמין",

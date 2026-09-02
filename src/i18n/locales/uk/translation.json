@@ -2287,13 +2287,6 @@
       "out_of_date": "Застаріло",
       "failed": "Генерація не вдалася"
     },
-    "answerState": {
-      "supported": "Підтверджено",
-      "insufficient_evidence": "Недостатньо підтверджень",
-      "unavailable": "Недоступно",
-      "out_of_date": "Застаріло",
-      "forgotten": "Забуто"
-    },
     "diarization": {
       "not_requested": "Мовців не розділено",
       "model_unavailable": "Модель мовців недоступна",

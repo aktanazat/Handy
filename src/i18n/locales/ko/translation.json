@@ -2269,13 +2269,6 @@
       "out_of_date": "오래됨",
       "failed": "생성 실패"
     },
-    "answerState": {
-      "supported": "근거 있음",
-      "insufficient_evidence": "근거 부족",
-      "unavailable": "사용 불가",
-      "out_of_date": "오래됨",
-      "forgotten": "지워짐"
-    },
     "diarization": {
       "not_requested": "화자를 분리하지 않음",
       "model_unavailable": "화자 모델을 쓸 수 없음",

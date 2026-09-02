@@ -2275,13 +2275,6 @@
       "out_of_date": "Verouderd",
       "failed": "Genereren mislukt"
     },
-    "answerState": {
-      "supported": "Onderbouwd",
-      "insufficient_evidence": "Onvoldoende bewijs",
-      "unavailable": "Niet beschikbaar",
-      "out_of_date": "Verouderd",
-      "forgotten": "Vergeten"
-    },
     "diarization": {
       "not_requested": "Sprekers niet gescheiden",
       "model_unavailable": "Sprekermodel niet beschikbaar",

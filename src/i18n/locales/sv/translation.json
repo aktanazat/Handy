@@ -2275,13 +2275,6 @@
       "out_of_date": "Inaktuell",
       "failed": "Genereringen misslyckades"
     },
-    "answerState": {
-      "supported": "Underbyggt",
-      "insufficient_evidence": "Otillräckligt underlag",
-      "unavailable": "Otillgänglig",
-      "out_of_date": "Inaktuell",
-      "forgotten": "Glömt"
-    },
     "diarization": {
       "not_requested": "Talare inte separerade",
       "model_unavailable": "Talarmodellen är inte tillgänglig",

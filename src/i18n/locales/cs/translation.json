@@ -2287,13 +2287,6 @@
       "out_of_date": "Neaktuální",
       "failed": "Generování selhalo"
     },
-    "answerState": {
-      "supported": "Podloženo",
-      "insufficient_evidence": "Nedostatek podkladů",
-      "unavailable": "Nedostupné",
-      "out_of_date": "Neaktuální",
-      "forgotten": "Zapomenuto"
-    },
     "diarization": {
       "not_requested": "Mluvčí nejsou rozděleni",
       "model_unavailable": "Model mluvčích není k dispozici",

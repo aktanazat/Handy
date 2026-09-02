@@ -2281,13 +2281,6 @@
       "out_of_date": "Desactualizada",
       "failed": "La generación falló"
     },
-    "answerState": {
-      "supported": "Respaldada",
-      "insufficient_evidence": "Pruebas insuficientes",
-      "unavailable": "No disponible",
-      "out_of_date": "Desactualizada",
-      "forgotten": "Olvidada"
-    },
     "diarization": {
       "not_requested": "Hablantes sin separar",
       "model_unavailable": "Modelo de hablantes no disponible",

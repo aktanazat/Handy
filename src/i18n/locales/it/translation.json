@@ -2281,13 +2281,6 @@
       "out_of_date": "Non aggiornata",
       "failed": "Generazione non riuscita"
     },
-    "answerState": {
-      "supported": "Supportata",
-      "insufficient_evidence": "Prove insufficienti",
-      "unavailable": "Non disponibile",
-      "out_of_date": "Non aggiornata",
-      "forgotten": "Dimenticata"
-    },
     "diarization": {
       "not_requested": "Parlanti non separati",
       "model_unavailable": "Modello dei parlanti non disponibile",

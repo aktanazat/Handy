@@ -2281,13 +2281,6 @@
       "out_of_date": "Obsolète",
       "failed": "Échec de la génération"
     },
-    "answerState": {
-      "supported": "Étayée",
-      "insufficient_evidence": "Preuves insuffisantes",
-      "unavailable": "Indisponible",
-      "out_of_date": "Obsolète",
-      "forgotten": "Oubliée"
-    },
     "diarization": {
       "not_requested": "Locuteurs non séparés",
       "model_unavailable": "Modèle de locuteurs indisponible",

@@ -2275,13 +2275,6 @@
       "out_of_date": "Остаряло",
       "failed": "Генерирането беше неуспешно"
     },
-    "answerState": {
-      "supported": "Потвърдено",
-      "insufficient_evidence": "Недостатъчни доказателства",
-      "unavailable": "Недостъпно",
-      "out_of_date": "Остаряло",
-      "forgotten": "Забравено"
-    },
     "diarization": {
       "not_requested": "Говорителите не са разделени",
       "model_unavailable": "Моделът за говорители не е достъпен",

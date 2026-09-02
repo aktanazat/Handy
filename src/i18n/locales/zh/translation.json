@@ -2269,13 +2269,6 @@
       "out_of_date": "已过时",
       "failed": "生成失败"
     },
-    "answerState": {
-      "supported": "有依据",
-      "insufficient_evidence": "证据不足",
-      "unavailable": "不可用",
-      "out_of_date": "已过时",
-      "forgotten": "已忘掉"
-    },
     "diarization": {
       "not_requested": "未分离说话人",
       "model_unavailable": "说话人模型不可用",

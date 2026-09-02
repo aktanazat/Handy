@@ -2275,13 +2275,6 @@
       "out_of_date": "Forældet",
       "failed": "Generering mislykkedes"
     },
-    "answerState": {
-      "supported": "Underbygget",
-      "insufficient_evidence": "Utilstrækkeligt grundlag",
-      "unavailable": "Utilgængelig",
-      "out_of_date": "Forældet",
-      "forgotten": "Glemt"
-    },
     "diarization": {
       "not_requested": "Talere er ikke adskilt",
       "model_unavailable": "Talermodellen er ikke tilgængelig",

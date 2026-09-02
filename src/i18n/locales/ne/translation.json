@@ -2275,13 +2275,6 @@
       "out_of_date": "पुरानो भइसकेको",
       "failed": "उत्पादन असफल"
     },
-    "answerState": {
-      "supported": "समर्थित",
-      "insufficient_evidence": "पर्याप्त प्रमाण छैन",
-      "unavailable": "अनुपलब्ध",
-      "out_of_date": "पुरानो भइसकेको",
-      "forgotten": "बिर्सिएको"
-    },
     "diarization": {
       "not_requested": "वक्ता छुट्याइएका छैनन्",
       "model_unavailable": "वक्ता मोडेल उपलब्ध छैन",

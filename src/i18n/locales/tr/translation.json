@@ -2275,13 +2275,6 @@
       "out_of_date": "Güncel değil",
       "failed": "Üretim başarısız oldu"
     },
-    "answerState": {
-      "supported": "Destekli",
-      "insufficient_evidence": "Yeterli kanıt yok",
-      "unavailable": "Kullanılamıyor",
-      "out_of_date": "Güncel değil",
-      "forgotten": "Unutuldu"
-    },
     "diarization": {
       "not_requested": "Konuşmacılar ayrıştırılmadı",
       "model_unavailable": "Konuşmacı modeli kullanılamıyor",

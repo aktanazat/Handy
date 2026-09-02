@@ -2275,13 +2275,6 @@
       "out_of_date": "Out of date",
       "failed": "Generation failed"
     },
-    "answerState": {
-      "supported": "Supported",
-      "insufficient_evidence": "Insufficient evidence",
-      "unavailable": "Unavailable",
-      "out_of_date": "Out of date",
-      "forgotten": "Forgotten"
-    },
     "diarization": {
       "not_requested": "Speakers not separated",
       "model_unavailable": "Speaker model unavailable",

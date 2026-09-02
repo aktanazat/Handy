@@ -2269,13 +2269,6 @@
       "out_of_date": "Đã lỗi thời",
       "failed": "Tạo thất bại"
     },
-    "answerState": {
-      "supported": "Có căn cứ",
-      "insufficient_evidence": "Không đủ căn cứ",
-      "unavailable": "Không khả dụng",
-      "out_of_date": "Đã lỗi thời",
-      "forgotten": "Đã quên"
-    },
     "diarization": {
       "not_requested": "Chưa phân tách người nói",
       "model_unavailable": "Mô hình người nói không khả dụng",

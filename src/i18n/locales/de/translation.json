@@ -2275,13 +2275,6 @@
       "out_of_date": "Veraltet",
       "failed": "Erstellung fehlgeschlagen"
     },
-    "answerState": {
-      "supported": "Belegt",
-      "insufficient_evidence": "Unzureichende Belege",
-      "unavailable": "Nicht verfügbar",
-      "out_of_date": "Veraltet",
-      "forgotten": "Vergessen"
-    },
     "diarization": {
       "not_requested": "Sprecher nicht getrennt",
       "model_unavailable": "Sprechermodell nicht verfügbar",

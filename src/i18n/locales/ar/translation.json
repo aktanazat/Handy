@@ -2299,13 +2299,6 @@
       "out_of_date": "غير محدَّث",
       "failed": "فشل التوليد"
     },
-    "answerState": {
-      "supported": "مدعوم",
-      "insufficient_evidence": "أدلة غير كافية",
-      "unavailable": "غير متوفر",
-      "out_of_date": "غير محدَّث",
-      "forgotten": "مُنسي"
-    },
     "diarization": {
       "not_requested": "لم يتم فصل المتحدثين",
       "model_unavailable": "نموذج المتحدثين غير متاح",

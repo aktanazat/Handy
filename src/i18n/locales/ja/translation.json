@@ -2269,13 +2269,6 @@
       "out_of_date": "内容が古い",
       "failed": "生成に失敗"
     },
-    "answerState": {
-      "supported": "裏付けあり",
-      "insufficient_evidence": "裏付けが不十分",
-      "unavailable": "利用不可",
-      "out_of_date": "内容が古い",
-      "forgotten": "忘却済み"
-    },
     "diarization": {
       "not_requested": "話者は分離していません",
       "model_unavailable": "話者モデルを利用できません",

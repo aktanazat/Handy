@@ -2287,13 +2287,6 @@
       "out_of_date": "Nieaktualne",
       "failed": "Generowanie nie powiodło się"
     },
-    "answerState": {
-      "supported": "Potwierdzone",
-      "insufficient_evidence": "Niewystarczające potwierdzenie",
-      "unavailable": "Niedostępne",
-      "out_of_date": "Nieaktualne",
-      "forgotten": "Zapomniane"
-    },
     "diarization": {
       "not_requested": "Mówiący nierozdzieleni",
       "model_unavailable": "Model mówiących niedostępny",
