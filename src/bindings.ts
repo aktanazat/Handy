@@ -2648,12 +2648,13 @@ async sonaQueryEvents(afterId: string | null, limit: number | null) : Promise<Re
 }
 },
 /**
- * Assemble the evidence for one question: the top rows that matched, quoted
- * verbatim with their `sona://` addresses, inside the ceiling the agent panel
- * accepts on the wire.
+ * Assemble the evidence for one Ask turn: the corpus card, then the top rows
+ * that matched, quoted verbatim with their `sona://` addresses, inside the
+ * ceiling the agent panel accepts on the wire.
  *
  * A pack is built to be sent, so D14's per-series exclusion applies to it:
- * rows from a series the operator kept on this Mac are not in it. See
+ * rows from a series the operator kept on this Mac are not in it, and the
+ * card neither names nor counts that series. See
  * `query::pack::without_excluded_series`.
  */
 async sonaQueryPack(question: string) : Promise<Result<QueryPack, QueryError>> {
@@ -3000,7 +3001,14 @@ export type AgentPanelStepV1 = { id: string; label: string; state: SonaAgentStep
 /**
  * `None` while the step is still running.
  */
-ended_after_ms: number | null }
+ended_after_ms: number | null;
+/**
+ * The Sona tool this step ran, for a step the panel made itself while
+ * answering a `tool_calls` reply. The sheet names it in the reader's
+ * language; `label` carries the tool name as the fallback. `None` on a
+ * step the relay reported.
+ */
+tool: string | null }
 export type AgentPanelTurnChangedEvent = { invalidation_id: number; turn_id: string | null; state: AgentPanelTurnStateV1 | null }
 /**
  * Why a turn ended with nothing to read.
@@ -3008,8 +3016,10 @@ export type AgentPanelTurnChangedEvent = { invalidation_id: number; turn_id: str
  * Relay errors and a relay-reported `FAILED` job collapse onto three reasons,
  * because each asks the reader to do something different. The relay's own
  * error text stays on the relay: it is not localized copy for this column.
+ * `TooManyLookups` is the panel's own: the model asked for a fourth round of
+ * Sona tools, and the turn ended here rather than on the relay.
  */
-export type AgentPanelTurnFailureV1 = "unreachable" | "refused" | "failed"
+export type AgentPanelTurnFailureV1 = "unreachable" | "refused" | "failed" | "too_many_lookups"
 export type AgentPanelTurnStateV1 = "submitting" | "queued" | "leased" | "running" | "waiting_user" | "waiting_approval" | "canceling" | "succeeded" | "failed" | "canceled" | "unverified_external"
 export type AgentPanelTurnStatusV1 = { turn_id: string; workspace: AgentPanelWorkspaceV1; state: AgentPanelTurnStateV1; event_cursor: number;
 /**

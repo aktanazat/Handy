@@ -610,6 +610,9 @@ describe("asking Sona", () => {
       expect(sent[0].context_pack).toBe(
         "sona context pack 1\nquestion: what did I promise Steven\nquotes: 1 of 1",
       );
+      /* The grant rides the same gate as the pack; a gate that is off sends
+       * no turn at all (below), so neither entry point grants without it. */
+      expect(sent[0].tools_allowed).toBe(true);
     } finally {
       commands.sonaQueryPack = originalPack;
       commands.agentPanelSendTurn = originalSend;

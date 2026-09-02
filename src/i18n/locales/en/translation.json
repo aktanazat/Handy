@@ -2574,7 +2574,8 @@
     "error": {
       "unreachable": "Sona couldn't connect.",
       "refused": "Sona couldn't take that question.",
-      "failed": "Sona couldn't finish that answer."
+      "failed": "Sona couldn't finish that answer.",
+      "too_many_lookups": "Sona needed more than three lookups for this question."
     },
     "working": {
       "searchedCorpus": "Looked through your meetings and notes",
@@ -2620,9 +2621,21 @@
       "dismissed": "Dismissed",
       "receipt": "Receipt {{id}}"
     },
-    "tools": {
-      "label": "Let it use tools",
-      "hint": "This question only"
+    "consent": {
+      "notice": "Sona answers about your recordings once you allow it to send matching quotes to your server.",
+      "allow": "Allow"
+    },
+    "tool": {
+      "search": "Searching your recordings",
+      "recent": "Listing recent recordings",
+      "meeting": "Reading a meeting",
+      "transcript": "Reading the transcript",
+      "person": "Looking up a person",
+      "loops": "Checking open loops",
+      "upcoming": "Checking the calendar",
+      "dictation": "Reading a dictation",
+      "word_stats": "Counting words",
+      "activity": "Counting activity"
     },
     "ask": {
       "row": "Ask Sona: {{query}}",

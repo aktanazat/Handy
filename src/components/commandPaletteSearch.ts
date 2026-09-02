@@ -2,6 +2,7 @@ import { defaultFilter } from "cmdk";
 import { ListTodo, type LucideIcon } from "lucide-react";
 import { commands, type QueryRow } from "@/bindings";
 import { destinationIcons } from "@/lib/navIcons";
+import { shouldPackChatTurn } from "./chat/chatModel";
 
 /* ⌘K's half of the one query plane.
  *
@@ -227,9 +228,11 @@ export const askSona = async (
       locale,
       workspace: "sona_chat",
       context_pack: pack.data.pack,
-      /* The palette has no toggle and no place to show one: a question typed
-       * here is answered from the pack alone. */
-      tools_allowed: false,
+      /* The grant is the sheet's own predicate on the same gate, not a
+       * literal: the tools read the corpus the pack was built from, and
+       * `canAsk` above has already refused a gate that is off. The turn
+       * lands in the sheet, where each lookup shows as a step. */
+      tools_allowed: shouldPackChatTurn("sona_chat", panel),
     });
     return sent.status === "error" ? "failed" : "sent";
   } catch {

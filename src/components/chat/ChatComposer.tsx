@@ -24,11 +24,8 @@ export interface ChatComposerProps {
   running: boolean;
   /** Nothing would answer, or a command is mid-flight. */
   disabled: boolean;
-  /** This one question may reach the operator's own MCP servers. */
-  toolsAllowed: boolean;
   onWorkspaceChange: (workspace: AgentPanelWorkspaceV1) => void;
   onDraftChange: (draft: string) => void;
-  onToolsAllowedChange: (allowed: boolean) => void;
   onSend: () => void;
   onStop: () => void;
 }
@@ -46,10 +43,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   fieldRef,
   running,
   disabled,
-  toolsAllowed,
   onWorkspaceChange,
   onDraftChange,
-  onToolsAllowedChange,
   onSend,
   onStop,
 }) => {
@@ -93,30 +88,6 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             </button>
           ))}
         </div>
-        {/* Only the Ask workspace has a worker that could run a tool; the
-            settings proposer is a zero-tool sandbox by construction. The chip
-            takes the same shape as a scope because it is the same kind of
-            choice about this one question — and it resets after every send,
-            so tools are never a mode the app is left in. */}
-        {workspace === "sona_chat" && (
-          <button
-            type="button"
-            role="switch"
-            data-slot="chat-tools"
-            aria-checked={toolsAllowed}
-            disabled={inert}
-            title={t("chat.tools.hint")}
-            onClick={() => onToolsAllowedChange(!toolsAllowed)}
-            className={cn(
-              "ms-auto rounded-full border px-2.5 py-1 text-[12px] leading-4 transition-colors disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none",
-              toolsAllowed
-                ? "border-gray-alpha-600 text-gray-1000"
-                : "border-gray-alpha-400 text-gray-900 hover:text-gray-1000",
-            )}
-          >
-            {t("chat.tools.label")}
-          </button>
-        )}
       </div>
       {/* `items-end` so a question grown to three lines pushes the field up and
           leaves the send glyph on the baseline it started on. */}

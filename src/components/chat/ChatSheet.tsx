@@ -172,8 +172,11 @@ export interface ChatSheetProps {
   workspace: AgentPanelWorkspaceV1;
   /** The current Ask turn's pack contained at least one corpus source. */
   searchedCorpus: boolean;
-  /** This one question may reach the operator's own MCP servers. */
-  toolsAllowed: boolean;
+  /**
+   * The sheet is paired but the reader has not yet allowed matching quotes
+   * to leave this Mac, so an Ask turn would go out without its evidence.
+   */
+  consentNeeded: boolean;
   /** A send, stop, apply, undo or history read is mid-flight. */
   busy: boolean;
   /** A refused command, as distinct from the relay's own state. */
@@ -190,7 +193,7 @@ export interface ChatSheetProps {
   onUndo: () => void;
   onApplyAction: (actionIndex: number) => void;
   onDismissAction: (actionIndex: number) => void;
-  onToolsAllowedChange: (allowed: boolean) => void;
+  onAllowRemote: () => void;
   onOpenLink: (link: string) => void;
   onOpenSettings: () => void;
   onRetry: () => void;
@@ -222,7 +225,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   now,
   draft,
   workspace,
-  toolsAllowed,
+  consentNeeded,
   busy,
   error,
   searchedCorpus,
@@ -238,7 +241,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   onUndo,
   onApplyAction,
   onDismissAction,
-  onToolsAllowedChange,
+  onAllowRemote,
   onOpenLink,
   onOpenSettings,
   onRetry,
@@ -389,6 +392,27 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
           onOpenSettings={onOpenSettings}
           onRetry={onRetry}
         />
+        {/* The consent gate, surfaced where it bites. Without it an Ask turn
+            goes out with no pack, no card and no tools, and the model says it
+            was not given Sona's records; the reader would go looking for a
+            switch in Settings that this row can throw for them. */}
+        {consentNeeded && phase === "ready" && (
+          <p
+            data-slot="chat-consent"
+            role="status"
+            className="flex flex-none flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-gray-alpha-400 px-3 py-2 text-[12px] leading-4 text-gray-900"
+          >
+            {t("chat.consent.notice")}
+            <Button
+              variant="link"
+              size="xs"
+              disabled={busy}
+              onClick={onAllowRemote}
+            >
+              {t("chat.consent.allow")}
+            </Button>
+          </p>
+        )}
         {error !== null && (
           <p
             role="alert"
@@ -403,10 +427,8 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
           fieldRef={fieldRef}
           running={running}
           disabled={composerDisabled}
-          toolsAllowed={toolsAllowed}
           onWorkspaceChange={onWorkspaceChange}
           onDraftChange={onDraftChange}
-          onToolsAllowedChange={onToolsAllowedChange}
           onSend={onSend}
           onStop={onStop}
         />

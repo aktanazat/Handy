@@ -130,7 +130,11 @@ const TurnWork: React.FC<TurnWorkProps> = ({
                         : "text-gray-900",
                     )}
                   >
-                    {step.label}
+                    {step.tool === null
+                      ? step.label
+                      : t(`chat.tool.${step.tool}`, {
+                          defaultValue: step.label,
+                        })}
                   </span>
                   <span className="flex-none tabular-nums text-gray-800">
                     {t("chat.stepSeconds", {

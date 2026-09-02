@@ -10,11 +10,12 @@ import {
   type Result,
   type SonaAgentChatTurnV1,
 } from "@/bindings";
+import { useSettings } from "@/hooks/useSettings";
 import { ChatSheet } from "./ChatSheet";
 import {
   chatPhase,
-  composerSend,
   isTurnRunning,
+  needsRemoteConsent,
   retryMessage,
   shouldPackChatTurn,
 } from "./chatModel";
@@ -62,8 +63,6 @@ export interface SheetTurnRequest {
   locale: string;
   workspace: AgentPanelWorkspaceV1;
   gate: ChatPackGate;
-  /** This one question may reach the operator's own MCP servers. */
-  toolsAllowed: boolean;
 }
 
 export interface SheetTurnResult {
@@ -71,17 +70,24 @@ export interface SheetTurnResult {
   searchedCorpus: boolean;
 }
 
-/** Assemble evidence only for an explicitly consented Ask turn. */
+/**
+ * Assemble evidence only for an explicitly consented Ask turn.
+ *
+ * The same gate grants the model Sona's tools for the turn: the tools read
+ * the corpus the pack was built from, so the consent that lets quotes leave
+ * this Mac is the consent that lets a lookup's result leave it. A settings
+ * turn carries neither.
+ */
 export const sendSheetTurn = async ({
   message,
   locale,
   workspace,
   gate,
-  toolsAllowed,
 }: SheetTurnRequest): Promise<SheetTurnResult> => {
   let contextPack: string | null = null;
   let searchedCorpus = false;
-  if (shouldPackChatTurn(workspace, gate)) {
+  const packed = shouldPackChatTurn(workspace, gate);
+  if (packed) {
     const pack = await commands.sonaQueryPack(message);
     if (pack.status === "ok") {
       contextPack = pack.data.pack;
@@ -95,9 +101,7 @@ export const sendSheetTurn = async ({
       locale,
       workspace,
       context_pack: contextPack,
-      /* Only the Ask worker can run a tool, so a settings turn carries no
-       * grant however the composer was left. */
-      tools_allowed: toolsAllowed && workspace === "sona_chat",
+      tools_allowed: packed,
     }),
     searchedCorpus,
   };
@@ -133,10 +137,7 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
   const [draft, setDraft] = useState("");
   const [workspace, setWorkspace] =
     useState<AgentPanelWorkspaceV1>("sona_chat");
-  /* Per turn, never remembered: it goes back off after every send, so tools
-   * are something the reader grants a question rather than a mode the app is
-   * left in. */
-  const [toolsAllowed, setToolsAllowed] = useState(false);
+  const { updateSetting } = useSettings();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -225,7 +226,6 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
         locale: i18n.language,
         workspace,
         gate: panel,
-        toolsAllowed,
       });
       turnSearchedCorpus = outcome.searchedCorpus;
       return outcome.result;
@@ -311,7 +311,7 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
       now={now}
       draft={draft}
       workspace={workspace}
-      toolsAllowed={toolsAllowed}
+      consentNeeded={needsRemoteConsent(workspace, panel)}
       busy={busy}
       error={error}
       onClose={onClose}
@@ -320,11 +320,13 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
       onNewChat={() => void newConversation()}
       onDraftChange={setDraft}
       onWorkspaceChange={setWorkspace}
-      onToolsAllowedChange={setToolsAllowed}
-      onSend={composerSend(
-        () => void send(),
-        () => setToolsAllowed(false),
-      )}
+      onSend={() => void send()}
+      /* The one switch, thrown from where it bites. Settings is the row's
+       * home and stays the place it is explained; the gate prop follows the
+       * store, so the notice clears when the setting lands. */
+      onAllowRemote={() =>
+        void updateSetting("meeting_remote_intelligence_enabled", true)
+      }
       onStop={() => {
         if (turn === null) return;
         void run(() =>

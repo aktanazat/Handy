@@ -26,9 +26,9 @@ import type { ChatPhase } from "./chatModel";
 import {
   chatPhase,
   composerKeys,
-  composerSend,
   isStillWaiting,
   linkifySona,
+  needsRemoteConsent,
   proposalRowIndex,
   retryMessage,
   sheetKeys,
@@ -73,7 +73,10 @@ const en = JSON.parse(fs.readFileSync(localeFile, "utf8")) as {
     retry: string;
     openSettings: string;
     workedFor: string;
-    error: Record<"unreachable" | "refused" | "failed", string>;
+    error: Record<
+      "unreachable" | "refused" | "failed" | "too_many_lookups",
+      string
+    >;
     working: Record<"searchedCorpus" | "stillWaiting" | "cancel", string>;
     status: Record<"disabled" | "unpaired" | "offline" | "error", string>;
     turnState: Record<"running", string>;
@@ -88,7 +91,8 @@ const en = JSON.parse(fs.readFileSync(localeFile, "utf8")) as {
       | "dismissed",
       string
     >;
-    tools: Record<"label", string>;
+    consent: Record<"notice" | "allow", string>;
+    tool: Record<"word_stats" | "search", string>;
   };
 };
 
@@ -168,7 +172,7 @@ interface SheetCase {
   historyOpen?: boolean;
   now?: number;
   searchedCorpus?: boolean;
-  toolsAllowed?: boolean;
+  consentNeeded?: boolean;
   workspace?: AgentPanelWorkspaceV1;
 }
 const sheet = ({
@@ -181,7 +185,7 @@ const sheet = ({
   historyOpen = false,
   now = 6_000,
   searchedCorpus = false,
-  toolsAllowed = false,
+  consentNeeded = false,
   workspace = "sona_chat",
 }: SheetCase = {}): string =>
   paint(
@@ -198,7 +202,7 @@ const sheet = ({
       now={now}
       draft=""
       workspace={workspace}
-      toolsAllowed={toolsAllowed}
+      consentNeeded={consentNeeded}
       busy={false}
       error={null}
       onClose={noop}
@@ -213,7 +217,7 @@ const sheet = ({
       onUndo={noop}
       onApplyAction={noop}
       onDismissAction={noop}
-      onToolsAllowedChange={noop}
+      onAllowRemote={noop}
       onOpenLink={noop}
       onOpenSettings={noop}
       onRetry={noop}
@@ -392,6 +396,7 @@ describe("a turn on screen", () => {
             state: "done",
             started_after_ms: 500,
             ended_after_ms: 2_500,
+            tool: null,
           },
         ],
       },
@@ -439,6 +444,7 @@ describe("a turn on screen", () => {
             state: "done",
             started_after_ms: 0,
             ended_after_ms: 3_000,
+            tool: null,
           },
         ],
       },
@@ -590,38 +596,96 @@ describe("a corpus change the answer offered", () => {
   });
 });
 
-describe("the per-question tools grant", () => {
-  test("off by default, and only offered on the Ask scope", () => {
-    const asking = sheet();
-    const settings = sheet({ workspace: "sona_config" });
+describe("the consent notice", () => {
+  test("a paired sheet without consent says what would leave, with the switch", () => {
+    const markup = sheet({ consentNeeded: true });
 
-    expect(asking).toContain('data-slot="chat-tools"');
-    expect(asking).toContain('aria-checked="false"');
-    expect(asking).toContain(en.chat.tools.label);
-    expect(settings).not.toContain('data-slot="chat-tools"');
+    expect(markup).toContain('data-slot="chat-consent"');
+    expect(markup).toContain(en.chat.consent.notice);
+    expect(markup).toContain(en.chat.consent.allow);
   });
 
-  test("on: the chip says so", () => {
-    const markup = sheet({ toolsAllowed: true });
-    const chip =
-      /<button[^>]*data-slot="chat-tools"[^>]*>/.exec(markup)?.[0] ?? "";
+  test("absent once consent is given, and never over another phase's notice", () => {
+    expect(sheet()).not.toContain('data-slot="chat-consent"');
+    expect(sheet({ consentNeeded: true, phase: "unpaired" })).not.toContain(
+      'data-slot="chat-consent"',
+    );
+  });
 
-    expect(chip).toContain('aria-checked="true"');
+  test("the predicate is the pack gate's complement on a paired Ask sheet", () => {
+    expect(
+      needsRemoteConsent("sona_chat", {
+        paired: true,
+        remoteIntelligence: false,
+      }),
+    ).toBe(true);
+    expect(
+      needsRemoteConsent("sona_chat", {
+        paired: true,
+        remoteIntelligence: true,
+      }),
+    ).toBe(false);
+    expect(
+      needsRemoteConsent("sona_chat", {
+        paired: false,
+        remoteIntelligence: false,
+      }),
+    ).toBe(false);
+    expect(
+      needsRemoteConsent("sona_config", {
+        paired: true,
+        remoteIntelligence: false,
+      }),
+    ).toBe(false);
   });
 });
 
-describe("the per-question tools grant, as a gesture", () => {
-  /* The grant is read into the turn before this runs, so clearing it here is
-   * what stops the next question inheriting it. */
-  test("a send asks the question and puts the grant back down", () => {
-    const done: string[] = [];
+describe("a lookup the Mac ran for the model", () => {
+  /* The panel names the tool; the sheet says it in the reader's language. A
+   * step the relay reported carries no tool and shows its own label. */
+  test("a tool step is labelled by its tool, a relay step by its label", () => {
+    const markup = sheet({
+      conversation: [user("What are my most used words?")],
+      turn: {
+        ...TURN,
+        steps: [
+          {
+            id: "tool-1-0",
+            label: "word_stats",
+            state: "done",
+            started_after_ms: 1_000,
+            ended_after_ms: 2_000,
+            tool: "word_stats",
+          },
+          {
+            id: "step-1",
+            label: "Thought about it",
+            state: "done",
+            started_after_ms: 2_000,
+            ended_after_ms: 3_000,
+            tool: null,
+          },
+        ],
+      },
+    });
 
-    composerSend(
-      () => done.push("send"),
-      () => done.push("clear"),
-    )();
+    expect(markup).toContain(en.chat.tool.word_stats);
+    expect(markup).not.toContain(">word_stats<");
+    expect(markup).toContain("Thought about it");
+  });
 
-    expect(done).toEqual(["send", "clear"]);
+  test("a fourth round of lookups ends the turn with its own sentence", () => {
+    const markup = sheet({
+      conversation: [user("What are my most used words?")],
+      turn: {
+        ...TURN,
+        state: "failed",
+        completed_at_utc_ms: 9_000,
+        failure: "too_many_lookups",
+      },
+    });
+
+    expect(markup).toContain(en.chat.error.too_many_lookups);
   });
 });
 
@@ -748,6 +812,7 @@ describe("the model behind the sheet", () => {
           state: "done" as const,
           started_after_ms: 0,
           ended_after_ms: 1,
+          tool: null,
         },
       ],
     };
@@ -807,6 +872,7 @@ describe("the model behind the sheet", () => {
       state: "running" as const,
       started_after_ms: 1_000,
       ended_after_ms: null,
+      tool: null,
     };
 
     expect(stepMs(running, TURN, 6_000)).toBe(4_000);
@@ -970,7 +1036,11 @@ describe("the sheet's Ask turn", () => {
       send: commands.agentPanelSendTurn,
     };
     const packedQuestions: string[] = [];
-    const sent: Array<{ workspace: string; contextPack: string | null }> = [];
+    const sent: Array<{
+      workspace: string;
+      contextPack: string | null;
+      toolsAllowed: boolean;
+    }> = [];
     commands.sonaQueryPack = async (question) => {
       packedQuestions.push(question);
       return {
@@ -995,6 +1065,7 @@ describe("the sheet's Ask turn", () => {
       sent.push({
         workspace: request.workspace,
         contextPack: request.context_pack,
+        toolsAllowed: request.tools_allowed,
       });
       return {
         status: "ok",
@@ -1034,7 +1105,6 @@ describe("the sheet's Ask turn", () => {
           locale: "en",
           workspace: turn.workspace,
           gate: turn.gate,
-          toolsAllowed: false,
         });
         searchedCorpus.push(outcome.searchedCorpus);
       }
@@ -1044,11 +1114,17 @@ describe("the sheet's Ask turn", () => {
     }
 
     expect(packedQuestions).toEqual(["question 0"]);
+    /* The grant is the gate: the model may ask this Mac to run Sona tools on
+     * exactly the turns that carry a pack, and a settings turn never does. */
     expect(sent).toEqual([
-      { workspace: "sona_chat", contextPack: "meeting quotes" },
-      { workspace: "sona_chat", contextPack: null },
-      { workspace: "sona_chat", contextPack: null },
-      { workspace: "sona_config", contextPack: null },
+      {
+        workspace: "sona_chat",
+        contextPack: "meeting quotes",
+        toolsAllowed: true,
+      },
+      { workspace: "sona_chat", contextPack: null, toolsAllowed: false },
+      { workspace: "sona_chat", contextPack: null, toolsAllowed: false },
+      { workspace: "sona_config", contextPack: null, toolsAllowed: false },
     ]);
     expect(searchedCorpus).toEqual([true, false, false, false]);
   });
@@ -1076,14 +1152,12 @@ describe("the sheet's Ask turn", () => {
         locale: "en",
         workspace: "sona_chat",
         gate: { paired: false, remoteIntelligence: false },
-        toolsAllowed: false,
       });
       await sendSheetTurn({
         message: "What did we decide?",
         locale: "en",
         workspace: "sona_chat",
         gate: { paired: false, remoteIntelligence: false },
-        toolsAllowed: false,
       });
     } finally {
       commands.agentPanelSendTurn = original;
@@ -1091,47 +1165,6 @@ describe("the sheet's Ask turn", () => {
 
     expect(turnIds).toHaveLength(2);
     expect(turnIds[0]).not.toBe(turnIds[1]);
-  });
-
-  /* The grant is the reader's, for one question. It rides on the turn that
-   * asked for it, and the settings proposer — a zero-tool sandbox on the relay
-   * — never carries one however the composer was left. */
-  test("the tools grant rides one Ask turn and never a settings turn", async () => {
-    const original = commands.agentPanelSendTurn;
-    const granted: boolean[] = [];
-    commands.agentPanelSendTurn = async (request) => {
-      granted.push(request.tools_allowed);
-      return {
-        status: "ok",
-        data: {
-          invalidation_id: 1,
-          relay_status: "ready",
-          conversation_id: "c1",
-          conversation: [],
-          turn: null,
-          proposal: null,
-        },
-      };
-    };
-    try {
-      for (const [workspace, toolsAllowed] of [
-        ["sona_chat", true],
-        ["sona_chat", false],
-        ["sona_config", true],
-      ] as const) {
-        await sendSheetTurn({
-          message: "What did we decide?",
-          locale: "en",
-          workspace,
-          gate: { paired: false, remoteIntelligence: false },
-          toolsAllowed,
-        });
-      }
-    } finally {
-      commands.agentPanelSendTurn = original;
-    }
-
-    expect(granted).toEqual([true, false, false]);
   });
 });
 

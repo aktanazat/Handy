@@ -130,7 +130,22 @@ export const shouldPackChatTurn = (
 ): boolean =>
   workspace === "sona_chat" && gate.paired && gate.remoteIntelligence;
 
-export type ChatTurnFailure = "unreachable" | "refused" | "failed";
+/**
+ * The one thing standing between an Ask turn and the corpus is the consent
+ * switch. A paired sheet whose reader has not thrown it gets a notice with the
+ * switch in it; an unpaired one has a different problem, named by its phase.
+ */
+export const needsRemoteConsent = (
+  workspace: AgentPanelWorkspaceV1,
+  gate: ChatPackGate,
+): boolean =>
+  workspace === "sona_chat" && gate.paired && !gate.remoteIntelligence;
+
+export type ChatTurnFailure =
+  | "unreachable"
+  | "refused"
+  | "failed"
+  | "too_many_lookups";
 
 /** The durable, localized failure category carried by a terminal turn. */
 export const turnFailure = (
@@ -299,20 +314,6 @@ export const composerKeys =
     if (event.key !== "Enter" || event.shiftKey) return;
     event.preventDefault();
     send();
-  };
-
-/**
- * Ask the question, then put the tools grant back down.
- *
- * The grant covers one question. It has already been read into the turn by the
- * time this runs, so clearing it here is what stops the next question
- * inheriting it — and a reader who wants tools again says so again, which is
- * the whole reason there is no setting for it.
- */
-export const composerSend =
-  (send: () => void, clearTools: () => void) => (): void => {
-    send();
-    clearTools();
   };
 
 /**
