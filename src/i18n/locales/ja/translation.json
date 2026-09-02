@@ -2561,7 +2561,8 @@
     "error": {
       "unreachable": "Sona は接続できませんでした。",
       "refused": "Sona はこの質問を受け付けられませんでした。",
-      "failed": "Sona はこの回答を最後まで書けませんでした。"
+      "failed": "Sona はこの回答を最後まで書けませんでした。",
+      "too_many_lookups": "この質問には Sona の検索が 3 回を超えて必要でした。"
     },
     "working": {
       "searchedCorpus": "ミーティングとメモを見てきました",
@@ -2607,9 +2608,21 @@
       "dismissed": "閉じました",
       "receipt": "受領記録 {{id}}"
     },
-    "tools": {
-      "label": "ツールの使用を許可",
-      "hint": "この質問のみ"
+    "consent": {
+      "notice": "一致する引用をサーバーに送信することを許可すると、Sona が録音について回答します。",
+      "allow": "許可"
+    },
+    "tool": {
+      "search": "録音を検索中",
+      "recent": "最近の録音を一覧表示中",
+      "meeting": "ミーティングを読み込み中",
+      "transcript": "文字起こしを読み込み中",
+      "person": "人物を検索中",
+      "loops": "未完了の項目を確認中",
+      "upcoming": "カレンダーを確認中",
+      "dictation": "ディクテーションを読み込み中",
+      "word_stats": "単語数を集計中",
+      "activity": "アクティビティを集計中"
     },
     "ask": {
       "row": "Sona に質問: {{query}}",

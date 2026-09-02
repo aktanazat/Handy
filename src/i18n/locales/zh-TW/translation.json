@@ -2561,7 +2561,8 @@
     "error": {
       "unreachable": "Sona 無法連線。",
       "refused": "Sona 無法接受這個問題。",
-      "failed": "Sona 沒能寫完這個回答。"
+      "failed": "Sona 沒能寫完這個回答。",
+      "too_many_lookups": "Sona 為此問題查詢超過三次。"
     },
     "working": {
       "searchedCorpus": "看過你的會議和筆記了",
@@ -2607,9 +2608,21 @@
       "dismissed": "已略過",
       "receipt": "回條 {{id}}"
     },
-    "tools": {
-      "label": "允許使用工具",
-      "hint": "僅限這個問題"
+    "consent": {
+      "notice": "允許 Sona 將相符的引文傳送至您的伺服器後，即可回答關於錄音的問題。",
+      "allow": "允許"
+    },
+    "tool": {
+      "search": "正在搜尋錄音",
+      "recent": "正在列出最近的錄音",
+      "meeting": "正在讀取會議",
+      "transcript": "正在讀取逐字稿",
+      "person": "正在查詢人員",
+      "loops": "正在檢查未完成事項",
+      "upcoming": "正在檢查行事曆",
+      "dictation": "正在讀取聽寫",
+      "word_stats": "正在統計字數",
+      "activity": "正在統計活動"
     },
     "ask": {
       "row": "詢問 Sona：{{query}}",

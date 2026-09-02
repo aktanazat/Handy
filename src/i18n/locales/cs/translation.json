@@ -2579,7 +2579,8 @@
     "error": {
       "unreachable": "Sona se nemohla připojit.",
       "refused": "Sona tuto otázku nemohla přijmout.",
-      "failed": "Sona nedokázala tuto odpověď dokončit."
+      "failed": "Sona nedokázala tuto odpověď dokončit.",
+      "too_many_lookups": "Sona potřebovala pro tuto otázku více než tři vyhledávání."
     },
     "working": {
       "searchedCorpus": "Prošla jsem vaše schůzky a poznámky",
@@ -2625,9 +2626,21 @@
       "dismissed": "Zavřeno",
       "receipt": "Potvrzení {{id}}"
     },
-    "tools": {
-      "label": "Povolit používání nástrojů",
-      "hint": "Jen pro tuto otázku"
+    "consent": {
+      "notice": "Sona odpovídá na otázky k vašim nahrávkám, jakmile jí povolíte odesílat odpovídající citace na váš server.",
+      "allow": "Povolit"
+    },
+    "tool": {
+      "search": "Prohledávání nahrávek",
+      "recent": "Načítání posledních nahrávek",
+      "meeting": "Čtení schůzky",
+      "transcript": "Čtení přepisu",
+      "person": "Vyhledávání osoby",
+      "loops": "Kontrola nedořešených úkolů",
+      "upcoming": "Kontrola kalendáře",
+      "dictation": "Čtení diktátu",
+      "word_stats": "Počítání slov",
+      "activity": "Počítání aktivity"
     },
     "ask": {
       "row": "Zeptat se Sony: {{query}}",

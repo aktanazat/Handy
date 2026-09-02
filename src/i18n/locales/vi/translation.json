@@ -2561,7 +2561,8 @@
     "error": {
       "unreachable": "Sona không kết nối được.",
       "refused": "Sona không nhận được câu hỏi đó.",
-      "failed": "Sona không hoàn thành được câu trả lời đó."
+      "failed": "Sona không hoàn thành được câu trả lời đó.",
+      "too_many_lookups": "Sona cần hơn ba lần tra cứu cho câu hỏi này."
     },
     "working": {
       "searchedCorpus": "Đã xem qua các cuộc họp và ghi chú của bạn",
@@ -2607,9 +2608,21 @@
       "dismissed": "Đã bỏ qua",
       "receipt": "Biên nhận {{id}}"
     },
-    "tools": {
-      "label": "Cho phép dùng công cụ",
-      "hint": "Chỉ cho câu hỏi này"
+    "consent": {
+      "notice": "Sona sẽ trả lời về các bản ghi của bạn sau khi bạn cho phép gửi các trích dẫn phù hợp đến máy chủ của bạn.",
+      "allow": "Cho phép"
+    },
+    "tool": {
+      "search": "Đang tìm trong bản ghi của bạn",
+      "recent": "Đang liệt kê bản ghi gần đây",
+      "meeting": "Đang đọc cuộc họp",
+      "transcript": "Đang đọc bản chép lời",
+      "person": "Đang tra cứu một người",
+      "loops": "Đang kiểm tra việc còn dang dở",
+      "upcoming": "Đang kiểm tra lịch",
+      "dictation": "Đang đọc bản đọc chính tả",
+      "word_stats": "Đang đếm từ",
+      "activity": "Đang thống kê hoạt động"
     },
     "ask": {
       "row": "Hỏi Sona: {{query}}",

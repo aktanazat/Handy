@@ -2573,7 +2573,8 @@
     "error": {
       "unreachable": "Sona n'a pas pu se connecter.",
       "refused": "Sona n'a pas pu accepter cette question.",
-      "failed": "Sona n'a pas pu terminer cette réponse."
+      "failed": "Sona n'a pas pu terminer cette réponse.",
+      "too_many_lookups": "Sona a eu besoin de plus de trois recherches pour cette question."
     },
     "working": {
       "searchedCorpus": "J'ai parcouru vos réunions et vos notes",
@@ -2619,9 +2620,21 @@
       "dismissed": "Ignoré",
       "receipt": "Reçu {{id}}"
     },
-    "tools": {
-      "label": "Autoriser l'usage d'outils",
-      "hint": "Pour cette question seulement"
+    "consent": {
+      "notice": "Sona répond aux questions sur vos enregistrements une fois que vous l’autorisez à envoyer les extraits correspondants à votre serveur.",
+      "allow": "Autoriser"
+    },
+    "tool": {
+      "search": "Recherche dans vos enregistrements",
+      "recent": "Liste des enregistrements récents",
+      "meeting": "Lecture d’une réunion",
+      "transcript": "Lecture de la transcription",
+      "person": "Recherche d’une personne",
+      "loops": "Vérification des points en suspens",
+      "upcoming": "Consultation du calendrier",
+      "dictation": "Lecture d’une dictée",
+      "word_stats": "Comptage des mots",
+      "activity": "Comptage de l’activité"
     },
     "ask": {
       "row": "Demander à Sona : {{query}}",

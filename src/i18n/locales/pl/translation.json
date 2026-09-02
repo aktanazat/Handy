@@ -2579,7 +2579,8 @@
     "error": {
       "unreachable": "Sona nie mogła się połączyć.",
       "refused": "Sona nie mogła przyjąć tego pytania.",
-      "failed": "Sona nie zdołała dokończyć tej odpowiedzi."
+      "failed": "Sona nie zdołała dokończyć tej odpowiedzi.",
+      "too_many_lookups": "Sona potrzebowała więcej niż trzech wyszukiwań, aby odpowiedzieć na to pytanie."
     },
     "working": {
       "searchedCorpus": "Przejrzałam Twoje spotkania i notatki",
@@ -2625,9 +2626,21 @@
       "dismissed": "Odrzucono",
       "receipt": "Potwierdzenie {{id}}"
     },
-    "tools": {
-      "label": "Pozwól używać narzędzi",
-      "hint": "Tylko to pytanie"
+    "consent": {
+      "notice": "Sona odpowiada na pytania o Twoje nagrania, gdy zezwolisz na wysyłanie pasujących cytatów na Twój serwer.",
+      "allow": "Zezwól"
+    },
+    "tool": {
+      "search": "Przeszukiwanie nagrań",
+      "recent": "Wyświetlanie ostatnich nagrań",
+      "meeting": "Odczytywanie spotkania",
+      "transcript": "Odczytywanie transkrypcji",
+      "person": "Wyszukiwanie osoby",
+      "loops": "Sprawdzanie otwartych spraw",
+      "upcoming": "Sprawdzanie kalendarza",
+      "dictation": "Odczytywanie dyktowania",
+      "word_stats": "Liczenie słów",
+      "activity": "Liczenie aktywności"
     },
     "ask": {
       "row": "Zapytaj Sonę: {{query}}",

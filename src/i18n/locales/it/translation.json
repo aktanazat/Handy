@@ -2573,7 +2573,8 @@
     "error": {
       "unreachable": "Sona non è riuscita a connettersi.",
       "refused": "Sona non ha potuto accettare questa domanda.",
-      "failed": "Sona non è riuscita a completare questa risposta."
+      "failed": "Sona non è riuscita a completare questa risposta.",
+      "too_many_lookups": "Sona ha avuto bisogno di più di tre ricerche per questa domanda."
     },
     "working": {
       "searchedCorpus": "Ho esaminato le tue riunioni e le tue note",
@@ -2619,9 +2620,21 @@
       "dismissed": "Ignorato",
       "receipt": "Ricevuta {{id}}"
     },
-    "tools": {
-      "label": "Consenti l'uso degli strumenti",
-      "hint": "Solo per questa domanda"
+    "consent": {
+      "notice": "Sona risponde sulle tue registrazioni dopo che le hai consentito di inviare le citazioni corrispondenti al tuo server.",
+      "allow": "Consenti"
+    },
+    "tool": {
+      "search": "Ricerca nelle registrazioni",
+      "recent": "Elenco delle registrazioni recenti",
+      "meeting": "Lettura di una riunione",
+      "transcript": "Lettura della trascrizione",
+      "person": "Ricerca di una persona",
+      "loops": "Verifica delle questioni aperte",
+      "upcoming": "Verifica del calendario",
+      "dictation": "Lettura di una dettatura",
+      "word_stats": "Conteggio delle parole",
+      "activity": "Conteggio dell'attività"
     },
     "ask": {
       "row": "Chiedi a Sona: {{query}}",

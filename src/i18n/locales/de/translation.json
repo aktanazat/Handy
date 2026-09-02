@@ -2567,7 +2567,8 @@
     "error": {
       "unreachable": "Sona konnte keine Verbindung herstellen.",
       "refused": "Sona konnte diese Frage nicht annehmen.",
-      "failed": "Sona konnte diese Antwort nicht zu Ende bringen."
+      "failed": "Sona konnte diese Antwort nicht zu Ende bringen.",
+      "too_many_lookups": "Sona hat für diese Frage mehr als drei Abfragen benötigt."
     },
     "working": {
       "searchedCorpus": "Deine Meetings und Notizen durchgesehen",
@@ -2613,9 +2614,21 @@
       "dismissed": "Verworfen",
       "receipt": "Beleg {{id}}"
     },
-    "tools": {
-      "label": "Werkzeuge erlauben",
-      "hint": "Nur für diese Frage"
+    "consent": {
+      "notice": "Sona beantwortet Fragen zu deinen Aufnahmen, sobald du erlaubst, passende Zitate an deinen Server zu senden.",
+      "allow": "Erlauben"
+    },
+    "tool": {
+      "search": "Aufnahmen werden durchsucht",
+      "recent": "Letzte Aufnahmen werden aufgelistet",
+      "meeting": "Meeting wird gelesen",
+      "transcript": "Transkript wird gelesen",
+      "person": "Person wird nachgeschlagen",
+      "loops": "Offene Punkte werden geprüft",
+      "upcoming": "Kalender wird geprüft",
+      "dictation": "Diktat wird gelesen",
+      "word_stats": "Wörter werden gezählt",
+      "activity": "Aktivität wird gezählt"
     },
     "ask": {
       "row": "Sona fragen: {{query}}",

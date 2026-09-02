@@ -2573,7 +2573,8 @@
     "error": {
       "unreachable": "Sona no pudo conectarse.",
       "refused": "Sona no pudo aceptar esa pregunta.",
-      "failed": "Sona no pudo terminar esa respuesta."
+      "failed": "Sona no pudo terminar esa respuesta.",
+      "too_many_lookups": "Sona necesitó más de tres consultas para esta pregunta."
     },
     "working": {
       "searchedCorpus": "Revisé tus reuniones y notas",
@@ -2619,9 +2620,21 @@
       "dismissed": "Descartado",
       "receipt": "Recibo {{id}}"
     },
-    "tools": {
-      "label": "Permitir que use herramientas",
-      "hint": "Solo para esta pregunta"
+    "consent": {
+      "notice": "Sona responde sobre tus grabaciones cuando le permites enviar las citas coincidentes a tu servidor.",
+      "allow": "Permitir"
+    },
+    "tool": {
+      "search": "Buscando en tus grabaciones",
+      "recent": "Listando grabaciones recientes",
+      "meeting": "Leyendo una reunión",
+      "transcript": "Leyendo la transcripción",
+      "person": "Buscando una persona",
+      "loops": "Revisando asuntos pendientes",
+      "upcoming": "Consultando el calendario",
+      "dictation": "Leyendo un dictado",
+      "word_stats": "Contando palabras",
+      "activity": "Contando actividad"
     },
     "ask": {
       "row": "Preguntar a Sona: {{query}}",

@@ -2567,7 +2567,8 @@
     "error": {
       "unreachable": "Sona kunde inte ansluta.",
       "refused": "Sona kunde inte ta emot den frågan.",
-      "failed": "Sona kunde inte slutföra det svaret."
+      "failed": "Sona kunde inte slutföra det svaret.",
+      "too_many_lookups": "Sona behövde fler än tre uppslagningar för den här frågan."
     },
     "working": {
       "searchedCorpus": "Gick igenom dina möten och anteckningar",
@@ -2613,9 +2614,21 @@
       "dismissed": "Avfärdat",
       "receipt": "Kvitto {{id}}"
     },
-    "tools": {
-      "label": "Låt den använda verktyg",
-      "hint": "Bara för den här frågan"
+    "consent": {
+      "notice": "Sona svarar på frågor om dina inspelningar när du tillåter att matchande citat skickas till din server.",
+      "allow": "Tillåt"
+    },
+    "tool": {
+      "search": "Söker i dina inspelningar",
+      "recent": "Listar senaste inspelningar",
+      "meeting": "Läser ett möte",
+      "transcript": "Läser transkriptionen",
+      "person": "Slår upp en person",
+      "loops": "Kontrollerar öppna punkter",
+      "upcoming": "Kontrollerar kalendern",
+      "dictation": "Läser en diktering",
+      "word_stats": "Räknar ord",
+      "activity": "Räknar aktivitet"
     },
     "ask": {
       "row": "Fråga Sona: {{query}}",

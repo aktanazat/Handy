@@ -2561,7 +2561,8 @@
     "error": {
       "unreachable": "Sona 无法连接。",
       "refused": "Sona 无法接受这个问题。",
-      "failed": "Sona 没能写完这个回答。"
+      "failed": "Sona 没能写完这个回答。",
+      "too_many_lookups": "Sona 回答此问题需要超过三次查询。"
     },
     "working": {
       "searchedCorpus": "看过你的会议和笔记了",
@@ -2607,9 +2608,21 @@
       "dismissed": "已忽略",
       "receipt": "回执 {{id}}"
     },
-    "tools": {
-      "label": "允许它使用工具",
-      "hint": "仅限本次提问"
+    "consent": {
+      "notice": "允许 Sona 将匹配的引文发送到您的服务器后,即可解答有关录音的问题。",
+      "allow": "允许"
+    },
+    "tool": {
+      "search": "正在搜索录音",
+      "recent": "正在列出最近的录音",
+      "meeting": "正在读取会议",
+      "transcript": "正在读取转录文本",
+      "person": "正在查找联系人",
+      "loops": "正在检查待办事项",
+      "upcoming": "正在查看日历",
+      "dictation": "正在读取听写",
+      "word_stats": "正在统计字数",
+      "activity": "正在统计活动"
     },
     "ask": {
       "row": "询问 Sona：{{query}}",

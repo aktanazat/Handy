@@ -2567,7 +2567,8 @@
     "error": {
       "unreachable": "Sona kunne ikke oprette forbindelse.",
       "refused": "Sona kunne ikke tage imod det spørgsmål.",
-      "failed": "Sona kunne ikke gøre det svar færdigt."
+      "failed": "Sona kunne ikke gøre det svar færdigt.",
+      "too_many_lookups": "Sona havde brug for mere end tre opslag til dette spørgsmål."
     },
     "working": {
       "searchedCorpus": "Kiggede dine møder og noter igennem",
@@ -2613,9 +2614,21 @@
       "dismissed": "Afvist",
       "receipt": "Kvittering {{id}}"
     },
-    "tools": {
-      "label": "Lad den bruge værktøjer",
-      "hint": "Kun dette spørgsmål"
+    "consent": {
+      "notice": "Sona svarer på spørgsmål om dine optagelser, når du tillader, at matchende citater sendes til din server.",
+      "allow": "Tillad"
+    },
+    "tool": {
+      "search": "Søger i dine optagelser",
+      "recent": "Viser seneste optagelser",
+      "meeting": "Læser et møde",
+      "transcript": "Læser udskriften",
+      "person": "Slår en person op",
+      "loops": "Tjekker åbne punkter",
+      "upcoming": "Tjekker kalenderen",
+      "dictation": "Læser en diktering",
+      "word_stats": "Tæller ord",
+      "activity": "Tæller aktivitet"
     },
     "ask": {
       "row": "Spørg Sona: {{query}}",

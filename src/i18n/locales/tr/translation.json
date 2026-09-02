@@ -2567,7 +2567,8 @@
     "error": {
       "unreachable": "Sona bağlanamadı.",
       "refused": "Sona bu soruyu alamadı.",
-      "failed": "Sona bu yanıtı tamamlayamadı."
+      "failed": "Sona bu yanıtı tamamlayamadı.",
+      "too_many_lookups": "Sona bu soru için üçten fazla aramaya ihtiyaç duydu."
     },
     "working": {
       "searchedCorpus": "Toplantılarınıza ve notlarınıza baktım",
@@ -2613,9 +2614,21 @@
       "dismissed": "Yoksayıldı",
       "receipt": "Makbuz {{id}}"
     },
-    "tools": {
-      "label": "Araç kullanmasına izin ver",
-      "hint": "Yalnızca bu soru için"
+    "consent": {
+      "notice": "Sona, eşleşen alıntıları sunucunuza göndermesine izin verdiğinizde kayıtlarınız hakkındaki soruları yanıtlar.",
+      "allow": "İzin ver"
+    },
+    "tool": {
+      "search": "Kayıtlarınızda aranıyor",
+      "recent": "Son kayıtlar listeleniyor",
+      "meeting": "Bir toplantı okunuyor",
+      "transcript": "Transkript okunuyor",
+      "person": "Bir kişi aranıyor",
+      "loops": "Açık konular kontrol ediliyor",
+      "upcoming": "Takvim kontrol ediliyor",
+      "dictation": "Bir dikte okunuyor",
+      "word_stats": "Kelimeler sayılıyor",
+      "activity": "Etkinlik sayılıyor"
     },
     "ask": {
       "row": "Sona'ya sor: {{query}}",

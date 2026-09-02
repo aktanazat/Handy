@@ -2561,7 +2561,8 @@
     "error": {
       "unreachable": "Sona가 연결하지 못했습니다.",
       "refused": "Sona가 그 질문을 받지 못했습니다.",
-      "failed": "Sona가 그 답변을 끝내지 못했습니다."
+      "failed": "Sona가 그 답변을 끝내지 못했습니다.",
+      "too_many_lookups": "Sona가 이 질문에 답하려면 조회가 3회 넘게 필요합니다."
     },
     "working": {
       "searchedCorpus": "회의와 메모를 살펴봤습니다",
@@ -2607,9 +2608,21 @@
       "dismissed": "무시됨",
       "receipt": "영수증 {{id}}"
     },
-    "tools": {
-      "label": "도구 사용 허용",
-      "hint": "이 질문에만"
+    "consent": {
+      "notice": "일치하는 인용문을 서버로 보내도록 허용하면 Sona가 녹음 내용에 대해 답합니다.",
+      "allow": "허용"
+    },
+    "tool": {
+      "search": "녹음 검색 중",
+      "recent": "최근 녹음 목록 불러오는 중",
+      "meeting": "회의 읽는 중",
+      "transcript": "녹취록 읽는 중",
+      "person": "사람 찾는 중",
+      "loops": "미해결 항목 확인 중",
+      "upcoming": "캘린더 확인 중",
+      "dictation": "받아쓰기 읽는 중",
+      "word_stats": "단어 수 세는 중",
+      "activity": "활동 집계 중"
     },
     "ask": {
       "row": "Sona에게 질문: {{query}}",
