@@ -352,7 +352,7 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
     let level = Arc::new(InputDeviceLevel::default());
 
     #[cfg(target_os = "macos")]
-    let (running_apps, calendar_source, prompts, screen_recording_probe) = {
+    let (running_apps, calendar_source, prompts, browser_titles, screen_recording_probe) = {
         let prompts: Arc<dyn notify::PromptPresenter> =
             match notify::UserNotificationPrompts::start(Arc::clone(&responder) as Arc<_>) {
                 Some(prompts) => Arc::new(prompts),
@@ -364,18 +364,33 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
                     Arc::new(notify::NoPrompts)
                 }
             };
+        // One observer serves both the activation edges the suggestion store
+        // listens to and the on-demand reads the detection tick asks for.
+        let browser_titles: Arc<dyn apps::BrowserTitleReader> =
+            match meeting_macos::MacosMeetingSuggestionObserver::start(
+                &[],
+                meetings.suggestion_sink(),
+            ) {
+                Ok(observer) => Arc::new(observer),
+                Err(error) => {
+                    log::warn!("Meeting suggestion observer is unavailable: {error:?}");
+                    Arc::new(apps::NoBrowserTitles)
+                }
+            };
         (
             Arc::new(apps::WorkspaceApps) as Arc<dyn apps::RunningAppsSource>,
             calendar::platform_calendar(),
             prompts,
+            browser_titles,
             probe_screen_recording as fn() -> ScreenRecordingPermission,
         )
     };
     #[cfg(not(target_os = "macos"))]
-    let (running_apps, calendar_source, prompts, screen_recording_probe) = (
+    let (running_apps, calendar_source, prompts, browser_titles, screen_recording_probe) = (
         Arc::new(apps::NoRunningApps) as Arc<dyn apps::RunningAppsSource>,
         calendar::platform_calendar(),
         Arc::new(notify::NoPrompts) as Arc<dyn notify::PromptPresenter>,
+        Arc::new(apps::NoBrowserTitles) as Arc<dyn apps::BrowserTitleReader>,
         (|| ScreenRecordingPermission::NotGranted) as fn() -> ScreenRecordingPermission,
     );
     // The digest shares this presenter rather than making its own. There is one
@@ -407,6 +422,7 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
         running_apps,
         Arc::clone(&level) as Arc<_>,
         prompts,
+        browser_titles,
         screen_recording_probe,
     ));
     responder.bind(runtime.prompt_responder());
@@ -729,20 +745,6 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
             Arc::clone(&meeting_manager_for_removals),
         );
     });
-    #[cfg(target_os = "macos")]
-    {
-        match meeting_macos::MacosMeetingSuggestionObserver::start(
-            &[],
-            meeting_manager.suggestion_sink(),
-        ) {
-            Ok(observer) => {
-                app_handle.manage(observer);
-            }
-            Err(error) => {
-                log::warn!("Meeting suggestion observer is unavailable: {error:?}");
-            }
-        }
-    }
     start_meeting_detection(app_handle, Arc::clone(&meeting_manager));
 
     // Note: Shortcuts are NOT initialized here.

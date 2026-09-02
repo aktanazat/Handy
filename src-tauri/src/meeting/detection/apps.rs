@@ -15,7 +15,8 @@
 //! `meeting_macos::MacosMeetingSuggestionObserver`, which feeds
 //! `MeetingSuggestionService`. This module consumes that service's live offers
 //! for the browser evidence in case 7 rather than building a second window-title
-//! reader.
+//! reader, and pulls a fresh read through the same observer
+//! (`BrowserTitleReader`) on the ticks where the answer matters.
 
 use std::collections::HashSet;
 
@@ -185,7 +186,10 @@ pub fn app_signal(
 /// The allowlisted meeting application in front right now, if any. What the
 /// runtime adds to `apps_used` while the microphone is active, so that
 /// `app_signal` keeps naming an app the operator switched away from mid-call.
-pub fn frontmost_allowlisted<'a>(running: &'a [RunningApp], allowlist: &[String]) -> Option<&'a str> {
+pub fn frontmost_allowlisted<'a>(
+    running: &'a [RunningApp],
+    allowlist: &[String],
+) -> Option<&'a str> {
     running
         .iter()
         .find(|app| {
@@ -253,8 +257,43 @@ pub fn revoke_auto_record(settings: &mut crate::settings::AppSettings, bundle_id
         .retain(|granted| !granted.trim().eq_ignore_ascii_case(bundle_id));
 }
 
-/// Browser-tab evidence for §5.3 case 7, read off the live suggestion offers the
-/// existing activation observer already produces.
+/// What one pull of the frontmost browser's window produced.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BrowserTitleRead {
+    /// The focused window was read. Whatever it said that names a meeting is
+    /// in the offer store now, with a fresh TTL.
+    Read,
+    /// No window can be read: Accessibility is not trusted for Sona, or this
+    /// platform has no reader at all.
+    Unreadable,
+}
+
+/// The on-demand half of the browser-title reader.
+///
+/// The activation observer fires only on app switches, and its offer expires
+/// after two minutes. A call joined after the switch, or in a browser that has
+/// been in front longer than that, is invisible to it. The tick asks this
+/// instead, while a browser is in front and the microphone is live, and the
+/// answer lands in the same offer store through the same normalization.
+pub trait BrowserTitleReader: Send + Sync {
+    /// Reads the frontmost application's focused window now, when that
+    /// application is `bundle_id`.
+    fn refresh_frontmost(&self, bundle_id: &str) -> BrowserTitleRead;
+}
+
+/// Used where no reader exists: non-macOS targets, or a macOS observer that
+/// failed to start.
+pub struct NoBrowserTitles;
+
+impl BrowserTitleReader for NoBrowserTitles {
+    fn refresh_frontmost(&self, _bundle_id: &str) -> BrowserTitleRead {
+        BrowserTitleRead::Unreadable
+    }
+}
+
+/// Browser-tab evidence for §5.3 case 7: what this tick's read said it could
+/// see, then the live suggestion offers the read and the activation observer
+/// both feed.
 ///
 /// `MeetingSuggestion::evidence_flags` carries exactly what is needed:
 /// `ax_title` / `ax_host` mean the observer read a window title or URL host and
@@ -262,9 +301,13 @@ pub fn revoke_auto_record(settings: &mut crate::settings::AppSettings, bundle_id
 /// not trusted, so no title was readable at all. Reusing this keeps one owner for
 /// "what is in that browser tab" instead of adding a second reader.
 pub fn browser_title_evidence(
+    read: BrowserTitleRead,
     suggestions: &[MeetingSuggestion],
     browser_bundle_id: &str,
 ) -> BrowserTitleEvidence {
+    if read == BrowserTitleRead::Unreadable {
+        return BrowserTitleEvidence::Unreadable;
+    }
     let offer = suggestions
         .iter()
         .find(|offer| offer.app_bundle_id.eq_ignore_ascii_case(browser_bundle_id));
@@ -334,7 +377,10 @@ impl RunningAppsSource for WorkspaceApps {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::meeting::suggestions::MeetingEvidenceFlags;
+    use crate::meeting::suggestions::{
+        MeetingEvidenceFlags, MeetingSuggestionService, MeetingSuggestionSignal,
+        MeetingSuggestionSink as _,
+    };
     use crate::meeting::types::MeetingSuggestionId;
 
     fn app(bundle_id: &str, display_name: &str, frontmost: bool) -> RunningApp {
@@ -352,7 +398,10 @@ mod tests {
     }
 
     fn used(bundle_ids: &[&str]) -> HashSet<String> {
-        bundle_ids.iter().map(|bundle_id| (*bundle_id).to_string()).collect()
+        bundle_ids
+            .iter()
+            .map(|bundle_id| (*bundle_id).to_string())
+            .collect()
     }
 
     fn offer(
@@ -594,7 +643,7 @@ mod tests {
             MeetingEvidenceFlags::app_only().with_ax_host(),
         );
         assert_eq!(
-            browser_title_evidence(&[matched], "com.google.chrome"),
+            browser_title_evidence(BrowserTitleRead::Read, &[matched], "com.google.chrome"),
             BrowserTitleEvidence::MeetingMatch
         );
 
@@ -604,12 +653,12 @@ mod tests {
             MeetingEvidenceFlags::app_only().with_ax_unavailable(),
         );
         assert_eq!(
-            browser_title_evidence(&[untrusted], "com.google.chrome"),
+            browser_title_evidence(BrowserTitleRead::Read, &[untrusted], "com.google.chrome"),
             BrowserTitleEvidence::Unreadable
         );
 
         assert_eq!(
-            browser_title_evidence(&[], "com.google.chrome"),
+            browser_title_evidence(BrowserTitleRead::Read, &[], "com.google.chrome"),
             BrowserTitleEvidence::NoMatch
         );
     }
@@ -623,8 +672,82 @@ mod tests {
         );
 
         assert_eq!(
-            browser_title_evidence(&[app_only], "com.google.chrome"),
+            browser_title_evidence(BrowserTitleRead::Read, &[app_only], "com.google.chrome"),
             BrowserTitleEvidence::NoMatch
+        );
+    }
+
+    /* FN1 and FN2 in the detection map: Chrome activated on Gmail, then the
+     * operator joins a Meet call without switching apps, or stays in a call
+     * past the two minutes an activation offer lives. The tick's own read is
+     * what sees it, and it lands in the store with a fresh TTL. */
+    #[test]
+    fn a_title_read_on_a_later_tick_matches_after_the_activation_offer_expired() {
+        const TTL_NS: u64 = 120_000_000_000;
+        let store = MeetingSuggestionService::new(Vec::new(), TTL_NS);
+        let meet = |observed_at_ns: u64| MeetingSuggestionSignal {
+            provider: MeetingProvider::GoogleMeet,
+            app_bundle_id: "com.google.chrome".to_string(),
+            observed_at_ns,
+            evidence_flags: MeetingEvidenceFlags::app_only().with_ax_host(),
+        };
+
+        // The activation edge, and nothing for the next two minutes.
+        store.submit(meet(0));
+        let later = TTL_NS + 1;
+        assert_eq!(
+            browser_title_evidence(
+                BrowserTitleRead::Read,
+                &store.list(later),
+                "com.google.chrome"
+            ),
+            BrowserTitleEvidence::NoMatch,
+            "the activation offer has expired"
+        );
+
+        // A tick with Chrome in front and the microphone live reads the window.
+        store.submit(meet(later));
+        assert_eq!(
+            browser_title_evidence(
+                BrowserTitleRead::Read,
+                &store.list(later),
+                "com.google.chrome"
+            ),
+            BrowserTitleEvidence::MeetingMatch
+        );
+        assert_eq!(
+            browser_title_evidence(
+                BrowserTitleRead::Read,
+                &store.list(later + TTL_NS - 1),
+                "com.google.chrome"
+            ),
+            BrowserTitleEvidence::MeetingMatch,
+            "the read restarted the offer's TTL"
+        );
+    }
+
+    /* A browser's title that does not match a meeting produces no offer at
+     * all, so the reader's own answer is the only way to tell "not a call"
+     * from "could not look". */
+    #[test]
+    fn an_unreadable_window_is_unreadable_whatever_the_store_holds() {
+        let matched = offer(
+            "com.google.chrome",
+            MeetingProvider::GoogleMeet,
+            MeetingEvidenceFlags::app_only().with_ax_host(),
+        );
+
+        assert_eq!(
+            browser_title_evidence(
+                BrowserTitleRead::Unreadable,
+                &[matched],
+                "com.google.chrome"
+            ),
+            BrowserTitleEvidence::Unreadable
+        );
+        assert_eq!(
+            NoBrowserTitles.refresh_frontmost("com.google.chrome"),
+            BrowserTitleRead::Unreadable
         );
     }
 
@@ -650,7 +773,10 @@ mod tests {
         let running = [app("com.apple.facetime", "FaceTime", true)];
         let allowlist = default_meeting_app_bundle_ids();
 
-        assert_eq!(app_signal(&running, &allowlist, &unused()), AppSignal::Absent);
+        assert_eq!(
+            app_signal(&running, &allowlist, &unused()),
+            AppSignal::Absent
+        );
         assert_eq!(
             call_signal(&running, &allowlist),
             CallSignal::Running {

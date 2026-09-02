@@ -57,7 +57,7 @@ use crate::meeting::types::{
 use crate::meeting::workflow_types::WorkflowEventKind;
 use crate::settings::AppSettings;
 
-use apps::{RunningApp, RunningAppsSource};
+use apps::{BrowserTitleReader, RunningApp, RunningAppsSource};
 use calendar::{CalendarAccess, CalendarSource};
 use input_device::{InputDeviceLevel, InputDeviceObserver, InputDeviceState, SelfInputDeviceLease};
 use machine::{
@@ -573,6 +573,9 @@ pub struct DetectionRuntime {
     running_apps: Arc<dyn RunningAppsSource>,
     input: Arc<dyn InputDeviceState>,
     prompts: Arc<dyn ConsentPromptSurface>,
+    /// Reads the frontmost browser's window on demand, through the same
+    /// observer whose activation edges fill the offer store.
+    browser_titles: Arc<dyn BrowserTitleReader>,
     state: Mutex<RuntimeState>,
     wakeup: Arc<Wakeup>,
     stop: Arc<AtomicBool>,
@@ -604,6 +607,7 @@ impl DetectionRuntime {
         running_apps: Arc<dyn RunningAppsSource>,
         input: Arc<dyn InputDeviceState>,
         prompts: Arc<dyn ConsentPromptSurface>,
+        browser_titles: Arc<dyn BrowserTitleReader>,
         screen_recording_probe: fn() -> ScreenRecordingPermission,
     ) -> Self {
         Self {
@@ -614,6 +618,7 @@ impl DetectionRuntime {
             running_apps,
             input,
             prompts,
+            browser_titles,
             state: Mutex::new(RuntimeState::default()),
             wakeup: Arc::new(Wakeup::default()),
             stop: Arc::new(AtomicBool::new(false)),
@@ -915,13 +920,26 @@ impl DetectionRuntime {
             );
         }
 
+        // The activation observer fires only on app switches and its offer
+        // lives two minutes, so a call joined after the switch is invisible to
+        // it. Reading the focused window now, on the ticks where the title can
+        // decide anything — a browser in front, the microphone live, and no
+        // capture or dictation already holding the decision — is what sees it.
+        // Nothing here holds the state lock: the read calls back into the
+        // suggestion store on this thread.
         let browser_title = match &app_signal {
-            machine::AppSignal::Browser { bundle_id, .. } => apps::browser_title_evidence(
-                &self
-                    .meetings
-                    .suggestions_list(crate::meeting::clock::host_monotonic_now_ns()),
-                bundle_id,
-            ),
+            machine::AppSignal::Browser { bundle_id, .. }
+                if mic == MicSignal::Active && !sona_holds && active.is_none() =>
+            {
+                let read = self.browser_titles.refresh_frontmost(bundle_id);
+                apps::browser_title_evidence(
+                    read,
+                    &self
+                        .meetings
+                        .suggestions_list(crate::meeting::clock::host_monotonic_now_ns()),
+                    bundle_id,
+                )
+            }
             _ => machine::BrowserTitleEvidence::NoMatch,
         };
         let event_end_utc_ms = match &calendar {

@@ -892,6 +892,7 @@ private let supportedMeetingBundleIDs: Set<String> = [
     "com.microsoft.teams",
     "com.microsoft.teams2",
     "com.tinyspeck.slackmacgap",
+    "company.thebrowser.browser",
     "org.mozilla.firefox",
     "us.zoom.xos",
 ]
@@ -957,6 +958,31 @@ private final class SuggestionObserver: @unchecked Sendable {
             NSWorkspace.shared.notificationCenter.removeObserver(token)
             self.token = nil
         }
+    }
+
+    /// Reads the frontmost application's focused window now, when that
+    /// application is `bundleID`. The activation notification fires only on
+    /// app switches, so a call joined after the switch, or in a browser that
+    /// has been in front longer than an offer lives, never reaches it; the
+    /// detection tick pulls instead while the microphone is live. Synchronous
+    /// so the offer is in the store when the tick reads it. Returns
+    /// `suggestionAXUnavailableFlag` when Accessibility is not trusted, which
+    /// no read can get past.
+    func refreshFrontmost(bundleID: String) -> UInt32 {
+        guard AXIsProcessTrusted() else {
+            return suggestionAXUnavailableFlag
+        }
+        guard let application = NSWorkspace.shared.frontmostApplication,
+              let frontmostBundleID = application.bundleIdentifier,
+              frontmostBundleID.lowercased() == bundleID.lowercased(),
+              observedBundleIDs.contains(frontmostBundleID.lowercased())
+        else {
+            return 0
+        }
+        evidenceQueue.sync {
+            emit(bundleID: frontmostBundleID, processID: application.processIdentifier)
+        }
+        return 0
     }
 
     private func emit(bundleID: String, processID: pid_t) {
@@ -1154,6 +1180,18 @@ public func sonaMeetingSuggestionsStart(
     observer.start()
     outHandle.pointee = Unmanaged.passRetained(observer).toOpaque()
     return BridgeResult.ok.rawValue
+}
+
+@_cdecl("sona_meeting_suggestions_refresh")
+public func sonaMeetingSuggestionsRefresh(
+    _ handle: UnsafeMutableRawPointer?,
+    _ bundleID: UnsafePointer<CChar>?
+) -> UInt32 {
+    guard let handle, let bundleID else {
+        return 0
+    }
+    let observer = Unmanaged<SuggestionObserver>.fromOpaque(handle).takeUnretainedValue()
+    return observer.refreshFrontmost(bundleID: String(cString: bundleID))
 }
 
 @_cdecl("sona_meeting_suggestions_stop")

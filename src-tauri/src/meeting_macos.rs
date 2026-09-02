@@ -2,6 +2,7 @@ pub use suggestion_observer::{MacosMeetingSuggestionObserver, MacosSuggestionObs
 pub use system_audio::MacosSystemAudioCapture;
 
 mod suggestion_observer {
+    use crate::meeting::detection::apps::{BrowserTitleRead, BrowserTitleReader};
     use crate::meeting::suggestions::{
         MeetingEvidenceFlags, MeetingProvider, MeetingSuggestionSignal, MeetingSuggestionSink,
     };
@@ -31,6 +32,7 @@ mod suggestion_observer {
             callback_context: *mut c_void,
             out_handle: *mut *mut c_void,
         ) -> c_int;
+        fn sona_meeting_suggestions_refresh(handle: *mut c_void, bundle_id: *const c_char) -> u32;
         fn sona_meeting_suggestions_stop(handle: *mut c_void);
     }
 
@@ -140,6 +142,33 @@ mod suggestion_observer {
     impl Drop for MacosMeetingSuggestionObserver {
         fn drop(&mut self) {
             self.stop();
+        }
+    }
+
+    impl BrowserTitleReader for MacosMeetingSuggestionObserver {
+        /// The read goes through the same Swift observer and the same callback
+        /// the activation edge uses, so what it produces is the same
+        /// content-free signal, normalized by the same rules.
+        fn refresh_frontmost(&self, bundle_id: &str) -> BrowserTitleRead {
+            let Some(handle) = self.handle else {
+                return BrowserTitleRead::Unreadable;
+            };
+            let Ok(bundle_id) = CString::new(bundle_id) else {
+                return BrowserTitleRead::Unreadable;
+            };
+            // SAFETY: the handle is the retained Swift observer this value owns
+            // until `stop`, and Swift reads the C string only during the call.
+            let flags = unsafe {
+                sona_meeting_suggestions_refresh(
+                    ptr::with_exposed_provenance_mut(handle),
+                    bundle_id.as_ptr(),
+                )
+            };
+            if flags & SUGGESTION_AX_UNAVAILABLE != 0 {
+                BrowserTitleRead::Unreadable
+            } else {
+                BrowserTitleRead::Read
+            }
         }
     }
 
@@ -257,6 +286,9 @@ mod suggestion_observer {
             .then_some(MeetingProvider::ConfiguredApp)
     }
 
+    /// Mirrors `detection::apps::BROWSER_BUNDLE_IDS` and the Swift observer's
+    /// `supportedMeetingBundleIDs`: a browser missing from any of the three
+    /// never produces a match.
     fn is_browser_bundle_id(app_bundle_id: &str) -> bool {
         matches!(
             app_bundle_id,
@@ -265,6 +297,7 @@ mod suggestion_observer {
                 | "com.google.chrome.canary"
                 | "com.microsoft.edgemac"
                 | "org.mozilla.firefox"
+                | "company.thebrowser.browser"
         )
     }
 
@@ -386,6 +419,25 @@ mod suggestion_observer {
                 &BTreeSet::new(),
             )
             .is_none());
+        }
+
+        /* FN5 in the detection map: Arc was in `apps::BROWSER_BUNDLE_IDS` but
+         * in neither of the two lists a browser match actually reads. */
+        #[test]
+        fn arc_normalizes_like_chrome() {
+            let signal = normalize_meeting_signal(
+                "company.thebrowser.Browser",
+                Some("Meet – Weekly sync"),
+                Some("meet.google.com"),
+                false,
+                3,
+                &BTreeSet::new(),
+            )
+            .expect("a Meet tab in Arc should produce a suggestion");
+
+            assert_eq!(signal.provider, MeetingProvider::GoogleMeet);
+            assert_eq!(signal.app_bundle_id, "company.thebrowser.browser");
+            assert!(signal.evidence_flags.ax_host);
         }
     }
 }
