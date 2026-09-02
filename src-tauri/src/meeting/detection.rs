@@ -329,12 +329,28 @@ impl tauri_specta::Event for DetectionPromptRetractedEvent {
 #[derive(Clone, Debug)]
 struct PendingPrompt {
     prompt: PromptKind,
-    /// Calendar event this prompt belongs to, for the auto-stop event-end rule.
-    event_end_utc_ms: Option<i64>,
+    /// The calendar event on the table when this prompt was raised, for the
+    /// facts a capture started from it remembers.
     calendar_event: Option<CalendarEventSummary>,
     show_introduction: bool,
     /// What this prompt's series already decided about announcing itself.
     announce_in_chat: bool,
+}
+
+impl PendingPrompt {
+    /// The scheduled end this prompt, and a capture started from it, lives
+    /// until. Only a calendar prompt has one, and only from its own event: a
+    /// Zoom prompt raised while some block sits on the calendar has nothing to
+    /// do with that block, and must not be retracted or stopped when it ends.
+    fn linked_event_end(&self) -> Option<i64> {
+        let PromptKind::CalendarEvent { event_key, .. } = &self.prompt else {
+            return None;
+        };
+        self.calendar_event
+            .as_ref()
+            .filter(|event| event.event_key == *event_key)
+            .map(|event| event.end_utc_ms)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -923,12 +939,6 @@ impl DetectionRuntime {
             }
             _ => machine::BrowserTitleEvidence::NoMatch,
         };
-        let event_end_utc_ms = match &calendar {
-            CalendarSignal::Upcoming { event, .. } | CalendarSignal::Started { event } => {
-                Some(event.end_utc_ms)
-            }
-            CalendarSignal::Absent => None,
-        };
         let calendar_event = match &calendar {
             CalendarSignal::Upcoming { event, .. } | CalendarSignal::Started { event }
                 if event.attendee_count >= machine::ATTENDEE_FLOOR =>
@@ -971,13 +981,7 @@ impl DetectionRuntime {
         };
 
         let outcome = evaluate(&inputs, &policy);
-        let (suppress_reason, countdown) = self.apply(
-            outcome,
-            event_end_utc_ms,
-            now_utc_ms,
-            calendar_event,
-            briefing,
-        );
+        let (suppress_reason, countdown) = self.apply(outcome, calendar_event, briefing);
         self.publish_status(
             &settings,
             mic,
@@ -996,8 +1000,6 @@ impl DetectionRuntime {
     fn apply(
         self: &Arc<Self>,
         outcome: DetectionOutcome,
-        event_end_utc_ms: Option<i64>,
-        _now_utc_ms: i64,
         calendar_event: Option<CalendarEventSummary>,
         briefing: Vec<PersonBriefingRow>,
     ) -> (Option<SuppressReason>, Option<DetectionCountdown>) {
@@ -1035,7 +1037,7 @@ impl DetectionRuntime {
                             prompt_id: format!("auto:{event_key}"),
                             title: event_title,
                             trigger_bundle_id: None,
-                            event_end_utc_ms,
+                            event_end_utc_ms: Some(event.end_utc_ms),
                             calendar_event: Some(event),
                         };
                         match runtime
@@ -1075,7 +1077,7 @@ impl DetectionRuntime {
             }
             DetectionOutcome::Prompt(prompt) => {
                 if self.claim_prompt(&prompt) {
-                    self.raise(prompt, event_end_utc_ms, calendar_event);
+                    self.raise(prompt, calendar_event);
                 }
                 (None, None)
             }
@@ -1450,32 +1452,8 @@ impl DetectionRuntime {
             .iter()
             .filter_map(|(prompt_id, pending)| match pending {
                 PendingPanel::Prompt(pending) => {
-                    // A call prompt's episode is the call, not the microphone:
-                    // the call it offers to record may never raise the input
-                    // device at all, so the microphone rule below would retract
-                    // it on the tick that raised it.
-                    let call_prompt = matches!(pending.prompt, PromptKind::AppCall { .. });
-                    let reason = if pending
-                        .event_end_utc_ms
-                        .is_some_and(|end| now_utc_ms >= end)
-                    {
-                        Some(DetectionPromptRetractionReason::EventEnded)
-                    } else if pending
-                        .prompt
-                        .bundle_id()
-                        .is_some_and(|bundle_id| !apps::is_app_running(running, bundle_id))
-                    {
-                        Some(DetectionPromptRetractionReason::TriggerAppQuit)
-                    } else if call_prompt {
-                        (!call_evidence).then_some(DetectionPromptRetractionReason::CallEnded)
-                    } else if mic == MicSignal::Idle
-                        && !matches!(pending.prompt, PromptKind::CalendarEvent { .. })
-                    {
-                        Some(DetectionPromptRetractionReason::MicEpisodeEnded)
-                    } else {
-                        None
-                    };
-                    reason.map(|reason| (prompt_id.to_string(), Some(reason)))
+                    prompt_retraction(pending, now_utc_ms, running, mic, call_evidence)
+                        .map(|reason| (prompt_id.to_string(), Some(reason)))
                 }
                 PendingPanel::Ritual(pending) if ritual_is_stale(&pending.ritual, now_utc_ms) => {
                     Some((prompt_id.to_string(), None))
@@ -1515,7 +1493,6 @@ impl DetectionRuntime {
     fn raise(
         self: &Arc<Self>,
         prompt: PromptKind,
-        event_end_utc_ms: Option<i64>,
         calendar_event: Option<CalendarEventSummary>,
     ) {
         let prompt_id = Uuid::new_v4().to_string();
@@ -1529,7 +1506,6 @@ impl DetectionRuntime {
         let priority = prompt_priority(&prompt);
         let pending = PendingPanel::Prompt(PendingPrompt {
             prompt,
-            event_end_utc_ms,
             calendar_event,
             show_introduction,
             announce_in_chat,
@@ -1680,7 +1656,7 @@ impl DetectionRuntime {
             prompt_id: prompt_id.to_string(),
             title: pending.prompt.proposed_meeting_title(chrono::Local::now()),
             trigger_bundle_id: pending.prompt.bundle_id().map(str::to_string),
-            event_end_utc_ms: pending.event_end_utc_ms,
+            event_end_utc_ms: pending.linked_event_end(),
             calendar_event: pending.calendar_event,
         })
     }
@@ -1711,7 +1687,7 @@ impl DetectionRuntime {
             runtime
                 .open_capture(
                     &pending.prompt,
-                    pending.event_end_utc_ms,
+                    pending.linked_event_end(),
                     utc_now_ms(),
                     pending.calendar_event,
                 )
@@ -2428,6 +2404,45 @@ fn ritual_panel_layout(ritual: &MeetingRitual) -> ConsentPanelLayout {
     }
 }
 
+/// Why a pending prompt no longer applies, or `None` while it still does.
+/// Pure, so the retraction rules are testable without a panel.
+fn prompt_retraction(
+    pending: &PendingPrompt,
+    now_utc_ms: i64,
+    running: &[RunningApp],
+    mic: MicSignal,
+    call_evidence: bool,
+) -> Option<DetectionPromptRetractionReason> {
+    if pending
+        .linked_event_end()
+        .is_some_and(|end| now_utc_ms >= end)
+    {
+        return Some(DetectionPromptRetractionReason::EventEnded);
+    }
+    if pending
+        .prompt
+        .bundle_id()
+        .is_some_and(|bundle_id| !apps::is_app_running(running, bundle_id))
+    {
+        return Some(DetectionPromptRetractionReason::TriggerAppQuit);
+    }
+    match pending.prompt {
+        // A call prompt's episode is the call, not the microphone: the call it
+        // offers to record may never raise the input device at all, so the
+        // microphone rule below would retract it on the tick that raised it.
+        PromptKind::AppCall { .. } => {
+            (!call_evidence).then_some(DetectionPromptRetractionReason::CallEnded)
+        }
+        PromptKind::CalendarEvent { .. } => None,
+        PromptKind::AppMeeting { .. }
+        | PromptKind::AppHuddle { .. }
+        | PromptKind::BrowserCall { .. }
+        | PromptKind::UnknownMicSource => {
+            (mic == MicSignal::Idle).then_some(DetectionPromptRetractionReason::MicEpisodeEnded)
+        }
+    }
+}
+
 fn ritual_is_stale(ritual: &MeetingRitual, now_utc_ms: i64) -> bool {
     matches!(ritual, MeetingRitual::Prep(card) if now_utc_ms >= card.start_utc_ms)
 }
@@ -2622,7 +2637,6 @@ mod tests {
     fn pending(prompt: PromptKind, show_introduction: bool) -> PendingPrompt {
         PendingPrompt {
             prompt,
-            event_end_utc_ms: None,
             calendar_event: None,
             show_introduction,
             announce_in_chat: false,
@@ -2703,6 +2717,69 @@ mod tests {
         assert!(!brief_shown(Some(&countdown("event-2", true))));
         assert!(!brief_shown(Some(&countdown("event-1", false))));
         assert!(!brief_shown(None));
+    }
+
+    /* FS2 in the detection map: a Zoom prompt raised while some event sat on
+     * the calendar carried that event's end, so the capture it started
+     * stopped when the event ended and the pending prompt was retracted at
+     * that instant. Only a calendar prompt has an event to end with. */
+    #[test]
+    fn an_app_prompt_raised_beside_a_calendar_event_does_not_end_with_it() {
+        let block = countdown("event-1", false).event;
+        let zoom_running = [RunningApp {
+            bundle_id: "us.zoom.xos".to_string(),
+            display_name: "Zoom".to_string(),
+            frontmost: true,
+        }];
+        let zoom_prompt = PendingPrompt {
+            calendar_event: Some(block.clone()),
+            ..pending(
+                PromptKind::AppMeeting {
+                    bundle_id: "us.zoom.xos".to_string(),
+                    app_name: "Zoom".to_string(),
+                },
+                false,
+            )
+        };
+
+        assert_eq!(zoom_prompt.linked_event_end(), None);
+        assert_eq!(
+            prompt_retraction(
+                &zoom_prompt,
+                block.end_utc_ms,
+                &zoom_running,
+                MicSignal::Active,
+                false
+            ),
+            None,
+            "the block ending is not the Zoom meeting ending"
+        );
+
+        let calendar_prompt = PendingPrompt {
+            calendar_event: Some(block.clone()),
+            ..pending(
+                PromptKind::CalendarEvent {
+                    event_key: block.event_key.clone(),
+                    event_title: block.title.clone(),
+                },
+                false,
+            )
+        };
+
+        assert_eq!(
+            calendar_prompt.linked_event_end(),
+            Some(block.end_utc_ms)
+        );
+        assert_eq!(
+            prompt_retraction(
+                &calendar_prompt,
+                block.end_utc_ms,
+                &[],
+                MicSignal::Active,
+                false
+            ),
+            Some(DetectionPromptRetractionReason::EventEnded)
+        );
     }
     fn prep_card(start_utc_ms: i64) -> MeetingPrepCard {
         MeetingPrepCard {
