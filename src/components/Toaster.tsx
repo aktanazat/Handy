@@ -1,5 +1,7 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Toaster as SonnerToaster } from "sonner";
+import { getLanguageDirection } from "@/lib/utils/rtl";
 
 /* The app's single toast surface. Mount once at the shell root; raise
  * messages with `toast` from sonner.
@@ -15,21 +17,31 @@ import { Toaster as SonnerToaster } from "sonner";
  *
  * Raised as a raised surface rather than a card: it floats over the page, so
  * it earns both the hairline and the shadow. */
-export const Toaster: React.FC = () => (
-  <SonnerToaster
-    theme="system"
-    toastOptions={{
-      unstyled: true,
-      classNames: {
-        toast:
-          "bg-surface-raised border border-gray-alpha-400 rounded-panel px-4 py-3 flex items-center gap-3 text-[13px] leading-[19px] shadow-[var(--shadow-popover)]",
-        title: "font-medium text-text-primary",
-        description: "text-text-secondary",
-        actionButton:
-          "min-h-8 px-4 text-[13px] font-medium rounded-control border border-accent bg-accent text-on-accent transition-[background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-in-out)] hover:bg-accent-hover hover:border-accent-hover cursor-pointer whitespace-nowrap",
-        cancelButton:
-          "min-h-8 px-4 text-[13px] font-medium rounded-control border border-border bg-control transition-[background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-in-out)] hover:bg-control-hover cursor-pointer whitespace-nowrap",
-      },
-    }}
-  />
-);
+export const Toaster: React.FC = () => {
+  const { i18n } = useTranslation();
+  /* Bottom-end. Sonner only knows physical corners, so the trailing one is
+   * chosen from the document direction the language sets. */
+  const position =
+    getLanguageDirection(i18n.language) === "rtl"
+      ? "bottom-left"
+      : "bottom-right";
+  return (
+    <SonnerToaster
+      theme="system"
+      position={position}
+      toastOptions={{
+        unstyled: true,
+        classNames: {
+          toast:
+            "bg-surface-raised border border-gray-alpha-400 rounded-panel px-4 py-3 flex items-center gap-3 text-[13px] leading-[19px] shadow-[var(--shadow-popover)]",
+          title: "font-medium text-text-primary",
+          description: "text-text-secondary",
+          actionButton:
+            "min-h-8 px-4 text-[13px] font-medium rounded-control border border-accent bg-accent text-on-accent transition-[background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-in-out)] hover:bg-accent-hover hover:border-accent-hover cursor-pointer whitespace-nowrap",
+          cancelButton:
+            "min-h-8 px-4 text-[13px] font-medium rounded-control border border-border bg-control transition-[background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-in-out)] hover:bg-control-hover cursor-pointer whitespace-nowrap",
+        },
+      }}
+    />
+  );
+};

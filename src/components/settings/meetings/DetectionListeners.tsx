@@ -76,6 +76,9 @@ export const DetectionListeners: React.FC = () => {
         if (prompt.delivery !== "in_app_only") continue;
         toast(promptTitle(t, prompt.prompt), {
           id: promptToastId(prompt.promptId),
+          /* A decision, not a notice: longer than the four seconds a
+           * completion toast gets. The other toasts keep sonner's default. */
+          duration: 6000,
           description: t(
             "meetings.detection.prompt.body",
             "Sona can take local notes for this call.",
