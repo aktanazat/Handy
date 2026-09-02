@@ -17,6 +17,8 @@
 //! for the browser evidence in case 7 rather than building a second window-title
 //! reader.
 
+use std::collections::HashSet;
+
 use super::machine::{AppSignal, BrowserTitleEvidence, CallSignal};
 use crate::meeting::suggestions::{MeetingProvider, MeetingSuggestion};
 
@@ -127,15 +129,28 @@ pub fn normalize_allowlist(entries: &[String]) -> Vec<String> {
 /// signal when a process with that bundle ID is actually running. A stale or
 /// renamed ID contributes nothing instead of poisoning the decision.
 ///
+/// Presence is not participation. An app is `Known` only when the operator is
+/// using it this input-device episode — frontmost now, or in `apps_used`, the
+/// set the runtime fills from `frontmost_allowlisted` on every tick the
+/// microphone is active. Zoom left in the menu bar while a voice memo records
+/// is `Present`, and prompts for nothing.
+///
 /// Call apps are excluded here and reported by `call_signal` instead. They are
 /// on the same allowlist but answer a different question, and letting a
 /// backgrounded FaceTime win `max_by_key` over a running Zoom would trade a
 /// meeting Sona can detect for a call that is not happening.
-pub fn app_signal(running: &[RunningApp], allowlist: &[String]) -> AppSignal {
-    // Frontmost wins so the prompt names the app the operator is looking at.
-    let known = running
+pub fn app_signal(
+    running: &[RunningApp],
+    allowlist: &[String],
+    apps_used: &HashSet<String>,
+) -> AppSignal {
+    let mut candidates = running
         .iter()
-        .filter(|app| !is_call_app_bundle_id(&app.bundle_id) && in_allowlist(allowlist, app))
+        .filter(|app| !is_call_app_bundle_id(&app.bundle_id) && in_allowlist(allowlist, app));
+    // Frontmost wins so the prompt names the app the operator is looking at.
+    let known = candidates
+        .clone()
+        .filter(|app| app.frontmost || apps_used.contains(&app.bundle_id))
         .max_by_key(|app| app.frontmost);
     if let Some(app) = known {
         return AppSignal::Known {
@@ -157,7 +172,26 @@ pub fn app_signal(running: &[RunningApp], allowlist: &[String]) -> AppSignal {
         };
     }
 
+    if let Some(app) = candidates.next() {
+        return AppSignal::Present {
+            bundle_id: app.bundle_id.clone(),
+            display_name: app.display_name.clone(),
+        };
+    }
+
     AppSignal::Absent
+}
+
+/// The allowlisted meeting application in front right now, if any. What the
+/// runtime adds to `apps_used` while the microphone is active, so that
+/// `app_signal` keeps naming an app the operator switched away from mid-call.
+pub fn frontmost_allowlisted<'a>(running: &'a [RunningApp], allowlist: &[String]) -> Option<&'a str> {
+    running
+        .iter()
+        .find(|app| {
+            app.frontmost && !is_call_app_bundle_id(&app.bundle_id) && in_allowlist(allowlist, app)
+        })
+        .map(|app| app.bundle_id.as_str())
 }
 
 pub fn is_browser_bundle_id(bundle_id: &str) -> bool {
@@ -311,6 +345,16 @@ mod tests {
         }
     }
 
+    /// The set the runtime keeps per input-device episode. Empty means the
+    /// microphone just went active and nothing has been in front yet.
+    fn unused() -> HashSet<String> {
+        HashSet::new()
+    }
+
+    fn used(bundle_ids: &[&str]) -> HashSet<String> {
+        bundle_ids.iter().map(|bundle_id| (*bundle_id).to_string()).collect()
+    }
+
     fn offer(
         bundle_id: &str,
         provider: MeetingProvider,
@@ -348,9 +392,52 @@ mod tests {
     fn an_allowlist_entry_only_counts_when_the_app_is_actually_running() {
         let allowlist = default_meeting_app_bundle_ids();
 
-        assert_eq!(app_signal(&[], &allowlist), AppSignal::Absent);
+        assert_eq!(app_signal(&[], &allowlist, &unused()), AppSignal::Absent);
         assert_eq!(
-            app_signal(&[app("us.zoom.xos", "Zoom", false)], &allowlist),
+            app_signal(&[app("us.zoom.xos", "Zoom", true)], &allowlist, &unused()),
+            AppSignal::Known {
+                bundle_id: "us.zoom.xos".to_string(),
+                display_name: "Zoom".to_string(),
+                frontmost: true,
+            }
+        );
+    }
+
+    /* FP1 and FP2 in the detection map: Zoom left in the menu bar while a
+     * voice memo records, or Slack open in a background window while a Discord
+     * call holds the microphone. Neither app is in use, and neither prompts. */
+    #[test]
+    fn a_meeting_app_the_operator_has_not_used_is_present_and_not_known() {
+        let signal = app_signal(
+            &[app("us.zoom.xos", "Zoom", false)],
+            &default_meeting_app_bundle_ids(),
+            &unused(),
+        );
+
+        assert_eq!(
+            signal,
+            AppSignal::Present {
+                bundle_id: "us.zoom.xos".to_string(),
+                display_name: "Zoom".to_string(),
+            }
+        );
+    }
+
+    /* The operator joined in Zoom, then switched to Notes to type. Zoom was in
+     * front two ticks ago, and the microphone is still its. */
+    #[test]
+    fn an_app_used_earlier_in_the_episode_stays_known_after_switching_away() {
+        let signal = app_signal(
+            &[
+                app("us.zoom.xos", "Zoom", false),
+                app("com.apple.notes", "Notes", true),
+            ],
+            &default_meeting_app_bundle_ids(),
+            &used(&["us.zoom.xos"]),
+        );
+
+        assert_eq!(
+            signal,
             AppSignal::Known {
                 bundle_id: "us.zoom.xos".to_string(),
                 display_name: "Zoom".to_string(),
@@ -360,10 +447,35 @@ mod tests {
     }
 
     #[test]
+    fn the_app_in_front_is_what_the_episode_remembers() {
+        let allowlist = default_meeting_app_bundle_ids();
+
+        assert_eq!(
+            frontmost_allowlisted(&[app("us.zoom.xos", "Zoom", true)], &allowlist),
+            Some("us.zoom.xos")
+        );
+        // A browser is read through its title, and a call app through the call
+        // dimension; neither belongs in the app set.
+        assert_eq!(
+            frontmost_allowlisted(&[app("com.google.chrome", "Chrome", true)], &allowlist),
+            None
+        );
+        assert_eq!(
+            frontmost_allowlisted(&[app("com.apple.facetime", "FaceTime", true)], &allowlist),
+            None
+        );
+        assert_eq!(
+            frontmost_allowlisted(&[app("us.zoom.xos", "Zoom", false)], &allowlist),
+            None
+        );
+    }
+
+    #[test]
     fn a_renamed_bundle_id_contributes_nothing_instead_of_matching_loosely() {
         let signal = app_signal(
             &[app("com.microsoft.teams3", "Microsoft Teams", true)],
             &default_meeting_app_bundle_ids(),
+            &unused(),
         );
 
         assert_eq!(signal, AppSignal::Absent);
@@ -377,6 +489,7 @@ mod tests {
                 app("com.tinyspeck.slackmacgap", "Slack", true),
             ],
             &default_meeting_app_bundle_ids(),
+            &used(&["us.zoom.xos"]),
         );
 
         assert_eq!(
@@ -390,13 +503,14 @@ mod tests {
     }
 
     #[test]
-    fn a_native_meeting_app_outranks_a_frontmost_browser() {
+    fn a_meeting_app_in_use_outranks_a_frontmost_browser() {
         let signal = app_signal(
             &[
                 app("com.google.chrome", "Chrome", true),
                 app("us.zoom.xos", "Zoom", false),
             ],
             &default_meeting_app_bundle_ids(),
+            &used(&["us.zoom.xos"]),
         );
 
         assert_eq!(
@@ -409,11 +523,34 @@ mod tests {
         );
     }
 
+    /* FN4 in the detection map: a Meet call in Chrome while Slack sits in a
+     * background window used to read as a Slack huddle. */
+    #[test]
+    fn a_frontmost_browser_outranks_a_meeting_app_that_is_only_open() {
+        let signal = app_signal(
+            &[
+                app("com.google.chrome", "Chrome", true),
+                app("com.tinyspeck.slackmacgap", "Slack", false),
+            ],
+            &default_meeting_app_bundle_ids(),
+            &unused(),
+        );
+
+        assert_eq!(
+            signal,
+            AppSignal::Browser {
+                bundle_id: "com.google.chrome".to_string(),
+                display_name: "Chrome".to_string(),
+            }
+        );
+    }
+
     #[test]
     fn a_background_browser_is_not_evidence() {
         let signal = app_signal(
             &[app("com.google.chrome", "Chrome", false)],
             &default_meeting_app_bundle_ids(),
+            &unused(),
         );
 
         assert_eq!(signal, AppSignal::Absent);
@@ -424,6 +561,7 @@ mod tests {
         let signal = app_signal(
             &[app("com.example.call", "Example Call", true)],
             &normalize_allowlist(&["  COM.Example.Call  ".to_string()]),
+            &unused(),
         );
 
         assert_eq!(
@@ -512,7 +650,7 @@ mod tests {
         let running = [app("com.apple.facetime", "FaceTime", true)];
         let allowlist = default_meeting_app_bundle_ids();
 
-        assert_eq!(app_signal(&running, &allowlist), AppSignal::Absent);
+        assert_eq!(app_signal(&running, &allowlist, &unused()), AppSignal::Absent);
         assert_eq!(
             call_signal(&running, &allowlist),
             CallSignal::Running {
@@ -525,20 +663,29 @@ mod tests {
 
     /* A backgrounded FaceTime used to be able to win `max_by_key` over a
      * running Zoom once it joined the shipped allowlist, which would have
-     * silently traded a detectable meeting for a call that is not happening. */
+     * silently traded a detectable meeting for a call that is not happening.
+     * The app dimension names Zoom whether it is in use or merely open. */
     #[test]
     fn an_open_call_app_does_not_shadow_a_running_meeting_app() {
         let running = [
             app("com.apple.facetime", "FaceTime", false),
             app("us.zoom.xos", "Zoom", false),
         ];
+        let allowlist = default_meeting_app_bundle_ids();
 
         assert_eq!(
-            app_signal(&running, &default_meeting_app_bundle_ids()),
+            app_signal(&running, &allowlist, &used(&["us.zoom.xos"])),
             AppSignal::Known {
                 bundle_id: "us.zoom.xos".to_string(),
                 display_name: "Zoom".to_string(),
                 frontmost: false,
+            }
+        );
+        assert_eq!(
+            app_signal(&running, &allowlist, &unused()),
+            AppSignal::Present {
+                bundle_id: "us.zoom.xos".to_string(),
+                display_name: "Zoom".to_string(),
             }
         );
     }

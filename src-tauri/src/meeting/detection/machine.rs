@@ -133,11 +133,18 @@ pub enum CalendarSignal {
 }
 
 /// Which application, if any, could own the current microphone activity.
+///
+/// Presence is not participation. A meeting app that is merely open explains
+/// nothing about a live microphone — Zoom sits in the menu bar all day — so
+/// `Known` names an app the operator is *using* this input-device episode,
+/// and `Present` names one that is only running.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AppSignal {
     /// Neither an allowlisted meeting app nor a browser is a candidate.
     Absent,
-    /// An allowlisted meeting application is running.
+    /// An allowlisted meeting application the operator has been in front of
+    /// since the microphone went active: frontmost now, or at some tick of
+    /// this episode.
     Known {
         bundle_id: String,
         display_name: String,
@@ -145,8 +152,15 @@ pub enum AppSignal {
         /// rule; carried so the prompt can name the app the user is looking at.
         frontmost: bool,
     },
-    /// A browser is frontmost and no allowlisted native meeting app is running.
+    /// A browser is frontmost and no allowlisted native meeting app is in use.
     Browser {
+        bundle_id: String,
+        display_name: String,
+    },
+    /// An allowlisted meeting application is running, but the operator has not
+    /// been in front of it since the microphone went active, and no browser is
+    /// in front either.
+    Present {
         bundle_id: String,
         display_name: String,
     },
@@ -393,6 +407,9 @@ pub enum SuppressReason {
     BrowserTitleUnreadable,
     /// §5.3 case 7 — a browser is in front and its title is not a meeting.
     BrowserTitleNotMeeting,
+    /// A meeting app is running, but the operator has not been in front of it
+    /// since the microphone went active. Presence is not participation.
+    AppPresentNotInUse,
 }
 
 /// The decision table's output. Exactly one of these per evaluation.
@@ -536,7 +553,11 @@ pub fn call_is_live(
     else {
         return false;
     };
-    let other_meeting_app_running = matches!(app, AppSignal::Known { .. });
+    // A meeting app that is only open still explains the microphone here:
+    // attribution to the call app is a guess either way, and a guess must not
+    // become a recording under that app's standing grant.
+    let other_meeting_app_running =
+        matches!(app, AppSignal::Known { .. } | AppSignal::Present { .. });
     (mic == MicSignal::Active && !other_meeting_app_running) || output == OutputSignal::Active
 }
 
@@ -679,6 +700,10 @@ fn ad_hoc_path(inputs: &DetectionInputs, policy: &DetectionPolicy) -> DetectionO
         } => browser_outcome(inputs, policy, bundle_id, display_name),
         // Case 6.
         AppSignal::Absent => any_mic_outcome(policy, SuppressReason::UnknownMicSource),
+        // Presence is not participation: an app the operator has not touched
+        // since the microphone went active explains nothing about it, so this
+        // degrades to case 6's opt-in exactly as a browser's non-match does.
+        AppSignal::Present { .. } => any_mic_outcome(policy, SuppressReason::AppPresentNotInUse),
     }
 }
 
@@ -1031,6 +1056,14 @@ mod tests {
         }
     }
 
+    /// Zoom running, and not in front since the microphone went active.
+    fn zoom_present() -> AppSignal {
+        AppSignal::Present {
+            bundle_id: "us.zoom.xos".to_string(),
+            display_name: "Zoom".to_string(),
+        }
+    }
+
     fn chrome() -> AppSignal {
         AppSignal::Browser {
             bundle_id: "com.google.chrome".to_string(),
@@ -1284,6 +1317,50 @@ mod tests {
             panic!("Slack with a live mic should prompt");
         };
         assert_eq!(prompt.notification_title(), "Slack huddle detected");
+    }
+
+    /* Presence is not participation. Zoom in the menu bar while a voice memo
+     * records used to be "Zoom meeting detected"; now it is a named silence,
+     * and the any-mic opt-in is the only way through, as for case 6. */
+    #[test]
+    fn case_5_a_meeting_app_that_is_only_open_never_prompts() {
+        let voice_memo = DetectionInputs {
+            app: zoom_present(),
+            mic: MicSignal::Active,
+            ..inputs()
+        };
+        let any_mic = DetectionPolicy {
+            any_mic_activity: true,
+            ..DetectionPolicy::default()
+        };
+
+        assert_eq!(
+            evaluate(&voice_memo, &DetectionPolicy::default()),
+            DetectionOutcome::Suppress(SuppressReason::AppPresentNotInUse)
+        );
+        assert_eq!(
+            evaluate(&voice_memo, &any_mic),
+            DetectionOutcome::Prompt(PromptKind::UnknownMicSource)
+        );
+    }
+
+    /* The call path's microphone clause treats an open meeting app as the
+     * likelier holder, used or not: a FaceTime grant recording a Zoom meeting
+     * nobody consented to is the failure that clause exists to block. */
+    #[test]
+    fn a_meeting_app_that_is_only_open_still_explains_the_microphone_to_the_call_path() {
+        let facetime_in_front = DetectionInputs {
+            call: facetime(true),
+            app: zoom_present(),
+            mic: MicSignal::Active,
+            standing_app_consent: true,
+            ..inputs()
+        };
+
+        assert_eq!(
+            evaluate(&facetime_in_front, &DetectionPolicy::default()),
+            DetectionOutcome::Suppress(SuppressReason::AppPresentNotInUse)
+        );
     }
 
     /* §5.3 case 6 — live mic, no identifiable app: suppressed unless opted in. */

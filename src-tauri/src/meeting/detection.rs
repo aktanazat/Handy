@@ -403,6 +403,11 @@ struct RuntimeState {
     /// Cleared when the device goes idle, so a second meeting in the same app
     /// prompts again.
     prompted_apps: HashSet<String>,
+    /// Allowlisted apps the operator has been in front of since the input
+    /// device went active. Presence is not participation: this is what lets
+    /// `apps::app_signal` tell a meeting app in use from one merely open.
+    /// Cleared with `prompted_apps`, at the same two places.
+    apps_used: HashSet<String>,
     /// Bundle IDs the call path has already acted on for the call in progress.
     /// Cleared when no call is live, which is a different boundary from
     /// `prompted_apps`: a call detected on the output signal alone never raises
@@ -429,6 +434,13 @@ impl RuntimeState {
     /// which is what re-arms the path for the next one.
     fn release_calls(&mut self) {
         self.acted_calls.clear();
+    }
+
+    /// The input-device episode is over. The next meeting in the same app is
+    /// a fresh decision, and which apps the operator used starts from nothing.
+    fn end_input_episode(&mut self) {
+        self.prompted_apps.clear();
+        self.apps_used.clear();
     }
 
     /// Folds this tick's output level into the tracked call capture and hands
@@ -835,7 +847,18 @@ impl DetectionRuntime {
             })
             .map(|app| app.bundle_id.clone())
             .collect::<Vec<_>>();
-        let app_signal = apps::app_signal(&running, &allowlist);
+        // Which apps the operator is using is remembered per input-device
+        // episode, so an app they switched away from mid-meeting keeps
+        // explaining the microphone and one they never touched does not.
+        let app_signal = {
+            let mut state = self.lock();
+            if mic == MicSignal::Active {
+                if let Some(bundle_id) = apps::frontmost_allowlisted(&running, &allowlist) {
+                    state.apps_used.insert(bundle_id.to_string());
+                }
+            }
+            apps::app_signal(&running, &allowlist, &state.apps_used)
+        };
         let call = apps::call_signal(&running, &allowlist);
         // Whether a call is happening, decided once per tick: it decides
         // whether the tick is inert, and the decision table asks the same
@@ -2234,10 +2257,11 @@ impl DetectionRuntime {
             if state.last_status.as_ref() == Some(&status) {
                 return;
             }
-            // An input-device episode ending clears the per-app prompt claims, so
-            // the next meeting in the same app prompts again.
+            // An input-device episode ending clears the per-app prompt claims
+            // and the apps in use, so the next meeting in the same app prompts
+            // again on its own evidence.
             if !input_device_active {
-                state.prompted_apps.clear();
+                state.end_input_episode();
             }
             state.last_status = Some(status.clone());
         }
@@ -2476,9 +2500,9 @@ struct WakeOnInputChange {
 impl InputDeviceObserver for WakeOnInputChange {
     fn input_device_changed(&self, signal: MicSignal) {
         if signal == MicSignal::Idle {
-            // The episode is over: forget which apps were prompted for so the
-            // next meeting in the same app is a fresh decision.
-            self.state.lock().prompted_apps.clear();
+            // The episode is over: forget which apps were prompted for and
+            // which were in use, so the next meeting is a fresh decision.
+            self.state.lock().end_input_episode();
         }
         self.wakeup.wake();
     }
@@ -2813,6 +2837,21 @@ mod tests {
             state.claim_call("com.apple.facetime"),
             "the next call is a fresh decision"
         );
+    }
+
+    /* Which apps the operator used is the episode's memory, and the episode
+     * ends with the microphone: both per-episode sets clear at that boundary,
+     * so the next meeting in Zoom is judged on its own evidence. */
+    #[test]
+    fn the_microphone_going_idle_forgets_which_apps_were_in_use() {
+        let mut state = RuntimeState::default();
+        state.apps_used.insert("us.zoom.xos".to_string());
+        state.prompted_apps.insert("us.zoom.xos".to_string());
+
+        state.end_input_episode();
+
+        assert!(state.apps_used.is_empty());
+        assert!(state.prompted_apps.is_empty());
     }
 
     /* The card is raised while the capture holds the panel, so it must be
