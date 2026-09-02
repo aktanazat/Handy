@@ -90,6 +90,18 @@ pub async fn cloud_sync_pairing_approve(
         .map_err(|error| error.kind())
 }
 
+/// The fingerprint of an offer that arrived from another device, derived on
+/// this Mac so the operator compares a value this Mac read out of the offer
+/// rather than one the offer told it to show. Reads nothing and changes
+/// nothing: the answer is a function of the offer alone.
+#[tauri::command]
+#[specta::specta]
+pub fn cloud_sync_pairing_fingerprint(
+    offer: CloudPairingOffer,
+) -> Result<String, CloudSyncErrorKind> {
+    crate::cloud_sync::pairing_offer_fingerprint(&offer).map_err(|error| error.kind())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn cloud_sync_pairing_accept(

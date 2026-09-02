@@ -2711,6 +2711,12 @@
       "createOffer": "Create pairing offer",
       "currentOffer": "Pairing offer",
       "approve": "Approve this offer",
+      "candidateOffer": "Code from the device you are adding",
+      "candidateApprove": "Approve device",
+      "candidateReading": "Checking…",
+      "candidateCompare": "Check this matches the code on the device before you approve.",
+      "candidateInvalid": "That code is not valid.",
+      "candidateApproved": "Device approved.",
       "receivedOffer": "Offer from another device",
       "accept": "Accept offer"
     },

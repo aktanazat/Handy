@@ -20,7 +20,7 @@ use zeroize::Zeroize;
 use crate::{
     meeting::{
         cloud_bundle::CloudMeetingBundleV1,
-        session::MeetingSessionManager,
+        session::{ImportRecordingRequest, MeetingSessionManager, RecordingOrigin},
         store::{
             CloudCapabilitiesCache, CloudConflict, CloudHead, CloudOutboxChunk, CloudOutboxInput,
             CloudOutboxKind, CloudOutboxRecord, CloudOutboxState, CloudOutboxUpdate,
@@ -28,8 +28,9 @@ use crate::{
             CloudShareUpdate, MeetingStore, StoreError,
         },
         types::{
-            MeetingListFilter, MeetingNavigationDestination, MeetingPhase, MeetingReviewSnapshot,
-            MeetingSessionId,
+            MeetingCommandError, MeetingConsentProvenance, MeetingListFilter,
+            MeetingNavigationDestination, MeetingPhase, MeetingReviewSnapshot, MeetingSessionId,
+            MANUAL_DEFAULT_TITLE,
         },
     },
     portable,
@@ -40,8 +41,9 @@ use crate::{
 use super::{
     client::{
         BootstrapDeviceRequest, CloudCapabilities, CloudClient, CloudClientError, CloudCredentials,
-        CloudErrorCode, IdempotencyKey, ObjectManifestResponse, ObjectUploadPlan,
-        PairDeviceRequest, ShareUploadPlan, TombstoneReason, TombstoneRequest, UploadChunkPlan,
+        CloudErrorCode, IdempotencyKey, ObjectManifestResponse, ObjectRevisionEnvelope,
+        ObjectUploadPlan, PairDeviceRequest, ShareUploadPlan, TombstoneReason, TombstoneRequest,
+        UploadChunkPlan,
     },
     crypto::{
         base64_url_decode, base64_url_encode, decode_recovery_code, ed25519_public_key,
@@ -52,7 +54,8 @@ use super::{
         sign_canonical_upload_envelope, verify_ed25519, CanonicalBootstrapInput,
         CanonicalPairApprovalInput, CanonicalPairCandidateInput, CanonicalTombstoneInput,
         CanonicalUploadEnvelopeInput, ObjectContentKind, ObjectRevisionCryptoContext,
-        PairingEnvelopeSealInput, SharePayloadContext, SharePayloadDomain, UploadChunk, UploadKind,
+        PairingEnvelopeSealInput, SharePayloadContext, SharePayloadDomain, StreamingSha256,
+        UploadChunk, UploadKind,
     },
     share_file::{parse_worker_share_transport, read_share_file, write_share_file},
     types::{
@@ -83,6 +86,29 @@ const CAPABILITIES_CACHE_MS: i64 = 5 * 60 * 1000;
 const BACKGROUND_SCAN_INTERVAL: Duration = Duration::from_secs(5);
 const MAX_RETRY_DELAY_MS: i64 = 5 * 60 * 1000;
 const MAX_SHARE_EXPIRY_MS: i64 = 30 * 24 * 60 * 60 * 1000;
+/// The manifest kind and `source_format` a paired phone or watch writes. Both
+/// are the device's, verbatim: `source_format` is bound into the HKDF info and
+/// the AES-GCM AAD of every payload in the object, so a single character apart
+/// from the writer's value authenticates nothing.
+const DEVICE_RECORDING_KIND: &str = "device_recording";
+const DEVICE_RECORDING_SOURCE_FORMAT: &str = "sona-device-recording-v1";
+const DEVICE_RECORDING_FORMAT_VERSION: u32 = 1;
+/// The one audio shape a device uploads: 16 kHz mono signed 16-bit PCM, which
+/// is the format the importer resamples every source to anyway.
+const DEVICE_RECORDING_CODEC: &str = "pcm_s16le";
+const DEVICE_RECORDING_SAMPLE_RATE_HZ: u32 = 16_000;
+const DEVICE_RECORDING_CHANNELS: u16 = 1;
+const DEVICE_RECORDING_BITS_PER_SAMPLE: u16 = 16;
+/// One frame of that stream: one channel, two bytes.
+const DEVICE_RECORDING_FRAME_BYTES: u64 = 2;
+/// Twelve hours of it. This is `MAX_IMPORT_RECORDING_SAMPLES` in
+/// `meeting::session` counted in bytes rather than samples: past it the
+/// importer stops decoding, so a longer object would stage over a gigabyte of
+/// audio only to be refused one layer down.
+const MAX_DEVICE_RECORDING_AUDIO_BYTES: u64 = 16_000 * 60 * 60 * 12 * DEVICE_RECORDING_FRAME_BYTES;
+/// A RIFF/WAVE header for one PCM stream: 12-byte container, 24-byte `fmt `
+/// chunk, 8-byte `data` header.
+const WAVE_HEADER_BYTES: usize = 44;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum BackgroundScanWake {
@@ -220,6 +246,202 @@ struct ObjectPayloadManifest {
     plaintext_sha256: String,
 }
 
+/// The plaintext manifest of a `device_recording` object, as
+/// `mobile/Shared/DeviceRecordingObject.swift` writes it. The device emits
+/// sorted keys; JSON is unordered, so this reader does not care either way.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DeviceRecordingManifest {
+    format_version: u32,
+    kind: String,
+    device_id: String,
+    recorded_at_utc_ms: i64,
+    /// The device's own measurement. The importer measures the meeting's
+    /// duration off the decoded audio, so this is not read here — but the
+    /// reader is strict about unknown fields, so it has to be named.
+    #[allow(dead_code)]
+    duration_ms: i64,
+    title: String,
+    audio: DeviceRecordingAudio,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DeviceRecordingAudio {
+    codec: String,
+    sample_rate_hz: u32,
+    channels: u16,
+    byte_length: u64,
+    sha256: String,
+}
+
+/// What a revision says it is. The manifest is the only place an object
+/// declares its kind, and `source_format` — which decides the manifest's own
+/// key — is not on the wire, so the reader tries the formats it installs.
+enum RemoteManifest {
+    Meeting(ObjectPayloadManifest),
+    DeviceRecording(DeviceRecordingManifest),
+}
+
+/// What a revision turned out to be once its manifest was opened.
+enum RemoteObject {
+    /// A meeting bundle, from this vault's desktops. Boxed: the bundle is the
+    /// whole meeting, and the other arms are a file handle or nothing.
+    Meeting(Box<CloudMeetingBundleV1>),
+    /// A paired device's recording, decrypted to a file this process owns.
+    DeviceRecording(DeviceRecordingImport),
+    /// A device recording this Mac wrote itself. The audio never left, so the
+    /// revision is acknowledged and nothing is imported.
+    OwnDeviceRecording,
+}
+
+/// A pulled recording, staged as a WAV file for the importer to decode.
+struct DeviceRecordingImport {
+    audio: ScratchAudioFile,
+    title: String,
+    recorded_at_utc_ms: i64,
+    device_id: String,
+}
+
+impl DeviceRecordingImport {
+    /// The import request this recording files as: the device's title when it
+    /// gave one, else the placeholder a meeting carries until its notes name
+    /// it. The importer's own fallback is the file stem, and the staged file
+    /// is named for the object, so left to it an untitled recording would be
+    /// filed under an opaque id. The staged file outlives the request: `audio`
+    /// is still what removes it once the import returns.
+    fn request(&self) -> ImportRecordingRequest {
+        let title = self.title.trim();
+        ImportRecordingRequest {
+            path: self.audio.path().to_owned(),
+            title: Some(
+                if title.is_empty() {
+                    MANUAL_DEFAULT_TITLE
+                } else {
+                    title
+                }
+                .to_owned(),
+            ),
+            recorded_at_utc_ms: Some(self.recorded_at_utc_ms),
+            origin: RecordingOrigin::PairedDevice {
+                device_id: self.device_id.clone(),
+            },
+        }
+    }
+}
+
+/// A staged audio file, removed when this value is dropped.
+///
+/// The pull path can fail at a dozen points between writing the first chunk
+/// and finishing the import, and every one of them has to leave the store's
+/// scratch directory as it found it. Ownership is the only version of that
+/// promise which cannot be forgotten at a new `?`.
+struct ScratchAudioFile(PathBuf);
+
+impl ScratchAudioFile {
+    fn path(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl Drop for ScratchAudioFile {
+    fn drop(&mut self) {
+        if let Err(error) = fs::remove_file(&self.0) {
+            if error.kind() != std::io::ErrorKind::NotFound {
+                log::warn!(
+                    "Staged cloud recording {} remains: {error}",
+                    self.0.display()
+                );
+            }
+        }
+    }
+}
+
+/// Which object's chunks a staging file is decrypting, and how many there are.
+#[derive(Clone, Copy)]
+struct DeviceRecordingPayload<'a> {
+    vault_root: &'a [u8],
+    vault_id: &'a str,
+    object_id: &'a str,
+    revision_id: &'a str,
+    chunk_count: u64,
+}
+
+/// The WAV file a pulled recording is decrypted into, one chunk at a time.
+///
+/// Twelve hours of audio does not belong in memory, so each chunk is opened,
+/// digested and written as it arrives. Each chunk's AAD binds it to this vault,
+/// object, revision and index, so what lands on disk is the bytes its writer
+/// sealed; `finish` is what says the file as a whole is the audio the manifest
+/// declared, and until it returns the file belongs to nobody.
+struct DeviceRecordingStaging<'a> {
+    scratch: ScratchAudioFile,
+    file: File,
+    digest: StreamingSha256,
+    written: u64,
+    payload: DeviceRecordingPayload<'a>,
+}
+
+impl<'a> DeviceRecordingStaging<'a> {
+    fn create(
+        path: PathBuf,
+        audio_bytes: u32,
+        payload: DeviceRecordingPayload<'a>,
+    ) -> Result<Self, CloudRuntimeError> {
+        // The guard owns the path from here, so every later failure removes it.
+        let scratch = ScratchAudioFile(path);
+        let mut file = File::create(scratch.path()).map_err(|_| CloudRuntimeError::File)?;
+        file.write_all(&wave_header(audio_bytes))
+            .map_err(|_| CloudRuntimeError::File)?;
+        Ok(Self {
+            scratch,
+            file,
+            digest: StreamingSha256::default(),
+            written: 0,
+            payload,
+        })
+    }
+
+    fn write_chunk(&mut self, index: u64, encrypted_chunk: &[u8]) -> Result<(), CloudRuntimeError> {
+        let mut audio = open_object_revision_payload(
+            self.payload.vault_root,
+            &ObjectRevisionCryptoContext {
+                vault_id: self.payload.vault_id,
+                object_id: self.payload.object_id,
+                revision_id: self.payload.revision_id,
+                index,
+                total: self.payload.chunk_count,
+                content_kind: ObjectContentKind::Chunk,
+                source_format: DEVICE_RECORDING_SOURCE_FORMAT,
+            },
+            encrypted_chunk,
+        )
+        .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
+        self.digest.update(&audio);
+        self.written = self
+            .written
+            .saturating_add(u64::try_from(audio.len()).unwrap_or(MAX_DEVICE_RECORDING_AUDIO_BYTES));
+        let written = self
+            .file
+            .write_all(&audio)
+            .map_err(|_| CloudRuntimeError::File);
+        audio.zeroize();
+        written
+    }
+
+    /// Hand the file over, or refuse audio that is not what was declared. A
+    /// refusal drops the guard, so the scratch directory is left as it was.
+    fn finish(
+        self,
+        declared: &DeviceRecordingAudio,
+    ) -> Result<ScratchAudioFile, CloudRuntimeError> {
+        if self.written != declared.byte_length || self.digest.finish_base64url() != declared.sha256
+        {
+            return Err(CloudRuntimeError::IntegrityFailure);
+        }
+        Ok(self.scratch)
+    }
+}
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct CapabilityShareManifest {
@@ -664,11 +886,7 @@ impl CloudSyncRuntime {
             .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
         let candidate_record = super::crypto::canonical_pair_candidate_bytes(&candidate_input)
             .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
-        let fingerprint = base64_url_encode(&sha256_digest(&candidate_record));
-        let fingerprint = fingerprint
-            .get(..12)
-            .ok_or(CloudRuntimeError::IntegrityFailure)?
-            .to_owned();
+        let fingerprint = candidate_fingerprint(&candidate_record)?;
         let state = crate::meeting::store::CloudState {
             vault_id: request.vault_id.clone(),
             device_id: device_id.clone(),
@@ -708,41 +926,11 @@ impl CloudSyncRuntime {
         if offer.expires_at_utc_ms <= now || offer.expires_at_utc_ms > max_expiry {
             return Err(CloudRuntimeError::IntegrityFailure);
         }
-        let signing_public_key = fixed_array_32(
-            base64_url_decode(&offer.signing_public_key)
-                .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
-        )?;
-        let pairing_public_key = fixed_array_32(
-            base64_url_decode(&offer.pairing_public_key)
-                .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
-        )?;
-        let pairing_nonce = fixed_array_16(
-            base64_url_decode(&offer.pairing_nonce)
-                .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
-        )?;
-        let candidate_proof = fixed_array_64(
-            base64_url_decode(&offer.candidate_proof)
-                .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
-        )?;
-        let candidate_input = CanonicalPairCandidateInput {
-            audience: PROTOCOL_AUDIENCE,
-            vault_id: &offer.vault_id,
-            candidate_device_id: &offer.device_id,
-            candidate_signing_public_key: &signing_public_key,
-            candidate_pairing_public_key: &pairing_public_key,
-            pairing_nonce: &pairing_nonce,
-            expires_at: u64::try_from(offer.expires_at_utc_ms)
-                .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
-        };
-        let candidate_record = super::crypto::canonical_pair_candidate_bytes(&candidate_input)
-            .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
-        if !verify_ed25519(&signing_public_key, &candidate_proof, &candidate_record) {
-            return Err(CloudRuntimeError::IntegrityFailure);
-        }
+        let candidate = verified_candidate(&offer)?;
         let (mut ephemeral_secret_key, envelope_nonce) =
-            pairing_envelope_material(&access.keys.pairing_secret, &candidate_record);
+            pairing_envelope_material(&access.keys.pairing_secret, &candidate.record);
         let envelope = seal_pairing_envelope(&PairingEnvelopeSealInput {
-            recipient_public_key: &pairing_public_key,
+            recipient_public_key: &candidate.pairing_public_key,
             ephemeral_secret_key: &ephemeral_secret_key,
             nonce: &envelope_nonce,
             vault_root: &*access.keys.vault_root,
@@ -751,8 +939,8 @@ impl CloudSyncRuntime {
         let envelope = envelope.map_err(|_| CloudRuntimeError::IntegrityFailure)?;
         let approval_input = CanonicalPairApprovalInput {
             vault_id: &access.state.vault_id,
-            candidate_record: &candidate_record,
-            candidate_proof: &candidate_proof,
+            candidate_record: &candidate.record,
+            candidate_proof: &candidate.proof,
             envelope: &envelope,
         };
         let approval_signature =
@@ -1345,76 +1533,9 @@ impl CloudSyncRuntime {
         let Some(access) = self.active_access().await? else {
             return Ok(());
         };
-        let snapshot = match access.store.session_snapshot(session_id) {
-            Ok(snapshot) => snapshot,
-            Err(StoreError::NotFound) => return Ok(()),
-            Err(error) => return Err(map_store_error(error)),
-        };
-        if !matches!(
-            snapshot.phase,
-            MeetingPhase::ReviewReady | MeetingPhase::RecoveryRequired
-        ) {
-            return Ok(());
+        if queue_session_upload(&access.store, session_id)? {
+            self.emit_changed(Some(session_id), Some(CloudObjectState::Queued));
         }
-        let existing_head = access
-            .store
-            .cloud_head_for_session(session_id)
-            .map_err(map_store_error)?;
-        let object_id = match existing_head.as_ref() {
-            Some(head) if head.tombstone => return Ok(()),
-            Some(head) => head.object_id.clone(),
-            None => {
-                let object_id = random_opaque_id()?;
-                access
-                    .store
-                    .upsert_cloud_head(&CloudHead {
-                        object_id: object_id.clone(),
-                        source_session_id: Some(session_id),
-                        remote_revision_id: None,
-                        tombstone: false,
-                        acknowledged_revision_id: None,
-                        change_sequence: 0,
-                    })
-                    .map_err(map_store_error)?;
-                object_id
-            }
-        };
-        let mut base_remote_revision_id = existing_head
-            .as_ref()
-            .and_then(|head| head.remote_revision_id.clone());
-        let outboxes = access
-            .store
-            .cloud_outboxes_for_session(session_id)
-            .map_err(map_store_error)?;
-        if let Some(previous) = outboxes.iter().rev().find(|outbox| {
-            outbox.kind == CloudOutboxKind::Object
-                && outbox.object_id == object_id
-                && matches!(
-                    outbox.state,
-                    CloudOutboxState::Pending | CloudOutboxState::Claimed
-                )
-                && outbox.remote_revision_id.is_some()
-        }) {
-            base_remote_revision_id = previous.remote_revision_id.clone();
-        }
-        let revision = random_opaque_id()?;
-        let idempotency_key =
-            stable_idempotency_value(&["object", &object_id, &snapshot.revision.to_string()]);
-        access
-            .store
-            .enqueue_cloud_outbox(CloudOutboxInput {
-                kind: CloudOutboxKind::Object,
-                object_id,
-                source_session_id: Some(session_id),
-                source_revision: Some(snapshot.revision),
-                base_remote_revision_id,
-                share_content_kind: None,
-                remote_revision_id: Some(revision),
-                idempotency_key,
-                next_attempt_utc_ms: utc_now_ms(),
-            })
-            .map_err(map_store_error)?;
-        self.emit_changed(Some(session_id), Some(CloudObjectState::Queued));
         Ok(())
     }
 
@@ -2525,19 +2646,44 @@ impl CloudSyncRuntime {
             }
             return Ok(());
         }
-        let bundle = self
-            .fetch_remote_bundle(access, object_id, revision_id)
-            .await?;
-        self.install_or_conflict(access, object_id, revision_id, sequence, bundle)
-            .await
+        let installed = self
+            .install_remote_revision(access, object_id, revision_id, sequence)
+            .await;
+        acknowledge_if_refused(&access.store, object_id, revision_id, sequence, installed)
     }
 
-    async fn fetch_remote_bundle(
+    /// Fetch a revision and install whatever it turns out to be.
+    async fn install_remote_revision(
         &self,
         access: &CloudAccess,
         object_id: &str,
         revision_id: &str,
-    ) -> Result<CloudMeetingBundleV1, CloudRuntimeError> {
+        sequence: u64,
+    ) -> Result<(), CloudRuntimeError> {
+        let object = self
+            .fetch_remote_object(access, object_id, revision_id)
+            .await?;
+        match object {
+            RemoteObject::Meeting(bundle) => {
+                self.install_or_conflict(access, object_id, revision_id, sequence, *bundle)
+                    .await
+            }
+            RemoteObject::DeviceRecording(recording) => {
+                self.install_device_recording(access, object_id, revision_id, sequence, recording)
+                    .await
+            }
+            RemoteObject::OwnDeviceRecording => {
+                acknowledge_remote_revision(&access.store, object_id, revision_id, sequence)
+            }
+        }
+    }
+
+    async fn fetch_remote_object(
+        &self,
+        access: &CloudAccess,
+        object_id: &str,
+        revision_id: &str,
+    ) -> Result<RemoteObject, CloudRuntimeError> {
         self.require_request_permission(&access.state).await?;
         let credentials = credentials(access)?;
         let response = access
@@ -2547,65 +2693,232 @@ impl CloudSyncRuntime {
             .map_err(CloudRuntimeError::Client);
         self.persist_clock(&access.store, &access.client);
         let response = response?;
-        self.verify_and_decrypt_remote_bundle(access, object_id, revision_id, response)
+        self.verify_and_decrypt_remote_object(access, object_id, revision_id, response)
             .await
     }
 
-    async fn verify_and_decrypt_remote_bundle(
+    /// Authenticate a revision and open it into whatever it turned out to be.
+    ///
+    /// The manifest is opened before any chunk is fetched, because what the
+    /// object is decides how many bytes it may cost: a meeting bundle is a few
+    /// megabytes of JSON, a paired device's recording is up to twelve hours of
+    /// audio. Its AES-GCM AAD already binds the vault, the object, the revision
+    /// and the payload domain, so opening it first reads exactly the bytes its
+    /// writer sealed — and the writer's signature over the whole envelope is
+    /// still verified below, before anything is installed.
+    async fn verify_and_decrypt_remote_object(
         &self,
         access: &CloudAccess,
         object_id: &str,
         revision_id: &str,
         response: ObjectManifestResponse,
-    ) -> Result<CloudMeetingBundleV1, CloudRuntimeError> {
+    ) -> Result<RemoteObject, CloudRuntimeError> {
         let envelope = response.envelope;
         if envelope.object_id != object_id
             || envelope.revision_id != revision_id
             || envelope.crypto_version != CRYPTO_VERSION
             || envelope.chunk_count == 0
             || envelope.chunk_count > 4096
-            || envelope.total_bytes
-                > u64::try_from(MAX_BUNDLE_BYTES + 1024)
-                    .map_err(|_| CloudRuntimeError::IntegrityFailure)?
         {
             return Err(CloudRuntimeError::IntegrityFailure);
         }
-        let manifest = base64_url_decode(&response.manifest)
+        let encrypted_manifest = base64_url_decode(&response.manifest)
             .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
-        if sha256_base64url(&manifest) != envelope.manifest_sha256 {
+        if sha256_base64url(&encrypted_manifest) != envelope.manifest_sha256 {
             return Err(CloudRuntimeError::IntegrityFailure);
         }
-        self.require_request_permission(&access.state).await?;
-        let credentials = credentials(access)?;
-        let devices = access
-            .client
-            .devices(&credentials)
-            .await
-            .map_err(CloudRuntimeError::Client);
-        self.persist_clock(&access.store, &access.client);
-        let devices = devices?;
-        let device = devices
-            .devices
-            .iter()
-            .find(|device| {
-                device.device_id == envelope.writer_device_id
-                    && device.status == "active"
-                    && device.revoked_at.is_none()
-            })
-            .ok_or(CloudRuntimeError::IntegrityFailure)?;
-        let signing_public_key = fixed_array_32(
-            base64_url_decode(&device.signing_public_key)
-                .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
-        )?;
-        let writer_signature = fixed_array_64(
-            base64_url_decode(&envelope.writer_signature)
-                .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
-        )?;
+        match open_remote_manifest(
+            &*access.keys.vault_root,
+            &access.state.vault_id,
+            object_id,
+            revision_id,
+            envelope.chunk_count,
+            &encrypted_manifest,
+        )? {
+            RemoteManifest::Meeting(manifest) => self
+                .download_meeting_bundle(access, object_id, revision_id, &envelope, &manifest)
+                .await
+                .map(|bundle| RemoteObject::Meeting(Box::new(bundle))),
+            RemoteManifest::DeviceRecording(manifest) => {
+                // This Mac does not write device recordings, and importing one
+                // it did write would file a second meeting over audio it
+                // already has.
+                if envelope.writer_device_id == access.state.device_id {
+                    return Ok(RemoteObject::OwnDeviceRecording);
+                }
+                self.download_device_recording(access, object_id, revision_id, &envelope, manifest)
+                    .await
+                    .map(RemoteObject::DeviceRecording)
+            }
+        }
+    }
+
+    /// Fetch a meeting bundle's chunks, verify the writer signed the envelope
+    /// they describe, then decrypt them into the one JSON document its manifest
+    /// declared.
+    async fn download_meeting_bundle(
+        &self,
+        access: &CloudAccess,
+        object_id: &str,
+        revision_id: &str,
+        envelope: &ObjectRevisionEnvelope,
+        manifest: &ObjectPayloadManifest,
+    ) -> Result<CloudMeetingBundleV1, CloudRuntimeError> {
+        if manifest.version != PROTOCOL_VERSION
+            || manifest.chunk_count != envelope.chunk_count
+            || envelope.total_bytes
+                > u64::try_from(MAX_BUNDLE_BYTES + 1024)
+                    .map_err(|_| CloudRuntimeError::IntegrityFailure)?
+            || usize::try_from(manifest.plaintext_bytes)
+                .ok()
+                .filter(|length| *length <= MAX_BUNDLE_BYTES)
+                .is_none()
+        {
+            return Err(CloudRuntimeError::IntegrityFailure);
+        }
+        let signing_public_key = self.writer_signing_key(access, envelope).await?;
         let mut chunks = Vec::with_capacity(
             usize::try_from(envelope.chunk_count)
                 .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
         );
-        let mut descriptors = Vec::with_capacity(chunks.capacity());
+        let descriptors = self
+            .download_chunks(access, object_id, revision_id, envelope, |_, bytes| {
+                chunks.push(bytes);
+                Ok(())
+            })
+            .await?;
+        verify_writer_signature(
+            &access.state.vault_id,
+            object_id,
+            revision_id,
+            envelope,
+            &descriptors,
+            &signing_public_key,
+        )?;
+        let mut plaintext = Vec::with_capacity(
+            usize::try_from(manifest.plaintext_bytes)
+                .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
+        );
+        for (index, chunk) in chunks.iter_mut().enumerate() {
+            let index = u64::try_from(index).map_err(|_| CloudRuntimeError::IntegrityFailure)?;
+            let decoded = open_object_revision_payload(
+                &*access.keys.vault_root,
+                &ObjectRevisionCryptoContext {
+                    vault_id: &access.state.vault_id,
+                    object_id,
+                    revision_id,
+                    index,
+                    total: u64::from(envelope.chunk_count),
+                    content_kind: ObjectContentKind::Chunk,
+                    source_format: OBJECT_SOURCE_FORMAT,
+                },
+                chunk,
+            )
+            .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
+            plaintext.extend_from_slice(&decoded);
+            chunk.zeroize();
+        }
+        if plaintext.len()
+            != usize::try_from(manifest.plaintext_bytes)
+                .map_err(|_| CloudRuntimeError::IntegrityFailure)?
+            || sha256_base64url(&plaintext) != manifest.plaintext_sha256
+        {
+            plaintext.zeroize();
+            return Err(CloudRuntimeError::IntegrityFailure);
+        }
+        let bundle = CloudMeetingBundleV1::from_json_bytes(&plaintext)
+            .map_err(|_| CloudRuntimeError::IntegrityFailure);
+        plaintext.zeroize();
+        bundle
+    }
+
+    /// Decrypt a paired device's recording into a WAV file this process owns.
+    ///
+    /// The chunks are decrypted as they arrive, because twelve hours of audio
+    /// does not belong in memory. Each one's AAD binds it to this vault, object,
+    /// revision and index, so what lands on disk is the bytes its writer
+    /// sealed; the signature over the envelope is checked before the file is
+    /// handed back, and the caller is the only thing that can turn it into a
+    /// meeting.
+    ///
+    /// A refusal anywhere in here is logged: a recording that never arrives is
+    /// otherwise invisible, since the panel's error line reports the upload
+    /// side only.
+    async fn download_device_recording(
+        &self,
+        access: &CloudAccess,
+        object_id: &str,
+        revision_id: &str,
+        envelope: &ObjectRevisionEnvelope,
+        manifest: DeviceRecordingManifest,
+    ) -> Result<DeviceRecordingImport, CloudRuntimeError> {
+        let audio_bytes = declared_device_audio_bytes(&manifest, envelope).inspect_err(|_| {
+            log::warn!("Cloud recording {object_id} declares audio this Mac will not install");
+        })?;
+        let signing_public_key = self.writer_signing_key(access, envelope).await?;
+        // ponytail: a network, disk or deferral error at chunk n drops the
+        // staging file and the next scan restarts from chunk 0. Resume by
+        // keeping the staged file and its verified chunk count across scans,
+        // keyed by object and revision id, when long recordings on flaky links
+        // fail to complete.
+        let mut staging = DeviceRecordingStaging::create(
+            access
+                .store
+                .cloud_recording_staging_path(object_id)
+                .map_err(map_store_error)?,
+            audio_bytes,
+            DeviceRecordingPayload {
+                vault_root: &*access.keys.vault_root,
+                vault_id: &access.state.vault_id,
+                object_id,
+                revision_id,
+                chunk_count: u64::from(envelope.chunk_count),
+            },
+        )?;
+        let descriptors = self
+            .download_chunks(access, object_id, revision_id, envelope, |index, chunk| {
+                staging.write_chunk(index, &chunk)
+            })
+            .await?;
+        verify_writer_signature(
+            &access.state.vault_id,
+            object_id,
+            revision_id,
+            envelope,
+            &descriptors,
+            &signing_public_key,
+        )?;
+        let audio = staging.finish(&manifest.audio).inspect_err(|_| {
+            log::warn!("Cloud recording {object_id} did not match its manifest");
+        })?;
+        Ok(DeviceRecordingImport {
+            audio,
+            title: manifest.title,
+            recorded_at_utc_ms: manifest.recorded_at_utc_ms,
+            device_id: manifest.device_id,
+        })
+    }
+
+    /// Fetch a revision's chunks in order, check each against the digest the
+    /// service returns as its ETag, and hand it to `receive`. Returns the
+    /// `(index, size, digest)` descriptors the writer's signature covers.
+    ///
+    /// Nothing here decides what a chunk means: a meeting bundle keeps the
+    /// ciphertext until its signature checks out, and a recording writes
+    /// through to disk as it arrives.
+    async fn download_chunks(
+        &self,
+        access: &CloudAccess,
+        object_id: &str,
+        revision_id: &str,
+        envelope: &ObjectRevisionEnvelope,
+        mut receive: impl FnMut(u64, Vec<u8>) -> Result<(), CloudRuntimeError>,
+    ) -> Result<Vec<(u64, u64, String)>, CloudRuntimeError> {
+        let credentials = credentials(access)?;
+        let mut descriptors = Vec::with_capacity(
+            usize::try_from(envelope.chunk_count)
+                .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
+        );
         let mut total_bytes = 0_u64;
         for index in 0..envelope.chunk_count {
             self.require_request_permission(&access.state).await?;
@@ -2626,102 +2939,50 @@ impl CloudSyncRuntime {
             total_bytes = total_bytes
                 .checked_add(size)
                 .ok_or(CloudRuntimeError::IntegrityFailure)?;
+            // What the envelope declared is also the ceiling on what this loop
+            // may read, so a revision that keeps handing out bytes stops here
+            // rather than after it has spent all of them.
+            if total_bytes > envelope.total_bytes {
+                return Err(CloudRuntimeError::IntegrityFailure);
+            }
             descriptors.push((u64::from(index), size, digest));
-            chunks.push(chunk.bytes);
+            receive(u64::from(index), chunk.bytes)?;
         }
         if total_bytes != envelope.total_bytes {
             return Err(CloudRuntimeError::IntegrityFailure);
         }
-        let canonical_chunks = descriptors
+        Ok(descriptors)
+    }
+
+    /// The signing key of the device that wrote this revision, refused unless
+    /// the service still lists that device as an active member of the vault.
+    async fn writer_signing_key(
+        &self,
+        access: &CloudAccess,
+        envelope: &ObjectRevisionEnvelope,
+    ) -> Result<[u8; 32], CloudRuntimeError> {
+        self.require_request_permission(&access.state).await?;
+        let credentials = credentials(access)?;
+        let devices = access
+            .client
+            .devices(&credentials)
+            .await
+            .map_err(CloudRuntimeError::Client);
+        self.persist_clock(&access.store, &access.client);
+        let devices = devices?;
+        let device = devices
+            .devices
             .iter()
-            .map(|(index, size, digest)| UploadChunk {
-                index: *index,
-                size: *size,
-                sha256: digest,
+            .find(|device| {
+                device.device_id == envelope.writer_device_id
+                    && device.status == "active"
+                    && device.revoked_at.is_none()
             })
-            .collect::<Vec<_>>();
-        let signed = CanonicalUploadEnvelopeInput {
-            vault_id: &access.state.vault_id,
-            kind: UploadKind::Object,
-            object_id: Some(object_id),
-            revision_id: Some(revision_id),
-            base_revision_id: envelope.parent_revision_id.as_deref(),
-            share_id: None,
-            manifest_digest: &envelope.manifest_sha256,
-            crypto_version: u64::from(envelope.crypto_version),
-            total_bytes: envelope.total_bytes,
-            chunks: &canonical_chunks,
-        };
-        if !verify_ed25519(
-            &signing_public_key,
-            &writer_signature,
-            &super::crypto::canonical_upload_envelope_bytes(&signed)
+            .ok_or(CloudRuntimeError::IntegrityFailure)?;
+        fixed_array_32(
+            base64_url_decode(&device.signing_public_key)
                 .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
-        ) {
-            return Err(CloudRuntimeError::IntegrityFailure);
-        }
-        let manifest_context = ObjectRevisionCryptoContext {
-            vault_id: &access.state.vault_id,
-            object_id,
-            revision_id,
-            index: 0,
-            total: u64::from(envelope.chunk_count),
-            content_kind: ObjectContentKind::Manifest,
-            source_format: OBJECT_SOURCE_FORMAT,
-        };
-        let mut manifest_plaintext =
-            open_object_revision_payload(&*access.keys.vault_root, &manifest_context, &manifest)
-                .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
-        let object_manifest = serde_json::from_slice::<ObjectPayloadManifest>(&manifest_plaintext)
-            .map_err(|_| CloudRuntimeError::IntegrityFailure);
-        manifest_plaintext.zeroize();
-        let object_manifest = object_manifest?;
-        if object_manifest.version != PROTOCOL_VERSION
-            || object_manifest.kind != CAPABILITY_SHARE_KIND
-            || object_manifest.source_format != OBJECT_SOURCE_FORMAT
-            || object_manifest.chunk_count != envelope.chunk_count
-            || usize::try_from(object_manifest.plaintext_bytes)
-                .ok()
-                .filter(|length| *length <= MAX_BUNDLE_BYTES)
-                .is_none()
-        {
-            return Err(CloudRuntimeError::IntegrityFailure);
-        }
-        let mut plaintext = Vec::with_capacity(
-            usize::try_from(object_manifest.plaintext_bytes)
-                .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
-        );
-        for (index, chunk) in chunks.iter_mut().enumerate() {
-            let index = u32::try_from(index).map_err(|_| CloudRuntimeError::IntegrityFailure)?;
-            let decoded = open_object_revision_payload(
-                &*access.keys.vault_root,
-                &ObjectRevisionCryptoContext {
-                    vault_id: &access.state.vault_id,
-                    object_id,
-                    revision_id,
-                    index: u64::from(index),
-                    total: u64::from(envelope.chunk_count),
-                    content_kind: ObjectContentKind::Chunk,
-                    source_format: OBJECT_SOURCE_FORMAT,
-                },
-                chunk,
-            )
-            .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
-            plaintext.extend_from_slice(&decoded);
-            chunk.zeroize();
-        }
-        if plaintext.len()
-            != usize::try_from(object_manifest.plaintext_bytes)
-                .map_err(|_| CloudRuntimeError::IntegrityFailure)?
-            || sha256_base64url(&plaintext) != object_manifest.plaintext_sha256
-        {
-            plaintext.zeroize();
-            return Err(CloudRuntimeError::IntegrityFailure);
-        }
-        let bundle = CloudMeetingBundleV1::from_json_bytes(&plaintext)
-            .map_err(|_| CloudRuntimeError::IntegrityFailure);
-        plaintext.zeroize();
-        bundle
+        )
     }
 
     async fn install_or_conflict(
@@ -2764,7 +3025,61 @@ impl CloudSyncRuntime {
             .meetings
             .import_cloud_bundle(bundle)
             .await
-            .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
+            .map_err(map_import_error)?;
+        access
+            .store
+            .upsert_cloud_head(&CloudHead {
+                object_id: object_id.to_owned(),
+                source_session_id: Some(snapshot.session_id),
+                remote_revision_id: Some(revision_id.to_owned()),
+                tombstone: false,
+                acknowledged_revision_id: Some(revision_id.to_owned()),
+                change_sequence: sequence,
+            })
+            .map_err(map_store_error)?;
+        self.emit_changed(Some(snapshot.session_id), Some(CloudObjectState::Committed));
+        Ok(())
+    }
+
+    /// File a paired device's recording as a meeting, through the same import
+    /// a recording the operator picks off disk takes.
+    ///
+    /// The head is recorded the way a meeting object's install records it, with
+    /// the new session as its source: that is what stops the next scan from
+    /// importing the object again, and it is also what makes deleting the
+    /// meeting later enqueue the tombstone that removes the object from the
+    /// vault. The device keeps no second copy and never writes a second
+    /// revision, so this meeting is the recording's only reader. It is not a
+    /// writer either: `queue_session_upload` reads the recording's provenance
+    /// off the consent row and never uploads this meeting onto the device's
+    /// object.
+    async fn install_device_recording(
+        &self,
+        access: &CloudAccess,
+        object_id: &str,
+        revision_id: &str,
+        sequence: u64,
+        recording: DeviceRecordingImport,
+    ) -> Result<(), CloudRuntimeError> {
+        if access
+            .store
+            .cloud_head(object_id)
+            .map_err(map_store_error)?
+            .is_some()
+        {
+            // A device that revised a recording it already delivered would
+            // otherwise arrive as a second meeting over the same audio.
+            log::warn!("Cloud recording {object_id} was revised after it was imported");
+            return acknowledge_remote_revision(&access.store, object_id, revision_id, sequence);
+        }
+        let snapshot = self
+            .meetings
+            .import_recording(recording.request())
+            .await
+            .map_err(|error| {
+                log::warn!("Cloud recording {object_id} would not import: {error:?}");
+                map_import_error(error)
+            })?;
         access
             .store
             .upsert_cloud_head(&CloudHead {
@@ -2965,6 +3280,245 @@ fn operation_key(
 ) -> Result<IdempotencyKey, CloudRuntimeError> {
     idempotency_key(&["outbox", &record.idempotency_key, operation])
 }
+
+/// A pasted offer decoded into the record its candidate signed, with the proof
+/// checked over it.
+struct VerifiedCandidate {
+    record: Vec<u8>,
+    pairing_public_key: [u8; 32],
+    proof: [u8; 64],
+}
+
+/// Rebuild and check the record a candidate device signed.
+///
+/// Approval and the fingerprint the operator compares both read the record
+/// from here, so the string on screen can only ever describe the offer approval
+/// would act on.
+fn verified_candidate(offer: &CloudPairingOffer) -> Result<VerifiedCandidate, CloudRuntimeError> {
+    let signing_public_key = fixed_array_32(
+        base64_url_decode(&offer.signing_public_key)
+            .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
+    )?;
+    let pairing_public_key = fixed_array_32(
+        base64_url_decode(&offer.pairing_public_key)
+            .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
+    )?;
+    let pairing_nonce = fixed_array_16(
+        base64_url_decode(&offer.pairing_nonce).map_err(|_| CloudRuntimeError::IntegrityFailure)?,
+    )?;
+    let proof = fixed_array_64(
+        base64_url_decode(&offer.candidate_proof)
+            .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
+    )?;
+    let record = super::crypto::canonical_pair_candidate_bytes(&CanonicalPairCandidateInput {
+        audience: PROTOCOL_AUDIENCE,
+        vault_id: &offer.vault_id,
+        candidate_device_id: &offer.device_id,
+        candidate_signing_public_key: &signing_public_key,
+        candidate_pairing_public_key: &pairing_public_key,
+        pairing_nonce: &pairing_nonce,
+        expires_at: u64::try_from(offer.expires_at_utc_ms)
+            .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
+    })
+    .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
+    if !verify_ed25519(&signing_public_key, &proof, &record) {
+        return Err(CloudRuntimeError::IntegrityFailure);
+    }
+    Ok(VerifiedCandidate {
+        record,
+        pairing_public_key,
+        proof,
+    })
+}
+
+/// The twelve characters a candidate device prints beside its offer.
+fn candidate_fingerprint(candidate_record: &[u8]) -> Result<String, CloudRuntimeError> {
+    let digest = base64_url_encode(&sha256_digest(candidate_record));
+    Ok(digest
+        .get(..12)
+        .ok_or(CloudRuntimeError::IntegrityFailure)?
+        .to_owned())
+}
+
+/// The fingerprint of an offer that arrived from somewhere else, derived from
+/// the pasted record rather than read out of the paste: the operator is
+/// comparing this against the device's own screen, and a value the paste
+/// supplied would agree with a doctored paste.
+pub(crate) fn pairing_offer_fingerprint(
+    offer: &CloudPairingOffer,
+) -> Result<String, CloudRuntimeError> {
+    if offer.protocol_version != PROTOCOL_VERSION {
+        return Err(CloudRuntimeError::UnsupportedProtocol);
+    }
+    candidate_fingerprint(&verified_candidate(offer)?.record)
+}
+
+/// Open a revision's manifest, the only place an object says what it is.
+///
+/// `source_format` is bound into the manifest's own key and AAD but never
+/// travels on the wire, so the reader tries the two formats it installs and
+/// lets AES-GCM answer: a payload opens under exactly the format its writer
+/// sealed it with. The `kind` inside then has to agree with that format, so
+/// neither half names the object on its own.
+fn open_remote_manifest(
+    vault_root: &[u8],
+    vault_id: &str,
+    object_id: &str,
+    revision_id: &str,
+    chunk_count: u32,
+    encrypted_manifest: &[u8],
+) -> Result<RemoteManifest, CloudRuntimeError> {
+    let mut context = ObjectRevisionCryptoContext {
+        vault_id,
+        object_id,
+        revision_id,
+        index: 0,
+        total: u64::from(chunk_count),
+        content_kind: ObjectContentKind::Manifest,
+        source_format: OBJECT_SOURCE_FORMAT,
+    };
+    if let Ok(mut plaintext) =
+        open_object_revision_payload(vault_root, &context, encrypted_manifest)
+    {
+        let manifest = serde_json::from_slice::<ObjectPayloadManifest>(&plaintext)
+            .map_err(|_| CloudRuntimeError::IntegrityFailure);
+        plaintext.zeroize();
+        let manifest = manifest?;
+        if manifest.kind != CAPABILITY_SHARE_KIND || manifest.source_format != OBJECT_SOURCE_FORMAT
+        {
+            return Err(CloudRuntimeError::IntegrityFailure);
+        }
+        return Ok(RemoteManifest::Meeting(manifest));
+    }
+    context.source_format = DEVICE_RECORDING_SOURCE_FORMAT;
+    let mut plaintext = open_object_revision_payload(vault_root, &context, encrypted_manifest)
+        .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
+    let manifest = serde_json::from_slice::<DeviceRecordingManifest>(&plaintext)
+        .map_err(|_| CloudRuntimeError::IntegrityFailure);
+    plaintext.zeroize();
+    let manifest = manifest?;
+    if manifest.kind != DEVICE_RECORDING_KIND
+        || manifest.format_version != DEVICE_RECORDING_FORMAT_VERSION
+    {
+        return Err(CloudRuntimeError::IntegrityFailure);
+    }
+    Ok(RemoteManifest::DeviceRecording(manifest))
+}
+
+/// The plaintext audio length a device recording declares, refused unless the
+/// declaration is one this Mac can install.
+///
+/// The device slices its audio at `MAX_PLAINTEXT_CHUNK_BYTES` and every payload
+/// costs a 12-byte nonce and a 16-byte tag, so the envelope's chunk count and
+/// total are a function of that length. Checking them here refuses a truncated
+/// or padded revision before a byte of it is fetched, and the ceiling keeps a
+/// recording no importer would decode from being staged first.
+///
+/// The manifest is sealed under the vault root every member holds, so the
+/// device it names is only a claim; the writer the service names is the one
+/// the signature binds. The two have to agree, so that the origin the meeting
+/// records is the device that wrote the bytes.
+fn declared_device_audio_bytes(
+    manifest: &DeviceRecordingManifest,
+    envelope: &ObjectRevisionEnvelope,
+) -> Result<u32, CloudRuntimeError> {
+    let audio_bytes = manifest.audio.byte_length;
+    let chunk_bytes = u64::try_from(MAX_PLAINTEXT_CHUNK_BYTES)
+        .map_err(|_| CloudRuntimeError::IntegrityFailure)?;
+    let chunk_count = audio_bytes.div_ceil(chunk_bytes).max(1);
+    let expected_total = audio_bytes
+        .checked_add(28 * chunk_count)
+        .ok_or(CloudRuntimeError::IntegrityFailure)?;
+    if manifest.audio.codec != DEVICE_RECORDING_CODEC
+        || manifest.audio.sample_rate_hz != DEVICE_RECORDING_SAMPLE_RATE_HZ
+        || manifest.audio.channels != DEVICE_RECORDING_CHANNELS
+        || manifest.device_id != envelope.writer_device_id
+        || audio_bytes == 0
+        || !audio_bytes.is_multiple_of(DEVICE_RECORDING_FRAME_BYTES)
+        || audio_bytes > MAX_DEVICE_RECORDING_AUDIO_BYTES
+        || chunk_count != u64::from(envelope.chunk_count)
+        || expected_total != envelope.total_bytes
+    {
+        return Err(CloudRuntimeError::IntegrityFailure);
+    }
+    u32::try_from(audio_bytes).map_err(|_| CloudRuntimeError::IntegrityFailure)
+}
+
+/// The RIFF/WAVE header for `audio_bytes` of the device capture format.
+///
+/// A device uploads bare samples and the importer decodes containers, so the
+/// staged file is the samples behind this header. The two sizes are the bytes
+/// after the first eight (36 plus the audio) and the `fmt ` chunk's own 16.
+fn wave_header(audio_bytes: u32) -> [u8; WAVE_HEADER_BYTES] {
+    let block_align = DEVICE_RECORDING_CHANNELS * (DEVICE_RECORDING_BITS_PER_SAMPLE / 8);
+    let byte_rate = DEVICE_RECORDING_SAMPLE_RATE_HZ * u32::from(block_align);
+    let mut header = [0_u8; WAVE_HEADER_BYTES];
+    header[..4].copy_from_slice(b"RIFF");
+    header[4..8].copy_from_slice(&audio_bytes.saturating_add(36).to_le_bytes());
+    header[8..12].copy_from_slice(b"WAVE");
+    header[12..16].copy_from_slice(b"fmt ");
+    header[16..20].copy_from_slice(&16_u32.to_le_bytes());
+    // Format tag 1 is uncompressed PCM.
+    header[20..22].copy_from_slice(&1_u16.to_le_bytes());
+    header[22..24].copy_from_slice(&DEVICE_RECORDING_CHANNELS.to_le_bytes());
+    header[24..28].copy_from_slice(&DEVICE_RECORDING_SAMPLE_RATE_HZ.to_le_bytes());
+    header[28..32].copy_from_slice(&byte_rate.to_le_bytes());
+    header[32..34].copy_from_slice(&block_align.to_le_bytes());
+    header[34..36].copy_from_slice(&DEVICE_RECORDING_BITS_PER_SAMPLE.to_le_bytes());
+    header[36..40].copy_from_slice(b"data");
+    header[40..].copy_from_slice(&audio_bytes.to_le_bytes());
+    header
+}
+
+/// Refuse a revision the writing device did not sign.
+///
+/// The payload keys come from the vault root, which every paired device holds,
+/// so this signature is what says which of them wrote these bytes — and the
+/// device list this key came from is what says that device is still in the
+/// vault.
+fn verify_writer_signature(
+    vault_id: &str,
+    object_id: &str,
+    revision_id: &str,
+    envelope: &ObjectRevisionEnvelope,
+    descriptors: &[(u64, u64, String)],
+    signing_public_key: &[u8; 32],
+) -> Result<(), CloudRuntimeError> {
+    let writer_signature = fixed_array_64(
+        base64_url_decode(&envelope.writer_signature)
+            .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
+    )?;
+    let chunks = descriptors
+        .iter()
+        .map(|(index, size, digest)| UploadChunk {
+            index: *index,
+            size: *size,
+            sha256: digest,
+        })
+        .collect::<Vec<_>>();
+    let signed = CanonicalUploadEnvelopeInput {
+        vault_id,
+        kind: UploadKind::Object,
+        object_id: Some(object_id),
+        revision_id: Some(revision_id),
+        base_revision_id: envelope.parent_revision_id.as_deref(),
+        share_id: None,
+        manifest_digest: &envelope.manifest_sha256,
+        crypto_version: u64::from(envelope.crypto_version),
+        total_bytes: envelope.total_bytes,
+        chunks: &chunks,
+    };
+    if !verify_ed25519(
+        signing_public_key,
+        &writer_signature,
+        &super::crypto::canonical_upload_envelope_bytes(&signed)
+            .map_err(|_| CloudRuntimeError::IntegrityFailure)?,
+    ) {
+        return Err(CloudRuntimeError::IntegrityFailure);
+    }
+    Ok(())
+}
+
 fn pairing_envelope_material(
     pairing_secret: &[u8; 32],
     candidate_record: &[u8],
@@ -2991,6 +3545,164 @@ fn adjusted_now_ms(clock_offset_ms: i64) -> i64 {
 
 fn utc_now_ms() -> i64 {
     chrono::Utc::now().timestamp_millis()
+}
+
+/// Enqueue a reviewed meeting's current revision as an object upload. Returns
+/// whether anything was queued.
+///
+/// A meeting over a paired device's recording never queues. Its head points
+/// at the device's object, so this would upload the Mac's bundle as a second
+/// revision of an object the device wrote in another format, and a second
+/// Mac importing the same recording would then find its own head and file a
+/// conflict on every phone recording. The consent row is where an import
+/// says where its recording came from.
+fn queue_session_upload(
+    store: &MeetingStore,
+    session_id: MeetingSessionId,
+) -> Result<bool, CloudRuntimeError> {
+    let snapshot = match store.session_snapshot(session_id) {
+        Ok(snapshot) => snapshot,
+        Err(StoreError::NotFound) => return Ok(false),
+        Err(error) => return Err(map_store_error(error)),
+    };
+    if !matches!(
+        snapshot.phase,
+        MeetingPhase::ReviewReady | MeetingPhase::RecoveryRequired
+    ) {
+        return Ok(false);
+    }
+    if store
+        .latest_consent_for_session(session_id)
+        .map_err(map_store_error)?
+        .is_some_and(|consent| {
+            matches!(
+                consent.provenance,
+                MeetingConsentProvenance::PairedDevice { .. }
+            )
+        })
+    {
+        return Ok(false);
+    }
+    let existing_head = store
+        .cloud_head_for_session(session_id)
+        .map_err(map_store_error)?;
+    let object_id = match existing_head.as_ref() {
+        Some(head) if head.tombstone => return Ok(false),
+        Some(head) => head.object_id.clone(),
+        None => {
+            let object_id = random_opaque_id()?;
+            store
+                .upsert_cloud_head(&CloudHead {
+                    object_id: object_id.clone(),
+                    source_session_id: Some(session_id),
+                    remote_revision_id: None,
+                    tombstone: false,
+                    acknowledged_revision_id: None,
+                    change_sequence: 0,
+                })
+                .map_err(map_store_error)?;
+            object_id
+        }
+    };
+    let mut base_remote_revision_id = existing_head
+        .as_ref()
+        .and_then(|head| head.remote_revision_id.clone());
+    let outboxes = store
+        .cloud_outboxes_for_session(session_id)
+        .map_err(map_store_error)?;
+    if let Some(previous) = outboxes.iter().rev().find(|outbox| {
+        outbox.kind == CloudOutboxKind::Object
+            && outbox.object_id == object_id
+            && matches!(
+                outbox.state,
+                CloudOutboxState::Pending | CloudOutboxState::Claimed
+            )
+            && outbox.remote_revision_id.is_some()
+    }) {
+        base_remote_revision_id = previous.remote_revision_id.clone();
+    }
+    let revision = random_opaque_id()?;
+    let idempotency_key =
+        stable_idempotency_value(&["object", &object_id, &snapshot.revision.to_string()]);
+    store
+        .enqueue_cloud_outbox(CloudOutboxInput {
+            kind: CloudOutboxKind::Object,
+            object_id,
+            source_session_id: Some(session_id),
+            source_revision: Some(snapshot.revision),
+            base_remote_revision_id,
+            share_content_kind: None,
+            remote_revision_id: Some(revision),
+            idempotency_key,
+            next_attempt_utc_ms: utc_now_ms(),
+        })
+        .map_err(map_store_error)?;
+    Ok(true)
+}
+
+/// Record a revision as seen without installing it, keeping whatever session
+/// the object already points at.
+///
+/// This is what a skipped object costs: one head write, so the next scan reads
+/// the revision as already applied instead of fetching it again.
+fn acknowledge_remote_revision(
+    store: &MeetingStore,
+    object_id: &str,
+    revision_id: &str,
+    sequence: u64,
+) -> Result<(), CloudRuntimeError> {
+    let source_session_id = store
+        .cloud_head(object_id)
+        .map_err(map_store_error)?
+        .and_then(|head| head.source_session_id);
+    store
+        .upsert_cloud_head(&CloudHead {
+            object_id: object_id.to_owned(),
+            source_session_id,
+            remote_revision_id: Some(revision_id.to_owned()),
+            tombstone: false,
+            acknowledged_revision_id: Some(revision_id.to_owned()),
+            change_sequence: sequence,
+        })
+        .map_err(map_store_error)
+}
+
+/// Record a revision that was refused for what it is, and hand back a failure
+/// that was this Mac's own.
+///
+/// A revision's bytes are immutable: the service serves each chunk under the
+/// digest it was uploaded with. So a refusal of those bytes (a digest, length,
+/// signature, writer, format or importer refusal, all `IntegrityFailure`) would
+/// come out the same on every later fetch, and left unacknowledged it would
+/// download the object again on every scan, up to twelve hours of audio a
+/// time, and hold every later change in the vault behind it. A network, disk
+/// or store failure, or a deferral, says nothing about the bytes and is
+/// retried.
+fn acknowledge_if_refused(
+    store: &MeetingStore,
+    object_id: &str,
+    revision_id: &str,
+    sequence: u64,
+    installed: Result<(), CloudRuntimeError>,
+) -> Result<(), CloudRuntimeError> {
+    match installed {
+        Err(CloudRuntimeError::IntegrityFailure) => {
+            log::warn!(
+                "Cloud object {object_id} revision {revision_id} was refused and will not be fetched again"
+            );
+            acknowledge_remote_revision(store, object_id, revision_id, sequence)
+        }
+        other => other,
+    }
+}
+
+/// What an importer's refusal says about the revision that caused it: storage
+/// trouble is this Mac's and is retried; anything else is about the bytes.
+fn map_import_error(error: MeetingCommandError) -> CloudRuntimeError {
+    match error {
+        MeetingCommandError::StorageUnavailable => CloudRuntimeError::Storage,
+        _ => CloudRuntimeError::IntegrityFailure,
+    }
 }
 
 fn retry_directive(
@@ -3551,5 +4263,538 @@ mod tests {
         assert!(!text.contains('>'));
         assert!(!text.contains('\n'));
         assert!(text.contains("&lt;script&gt;"));
+    }
+
+    /* A phone's object, built the way `mobile/Shared/DeviceRecordingObject.swift`
+     * and `mobile/Shared/SonaCrypto.swift` build one: the manifest JSON with
+     * sorted keys, sealed under the device source format, and the PCM sliced at
+     * the plaintext chunk ceiling. Nothing here goes through the HTTP client,
+     * which is what the pull path adds around this and is unchanged. */
+
+    const TEST_VAULT_ROOT: [u8; 32] = [7; 32];
+    const TEST_VAULT_ID: &str = "vaultid123456789";
+    const TEST_OBJECT_ID: &str = "objectid12345678";
+    const TEST_REVISION_ID: &str = "revisionid123456";
+    const TEST_DEVICE_ID: &str = "phonedeviceid123";
+
+    struct PhoneObject {
+        audio: Vec<u8>,
+        sealed_manifest: Vec<u8>,
+        sealed_chunks: Vec<Vec<u8>>,
+        envelope: ObjectRevisionEnvelope,
+    }
+
+    /// Audio long enough to cross the chunk ceiling, so the object has the two
+    /// chunks a real recording has.
+    fn phone_audio() -> Vec<u8> {
+        (0..MAX_PLAINTEXT_CHUNK_BYTES + 3_200)
+            .map(|index| u8::try_from(index % 251).expect("byte"))
+            .collect()
+    }
+
+    fn seal(index: u64, total: u64, kind: ObjectContentKind, plaintext: &[u8]) -> Vec<u8> {
+        let mut nonce = [0_u8; 12];
+        nonce[0] = u8::try_from(index % 251).expect("byte");
+        nonce[1] = u8::from(kind == ObjectContentKind::Manifest);
+        seal_object_revision_payload(
+            &TEST_VAULT_ROOT,
+            &ObjectRevisionCryptoContext {
+                vault_id: TEST_VAULT_ID,
+                object_id: TEST_OBJECT_ID,
+                revision_id: TEST_REVISION_ID,
+                index,
+                total,
+                content_kind: kind,
+                source_format: DEVICE_RECORDING_SOURCE_FORMAT,
+            },
+            &nonce,
+            plaintext,
+        )
+        .expect("the device seals its payloads")
+    }
+
+    fn phone_object(audio: Vec<u8>, declared_sha256: &str, writer_device_id: &str) -> PhoneObject {
+        let chunks: Vec<Vec<u8>> = audio
+            .chunks(MAX_PLAINTEXT_CHUNK_BYTES)
+            .map(Vec::from)
+            .collect();
+        let total = u64::try_from(chunks.len()).expect("chunk count");
+        // Sorted keys, exactly as `DeviceRecordingObject.encodeManifest` emits.
+        // A `\` at a line end eats the newline and the indent after it, so this
+        // literal is one line of JSON with no whitespace in it.
+        let manifest = format!(
+            "{{\"audio\":{{\"byte_length\":{byte_length},\"channels\":1,\
+             \"codec\":\"pcm_s16le\",\"sample_rate_hz\":16000,\
+             \"sha256\":\"{declared_sha256}\"}},\
+             \"device_id\":\"{writer_device_id}\",\"duration_ms\":{duration_ms},\
+             \"format_version\":1,\"kind\":\"device_recording\",\
+             \"recorded_at_utc_ms\":1788305031276,\"title\":\"Phone recording\"}}",
+            byte_length = audio.len(),
+            // 16 kHz mono s16le is 32 bytes a millisecond.
+            duration_ms = audio.len() / 32,
+        );
+        let sealed_manifest = seal(0, total, ObjectContentKind::Manifest, manifest.as_bytes());
+        let sealed_chunks: Vec<Vec<u8>> = chunks
+            .iter()
+            .enumerate()
+            .map(|(index, chunk)| {
+                seal(
+                    u64::try_from(index).expect("index"),
+                    total,
+                    ObjectContentKind::Chunk,
+                    chunk,
+                )
+            })
+            .collect();
+        let envelope = ObjectRevisionEnvelope {
+            object_id: TEST_OBJECT_ID.to_owned(),
+            revision_id: TEST_REVISION_ID.to_owned(),
+            parent_revision_id: None,
+            manifest_sha256: sha256_base64url(&sealed_manifest),
+            chunk_count: u32::try_from(sealed_chunks.len()).expect("chunk count"),
+            total_bytes: sealed_chunks
+                .iter()
+                .map(|chunk| u64::try_from(chunk.len()).expect("chunk size"))
+                .sum(),
+            crypto_version: CRYPTO_VERSION,
+            writer_device_id: writer_device_id.to_owned(),
+            writer_signature: base64_url_encode(&[0; 64]),
+        };
+        PhoneObject {
+            audio,
+            sealed_manifest,
+            sealed_chunks,
+            envelope,
+        }
+    }
+
+    /// Everything the pull path does between the last byte off the wire and the
+    /// importer: open the manifest, check it against the envelope, decrypt the
+    /// chunks into the staged WAV, and refuse audio that is not what was
+    /// declared.
+    fn stage(object: &PhoneObject, path: PathBuf) -> Result<ScratchAudioFile, CloudRuntimeError> {
+        let manifest = match open_remote_manifest(
+            &TEST_VAULT_ROOT,
+            TEST_VAULT_ID,
+            TEST_OBJECT_ID,
+            TEST_REVISION_ID,
+            object.envelope.chunk_count,
+            &object.sealed_manifest,
+        )? {
+            RemoteManifest::DeviceRecording(manifest) => manifest,
+            RemoteManifest::Meeting(_) => panic!("a device recording read as a meeting bundle"),
+        };
+        let audio_bytes = declared_device_audio_bytes(&manifest, &object.envelope)?;
+        let mut staging = DeviceRecordingStaging::create(
+            path,
+            audio_bytes,
+            DeviceRecordingPayload {
+                vault_root: &TEST_VAULT_ROOT,
+                vault_id: TEST_VAULT_ID,
+                object_id: TEST_OBJECT_ID,
+                revision_id: TEST_REVISION_ID,
+                chunk_count: u64::from(object.envelope.chunk_count),
+            },
+        )?;
+        for (index, chunk) in object.sealed_chunks.iter().enumerate() {
+            staging.write_chunk(u64::try_from(index).expect("index"), chunk)?;
+        }
+        staging.finish(&manifest.audio)
+    }
+
+    /// The whole point of the glue: what the phone uploaded arrives as an
+    /// ordinary meeting, through the same import a file the operator picks
+    /// takes, with the device recorded as the track's origin.
+    #[test]
+    fn a_phone_recording_becomes_a_meeting() {
+        let (_files, manager) = crate::meeting::session::tests::importing_manager();
+        let store = tauri::async_runtime::block_on(manager.store()).expect("the store mounts");
+        let audio = phone_audio();
+        let object = phone_object(audio.clone(), &sha256_base64url(&audio), TEST_DEVICE_ID);
+        // The scratch path the pull path stages into: inside the store's own
+        // private root, not a shared temporary directory.
+        let staged = stage(
+            &object,
+            store
+                .cloud_recording_staging_path(TEST_OBJECT_ID)
+                .expect("the store owns a staging path"),
+        )
+        .expect("the object stages");
+        assert!(staged.path().starts_with(store.root()));
+
+        // The staged file is the phone's samples behind a header the decoder
+        // reads, byte for byte.
+        let bytes = fs::read(staged.path()).expect("the staged file is readable");
+        assert_eq!(&bytes[..4], b"RIFF");
+        assert_eq!(&bytes[8..12], b"WAVE");
+        assert_eq!(bytes.len(), WAVE_HEADER_BYTES + audio.len());
+        assert_eq!(&bytes[WAVE_HEADER_BYTES..], audio.as_slice());
+
+        let snapshot =
+            tauri::async_runtime::block_on(manager.import_recording(ImportRecordingRequest {
+                path: staged.path().to_owned(),
+                title: Some("Phone recording".to_owned()),
+                recorded_at_utc_ms: Some(1_788_305_031_276),
+                origin: RecordingOrigin::PairedDevice {
+                    device_id: TEST_DEVICE_ID.to_owned(),
+                },
+            }))
+            .expect("the pulled recording imports");
+        let review = tauri::async_runtime::block_on(manager.get(snapshot.session_id))
+            .expect("the imported meeting is readable");
+
+        assert_eq!(review.session.phase, MeetingPhase::ReviewReady);
+        assert_eq!(review.session.title, "Phone recording");
+        assert_eq!(review.session.started_at_utc_ms, Some(1_788_305_031_276));
+        assert!(!review.transcript.is_empty());
+        assert!(review.tracks[0].durable_record_count > 0);
+    }
+
+    /// A phone may upload a recording with no title. The staged file is named
+    /// for the object, so the importer's own fallback to the file stem would
+    /// title the meeting with an opaque id; the request asks instead for the
+    /// placeholder a meeting carries until its notes name it.
+    #[test]
+    fn an_untitled_phone_recording_is_not_titled_with_its_object_id() {
+        let (_files, manager) = crate::meeting::session::tests::importing_manager();
+        let store = tauri::async_runtime::block_on(manager.store()).expect("the store mounts");
+        let audio = phone_audio();
+        let object = phone_object(audio.clone(), &sha256_base64url(&audio), TEST_DEVICE_ID);
+        let recording = DeviceRecordingImport {
+            audio: stage(
+                &object,
+                store
+                    .cloud_recording_staging_path(TEST_OBJECT_ID)
+                    .expect("the store owns a staging path"),
+            )
+            .expect("the object stages"),
+            title: " \n".to_owned(),
+            recorded_at_utc_ms: 1_788_305_031_276,
+            device_id: TEST_DEVICE_ID.to_owned(),
+        };
+
+        let snapshot =
+            tauri::async_runtime::block_on(manager.import_recording(recording.request()))
+                .expect("the untitled recording imports");
+
+        assert_eq!(
+            snapshot.title,
+            crate::meeting::types::MANUAL_DEFAULT_TITLE,
+            "an untitled recording was filed under its object id"
+        );
+    }
+
+    /// The head an install writes points the meeting at the phone's object so
+    /// the next scan does not import it again and a delete tombstones it. It
+    /// must not also make the review transition upload this Mac's bundle as a
+    /// second revision of that object: the phone wrote it in another format,
+    /// and a second Mac importing the same recording would then file a
+    /// conflict on every phone recording. A meeting over a file the operator
+    /// picked still queues, as its own object.
+    #[test]
+    fn a_meeting_over_a_phone_recording_is_not_uploaded_onto_the_phones_object() {
+        let (_files, manager) = crate::meeting::session::tests::importing_manager();
+        let store = tauri::async_runtime::block_on(manager.store()).expect("the store mounts");
+        let audio = phone_audio();
+        let object = phone_object(audio.clone(), &sha256_base64url(&audio), TEST_DEVICE_ID);
+        let staged = stage(
+            &object,
+            store
+                .cloud_recording_staging_path(TEST_OBJECT_ID)
+                .expect("the store owns a staging path"),
+        )
+        .expect("the object stages");
+        let import = |origin: RecordingOrigin| {
+            let snapshot =
+                tauri::async_runtime::block_on(manager.import_recording(ImportRecordingRequest {
+                    path: staged.path().to_owned(),
+                    title: None,
+                    recorded_at_utc_ms: Some(1_788_305_031_276),
+                    origin,
+                }))
+                .expect("the recording imports");
+            let review = tauri::async_runtime::block_on(manager.get(snapshot.session_id))
+                .expect("the imported meeting is readable");
+            assert_eq!(review.session.phase, MeetingPhase::ReviewReady);
+            snapshot.session_id
+        };
+
+        let pulled = import(RecordingOrigin::PairedDevice {
+            device_id: TEST_DEVICE_ID.to_owned(),
+        });
+        // The head `install_device_recording` writes once the import returns.
+        store
+            .upsert_cloud_head(&CloudHead {
+                object_id: TEST_OBJECT_ID.to_owned(),
+                source_session_id: Some(pulled),
+                remote_revision_id: Some(TEST_REVISION_ID.to_owned()),
+                tombstone: false,
+                acknowledged_revision_id: Some(TEST_REVISION_ID.to_owned()),
+                change_sequence: 12,
+            })
+            .expect("the install records its head");
+
+        assert!(
+            !queue_session_upload(&store, pulled).expect("the review transition is handled"),
+            "the review transition queued an upload for a phone recording"
+        );
+        assert!(
+            store
+                .cloud_outboxes_for_session(pulled)
+                .expect("outboxes are readable")
+                .is_empty(),
+            "this Mac's bundle was queued as a revision of the phone's object"
+        );
+
+        let picked = import(RecordingOrigin::LocalFile);
+        assert!(queue_session_upload(&store, picked).expect("the review transition is handled"));
+        let outboxes = store
+            .cloud_outboxes_for_session(picked)
+            .expect("outboxes are readable");
+        assert_eq!(outboxes.len(), 1);
+        assert_eq!(outboxes[0].kind, CloudOutboxKind::Object);
+        assert_ne!(outboxes[0].object_id, TEST_OBJECT_ID);
+        assert!(outboxes[0].base_remote_revision_id.is_none());
+    }
+
+    /// A digest that does not describe the audio is the one thing that cannot be
+    /// let through: it is what a truncated or swapped upload looks like. The
+    /// staged file goes with the refusal, and no session was ever opened.
+    #[test]
+    fn a_recording_whose_digest_is_wrong_is_refused() {
+        let (_files, manager) = crate::meeting::session::tests::importing_manager();
+        let store = tauri::async_runtime::block_on(manager.store()).expect("the store mounts");
+        let audio = phone_audio();
+        let object = phone_object(audio, &sha256_base64url(b"other audio"), TEST_DEVICE_ID);
+        let path = store
+            .cloud_recording_staging_path(TEST_OBJECT_ID)
+            .expect("the store owns a staging path");
+
+        assert!(matches!(
+            stage(&object, path.clone()),
+            Err(CloudRuntimeError::IntegrityFailure)
+        ));
+        assert!(!path.exists(), "the staged audio outlived its refusal");
+        assert!(
+            store
+                .list_sessions(None, 10, &MeetingListFilter::default())
+                .expect("sessions are listable")
+                .entries
+                .is_empty(),
+            "a refused recording left a meeting behind"
+        );
+    }
+
+    /// A recording this Mac wrote is already here, so the pull path skips it
+    /// and acknowledges the revision instead. That head write is what stops the
+    /// next scan from fetching the object again — `apply_remote_change` reads it
+    /// and returns before any download.
+    #[test]
+    fn an_acknowledged_revision_is_not_fetched_again() {
+        let (_files, manager) = crate::meeting::session::tests::importing_manager();
+        let store = tauri::async_runtime::block_on(manager.store()).expect("the store mounts");
+
+        acknowledge_remote_revision(&store, TEST_OBJECT_ID, TEST_REVISION_ID, 12)
+            .expect("a skipped revision is recorded");
+
+        let head = store
+            .cloud_head(TEST_OBJECT_ID)
+            .expect("the head is readable")
+            .expect("the head was written");
+        assert_eq!(head.remote_revision_id.as_deref(), Some(TEST_REVISION_ID));
+        assert_eq!(
+            head.acknowledged_revision_id.as_deref(),
+            Some(TEST_REVISION_ID),
+            "an unacknowledged head would be fetched again on the next scan"
+        );
+        assert_eq!(head.change_sequence, 12);
+        assert!(!head.tombstone);
+        assert!(
+            head.source_session_id.is_none(),
+            "nothing was imported, so the object points at no meeting"
+        );
+    }
+
+    /// A revision refused for what its bytes are is recorded as seen. The
+    /// bytes cannot change, so the next scan would refuse it again after
+    /// downloading it again, and every change behind it in the feed would wait
+    /// on that for ever. A failure this Mac had is not recorded: the next scan
+    /// tries the revision again.
+    #[test]
+    fn a_refused_recording_is_not_fetched_again() {
+        let (_files, manager) = crate::meeting::session::tests::importing_manager();
+        let store = tauri::async_runtime::block_on(manager.store()).expect("the store mounts");
+        let audio = phone_audio();
+        let object = phone_object(audio, &sha256_base64url(b"other audio"), TEST_DEVICE_ID);
+        let path = store
+            .cloud_recording_staging_path(TEST_OBJECT_ID)
+            .expect("the store owns a staging path");
+        let refused = stage(&object, path).map(drop);
+        assert!(matches!(refused, Err(CloudRuntimeError::IntegrityFailure)));
+
+        acknowledge_if_refused(&store, TEST_OBJECT_ID, TEST_REVISION_ID, 12, refused)
+            .expect("a refusal is recorded, not returned");
+        let head = store
+            .cloud_head(TEST_OBJECT_ID)
+            .expect("the head is readable")
+            .expect("the refusal wrote a head");
+        assert_eq!(
+            head.remote_revision_id.as_deref(),
+            Some(TEST_REVISION_ID),
+            "an unacknowledged head would be fetched again on the next scan"
+        );
+        assert_eq!(head.change_sequence, 12);
+        assert!(head.source_session_id.is_none(), "nothing was installed");
+
+        let disk_failed = acknowledge_if_refused(
+            &store,
+            "otherobject12345",
+            TEST_REVISION_ID,
+            13,
+            Err(CloudRuntimeError::File),
+        );
+        assert!(matches!(disk_failed, Err(CloudRuntimeError::File)));
+        assert!(
+            store
+                .cloud_head("otherobject12345")
+                .expect("the head is readable")
+                .is_none(),
+            "a failure of this Mac's own must be retried, not recorded"
+        );
+    }
+
+    /// The signature the pull path checks after the chunks are on disk. The
+    /// vault root every paired device holds is what decrypts them; this is what
+    /// says which device wrote them.
+    #[test]
+    fn a_revision_signed_by_another_key_is_refused() {
+        let audio = phone_audio();
+        let object = phone_object(audio.clone(), &sha256_base64url(&audio), TEST_DEVICE_ID);
+        let descriptors: Vec<(u64, u64, String)> = object
+            .sealed_chunks
+            .iter()
+            .enumerate()
+            .map(|(index, chunk)| {
+                (
+                    u64::try_from(index).expect("index"),
+                    u64::try_from(chunk.len()).expect("size"),
+                    sha256_base64url(chunk),
+                )
+            })
+            .collect();
+        let chunks: Vec<UploadChunk<'_>> = descriptors
+            .iter()
+            .map(|(index, size, digest)| UploadChunk {
+                index: *index,
+                size: *size,
+                sha256: digest,
+            })
+            .collect();
+        let signing_seed = [3_u8; 32];
+        let signature = sign_canonical_upload_envelope(
+            &CanonicalUploadEnvelopeInput {
+                vault_id: TEST_VAULT_ID,
+                kind: UploadKind::Object,
+                object_id: Some(TEST_OBJECT_ID),
+                revision_id: Some(TEST_REVISION_ID),
+                base_revision_id: None,
+                share_id: None,
+                manifest_digest: &object.envelope.manifest_sha256,
+                crypto_version: u64::from(CRYPTO_VERSION),
+                total_bytes: object.envelope.total_bytes,
+                chunks: &chunks,
+            },
+            &signing_seed,
+        )
+        .expect("the writer signs its envelope");
+        let signed = ObjectRevisionEnvelope {
+            writer_signature: base64_url_encode(&signature),
+            ..object.envelope.clone()
+        };
+        let writer_key = ed25519_public_key(&signing_seed).expect("the writer's public key");
+
+        assert!(verify_writer_signature(
+            TEST_VAULT_ID,
+            TEST_OBJECT_ID,
+            TEST_REVISION_ID,
+            &signed,
+            &descriptors,
+            &writer_key,
+        )
+        .is_ok());
+        assert!(matches!(
+            verify_writer_signature(
+                TEST_VAULT_ID,
+                TEST_OBJECT_ID,
+                TEST_REVISION_ID,
+                &signed,
+                &descriptors,
+                &ed25519_public_key(&[4_u8; 32]).expect("another device's public key"),
+            ),
+            Err(CloudRuntimeError::IntegrityFailure)
+        ));
+    }
+
+    /// The manifest is sealed under the vault root every member holds, so any
+    /// paired device can seal one naming another. The writer signature binds
+    /// `envelope.writer_device_id`, which the service derives from the
+    /// uploader's credentials, so the manifest's claim has to match it before
+    /// the recording is staged or a chunk of it fetched. Only then is the
+    /// origin the meeting records a proven fact.
+    #[test]
+    fn a_manifest_naming_another_device_is_refused_before_any_chunk() {
+        let audio = phone_audio();
+        let mut object = phone_object(audio.clone(), &sha256_base64url(&audio), "otherdevice12345");
+        object.envelope.writer_device_id = TEST_DEVICE_ID.to_owned();
+        let manifest = match open_remote_manifest(
+            &TEST_VAULT_ROOT,
+            TEST_VAULT_ID,
+            TEST_OBJECT_ID,
+            TEST_REVISION_ID,
+            object.envelope.chunk_count,
+            &object.sealed_manifest,
+        )
+        .expect("the manifest opens")
+        {
+            RemoteManifest::DeviceRecording(manifest) => manifest,
+            RemoteManifest::Meeting(_) => panic!("a device recording read as a meeting bundle"),
+        };
+
+        assert!(matches!(
+            declared_device_audio_bytes(&manifest, &object.envelope),
+            Err(CloudRuntimeError::IntegrityFailure)
+        ));
+
+        // The same declaration from the device it names is accepted.
+        object.envelope.writer_device_id = "otherdevice12345".to_owned();
+        assert!(declared_device_audio_bytes(&manifest, &object.envelope).is_ok());
+    }
+
+    /// A meeting bundle and a recording are told apart by the format their
+    /// manifest was sealed under, so neither can be read as the other.
+    #[test]
+    fn a_recording_manifest_does_not_read_as_a_meeting_bundle() {
+        let manifest = serde_json::to_vec(&ObjectPayloadManifest {
+            version: PROTOCOL_VERSION,
+            kind: CAPABILITY_SHARE_KIND.to_owned(),
+            source_format: OBJECT_SOURCE_FORMAT.to_owned(),
+            chunk_count: 1,
+            plaintext_bytes: 4,
+            plaintext_sha256: sha256_base64url(b"json"),
+        })
+        .expect("a meeting manifest");
+        let sealed_as_recording = seal(0, 1, ObjectContentKind::Manifest, &manifest);
+
+        assert!(matches!(
+            open_remote_manifest(
+                &TEST_VAULT_ROOT,
+                TEST_VAULT_ID,
+                TEST_OBJECT_ID,
+                TEST_REVISION_ID,
+                1,
+                &sealed_as_recording,
+            ),
+            Err(CloudRuntimeError::IntegrityFailure)
+        ));
     }
 }

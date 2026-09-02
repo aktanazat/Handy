@@ -1417,9 +1417,9 @@ impl MeetingSessionManager {
             .map_err(map_store_error)?
             .and_then(|consent| match consent.provenance {
                 MeetingConsentProvenance::StandingSeries { series_key, .. } => Some(series_key),
-                MeetingConsentProvenance::StandingApp { .. } | MeetingConsentProvenance::Direct => {
-                    None
-                }
+                MeetingConsentProvenance::StandingApp { .. }
+                | MeetingConsentProvenance::PairedDevice { .. }
+                | MeetingConsentProvenance::Direct => None,
             });
         let disclosure = store
             .session_disclosure(snapshot.session_id)
@@ -1982,6 +1982,7 @@ impl MeetingSessionManager {
                     .recorded_at_utc_ms
                     .or_else(|| file_modified_utc_ms(&media.canonical_path))
                     .unwrap_or_else(utc_now_ms),
+                &request.origin,
             )
             .await?;
         match self
@@ -2035,6 +2036,7 @@ impl MeetingSessionManager {
                     .started_at_utc_ms
                     .or_else(|| file_modified_utc_ms(&path))
                     .unwrap_or_else(utc_now_ms),
+                &RecordingOrigin::LocalFile,
             )
             .await?;
         let track_id =
@@ -2077,6 +2079,7 @@ impl MeetingSessionManager {
         store: &Arc<MeetingStore>,
         title: String,
         recorded_at_utc_ms: i64,
+        origin: &RecordingOrigin,
     ) -> Result<MeetingSessionId, MeetingCommandError> {
         let session_id = MeetingSessionId::new();
         let (retention_policy, _) = store.default_retention_policy().map_err(map_store_error)?;
@@ -2122,15 +2125,22 @@ impl MeetingSessionManager {
             .map_err(map_store_error)?;
         let consent = MeetingConsentInput {
             policy_version: MEETING_CONSENT_POLICY_VERSION,
-            // Choosing the file is the acknowledgement. No stream was opened
-            // and no room was listened to; the operator handed Sona a recording
-            // they already had.
+            // No stream was opened and no room was listened to. For a file the
+            // operator picked, choosing it is the acknowledgement; for a
+            // recording pulled off a paired device, the acknowledgement was
+            // given on that device, and the consent row says so.
             microphone_acknowledged: true,
             system_audio_acknowledged: false,
             known_missing_sources_acknowledged: Vec::new(),
             degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
             destination: ProcessingDestination::Local,
             remote_acknowledgement: None,
+        };
+        let provenance = match origin {
+            RecordingOrigin::LocalFile => MeetingConsentProvenance::Direct,
+            RecordingOrigin::PairedDevice { device_id } => MeetingConsentProvenance::PairedDevice {
+                device_id: device_id.clone(),
+            },
         };
         let attempt_number = store
             .next_plan_attempt(session_id)
@@ -2152,7 +2162,7 @@ impl MeetingSessionManager {
                     preflight_revision: 0,
                     policy_version: consent.policy_version,
                     acknowledged_at_utc_ms: utc_now_ms(),
-                    provenance: MeetingConsentProvenance::Direct,
+                    provenance,
                     microphone_acknowledged: true,
                     system_audio_acknowledged: false,
                     known_missing_sources_acknowledged: Vec::new(),
@@ -4107,8 +4117,11 @@ fn write_imported_transcript(
         .map_err(map_store_error)
 }
 
+/// Crate-visible so the cloud-sync tests can drive a pulled recording through
+/// this module's import, the way `meeting::store` shares its workflow
+/// fixtures.
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::super::analytics::MeetingCatchUpState;
     use super::*;
     use crate::secrets::{MemorySecretBackend, SecretManager};
@@ -5586,7 +5599,9 @@ mod tests {
         writer.finalize().expect("finalize wav");
     }
 
-    fn importing_manager() -> (TempDir, Arc<MeetingSessionManager>) {
+    /// A manager whose processing runs without a model: the transcript engine
+    /// returns the same words for every chunk and everything counts as speech.
+    pub(crate) fn importing_manager() -> (TempDir, Arc<MeetingSessionManager>) {
         let (directory, manager, _backend) = mounted_manager();
         manager
             .processing
@@ -5777,6 +5792,55 @@ mod tests {
 
         assert_eq!(snapshot.title, "Board call");
         assert_eq!(snapshot.started_at_utc_ms, Some(modified));
+    }
+
+    /// The consent ledger answers "who agreed to this". For a recording the
+    /// sync thread pulled off a paired device nobody on this Mac chose
+    /// anything, so its row must name the device rather than claim a direct
+    /// acknowledgement here. A file the operator picked is still Direct.
+    #[test]
+    fn a_pulled_recordings_consent_names_the_device_that_recorded_it() {
+        let (files, manager) = importing_manager();
+        let store = tauri::async_runtime::block_on(manager.store()).expect("the store mounts");
+        let pulled = files.path().join("pulled.wav");
+        write_mono_wav(&pulled, 8_000);
+        let picked = files.path().join("picked.wav");
+        write_mono_wav(&picked, 8_000);
+
+        let snapshot =
+            tauri::async_runtime::block_on(manager.import_recording(ImportRecordingRequest {
+                path: pulled,
+                title: None,
+                recorded_at_utc_ms: None,
+                origin: RecordingOrigin::PairedDevice {
+                    device_id: "phone-1".to_string(),
+                },
+            }))
+            .expect("the pulled recording imports");
+        let consent = store
+            .latest_consent_for_session(snapshot.session_id)
+            .expect("consents are readable")
+            .expect("the import wrote a consent row");
+        assert_eq!(
+            consent.provenance,
+            MeetingConsentProvenance::PairedDevice {
+                device_id: "phone-1".to_string()
+            }
+        );
+
+        let snapshot =
+            tauri::async_runtime::block_on(manager.import_recording(ImportRecordingRequest {
+                path: picked,
+                title: None,
+                recorded_at_utc_ms: None,
+                origin: RecordingOrigin::LocalFile,
+            }))
+            .expect("the picked recording imports");
+        let consent = store
+            .latest_consent_for_session(snapshot.session_id)
+            .expect("consents are readable")
+            .expect("the import wrote a consent row");
+        assert_eq!(consent.provenance, MeetingConsentProvenance::Direct);
     }
 
     /* ------------------------------------- the recap while capture is running */

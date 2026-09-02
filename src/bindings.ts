@@ -2420,6 +2420,20 @@ async cloudSyncPairingApprove(request: CloudPairingApproveRequest) : Promise<Res
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * The fingerprint of an offer that arrived from another device, derived on
+ * this Mac so the operator compares a value this Mac read out of the offer
+ * rather than one the offer told it to show. Reads nothing and changes
+ * nothing: the answer is a function of the offer alone.
+ */
+async cloudSyncPairingFingerprint(offer: CloudPairingOffer) : Promise<Result<string, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_pairing_fingerprint", { offer }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async cloudSyncPairingAccept(request: CloudPairingAcceptRequest) : Promise<Result<CloudSyncOverview, CloudSyncErrorKind>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("cloud_sync_pairing_accept", { request }) };

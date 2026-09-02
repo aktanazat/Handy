@@ -583,6 +583,10 @@ pub enum MeetingConsentProvenance {
     /// was cited and the session layer re-reads the setting immediately before
     /// it starts. Detection still forges nothing.
     StandingApp { bundle_id: String },
+    /// A recording a paired device made and this Mac pulled from the vault.
+    /// Nobody on this Mac acknowledged anything: the device's operator did,
+    /// when they recorded and uploaded it, so the row names the device.
+    PairedDevice { device_id: String },
 }
 
 /// The consent policy every acknowledgement on this machine is stamped with.

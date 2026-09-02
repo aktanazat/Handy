@@ -1596,6 +1596,7 @@ pub fn run(cli_args: CliArgs) {
             commands::cloud_sync::cloud_sync_recover,
             commands::cloud_sync::cloud_sync_pairing_offer,
             commands::cloud_sync::cloud_sync_pairing_approve,
+            commands::cloud_sync::cloud_sync_pairing_fingerprint,
             commands::cloud_sync::cloud_sync_pairing_accept,
             commands::cloud_sync::cloud_sync_pause,
             commands::cloud_sync::cloud_sync_resume,

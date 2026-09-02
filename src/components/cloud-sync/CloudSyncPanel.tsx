@@ -1,4 +1,4 @@
-import React, { useId, useState } from "react";
+import React, { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   commands,
@@ -16,6 +16,7 @@ import {
   SettingsSection,
 } from "@/components/settings/rows";
 import {
+  type CandidateApprovalState,
   type CloudUiError,
   parseCloudPairingOffer,
   useCloudSyncOverview,
@@ -26,6 +27,7 @@ type PendingAction =
   | "recover"
   | "offer"
   | "approve"
+  | "approveCandidate"
   | "accept"
   | "pause"
   | null;
@@ -74,6 +76,11 @@ const useCloudSyncPanel = () => {
   const [vaultId, setVaultId] = useState("");
   const [offer, setOffer] = useState<CloudPairingOffer | null>(null);
   const [receivedOffer, setReceivedOffer] = useState("");
+  const [candidateOffer, setCandidateOffer] = useState("");
+  const [candidate, setCandidate] = useState<CandidateApprovalState>({
+    kind: "empty",
+  });
+  const candidateRead = useRef(0);
   const [pending, setPending] = useState<PendingAction>(null);
   const [commandError, setCommandError] = useState<CloudUiError | null>(null);
   const error = commandError ?? overviewError;
@@ -162,6 +169,60 @@ const useCloudSyncPanel = () => {
     }
   };
 
+  /* Every paste is read straight away, so the fingerprint is on screen before
+   * the reader decides. The counter drops an answer to a paste that has already
+   * been replaced — a stale fingerprint beside a newer code is the one thing
+   * this field must never show. */
+  const readCandidateOffer = async (text: string) => {
+    setCandidateOffer(text);
+    const read = candidateRead.current + 1;
+    candidateRead.current = read;
+    if (text.trim() === "") {
+      setCandidate({ kind: "empty" });
+      return;
+    }
+    const parsedOffer = parseCloudPairingOffer(text);
+    if (!parsedOffer) {
+      setCandidate({ kind: "invalid" });
+      return;
+    }
+    setCandidate({ kind: "reading" });
+    try {
+      const result = await commands.cloudSyncPairingFingerprint(parsedOffer);
+      if (candidateRead.current !== read) return;
+      setCandidate(
+        result.status === "ok"
+          ? { kind: "ready", fingerprint: result.data, offer: parsedOffer }
+          : { kind: "invalid" },
+      );
+    } catch {
+      if (candidateRead.current === read) setCandidate({ kind: "invalid" });
+    }
+  };
+
+  const approveCandidate = async () => {
+    if (pending || candidate.kind !== "ready") return;
+    setPending("approveCandidate");
+    setCommandError(null);
+    try {
+      const result = await commands.cloudSyncPairingApprove({
+        offer: candidate.offer,
+      });
+      if (result.status === "error") {
+        setCommandError(result.error);
+        return;
+      }
+      candidateRead.current += 1;
+      setCandidateOffer("");
+      setCandidate({ kind: "approved" });
+      await refresh();
+    } catch {
+      setCommandError("unexpected");
+    } finally {
+      setPending(null);
+    }
+  };
+
   const acceptOffer = async () => {
     if (pending || endpoint.trim() === "") return;
     const parsedOffer = parseCloudPairingOffer(receivedOffer);
@@ -225,6 +286,10 @@ const useCloudSyncPanel = () => {
     offer,
     receivedOffer,
     setReceivedOffer,
+    candidateOffer,
+    candidate,
+    readCandidateOffer,
+    approveCandidate,
     pending,
     bootstrap,
     recover,
@@ -372,6 +437,67 @@ const CloudSyncRecoverySection: React.FC<CloudSyncRecoverySectionProps> = ({
   );
 };
 
+/* Approving a device that cannot be handed a vault root any other way: a phone
+ * shows its code, the operator pastes it here, and the fingerprint beside the
+ * label is what this Mac read out of that paste — never the one the paste
+ * carried. Comparing it against the device is the whole check, which is why the
+ * line asking for that comparison sits under the field rather than in a hint. */
+export const CloudSyncApproveDevice: React.FC<{
+  id: string;
+  offerText: string;
+  state: CandidateApprovalState;
+  pending: boolean;
+  onOfferTextChange: (value: string) => void;
+  onApprove: () => void;
+}> = ({ id, offerText, state, pending, onOfferTextChange, onApprove }) => {
+  const { t } = useTranslation();
+  const line =
+    state.kind === "empty"
+      ? null
+      : {
+          reading: "cloudSync.pairing.candidateReading",
+          invalid: "cloudSync.pairing.candidateInvalid",
+          ready: "cloudSync.pairing.candidateCompare",
+          approved: "cloudSync.pairing.candidateApproved",
+        }[state.kind];
+
+  return (
+    <>
+      <SettingsField
+        label={t("cloudSync.pairing.candidateOffer")}
+        controlId={id + "-candidate"}
+        fact={state.kind === "ready" ? state.fingerprint : undefined}
+      >
+        <Textarea
+          id={id + "-candidate"}
+          value={offerText}
+          onChange={(event) => onOfferTextChange(event.target.value)}
+          className="text-xs tabular-nums"
+        />
+        {line ? (
+          <Notice
+            tone={state.kind === "invalid" ? "danger" : "muted"}
+            className="mt-2"
+          >
+            {t(line)}
+          </Notice>
+        ) : null}
+      </SettingsField>
+      <TaskAction>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={pending || state.kind !== "ready"}
+          onClick={onApprove}
+        >
+          {t("cloudSync.pairing.candidateApprove")}
+        </Button>
+      </TaskAction>
+    </>
+  );
+};
+
 interface CloudSyncPairingSectionProps {
   id: string;
   endpoint: string;
@@ -383,6 +509,10 @@ interface CloudSyncPairingSectionProps {
   pending: PendingAction;
   onCreateOffer: () => void;
   onApproveOffer: () => void;
+  candidateOffer: string;
+  candidate: CandidateApprovalState;
+  onCandidateOfferChange: (value: string) => void;
+  onApproveCandidate: () => void;
   onAcceptOffer: () => void;
 }
 
@@ -397,6 +527,10 @@ const CloudSyncPairingSection: React.FC<CloudSyncPairingSectionProps> = ({
   pending,
   onCreateOffer,
   onApproveOffer,
+  candidateOffer,
+  candidate,
+  onCandidateOfferChange,
+  onApproveCandidate,
   onAcceptOffer,
 }) => {
   const { t } = useTranslation();
@@ -454,6 +588,14 @@ const CloudSyncPairingSection: React.FC<CloudSyncPairingSectionProps> = ({
           </TaskAction>
         </>
       ) : null}
+      <CloudSyncApproveDevice
+        id={id}
+        offerText={candidateOffer}
+        state={candidate}
+        pending={pending !== null}
+        onOfferTextChange={onCandidateOfferChange}
+        onApprove={onApproveCandidate}
+      />
       <SettingsField
         label={t("cloudSync.pairing.receivedOffer")}
         controlId={id + "-received"}
@@ -561,6 +703,10 @@ export const CloudSyncPanel: React.FC = () => {
         pending={cloud.pending}
         onCreateOffer={() => void cloud.createOffer()}
         onApproveOffer={() => void cloud.approveOffer()}
+        candidateOffer={cloud.candidateOffer}
+        candidate={cloud.candidate}
+        onCandidateOfferChange={(value) => void cloud.readCandidateOffer(value)}
+        onApproveCandidate={() => void cloud.approveCandidate()}
         onAcceptOffer={() => void cloud.acceptOffer()}
       />
       {cloud.error ? (

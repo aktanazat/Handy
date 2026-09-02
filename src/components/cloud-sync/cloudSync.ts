@@ -143,6 +143,17 @@ export const parseCloudPairingOffer = (
   }
 };
 
+/* Approving a device that is showing its own code on a screen. The fingerprint
+ * is derived by this Mac from the pasted offer, not read out of it, so the
+ * reader is comparing two independent answers; carrying the offer alongside it
+ * is what stops an approval from acting on anything else. */
+export type CandidateApprovalState =
+  | { kind: "empty" }
+  | { kind: "reading" }
+  | { kind: "invalid" }
+  | { kind: "ready"; fingerprint: string; offer: CloudPairingOffer }
+  | { kind: "approved" };
+
 const padDatePart = (value: number): string => String(value).padStart(2, "0");
 
 export const toLocalDateTimeValue = (date: Date): string =>

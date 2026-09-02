@@ -197,6 +197,24 @@ pub fn sha256_digest(bytes: &[u8]) -> [u8; SHA256_BYTES] {
 pub fn sha256_base64url(bytes: &[u8]) -> String {
     base64_url_encode(&sha256_digest(bytes))
 }
+
+/// SHA-256 over a payload that arrives in pieces, for the one payload too large
+/// to hold in memory: a paired device's recording is digested as it streams
+/// past on its way to disk.
+#[derive(Default)]
+pub struct StreamingSha256(Sha256);
+
+impl StreamingSha256 {
+    pub fn update(&mut self, bytes: &[u8]) {
+        self.0.update(bytes);
+    }
+
+    /// The digest as unpadded base64url, the same encoding `sha256_base64url`
+    /// returns for a payload read in one piece.
+    pub fn finish_base64url(self) -> String {
+        base64_url_encode(&self.0.finalize())
+    }
+}
 /// Input to the Worker sona-request-v1 signing record.
 #[derive(Clone, Copy, Debug)]
 pub struct CanonicalRequestInput<'a> {

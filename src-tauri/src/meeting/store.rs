@@ -2679,6 +2679,21 @@ impl MeetingStore {
         Ok(path)
     }
 
+    /// Where a pulled device recording is decrypted before the importer decodes
+    /// it. The bytes are plaintext audio, so they stage inside the store's own
+    /// private root rather than a shared temporary directory; the caller owns
+    /// the file and removes it.
+    pub(crate) fn cloud_recording_staging_path(
+        &self,
+        object_id: &str,
+    ) -> Result<PathBuf, StoreError> {
+        validate_cloud_identifier(object_id)?;
+        let path = validated_relative(&self.root, &format!(".cloud-inbox/{object_id}.wav"))?;
+        let parent = path.parent().ok_or(StoreError::Invalid)?;
+        ensure_private_directory(parent)?;
+        Ok(path)
+    }
+
     pub(crate) fn resolve_cloud_conflict_keep_local(
         &self,
         object_id: &str,
