@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { commands } from "@/bindings";
 import { Button } from "@/components/vg/button";
 import {
   Dialog,
@@ -62,6 +64,36 @@ export const FollowUpDraftAction: React.FC<FollowUpDraftActionProps> = ({
     }
   };
 
+  /* The draft, addressed. The backend owns the recipients, the subject, the
+   * encoding and the length bound; the words and the clipboard are this side's,
+   * exactly as they are for Copy. */
+  const openInMail = async () => {
+    if (draft === null) return;
+    try {
+      const mail = await commands.meetingFollowUpMail({
+        session_id: draft.session_id,
+        body,
+        over_bound_note: t("meetings.followUp.mailClipboardNote"),
+      });
+      if (mail.status === "error") {
+        toast.error(t("meetings.followUp.mailFailed"));
+        return;
+      }
+      if (mail.data.body === "clipboard") {
+        await navigator.clipboard.writeText(body);
+      }
+      await openUrl(mail.data.url);
+      setDraft(null);
+      toast.success(
+        mail.data.body === "clipboard"
+          ? t("meetings.followUp.mailCopied")
+          : t("meetings.followUp.mailOpened"),
+      );
+    } catch {
+      toast.error(t("meetings.followUp.mailFailed"));
+    }
+  };
+
   return (
     <>
       <Button
@@ -109,6 +141,13 @@ export const FollowUpDraftAction: React.FC<FollowUpDraftActionProps> = ({
             </Button>
             <Button type="button" variant="outline" onClick={() => void copy()}>
               {t("meetings.followUp.copy")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void openInMail()}
+            >
+              {t("meetings.followUp.openInMail")}
             </Button>
           </DialogFooter>
         </DialogContent>

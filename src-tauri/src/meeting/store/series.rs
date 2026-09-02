@@ -150,6 +150,37 @@ impl MeetingStore {
         Ok(MeetingSeriesRemoteRoster { rows, revision })
     }
 
+    /// Remember, from the consent panel, whether this series announces itself.
+    ///
+    /// Written directly rather than through [`Self::write_series_preference`],
+    /// exactly as the standing consent the same panel grants is: the panel is
+    /// pressing Record, not editing a settings surface, so it holds no series
+    /// revision to be fenced on and there is no second control to collide with.
+    /// The fenced setters remain the path for anything that shows the decision.
+    pub(crate) fn remember_series_announce(
+        &self,
+        series_key: &str,
+        announce_in_chat: bool,
+        now_utc_ms: i64,
+    ) -> Result<(), StoreError> {
+        let series_key = series_key.trim();
+        if series_key.is_empty() {
+            return Err(StoreError::Invalid);
+        }
+        let connection = self.connection()?;
+        connection.execute(
+            "INSERT INTO meeting_series_preferences (
+                series_key, template_id, digest_included, announce_in_chat, updated_at_utc_ms
+             ) VALUES (?1, NULL, 1, ?2, ?3)
+             ON CONFLICT(series_key) DO UPDATE SET
+                announce_in_chat = excluded.announce_in_chat,
+                updated_at_utc_ms = excluded.updated_at_utc_ms",
+            params![series_key, announce_in_chat, now_utc_ms],
+        )?;
+        delete_default_row_in(&connection, series_key)?;
+        Ok(())
+    }
+
     /// Remembers, or forgets, one series' template.
     ///
     /// Idempotent on `operation_id` and fenced on `expected_revision`, like
@@ -535,6 +566,23 @@ pub(super) fn series_remote_opt_out_in(
     Ok(opted_out.unwrap_or(false))
 }
 
+/// Whether this series announces itself in the meeting's chat. False for a
+/// series that has never been asked to, which is every series until somebody
+/// ticks the box.
+pub(super) fn series_announce_in_chat_in(
+    connection: &Connection,
+    series_key: &str,
+) -> Result<bool, StoreError> {
+    let announce: Option<bool> = connection
+        .query_row(
+            "SELECT announce_in_chat FROM meeting_series_preferences WHERE series_key = ?1",
+            params![series_key],
+            |row| row.get(0),
+        )
+        .optional()?;
+    Ok(announce.unwrap_or(false))
+}
+
 fn series_preferences_in(
     connection: &Connection,
     series_key: Option<&str>,
@@ -547,6 +595,7 @@ fn series_preferences_in(
             digest_included: true,
             always_record: false,
             remote_intelligence_opt_out: false,
+            announce_in_chat: false,
             revision,
         });
     };
@@ -566,6 +615,7 @@ fn stored_series_preferences_in(
         digest_included: series_digest_included_in(connection, series_key)?,
         always_record: live_series_consent_in(connection, series_key)?.is_some(),
         remote_intelligence_opt_out: series_remote_opt_out_in(connection, series_key)?,
+        announce_in_chat: series_announce_in_chat_in(connection, series_key)?,
         revision,
     })
 }
@@ -580,7 +630,7 @@ fn delete_default_row_in(connection: &Connection, series_key: &str) -> Result<()
     connection.execute(
         "DELETE FROM meeting_series_preferences
           WHERE series_key = ?1 AND template_id IS NULL AND digest_included = 1
-            AND remote_intelligence_opt_out = 0",
+            AND remote_intelligence_opt_out = 0 AND announce_in_chat = 0",
         params![series_key],
     )?;
     Ok(())

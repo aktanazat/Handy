@@ -47,10 +47,13 @@ use super::automation_types::{
     MeetingAutomationRunState, MeetingSeriesAutomation,
 };
 use super::export;
+use super::loop_types::MeetingLoopRow;
 use super::store::{MeetingStore, StoreError};
 use super::types::{
-    MeetingArtifactId, MeetingArtifactState, MeetingExportFormat, MeetingSessionId,
+    MeetingActionItem, MeetingArtifactId, MeetingArtifactState, MeetingExportFormat,
+    MeetingSessionId,
 };
+use chrono::{DateTime, Datelike, Days, Local, NaiveDate, Utc};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::AppHandle;
@@ -78,6 +81,10 @@ pub(crate) struct ReminderItem {
     /// The meeting it came from, and its `sona://` address, so the reminder can
     /// be traced back to the sentence that produced it.
     pub notes: String,
+    /// The local day the notes said this was due, when they said one. `None`
+    /// leaves the reminder undated, which is what Reminders shows for a
+    /// commitment nobody put a day on.
+    pub due_on: Option<NaiveDate>,
 }
 
 /// What one attempt is asked to do, with the payload already assembled.
@@ -323,15 +330,15 @@ fn plans_for_meeting(
         return Ok(Vec::new());
     }
     let review = store.review_snapshot(session_id)?;
-    let Some(artifact_id) = review
+    let Some(current) = review
         .artifacts
         .iter()
         .find(|artifact| artifact.state == MeetingArtifactState::Current)
-        .map(|artifact| artifact.artifact_id)
     else {
         // No current notes: nothing an after-meeting action could be about.
         return Ok(Vec::new());
     };
+    let artifact_id = current.artifact_id;
     let kinds = runnable
         .iter()
         .map(|automation| automation.kind)
@@ -346,7 +353,18 @@ fn plans_for_meeting(
         })
         .flatten();
     let reminders = if kinds.contains(&MeetingAutomationKind::Reminders) {
-        reminder_items(store, session_id, &review.session.title)?
+        let action_items = current
+            .content
+            .as_ref()
+            .map(|content| content.action_items.as_slice())
+            .unwrap_or_default();
+        reminder_items(
+            store,
+            session_id,
+            &review.session.title,
+            action_items,
+            local_day(review.session.started_at_utc_ms.unwrap_or_else(now_utc_ms)),
+        )?
     } else {
         Vec::new()
     };
@@ -363,7 +381,8 @@ fn plans_for_meeting(
         .collect())
 }
 
-/// The operator's own still-open rows from this meeting's ledger.
+/// The operator's own still-open rows from this meeting's ledger, with the day
+/// the notes said each was due.
 ///
 /// "Mine" is D27's classification, read off the row rather than recomputed here:
 /// a commitment the ledger attributed to a named other person is theirs even
@@ -373,6 +392,8 @@ fn reminder_items(
     store: &MeetingStore,
     session_id: MeetingSessionId,
     meeting_title: &str,
+    action_items: &[MeetingActionItem],
+    meeting_day: NaiveDate,
 ) -> Result<Vec<ReminderItem>, StoreError> {
     let loops = store.meeting_loops(session_id)?;
     Ok(loops
@@ -382,8 +403,101 @@ fn reminder_items(
         .map(|row| ReminderItem {
             title: bounded_title(&row.text),
             notes: format!("{meeting_title}\n{}", crate::query::loop_link(&row.loop_id)),
+            due_on: due_day_for(row, action_items, meeting_day),
         })
         .collect())
+}
+
+/// The day one ledger row is due, as the notes pass wrote it down.
+///
+/// A ledger commitment carries no due text of its own: the day lives on the
+/// notes pass's action items, which are a second reading of the same
+/// conversation and share no id with the ledger's. What they do share is the
+/// transcript segment each was read from, so that is the join — a date reaches a
+/// reminder only when the same moment produced both rows.
+///
+/// ponytail: the first dated action item citing a shared segment wins, so two
+/// commitments read out of one long segment can take each other's day. The
+/// upgrade path is a due field on the ledger's own commitment, which is a ledger
+/// schema and prompt change, not more matching here.
+fn due_day_for(
+    row: &MeetingLoopRow,
+    action_items: &[MeetingActionItem],
+    meeting_day: NaiveDate,
+) -> Option<NaiveDate> {
+    action_items
+        .iter()
+        .filter(|item| {
+            item.text.citations.iter().any(|citation| {
+                row.citations
+                    .iter()
+                    .any(|cited| cited.segment_id == citation.segment_id)
+            })
+        })
+        .find_map(|item| due_day(item.due_text.as_deref()?, meeting_day))
+}
+
+/// The day a generated due text names, read against the day the meeting
+/// happened.
+///
+/// ponytail: English day words and ISO dates only — "tomorrow", "Friday",
+/// "2026-03-04", and a date or day word inside a longer phrase ("by Friday").
+/// A due text in another language, or one naming a month by name, produces no
+/// date rather than a guessed one: a reminder that fires on the wrong day is
+/// worse than one with no day at all. The upgrade path is a real date parser,
+/// not more arms here.
+fn due_day(due_text: &str, meeting_day: NaiveDate) -> Option<NaiveDate> {
+    let lowered = due_text.to_lowercase();
+    let mut words = lowered
+        .split(|character: char| !character.is_ascii_alphanumeric() && character != '-')
+        .filter(|word| !word.is_empty())
+        .peekable();
+    while let Some(word) = words.next() {
+        if let Ok(date) = NaiveDate::parse_from_str(word, "%Y-%m-%d") {
+            return Some(date);
+        }
+        match word {
+            "today" => return Some(meeting_day),
+            "tomorrow" => return meeting_day.succ_opt(),
+            _ => {}
+        }
+        if let Some(weekday) = weekday(word) {
+            return next_weekday(meeting_day, weekday);
+        }
+    }
+    None
+}
+
+fn weekday(word: &str) -> Option<chrono::Weekday> {
+    match word {
+        "monday" | "mon" => Some(chrono::Weekday::Mon),
+        "tuesday" | "tue" | "tues" => Some(chrono::Weekday::Tue),
+        "wednesday" | "wed" => Some(chrono::Weekday::Wed),
+        "thursday" | "thu" | "thurs" => Some(chrono::Weekday::Thu),
+        "friday" | "fri" => Some(chrono::Weekday::Fri),
+        "saturday" | "sat" => Some(chrono::Weekday::Sat),
+        "sunday" | "sun" => Some(chrono::Weekday::Sun),
+        _ => None,
+    }
+}
+
+/// The first `weekday` strictly after `from`.
+///
+/// "Next Friday" and "Friday" land on the same day here. Colloquially they can
+/// differ by a week, and a reminder a week late is worse than one a week early:
+/// the earlier day is the one the operator can still act on.
+fn next_weekday(from: NaiveDate, weekday: chrono::Weekday) -> Option<NaiveDate> {
+    let ahead = (7 + weekday.num_days_from_monday() - from.weekday().num_days_from_monday()) % 7;
+    from.checked_add_days(Days::new(u64::from(if ahead == 0 { 7 } else { ahead })))
+}
+
+/// The local calendar day one instant fell on. Reminders are dated in the
+/// operator's own day, not in UTC: a meeting at 23:30 that promises something
+/// "tomorrow" means the day after the one they lived through.
+fn local_day(at_utc_ms: i64) -> NaiveDate {
+    DateTime::<Utc>::from_timestamp_millis(at_utc_ms)
+        .map_or_else(Local::now, |instant| instant.with_timezone(&Local))
+        .date_naive()
 }
 
 fn bounded_title(text: &str) -> String {
@@ -586,7 +700,7 @@ mod reminders {
     use objc2_event_kit::{
         EKAuthorizationStatus, EKCalendar, EKEntityType, EKEventStore, EKReminder,
     };
-    use objc2_foundation::{NSError, NSString};
+    use objc2_foundation::{NSDateComponents, NSError, NSString};
     use std::sync::mpsc;
     use std::time::Duration;
 
@@ -656,6 +770,9 @@ mod reminders {
                     reminder.setTitle(Some(&NSString::from_str(&item.title)));
                     reminder.setNotes(Some(&NSString::from_str(&item.notes)));
                     reminder.setCalendar(Some(&calendar));
+                    if let Some(due) = item.due_on {
+                        reminder.setDueDateComponents(Some(&day_components(due)));
+                    }
                     store.saveReminder_commit_error(&reminder, false)
                 };
                 if saved.is_err() {
@@ -687,6 +804,19 @@ mod reminders {
         // SAFETY: `EKEventStore::new` is a plain allocation and init; it requests
         // nothing and prompts for nothing.
         unsafe { EKEventStore::new() }
+    }
+
+    /// One day, as EventKit wants a reminder's due date: year, month and day
+    /// and no time of day. A dated reminder with no hour is an all-day row in
+    /// Reminders, which is what a commitment read out of a meeting is — the
+    /// transcript said "Friday", not "Friday at four".
+    fn day_components(due: chrono::NaiveDate) -> Retained<NSDateComponents> {
+        use chrono::Datelike;
+        let components = NSDateComponents::new();
+        components.setYear(isize::try_from(due.year()).unwrap_or_default());
+        components.setMonth(isize::try_from(due.month()).unwrap_or_default());
+        components.setDay(isize::try_from(due.day()).unwrap_or_default());
+        components
     }
 
     /// The "Sona" reminders list, created on first use.
@@ -750,4 +880,58 @@ pub fn reminders_access() -> super::detection::calendar::CalendarAccess {
 /// Ask macOS for the reminders grant, from the switch that needs it.
 pub fn request_reminders_access() -> super::detection::calendar::CalendarAccess {
     reminders::request_access()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{due_day, next_weekday};
+    use chrono::{NaiveDate, Weekday};
+
+    /// A Wednesday, so "friday" is two days out and "monday" is five.
+    fn meeting_day() -> NaiveDate {
+        NaiveDate::from_ymd_opt(2026, 3, 4).expect("a real day")
+    }
+
+    fn day(year: i32, month: u32, day: u32) -> Option<NaiveDate> {
+        NaiveDate::from_ymd_opt(year, month, day)
+    }
+
+    #[test]
+    fn a_due_text_naming_a_day_becomes_that_day() {
+        assert_eq!(due_day("2026-04-01", meeting_day()), day(2026, 4, 1));
+        assert_eq!(due_day("by 2026-04-01.", meeting_day()), day(2026, 4, 1));
+        assert_eq!(due_day("today", meeting_day()), day(2026, 3, 4));
+        assert_eq!(due_day("Tomorrow", meeting_day()), day(2026, 3, 5));
+        assert_eq!(due_day("by Friday", meeting_day()), day(2026, 3, 6));
+        assert_eq!(due_day("end of day Mon", meeting_day()), day(2026, 3, 9));
+    }
+
+    /// The day word that names the meeting's own weekday means the next one, not
+    /// a due date in the past.
+    #[test]
+    fn a_day_word_never_resolves_backwards() {
+        assert_eq!(due_day("wednesday", meeting_day()), day(2026, 3, 11));
+        assert_eq!(
+            next_weekday(meeting_day(), Weekday::Wed),
+            day(2026, 3, 11),
+            "the same weekday is a week out, not zero days"
+        );
+    }
+
+    /// The ceiling this parser states in its own doc comment. A phrase it cannot
+    /// read produces no date, which leaves the reminder undated rather than
+    /// dated wrong.
+    #[test]
+    fn a_due_text_this_parser_cannot_read_produces_no_day() {
+        for text in [
+            "",
+            "soon",
+            "end of the quarter",
+            "March 4th",
+            "nächsten Freitag",
+            "before we ship",
+        ] {
+            assert_eq!(due_day(text, meeting_day()), None, "due text {text:?}");
+        }
+    }
 }

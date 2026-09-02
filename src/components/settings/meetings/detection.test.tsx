@@ -358,6 +358,7 @@ const promptEvent = (
   notificationTitle: "unused by the in-app card",
   delivery: "notification",
   showIntroduction: false,
+  announceInChat: false,
 });
 
 const status = (inputDeviceActive: boolean): DetectionStatus => ({

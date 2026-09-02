@@ -72,6 +72,15 @@ const INDEX_PLAINTEXT_BYTES: usize = 48;
 const INDEX_RECORD_BYTES: usize = 76;
 const MISSING_OFFSET: u64 = u64::MAX;
 
+/// How long a deleted meeting stays undoable.
+///
+/// Thirty days, the same horizon as the default retention policy and the same
+/// one every desktop trash uses: long enough that "I deleted the wrong meeting"
+/// is recoverable after a holiday, short enough that deleting still means
+/// something. It is a constant rather than a setting because a bin whose depth
+/// is configurable is a second retention policy to explain.
+const TRASH_RETENTION_MS: i64 = 30 * 24 * 60 * 60 * 1_000;
+
 /// The three workflow tables, rebuilt around a widened allowed-value list.
 ///
 /// SQLite cannot alter a `CHECK` constraint, and `workflow_runs` carries
@@ -1186,6 +1195,40 @@ static MIGRATIONS: &[M] = &[
             'meeting_wrap_follow_up_copied', 'meeting_wrap_done'
         ",
     )),
+    // A deleted meeting's thirty-day undo bin, and the disclosure a recording
+    // was asked to post about itself.
+    //
+    // The deletion receipt already says a meeting was deleted and when. What it
+    // could not say is where the audio went and what would have to be put back,
+    // so a restorable deletion adds exactly that: the trashed directory's
+    // relative path, and the meeting's own cloud bundle — the portable,
+    // non-audio snapshot the sync path already builds — as the thing a restore
+    // imports. The bundle is captured on the job when the deletion is reserved,
+    // because that is the last moment the meeting is still in a phase the bundle
+    // accepts, and moves to the receipt when the rows go. All three are NULL for
+    // a deletion this build cannot restore: the ones an earlier build reserved,
+    // and the ones whose bundle could not be built.
+    //
+    // The bundle lives in this database rather than beside the audio because
+    // this database is the encrypted one. A meeting's transcript must not be
+    // readable on disk for thirty days as the price of an undo button.
+    //
+    // `announce_in_chat` is the series decision behind the consent panel's
+    // announce checkbox, and `disclosure_json` is what one session's disclosure
+    // did — asked for, and then delivery's own receipt for the attempt. Both
+    // default to absent, which is what every meeting recorded before this build
+    // was: nothing was announced.
+    M::up(
+        "
+        ALTER TABLE meeting_deletion_receipts ADD COLUMN trash_relative_path TEXT;
+        ALTER TABLE meeting_deletion_receipts ADD COLUMN restore_bundle_json TEXT;
+        ALTER TABLE meeting_deletion_jobs ADD COLUMN restore_bundle_json TEXT;
+        ALTER TABLE meeting_series_preferences
+            ADD COLUMN announce_in_chat INTEGER NOT NULL DEFAULT 0
+            CHECK (announce_in_chat IN (0, 1));
+        ALTER TABLE meeting_sessions ADD COLUMN disclosure_json TEXT;
+        ",
+    ),
 ];
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StoreError {
@@ -3718,6 +3761,71 @@ impl MeetingStore {
         })
     }
 
+    /// What one session's recording disclosure is doing.
+    ///
+    /// An absent column is [`MeetingSessionDisclosure::NotAsked`], which is
+    /// every meeting ever recorded before the announce checkbox existed and
+    /// every meeting whose operator left it clear.
+    pub(crate) fn session_disclosure(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<MeetingSessionDisclosure, StoreError> {
+        let connection = self.connection()?;
+        session_disclosure_in(&connection, session_id)
+    }
+
+    /// Ask this session to announce itself, naming who the room is told the
+    /// notes are for.
+    ///
+    /// Only ever moves a session from `NotAsked` to `Pending`. A session that
+    /// already attempted its disclosure keeps that record: the line is posted
+    /// once per recording, and a second request would be a second line in
+    /// somebody's chat.
+    pub(crate) fn request_session_disclosure(
+        &self,
+        session_id: MeetingSessionId,
+        notetaker: &str,
+    ) -> Result<(), StoreError> {
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        if session_disclosure_in(&transaction, session_id)? != MeetingSessionDisclosure::NotAsked {
+            return Ok(());
+        }
+        write_session_disclosure_in(
+            &transaction,
+            session_id,
+            &MeetingSessionDisclosure::Pending {
+                notetaker: notetaker.to_string(),
+            },
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    /// Write down what the one attempt did, and answer with the record.
+    ///
+    /// Idempotent on the attempt rather than on an operation id: the disclosure
+    /// is one insertion into somebody else's chat, so the first receipt is the
+    /// record and a later call reads it back instead of pasting again.
+    pub(crate) fn record_session_disclosure(
+        &self,
+        session_id: MeetingSessionId,
+        receipt: &crate::delivery::DeliveryReceipt,
+    ) -> Result<MeetingSessionDisclosure, StoreError> {
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let held = session_disclosure_in(&transaction, session_id)?;
+        if let MeetingSessionDisclosure::Attempted { .. } = held {
+            return Ok(held);
+        }
+        let attempted = MeetingSessionDisclosure::Attempted {
+            receipt: receipt.clone(),
+        };
+        write_session_disclosure_in(&transaction, session_id, &attempted)?;
+        transaction.commit()?;
+        Ok(attempted)
+    }
+
     pub fn preflight_snapshot(
         &self,
         session_id: MeetingSessionId,
@@ -5562,6 +5670,23 @@ impl MeetingStore {
         let now = utc_now_ms();
         let live_relative_path = session_id.uuid().to_string();
         let trash_relative_path = format!(".trash/{}", job_id.uuid());
+        // What an undo would have to put back, captured here rather than in
+        // `finish_deletion`: the phase this row is about to leave is one the
+        // bundle accepts, and `deleting` is not. A meeting whose bundle cannot be
+        // built is deleted the way this app always deleted — rows, then
+        // directory, then a receipt with nothing to restore from — because
+        // deleting must not fail over an undo that could not be prepared.
+        let restore_bundle_json = match export_cloud_meeting_bundle_in(&transaction, session_id)
+            .and_then(|bundle| bundle.validate().map(|()| bundle))
+        {
+            Ok(bundle) => encode_json(&bundle).ok(),
+            Err(error) => {
+                log::info!(
+                    "Meeting {session_id:?} is being deleted without an undo: no restorable bundle ({error:?})"
+                );
+                None
+            }
+        };
         transaction.execute(
             "UPDATE meeting_sessions SET phase = 'deleting', revision = ?1 WHERE id = ?2",
             params![to_i64(next_revision)?, id(session_id)],
@@ -5569,8 +5694,8 @@ impl MeetingStore {
         transaction.execute(
             "INSERT INTO meeting_deletion_jobs (
                 job_id, session_id, cause, live_relative_path, trash_relative_path, state,
-                created_at_utc_ms, updated_at_utc_ms
-             ) VALUES (?1, ?2, ?3, ?4, ?5, 'reserved', ?6, ?6)",
+                created_at_utc_ms, updated_at_utc_ms, restore_bundle_json
+             ) VALUES (?1, ?2, ?3, ?4, ?5, 'reserved', ?6, ?6, ?7)",
             params![
                 id(job_id),
                 id(session_id),
@@ -5578,6 +5703,7 @@ impl MeetingStore {
                 live_relative_path,
                 trash_relative_path,
                 now,
+                restore_bundle_json,
             ],
         )?;
         append_event(
@@ -5602,26 +5728,39 @@ impl MeetingStore {
         Ok((receipt, job_id))
     }
 
+    /// Finish one reserved deletion: the rows go, the audio moves to `.trash/`,
+    /// and the receipt records what it would take to put both back.
+    ///
+    /// The directory is deliberately *not* removed here any more. A deletion is
+    /// undoable for thirty days, so the job stops at the trash and
+    /// [`MeetingStore::purge_expired_trash`] is what finally removes it.
+    /// The bundle an undo needs was captured when the deletion was reserved; it
+    /// moves to the receipt in the same transaction that deletes the rows, so a
+    /// launch that dies between them cannot leave a trashed directory nothing
+    /// can restore.
+    ///
+    /// A deletion with no bundle behind it — a meeting in a phase the bundle
+    /// refuses, or a job reserved by an older build — is completed the way this
+    /// app always completed one: rows, then directory, then a receipt with
+    /// nothing to restore from.
     pub fn finish_deletion(&self, job_id: MeetingDeletionJobId) -> Result<Option<u64>, StoreError> {
         let job = match self.deletion_job(job_id) {
             Ok(job) => job,
             Err(StoreError::NotFound) => {
-                let connection = self.connection()?;
-                let completed = connection
-                    .query_row(
-                        "SELECT 1 FROM meeting_deletion_receipts WHERE job_id = ?1",
-                        params![id(job_id)],
-                        |row| row.get::<_, i64>(0),
-                    )
-                    .optional()?
-                    .is_some();
-                if completed {
+                if self.deletion_receipt_exists(job_id)? {
                     return Ok(None);
                 }
                 return Err(StoreError::NotFound);
             }
             Err(error) => return Err(error),
         };
+        // The rows and the receipt commit together, so a job row that outlived
+        // its own receipt is a launch that died in between: the deletion is
+        // already done and only the job row is left to clear.
+        if self.deletion_receipt_exists(job_id)? {
+            self.delete_deletion_job(job_id)?;
+            return Ok(None);
+        }
         let live = validated_relative(&self.root, &job.live_relative_path)?;
         let trash = validated_relative(&self.root, &job.trash_relative_path)?;
         if live.exists() {
@@ -5631,6 +5770,7 @@ impl MeetingStore {
             fs::rename(&live, &trash)?;
             self.update_deletion_job_state(job_id, "trashed")?;
         }
+        let restorable = job.restore_bundle_json;
         let people_revision = {
             let mut connection = self.connection()?;
             let transaction =
@@ -5652,26 +5792,180 @@ impl MeetingStore {
                 None
             };
             transaction.execute(
-                "UPDATE meeting_deletion_jobs SET state = 'rows_deleted', updated_at_utc_ms = ?1 WHERE job_id = ?2",
-                params![utc_now_ms(), id(job_id)],
+                "INSERT OR REPLACE INTO meeting_deletion_receipts (
+                    job_id, cause, completed_at_utc_ms, trash_relative_path, restore_bundle_json
+                 ) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    id(job_id),
+                    job.cause_json,
+                    utc_now_ms(),
+                    restorable
+                        .is_some()
+                        .then_some(job.trash_relative_path.as_str()),
+                    restorable.as_deref(),
+                ],
             )?;
             transaction.commit()?;
             people_revision
         };
-        if trash.exists() {
+        if restorable.is_none() && trash.exists() {
             fs::remove_dir_all(&trash)?;
         }
+        self.delete_deletion_job(job_id)?;
+        Ok(people_revision)
+    }
+
+    fn deletion_receipt_exists(&self, job_id: MeetingDeletionJobId) -> Result<bool, StoreError> {
         let connection = self.connection()?;
-        connection.execute(
-            "INSERT OR REPLACE INTO meeting_deletion_receipts (job_id, cause, completed_at_utc_ms)
-             VALUES (?1, ?2, ?3)",
-            params![id(job_id), job.cause_json, utc_now_ms()],
-        )?;
+        Ok(connection
+            .query_row(
+                "SELECT 1 FROM meeting_deletion_receipts WHERE job_id = ?1",
+                params![id(job_id)],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()?
+            .is_some())
+    }
+
+    fn delete_deletion_job(&self, job_id: MeetingDeletionJobId) -> Result<(), StoreError> {
+        let connection = self.connection()?;
         connection.execute(
             "DELETE FROM meeting_deletion_jobs WHERE job_id = ?1",
             params![id(job_id)],
         )?;
-        Ok(people_revision)
+        Ok(())
+    }
+
+    /// The meetings a person could still get back, newest deletion first.
+    ///
+    /// Only receipts that carry both halves of an undo are listed. A receipt
+    /// from a build before the bin existed, one whose bundle could not be built,
+    /// and one the sweep has already purged all say the same thing here: that
+    /// deletion is final, so it is not offered.
+    pub fn meeting_trash(&self, now_utc_ms: i64) -> Result<Vec<MeetingTrashEntry>, StoreError> {
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(
+            "SELECT job_id, completed_at_utc_ms,
+                    json_extract(restore_bundle_json, '$.session.title') AS title
+               FROM meeting_deletion_receipts
+              WHERE restore_bundle_json IS NOT NULL AND trash_relative_path IS NOT NULL
+              ORDER BY completed_at_utc_ms DESC, job_id DESC",
+        )?;
+        let entries = statement
+            .query_map([], |row| {
+                let job_id: String = row.get(0)?;
+                let deleted_at_utc_ms: i64 = row.get(1)?;
+                Ok(MeetingTrashEntry {
+                    job_id: MeetingDeletionJobId::from_uuid(
+                        parse_uuid(&job_id).map_err(to_sql_error)?,
+                    ),
+                    title: row.get::<_, Option<String>>(2)?.unwrap_or_default(),
+                    deleted_at_utc_ms,
+                    expires_at_utc_ms: deleted_at_utc_ms.saturating_add(TRASH_RETENTION_MS),
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(entries
+            .into_iter()
+            .filter(|entry| entry.expires_at_utc_ms > now_utc_ms)
+            .collect())
+    }
+
+    /// Put one trashed meeting back: its audio directory, then its rows.
+    ///
+    /// The bundle is imported through the same path a meeting arriving from
+    /// another Mac takes, which restores everything the database knew except the
+    /// durable record index — the per-record offsets into the audio files, which
+    /// the bundle deliberately does not carry. [`Self::repair_session_tracks`]
+    /// rebuilds exactly that by reading the files back, which is the same work
+    /// startup does for a meeting a crash left mid-capture.
+    ///
+    /// Refuses with `NotFound` once the sweep has purged the entry: after that
+    /// there is nothing on disk to move back, and a row restored without its
+    /// audio would be a meeting that cannot be played or reprocessed.
+    pub fn restore_trashed_meeting(
+        &self,
+        job_id: MeetingDeletionJobId,
+        now_utc_ms: i64,
+    ) -> Result<MeetingSessionId, StoreError> {
+        let (trash_relative_path, bundle_json, deleted_at_utc_ms) = self
+            .connection()?
+            .query_row(
+                "SELECT trash_relative_path, restore_bundle_json, completed_at_utc_ms
+                   FROM meeting_deletion_receipts WHERE job_id = ?1",
+                params![id(job_id)],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<String>>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                },
+            )
+            .optional()?
+            .ok_or(StoreError::NotFound)?;
+        let (Some(trash_relative_path), Some(bundle_json)) = (trash_relative_path, bundle_json)
+        else {
+            return Err(StoreError::NotFound);
+        };
+        if deleted_at_utc_ms.saturating_add(TRASH_RETENTION_MS) <= now_utc_ms {
+            return Err(StoreError::NotFound);
+        }
+        let bundle: cloud_bundle::CloudMeetingBundleV1 = decode_json(&bundle_json)?;
+        let session_id = bundle.session.session_id;
+        let trash = validated_relative(&self.root, &trash_relative_path)?;
+        let live = validated_relative(&self.root, &session_id.uuid().to_string())?;
+        if trash.exists() && !live.exists() {
+            fs::rename(&trash, &live)?;
+        }
+        self.import_cloud_meeting_bundle(&bundle)?;
+        // The audio index is the one thing the bundle does not carry.
+        self.repair_session_tracks(session_id)?;
+        let connection = self.connection()?;
+        connection.execute(
+            "UPDATE meeting_deletion_receipts
+                SET trash_relative_path = NULL, restore_bundle_json = NULL
+              WHERE job_id = ?1",
+            params![id(job_id)],
+        )?;
+        Ok(session_id)
+    }
+
+    /// Drop every trashed meeting past its thirty days, and forget what it
+    /// would have taken to restore it.
+    ///
+    /// The receipt row itself stays: it is the record that this meeting was
+    /// deleted and when, and that record has no expiry. What expires is the
+    /// undo — the directory on disk and the bundle beside it.
+    ///
+    /// Returns how many entries it purged, so the sweep that calls it can say so
+    /// in one line.
+    pub fn purge_expired_trash(&self, now_utc_ms: i64) -> Result<usize, StoreError> {
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(
+            "SELECT job_id, trash_relative_path FROM meeting_deletion_receipts
+              WHERE trash_relative_path IS NOT NULL AND completed_at_utc_ms <= ?1",
+        )?;
+        let expired = statement
+            .query_map(
+                params![now_utc_ms.saturating_sub(TRASH_RETENTION_MS)],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        drop(statement);
+        for (job_id, trash_relative_path) in &expired {
+            let trash = validated_relative(&self.root, trash_relative_path)?;
+            if trash.exists() {
+                fs::remove_dir_all(&trash)?;
+            }
+            connection.execute(
+                "UPDATE meeting_deletion_receipts
+                    SET trash_relative_path = NULL, restore_bundle_json = NULL
+                  WHERE job_id = ?1",
+                params![job_id],
+            )?;
+        }
+        Ok(expired.len())
     }
 
     pub fn resume_deletions(&self) -> Result<(), StoreError> {
@@ -6048,7 +6342,8 @@ impl MeetingStore {
         let connection = self.connection()?;
         connection
             .query_row(
-                "SELECT session_id, cause, live_relative_path, trash_relative_path
+                "SELECT session_id, cause, live_relative_path, trash_relative_path,
+                        restore_bundle_json
                  FROM meeting_deletion_jobs WHERE job_id = ?1",
                 params![id(job_id)],
                 |row| {
@@ -6057,6 +6352,7 @@ impl MeetingStore {
                         cause_json: row.get(1)?,
                         live_relative_path: row.get(2)?,
                         trash_relative_path: row.get(3)?,
+                        restore_bundle_json: row.get(4)?,
                     })
                 },
             )
@@ -6429,6 +6725,10 @@ struct DeletionJobRow {
     cause_json: String,
     live_relative_path: String,
     trash_relative_path: String,
+    /// The portable meeting snapshot an undo would import, captured when the
+    /// deletion was reserved. `None` for a meeting in a phase the bundle refuses
+    /// and for jobs reserved by a build before the undo bin existed.
+    restore_bundle_json: Option<String>,
 }
 
 #[derive(Clone)]
@@ -6524,6 +6824,39 @@ fn session_row(
         )
         .optional()?
         .ok_or(StoreError::NotFound)
+}
+
+fn session_disclosure_in(
+    connection: &Connection,
+    session_id: MeetingSessionId,
+) -> Result<MeetingSessionDisclosure, StoreError> {
+    let stored: Option<String> = connection
+        .query_row(
+            "SELECT disclosure_json FROM meeting_sessions WHERE id = ?1",
+            params![id(session_id)],
+            |row| row.get(0),
+        )
+        .optional()?
+        .ok_or(StoreError::NotFound)?;
+    match stored {
+        Some(json) => decode_json(&json),
+        None => Ok(MeetingSessionDisclosure::NotAsked),
+    }
+}
+
+fn write_session_disclosure_in(
+    connection: &Connection,
+    session_id: MeetingSessionId,
+    disclosure: &MeetingSessionDisclosure,
+) -> Result<(), StoreError> {
+    let changed = connection.execute(
+        "UPDATE meeting_sessions SET disclosure_json = ?1 WHERE id = ?2",
+        params![encode_json(disclosure)?, id(session_id)],
+    )?;
+    if changed == 0 {
+        return Err(StoreError::NotFound);
+    }
+    Ok(())
 }
 
 fn operation_receipt_in(
@@ -12066,6 +12399,216 @@ mod tests {
         assert!(
             store.has_missing_record_gap(session_id).unwrap(),
             "a track whose record file was never written reads as missing audio"
+        );
+    }
+
+    /// The undo bin, end to end: a deletion leaves the audio in `.trash/` and a
+    /// receipt that can put the meeting back, a restore does put it back, and the
+    /// sweep is the only thing that makes a deletion final.
+    #[test]
+    fn a_deleted_meeting_stays_restorable_for_its_thirty_days() {
+        let (_directory, store) = store();
+        let session_id = MeetingSessionId::new();
+        let revision = review_ready_session(&store, session_id);
+        let live = store.root.join(session_id.uuid().to_string());
+        fs::create_dir_all(live.join("tracks")).expect("session directory");
+        fs::write(live.join("tracks").join("audio"), b"records").expect("session audio");
+
+        let (_receipt, job_id) = store
+            .reserve_deletion(
+                MeetingOperationId::new(),
+                10,
+                session_id,
+                revision,
+                DeletionCause::User,
+            )
+            .expect("reserve deletion");
+        store.finish_deletion(job_id).expect("finish deletion");
+
+        assert!(
+            store.session_snapshot(session_id).is_err(),
+            "a deleted meeting is gone from every surface that reads rows"
+        );
+        assert!(!live.exists(), "the audio moved out of the live directory");
+        let trashed = store.meeting_trash(20).expect("trash list");
+        assert_eq!(trashed.len(), 1);
+        assert_eq!(trashed[0].job_id, job_id);
+        assert_eq!(trashed[0].title, "Design sync");
+        assert_eq!(trashed[0].deleted_at_utc_ms, trashed[0].expires_at_utc_ms - TRASH_RETENTION_MS);
+
+        let restored = store
+            .restore_trashed_meeting(job_id, 20)
+            .expect("restore the deletion");
+
+        assert_eq!(restored, session_id);
+        assert_eq!(
+            store
+                .session_snapshot(session_id)
+                .expect("restored snapshot")
+                .title,
+            "Design sync"
+        );
+        assert!(
+            live.join("tracks").join("audio").exists(),
+            "the audio came back with the rows"
+        );
+        assert!(
+            store.meeting_trash(20).expect("trash list").is_empty(),
+            "a restored meeting is no longer in the bin"
+        );
+        assert_eq!(
+            store.restore_trashed_meeting(job_id, 20),
+            Err(StoreError::NotFound),
+            "the undo is spent once it has been used"
+        );
+    }
+
+    /// After thirty days the sweep purges the bin: the directory goes, the undo
+    /// goes, and the receipt that records the deletion stays.
+    #[test]
+    fn the_sweep_makes_a_deletion_final_after_its_thirty_days() {
+        let (_directory, store) = store();
+        let session_id = MeetingSessionId::new();
+        let revision = review_ready_session(&store, session_id);
+        let live = store.root.join(session_id.uuid().to_string());
+        fs::create_dir_all(&live).expect("session directory");
+        let (_receipt, job_id) = store
+            .reserve_deletion(
+                MeetingOperationId::new(),
+                10,
+                session_id,
+                revision,
+                DeletionCause::User,
+            )
+            .expect("reserve deletion");
+        store.finish_deletion(job_id).expect("finish deletion");
+        let deleted_at = store.meeting_trash(20).expect("trash list")[0].deleted_at_utc_ms;
+
+        assert_eq!(
+            store
+                .purge_expired_trash(deleted_at + TRASH_RETENTION_MS - 1)
+                .expect("sweep inside the horizon"),
+            0,
+            "an instant short of the horizon is still inside it"
+        );
+        assert_eq!(
+            store
+                .purge_expired_trash(deleted_at + TRASH_RETENTION_MS)
+                .expect("sweep at the horizon"),
+            1,
+            "the expiry instant is the moment the undo runs out, and the list, \
+             the restore and the sweep all read it that way"
+        );
+
+        assert!(store.meeting_trash(deleted_at).expect("trash list").is_empty());
+        assert_eq!(
+            store.restore_trashed_meeting(job_id, deleted_at),
+            Err(StoreError::NotFound)
+        );
+        let connection = store.connection().expect("store connection");
+        let receipts: i64 = connection
+            .query_row(
+                "SELECT COUNT(*) FROM meeting_deletion_receipts WHERE job_id = ?1",
+                params![id(job_id)],
+                |row| row.get(0),
+            )
+            .expect("deletion receipt");
+        assert_eq!(
+            receipts, 1,
+            "the record that this meeting was deleted has no expiry"
+        );
+    }
+
+    /// An expired entry never appears in the bin even before the sweep reaches
+    /// it: the list and the sweep read one horizon, so a stale window cannot
+    /// offer an undo the restore would refuse.
+    #[test]
+    fn an_expired_entry_is_not_offered_before_the_sweep_runs() {
+        let (_directory, store) = store();
+        let session_id = MeetingSessionId::new();
+        let revision = review_ready_session(&store, session_id);
+        fs::create_dir_all(store.root.join(session_id.uuid().to_string()))
+            .expect("session directory");
+        let (_receipt, job_id) = store
+            .reserve_deletion(
+                MeetingOperationId::new(),
+                10,
+                session_id,
+                revision,
+                DeletionCause::User,
+            )
+            .expect("reserve deletion");
+        store.finish_deletion(job_id).expect("finish deletion");
+        let deleted_at = store.meeting_trash(20).expect("trash list")[0].deleted_at_utc_ms;
+        assert!(store
+            .meeting_trash(deleted_at + TRASH_RETENTION_MS)
+            .expect("trash list")
+            .is_empty());
+    }
+
+    /// A recording that asked to announce itself records what the paste did,
+    /// including — and especially — a refusal: a target that cannot accept an
+    /// insertion is the ordinary case, and the live surface says so quietly
+    /// because this row says so first.
+    #[test]
+    fn a_disclosure_records_its_one_attempt_even_when_the_target_refused() {
+        let (_directory, store) = store();
+        let session_id = MeetingSessionId::new();
+        review_ready_session(&store, session_id);
+
+        assert_eq!(
+            store.session_disclosure(session_id).expect("disclosure"),
+            MeetingSessionDisclosure::NotAsked,
+            "a meeting nobody asked to announce itself has nothing to post"
+        );
+
+        store
+            .request_session_disclosure(session_id, "Aktan Azat")
+            .expect("arm the disclosure");
+
+        assert_eq!(
+            store.session_disclosure(session_id).expect("disclosure"),
+            MeetingSessionDisclosure::Pending {
+                notetaker: "Aktan Azat".to_string()
+            }
+        );
+
+        let refused = crate::delivery::DeliveryReceipt::not_dispatched();
+        let recorded = store
+            .record_session_disclosure(session_id, &refused)
+            .expect("record the attempt");
+
+        assert_eq!(
+            recorded,
+            MeetingSessionDisclosure::Attempted {
+                receipt: refused.clone()
+            }
+        );
+        assert_eq!(
+            store.session_disclosure(session_id).expect("disclosure"),
+            recorded,
+            "the record is the store's, not the return value's"
+        );
+
+        // One line per recording. A second attempt reads the first back rather
+        // than putting another sentence in somebody's chat.
+        let delivered = crate::delivery::DeliveryReceipt {
+            method: crate::delivery::DeliveryMethod::AccessibilityInsertion,
+            outcome: crate::delivery::DeliveryOutcome::Delivered,
+            dispatched_at_ms: refused.dispatched_at_ms + 1_000,
+        };
+        assert_eq!(
+            store
+                .record_session_disclosure(session_id, &delivered)
+                .expect("second attempt"),
+            recorded
+        );
+        store
+            .request_session_disclosure(session_id, "Somebody Else")
+            .expect("arming again is a no-op");
+        assert_eq!(
+            store.session_disclosure(session_id).expect("disclosure"),
+            recorded
         );
     }
 }

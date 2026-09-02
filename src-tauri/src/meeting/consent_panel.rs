@@ -22,6 +22,11 @@ const CARD_INSET: f64 = 7.0;
 const PROMPT_CONTENT: f64 = 104.0;
 /// The always-record checkbox row and the gap above it. Calendar prompts only.
 const PROMPT_CHECKBOX_ROW: f64 = 28.0;
+/// The announce-in-chat checkbox row. Drawn with the always-record row and only
+/// with it, because both are decisions the series remembers, so the two rows
+/// arrive and leave together. Same shape as the row above it — one checkbox and
+/// one short line — so it is the same height.
+const PROMPT_ANNOUNCE_ROW: f64 = 28.0;
 /// The one-time introduction paragraph: two lines in bg, de, ru and uk.
 const PROMPT_INTRODUCTION: f64 = 38.0;
 /// The recurring-meeting brief: one line in every locale.
@@ -80,7 +85,7 @@ impl ConsentPanelLayout {
             } => {
                 let mut content = PROMPT_CONTENT;
                 if always_record_checkbox {
-                    content += PROMPT_CHECKBOX_ROW;
+                    content += PROMPT_CHECKBOX_ROW + PROMPT_ANNOUNCE_ROW;
                 }
                 if introduction {
                     content += PROMPT_INTRODUCTION;
@@ -244,9 +249,9 @@ mod tests {
 
         assert_eq!(prompt(false, false, false), 118.0);
         assert_eq!(prompt(false, true, false), 156.0);
-        assert_eq!(prompt(true, false, false), 146.0);
-        assert_eq!(prompt(true, true, false), 184.0);
-        assert_eq!(prompt(true, true, true), 205.0);
+        assert_eq!(prompt(true, false, false), 174.0);
+        assert_eq!(prompt(true, true, false), 212.0);
+        assert_eq!(prompt(true, true, true), 233.0);
         assert_eq!(
             ConsentPanelLayout::Prep {
                 loop_rows: 2,

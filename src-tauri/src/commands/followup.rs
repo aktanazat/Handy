@@ -1,4 +1,6 @@
-use crate::meeting::follow_up::MeetingFollowUpDraft;
+use crate::meeting::follow_up::{
+    MeetingFollowUpDraft, MeetingFollowUpMail, MeetingFollowUpMailRequest,
+};
 use crate::meeting::session::MeetingSessionManager;
 use crate::meeting::types::{MeetingCommandError, MeetingOperationId, MeetingSessionId};
 use std::sync::Arc;
@@ -16,4 +18,19 @@ pub async fn meeting_follow_up_draft(
     session_id: MeetingSessionId,
 ) -> Result<MeetingFollowUpDraft, MeetingCommandError> {
     manager.follow_up_draft(operation_id, session_id).await
+}
+
+/// D26. Build the `mailto:` URL that opens this meeting's follow-up in Mail.
+///
+/// Takes the draft and the over-bound note because both are words a person
+/// reads, and those come from the i18next catalog rather than from Rust. Returns
+/// the URL for the caller to open: the addressing, the subject, the encoding and
+/// the length bound are this side's, opening a URL is the shell's.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_follow_up_mail(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    request: MeetingFollowUpMailRequest,
+) -> Result<MeetingFollowUpMail, MeetingCommandError> {
+    manager.follow_up_mail(request).await
 }

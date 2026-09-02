@@ -7,8 +7,9 @@ use super::clock::host_monotonic_now_ns;
 use super::detection::machine::CalendarEventSummary;
 use super::export;
 use super::follow_up::{
-    follow_up_prompt, FollowUpEvidence, MeetingFollowUpDraft, MeetingFollowUpSource,
-    FOLLOW_UP_MAX_TOKENS,
+    body_fits, follow_up_prompt, mailto_url, recipient_addresses, FollowUpEvidence,
+    MeetingFollowUpDraft, MeetingFollowUpMail, MeetingFollowUpMailBody,
+    MeetingFollowUpMailRequest, MeetingFollowUpSource, FOLLOW_UP_MAX_TOKENS,
 };
 use super::keep_awake::MeetingKeepAwake;
 use super::ledger;
@@ -196,6 +197,10 @@ pub struct MeetingConsentPanelStartRequest {
     pub operation_id: MeetingOperationId,
     pub consent: MeetingConsentInput,
     pub always_record_series: bool,
+    /// Whether this recording posts one disclosure line into the meeting's own
+    /// chat, and — for a recurring meeting — what its series should remember
+    /// about that from now on.
+    pub announce_in_chat: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -211,6 +216,9 @@ pub struct MeetingDetectionStartContext {
 pub struct MeetingConsentPanelSessionState {
     pub snapshot: MeetingSessionSnapshot,
     pub standing_series_key: Option<String>,
+    /// What this recording's disclosure is doing. The panel supplies the words
+    /// for a `pending` one, because they come from the i18next catalog.
+    pub disclosure: MeetingSessionDisclosure,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
@@ -701,13 +709,23 @@ impl MeetingSessionManager {
         ))
     }
 
+    /// The retention sweep: meetings past their keep-for, then deleted meetings
+    /// past their undo.
+    ///
+    /// Both horizons are swept here because both are "this app forgetting
+    /// something on a clock", and a second timer for the bin would be a second
+    /// place a forgetting can fail to happen.
     pub(crate) async fn sweep_retention_at(
         &self,
         now_utc_ms: i64,
     ) -> Result<RetentionSweepResult, MeetingCommandError> {
-        let due_sessions = self
-            .store()
-            .await?
+        let store = self.store().await?;
+        match store.purge_expired_trash(now_utc_ms) {
+            Ok(0) => {}
+            Ok(purged) => log::info!("Meeting retention sweep purged {purged} deleted meetings"),
+            Err(error) => log::warn!("Meeting trash could not be purged: {error:?}"),
+        }
+        let due_sessions = store
             .due_retention_sessions(now_utc_ms)
             .map_err(map_store_error)?;
         let mut result = RetentionSweepResult {
@@ -736,6 +754,31 @@ impl MeetingSessionManager {
             }
         }
         Ok(result)
+    }
+
+    /// The meetings a person deleted and could still get back.
+    pub async fn trash_list(&self) -> Result<Vec<MeetingTrashEntry>, MeetingCommandError> {
+        self.store()
+            .await?
+            .meeting_trash(utc_now_ms())
+            .map_err(map_store_error)
+    }
+
+    /// Undo one deletion. The meeting comes back where it was, and the windows
+    /// are told about it the same way any other change to a meeting is.
+    pub async fn trash_restore(
+        &self,
+        job_id: MeetingDeletionJobId,
+    ) -> Result<MeetingSessionSnapshot, MeetingCommandError> {
+        let store = self.store().await?;
+        let session_id = store
+            .restore_trashed_meeting(job_id, utc_now_ms())
+            .map_err(map_store_error)?;
+        let snapshot = store
+            .session_snapshot(session_id)
+            .map_err(map_store_error)?;
+        self.emit_session_changed(&snapshot);
+        Ok(snapshot)
     }
 
     pub async fn tray_snapshot(
@@ -984,7 +1027,57 @@ impl MeetingSessionManager {
                 consent: request.consent,
             })
             .await;
-        self.finish_detection_start(&preflight.snapshot, start)
+        let result = self.finish_detection_start(&preflight.snapshot, start)?;
+        if result.snapshot.phase == MeetingPhase::CapturingRecording {
+            self.arm_disclosure(
+                result.snapshot.session_id,
+                &result.snapshot.title,
+                context.calendar_event.as_ref(),
+                request.announce_in_chat,
+                true,
+            )
+            .await;
+        }
+        Ok(result)
+    }
+
+    /// Note that a recording that just started owes the room a disclosure, and
+    /// — from the panel only — remember the decision for the series.
+    ///
+    /// Nothing is posted here. The panel is the surface that owns the words, and
+    /// it asks for the paste as soon as it sees a `pending` disclosure on the
+    /// live meeting.
+    ///
+    /// A failure to remember or to arm is logged and dropped: the recording is
+    /// already running, and a start that failed because a courtesy line could
+    /// not be arranged would be the worst possible trade.
+    async fn arm_disclosure(
+        &self,
+        session_id: MeetingSessionId,
+        title: &str,
+        calendar_event: Option<&CalendarEventSummary>,
+        announce_in_chat: bool,
+        remember_for_series: bool,
+    ) {
+        let Ok(store) = self.store().await else {
+            return;
+        };
+        if remember_for_series {
+            if let Some(event) = calendar_event {
+                if let Err(error) =
+                    store.remember_series_announce(&event.series_key, announce_in_chat, utc_now_ms())
+                {
+                    log::warn!("A series could not remember its announce decision: {error:?}");
+                }
+            }
+        }
+        if !announce_in_chat {
+            return;
+        }
+        if let Err(error) = store.request_session_disclosure(session_id, notetaker(calendar_event, title))
+        {
+            log::warn!("Meeting {session_id:?} could not arm its disclosure: {error:?}");
+        }
     }
 
     pub(crate) async fn live_series_consent(
@@ -1041,7 +1134,7 @@ impl MeetingSessionManager {
             .create_detection_preflight(context, MeetingOperationId::new(), &consent)
             .await?;
         let provenance = MeetingConsentProvenance::StandingSeries {
-            series_key: standing.series_key,
+            series_key: standing.series_key.clone(),
             granted_at_utc_ms: standing.granted_at_utc_ms,
         };
         let start = self
@@ -1055,7 +1148,37 @@ impl MeetingSessionManager {
                 provenance,
             )
             .await;
-        self.finish_detection_start(&preflight.snapshot, start)
+        let result = self.finish_detection_start(&preflight.snapshot, start)?;
+        // An occurrence nobody was asked about still announces itself when its
+        // series decided to. That is the whole point of remembering the decision:
+        // the meeting the operator is not sitting in front of is the one where a
+        // silent recording would be least expected.
+        if result.snapshot.phase == MeetingPhase::CapturingRecording {
+            let announce = self
+                .series_announces_in_chat(&standing.series_key)
+                .await;
+            self.arm_disclosure(
+                result.snapshot.session_id,
+                &result.snapshot.title,
+                context.calendar_event.as_ref(),
+                announce,
+                false,
+            )
+            .await;
+        }
+        Ok(result)
+    }
+
+    /// What one series remembers about announcing itself. False when it cannot
+    /// be read: a recording that failed to learn the decision must not announce.
+    pub async fn series_announces_in_chat(&self, series_key: &str) -> bool {
+        match self.store().await {
+            Ok(store) => store
+                .series_preferences(series_key)
+                .map(|preferences| preferences.announce_in_chat)
+                .unwrap_or(false),
+            Err(_) => false,
+        }
     }
 
     fn finish_detection_start(
@@ -1173,10 +1296,45 @@ impl MeetingSessionManager {
                 MeetingConsentProvenance::StandingSeries { series_key, .. } => Some(series_key),
                 MeetingConsentProvenance::Direct => None,
             });
+        let disclosure = store
+            .session_disclosure(snapshot.session_id)
+            .map_err(map_store_error)?;
         Ok(Some(MeetingConsentPanelSessionState {
             snapshot,
             standing_series_key,
+            disclosure,
         }))
+    }
+
+    /// Post the recording disclosure into whatever the frontmost application has
+    /// focused, once, and write down what happened.
+    ///
+    /// The line is the caller's because it is words a person reads. The refusal
+    /// case is ordinary and expected: a target with no composer focused — a
+    /// document, a browser, Sona's own panel — cannot accept an insertion, and
+    /// the receipt says so rather than the app pressing ⌘V at it and hoping.
+    pub async fn announce_disclosure(
+        &self,
+        session_id: MeetingSessionId,
+        line: String,
+    ) -> Result<MeetingSessionDisclosure, MeetingCommandError> {
+        let store = self.store().await?;
+        let held = store
+            .session_disclosure(session_id)
+            .map_err(map_store_error)?;
+        match held {
+            // Nobody asked for one, so nothing is pasted. Not an error: the
+            // panel re-reads the live meeting on every change, and asking about
+            // a meeting that is not announcing itself is a no-op.
+            MeetingSessionDisclosure::NotAsked => Ok(MeetingSessionDisclosure::NotAsked),
+            MeetingSessionDisclosure::Attempted { .. } => Ok(held),
+            MeetingSessionDisclosure::Pending { .. } => {
+                let receipt = crate::delivery::announce(&line);
+                store
+                    .record_session_disclosure(session_id, &receipt)
+                    .map_err(map_store_error)
+            }
+        }
     }
 
     pub async fn forget_active_series(
@@ -1963,6 +2121,50 @@ impl MeetingSessionManager {
             mine: evidence.mine,
             decisions: evidence.decisions,
             receipt,
+        })
+    }
+
+    /// D26. The same draft, addressed and ready to send.
+    ///
+    /// The recipients are the meeting's calendar match, minus the operator's own
+    /// entry: EventKit names participants and their addresses, the session
+    /// remembered both when it started, and nothing else in this app knows who
+    /// was in the room. The subject is the meeting's current title, which is the
+    /// line every other surface calls this meeting.
+    ///
+    /// Nothing is opened here. The URL goes back to the caller, which opens it
+    /// through the same opener plugin every other link in the app uses and
+    /// writes the clipboard the same way its Copy button does — so this stays a
+    /// pure read of the store, and the one thing it owns is the URL.
+    pub async fn follow_up_mail(
+        &self,
+        request: MeetingFollowUpMailRequest,
+    ) -> Result<MeetingFollowUpMail, MeetingCommandError> {
+        let store = self.store().await?;
+        let snapshot = store
+            .session_snapshot(request.session_id)
+            .map_err(map_store_error)?;
+        let recipients = store
+            .meeting_calendar_facts(request.session_id)
+            .map_err(map_store_error)?
+            .map(|event| recipient_addresses(&event.attendees))
+            .unwrap_or_default();
+        let fits = body_fits(&request.body);
+        Ok(MeetingFollowUpMail {
+            url: mailto_url(
+                &recipients,
+                &snapshot.title,
+                if fits {
+                    &request.body
+                } else {
+                    &request.over_bound_note
+                },
+            ),
+            body: if fits {
+                MeetingFollowUpMailBody::Draft
+            } else {
+                MeetingFollowUpMailBody::Clipboard
+            },
         })
     }
 
@@ -3060,6 +3262,26 @@ fn acknowledged_sources(consent: &MeetingConsentInput) -> Vec<SourceKind> {
     sources
 }
 
+/// Who the room is told the notes are for.
+///
+/// The calendar account's own attendee entry is the only place this app learns
+/// its operator's name: there is no `Person` for the user, and a speaker label
+/// is whatever the diarizer called a voice. A meeting whose calendar names
+/// nobody falls back to the meeting's own title, so the one disclosure sentence
+/// always has something true to interpolate.
+fn notetaker<'a>(calendar_event: Option<&'a CalendarEventSummary>, title: &'a str) -> &'a str {
+    calendar_event
+        .and_then(|event| {
+            event
+                .attendees
+                .iter()
+                .find(|attendee| attendee.is_self)
+                .map(|attendee| attendee.name.trim())
+        })
+        .filter(|name| !name.is_empty())
+        .unwrap_or(title)
+}
+
 #[cfg(all(target_os = "macos", not(test)))]
 fn request_system_audio_permission_once() {
     static REQUESTED: AtomicBool = AtomicBool::new(false);
@@ -3726,6 +3948,7 @@ mod tests {
                     remote_acknowledgement: None,
                 },
                 always_record_series: true,
+                announce_in_chat: false,
             },
         ));
 

@@ -29,6 +29,7 @@ import type {
 import { MEETING_SOURCES } from "./meetingUtils";
 import { MeetingsHistory } from "./home/MeetingsHistory";
 import { MeetingsUpcoming } from "./home/MeetingsUpcoming";
+import { MeetingsTrash } from "./home/MeetingsTrash";
 
 const START_BUTTON_ID = "meeting-start-button";
 const StartRecordingIcon = destinationIcons.overview;
@@ -300,6 +301,8 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
         onReprocessMeeting={onFinalizeRecovery}
         onRetry={onRetry}
       />
+
+      <MeetingsTrash onRestored={onRetry} />
     </SettingsPage>
   );
 };

@@ -111,6 +111,10 @@ pub struct DetectionPromptEvent {
     /// One short explanation rendered only after the panel has acknowledged its
     /// first successful prompt delivery.
     pub show_introduction: bool,
+    /// What this prompt's series remembers about announcing itself, which is the
+    /// state the panel's announce checkbox opens in. False for a meeting with no
+    /// series behind it: there is nothing to remember and nothing remembered.
+    pub announce_in_chat: bool,
 }
 
 /// Registers the payload and its event name with the specta builder. Runtime
@@ -304,6 +308,8 @@ struct PendingPrompt {
     event_end_utc_ms: Option<i64>,
     calendar_event: Option<CalendarEventSummary>,
     show_introduction: bool,
+    /// What this prompt's series already decided about announcing itself.
+    announce_in_chat: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -1261,12 +1267,18 @@ impl DetectionRuntime {
         let prompt_id = Uuid::new_v4().to_string();
         let show_introduction =
             tauri::async_runtime::block_on(self.meetings.consent_panel_introduction_needed());
+        let announce_in_chat = calendar_event.as_ref().is_some_and(|event| {
+            tauri::async_runtime::block_on(
+                self.meetings.series_announces_in_chat(&event.series_key),
+            )
+        });
         let priority = prompt_priority(&prompt);
         let pending = PendingPanel::Prompt(PendingPrompt {
             prompt,
             event_end_utc_ms,
             calendar_event,
             show_introduction,
+            announce_in_chat,
         });
         let mut state = self.lock();
         let panel_available = state.tracked.is_none();
@@ -1364,6 +1376,7 @@ impl DetectionRuntime {
             prompt: pending.prompt.clone(),
             delivery,
             show_introduction: pending.show_introduction,
+            announce_in_chat: pending.announce_in_chat,
         }
         .emit(&self.app);
     }
@@ -2207,6 +2220,7 @@ mod tests {
             event_end_utc_ms: None,
             calendar_event: None,
             show_introduction,
+            announce_in_chat: false,
         }
     }
 

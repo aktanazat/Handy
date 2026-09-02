@@ -6,10 +6,11 @@
 //! calendar event behind it has no series and therefore no preference; that is
 //! the `None` in every shape below, not an error.
 //!
-//! Three decisions live here, and they are read as one record because the
+//! Four decisions live here, and they are read as one record because the
 //! surfaces that show them show them together: D21's notes template, D28's
-//! digest inclusion, and whether the series records itself without asking. The
-//! third is not stored here — it is the live standing-consent grant in
+//! digest inclusion, D14's remote exclusion, and whether the series announces
+//! itself in the meeting's chat when it starts recording. Always-record is not
+//! stored here — it is the live standing-consent grant in
 //! `meeting_series_consents`, joined in on read — because permission to record
 //! is consent, not a preference, and it must stay in the table the consent
 //! receipts revalidate against.
@@ -51,6 +52,13 @@ pub struct MeetingSeriesPreferences {
     /// switch that quietly excluded series would make the global one a lie.
     /// What is stored here is only the departure from that.
     pub remote_intelligence_opt_out: bool,
+    /// True when this series posts one disclosure line into the meeting's own
+    /// chat as it starts recording.
+    ///
+    /// The default is false: a recording announces itself only because somebody
+    /// asked it to, and a line typed into a shared chat by an app nobody invited
+    /// would be exactly the ambient authority this design refuses.
+    pub announce_in_chat: bool,
     pub revision: u64,
 }
 

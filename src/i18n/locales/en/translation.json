@@ -1968,6 +1968,14 @@
       "title": "Unfinished meetings",
       "finalize": "Finish saving"
     },
+    "trash": {
+      "title": "Recently deleted",
+      "expires": "Deleted {{deleted}} · gone in {{count}} days",
+      "expiresToday": "Deleted {{deleted}} · gone today",
+      "restore": "Restore",
+      "restored": "{{title}} is back.",
+      "restoreFailed": "Couldn't restore that meeting."
+    },
     "history": {
       "title": "Meeting history",
       "loading": "Loading meeting history…",
@@ -2460,7 +2468,12 @@
       "copy": "Copy",
       "copied": "Draft copied.",
       "copyFailed": "Couldn't copy the draft.",
-      "failed": "Couldn't draft a follow-up for this meeting."
+      "failed": "Couldn't draft a follow-up for this meeting.",
+      "openInMail": "Open in Mail",
+      "mailOpened": "Mail is open with the draft.",
+      "mailClipboardNote": "The follow-up is on the clipboard. Paste it here.",
+      "mailCopied": "The draft was too long for a mail link, so it is on the clipboard.",
+      "mailFailed": "Couldn't open Mail for this meeting."
     },
     "prep": {
       "label": "Prep",
@@ -2969,6 +2982,9 @@
     "seriesBrief_one": "Meeting {{nth}} with {{person}} · {{count}} open loop",
     "seriesBrief_other": "Meeting {{nth}} with {{person}} · {{count}} open loops",
     "alwaysRecord": "Always record this meeting",
+    "announceInChat": "Announce in chat",
+    "announceLine": "Sona is taking notes for {{name}}. Say so if you'd rather it didn't.",
+    "announceRefused": "The disclosure wasn't posted: this app wouldn't take it.",
     "assurance": "Only start after everyone in the meeting has agreed to be recorded.",
     "record": "Record",
     "ignore": "Ignore",

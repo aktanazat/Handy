@@ -21,6 +21,7 @@
 //! same reason the digest notification — which genuinely cannot reach the
 //! catalog — is the one place English lives in Rust.
 
+use super::detection::machine::CalendarAttendee;
 use super::loop_types::MeetingLoopRow;
 use super::types::{GeneratedMeetingArtifacts, MeetingSessionId, OperationReceipt};
 use serde::{Deserialize, Serialize};
@@ -34,6 +35,129 @@ const MAX_DRAFT_LINES: usize = 12;
 /// How many tokens the message may run to. A follow-up is a few short
 /// paragraphs, and the evidence it is built from is already bounded above.
 pub(crate) const FOLLOW_UP_MAX_TOKENS: i32 = 700;
+
+/// How many bytes of percent-encoded body a `mailto:` URL may carry.
+///
+/// Nothing on the road from here to an open compose window documents a length:
+/// not the URL type, not `NSWorkspace`, not the mail client on the other end.
+/// Two kilobytes of encoded body is what every mail client in wide use accepts,
+/// and a follow-up long enough to exceed it has stopped being a message anyway.
+/// Past the bound the draft goes to the clipboard instead of into the URL,
+/// because a complete follow-up somebody pastes beats a truncated one Mail
+/// opened.
+pub(crate) const MAILTO_BODY_MAX_BYTES: usize = 2_000;
+
+/// Which words the compose window opened with.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingFollowUpMailBody {
+    /// The draft itself, in the URL.
+    Draft,
+    /// The draft was too long for the URL, so it is on the clipboard and the
+    /// compose window opened with the caller's one-line note in its place.
+    Clipboard,
+}
+
+/// Open one meeting's follow-up in the operator's mail client.
+///
+/// Both strings are the caller's, already translated, for the same reason
+/// [`MeetingFollowUpDraft`] carries evidence rather than prose: the words a
+/// person reads come from the i18next catalog, and a Rust string cannot reach
+/// it. What this side owns is the address list, the subject, the encoding and
+/// the bound.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub struct MeetingFollowUpMailRequest {
+    pub session_id: MeetingSessionId,
+    /// The draft, exactly as the sheet shows it.
+    pub body: String,
+    /// One line to open the compose window with when the draft is too long for
+    /// a URL and goes to the clipboard instead.
+    pub over_bound_note: String,
+}
+
+/// The compose window to open, and which words it will carry.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingFollowUpMail {
+    pub url: String,
+    pub body: MeetingFollowUpMailBody,
+}
+
+/// The addresses a follow-up goes to: every participant EventKit named an
+/// address for, in calendar order, without repeats and without the operator's
+/// own entry — sending yourself the follow-up you wrote is noise, and the
+/// operator is the sender.
+///
+/// A meeting with no calendar match has no addresses, which opens a compose
+/// window with an empty To line rather than refusing to open one: the words are
+/// what this action is for, and who they go to is the operator's call.
+pub(crate) fn recipient_addresses(attendees: &[CalendarAttendee]) -> Vec<String> {
+    let mut addresses = Vec::new();
+    for attendee in attendees.iter().filter(|attendee| !attendee.is_self) {
+        let Some(address) = attendee.email.as_deref().map(str::trim) else {
+            continue;
+        };
+        if address.is_empty() || addresses.iter().any(|held| held == address) {
+            continue;
+        }
+        addresses.push(address.to_string());
+    }
+    addresses
+}
+
+/// A `mailto:` URL per RFC 6068: `mailto:` then the recipients, then the
+/// headers this app sets.
+///
+/// Every value is percent-encoded down to RFC 3986's unreserved set — the same
+/// set the two other encoders in this codebase use. Over-encoding is always
+/// valid in a URI and it is the only way a subject with an `&` in it, or a body
+/// with a `#`, cannot turn into a second header.
+pub(crate) fn mailto_url(recipients: &[String], subject: &str, body: &str) -> String {
+    let mut url = String::with_capacity(64 + subject.len() + body.len());
+    url.push_str("mailto:");
+    for (index, recipient) in recipients.iter().enumerate() {
+        if index > 0 {
+            url.push(',');
+        }
+        push_encoded(&mut url, recipient);
+    }
+    url.push_str("?subject=");
+    push_encoded(&mut url, subject);
+    url.push_str("&body=");
+    push_encoded(&mut url, body);
+    url
+}
+
+/// Whether this body fits in a URL, measured after encoding: one multi-byte
+/// character costs nine bytes encoded, so counting the draft's own length would
+/// pass a body three times over the bound.
+pub(crate) fn body_fits(body: &str) -> bool {
+    encoded_len(body) <= MAILTO_BODY_MAX_BYTES
+}
+
+fn encoded_len(value: &str) -> usize {
+    value
+        .bytes()
+        .map(|byte| if unreserved(byte) { 1 } else { 3 })
+        .sum()
+}
+
+fn push_encoded(url: &mut String, value: &str) {
+    const HEX: &[u8; 16] = b"0123456789ABCDEF";
+    for byte in value.bytes() {
+        if unreserved(byte) {
+            url.push(char::from(byte));
+            continue;
+        }
+        url.push('%');
+        url.push(char::from(HEX[usize::from(byte >> 4)]));
+        url.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+}
+
+const fn unreserved(byte: u8) -> bool {
+    matches!(byte, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~')
+}
 
 /// Who wrote the draft.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
@@ -338,5 +462,51 @@ mod tests {
         // An empty list is left out rather than headed and blank, so the model
         // is never asked to fill one in.
         assert!(!input.contains("DECISIONS:"));
+    }
+
+    /// The one thing a hand-written encoder has to get right: no value can end
+    /// the field it sits in. A subject with an `&` and a body with a `#` are
+    /// exactly the characters that would otherwise open a header the operator
+    /// never wrote.
+    #[test]
+    fn every_mailto_value_is_encoded_down_to_the_unreserved_set() {
+        let url = mailto_url(
+            &["dana@acme.com".to_string(), "sam@beta.io".to_string()],
+            "Pricing & tiers",
+            "We landed on #2.\nI owe the comparison.",
+        );
+
+        assert_eq!(
+            url,
+            "mailto:dana%40acme.com,sam%40beta.io\
+             ?subject=Pricing%20%26%20tiers\
+             &body=We%20landed%20on%20%232.%0AI%20owe%20the%20comparison."
+        );
+    }
+
+    #[test]
+    fn a_meeting_with_no_named_addresses_still_opens_a_compose_window() {
+        assert_eq!(
+            mailto_url(&[], "Pricing", "Thanks all."),
+            "mailto:?subject=Pricing&body=Thanks%20all."
+        );
+    }
+
+    /// The bound is on the encoded body, not on the draft's own length: a draft
+    /// of non-ASCII prose encodes to several times its character count, and
+    /// measuring the wrong one is how a body three times over the bound would
+    /// have been called short enough.
+    #[test]
+    fn the_body_bound_is_measured_after_encoding() {
+        assert!(body_fits(&"a".repeat(MAILTO_BODY_MAX_BYTES)));
+        assert!(!body_fits(&"a".repeat(MAILTO_BODY_MAX_BYTES + 1)));
+
+        // A space encodes to three bytes, so a third of the bound is the most
+        // that fits.
+        assert!(body_fits(&" ".repeat(MAILTO_BODY_MAX_BYTES / 3)));
+        assert!(!body_fits(&" ".repeat(MAILTO_BODY_MAX_BYTES / 3 + 1)));
+
+        // And an em dash costs nine.
+        assert!(!body_fits(&"—".repeat(MAILTO_BODY_MAX_BYTES / 9 + 1)));
     }
 }

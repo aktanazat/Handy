@@ -225,6 +225,7 @@ export default function ConsentPanel() {
     null,
   );
   const [alwaysRecord, setAlwaysRecord] = useState(false);
+  const [announceInChat, setAnnounceInChat] = useState(false);
   const [starting, setStarting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -245,6 +246,24 @@ export default function ConsentPanel() {
       setRitual(null);
     }
   }, []);
+
+  /* The disclosure is posted from here because the words come from the i18next
+   * catalog and the backend cannot reach it. The backend decides whether one is
+   * owed and records what the paste did, so this fires once per recording even
+   * though the live state is re-read on every change to the meeting. */
+  useEffect(() => {
+    if (active?.disclosure.kind !== "pending") return;
+    const sessionId = active.snapshot.session_id;
+    const line = t("consentPanel.announceLine", {
+      name: active.disclosure.notetaker,
+    });
+    void commands
+      .meetingAnnounceDisclosure(sessionId, line)
+      .then(() => refreshActive())
+      .catch((error: unknown) => {
+        console.error("Could not announce the recording", error);
+      });
+  }, [active, refreshActive, t]);
 
   useEffect(() => {
     void commands
@@ -267,6 +286,7 @@ export default function ConsentPanel() {
         setRitual(null);
         setPrompt(event.payload);
         setAlwaysRecord(false);
+        setAnnounceInChat(event.payload.announceInChat);
         void commands
           .detectionPromptPanelAck(event.payload.promptId)
           .catch((error) => {
@@ -388,6 +408,7 @@ export default function ConsentPanel() {
         operation_id: crypto.randomUUID(),
         consent: consentFor(options, [], false),
         always_record_series: alwaysRecord,
+        announce_in_chat: announceInChat,
       });
       if (result.status === "error") {
         console.error("Could not start the meeting", result.error);
@@ -457,6 +478,17 @@ export default function ConsentPanel() {
         <p className="truncate text-base font-medium">
           {active.snapshot.title}
         </p>
+        {/* A disclosure the target would not take is worth saying once, quietly:
+          * the recording is running either way, and the room was not told. */}
+        {active.disclosure.kind === "attempted" &&
+        active.disclosure.receipt.outcome === "definitely_not_dispatched" ? (
+          <p
+            className="text-xs leading-4 text-gray-900"
+            data-slot="consent-announce-refused"
+          >
+            {t("consentPanel.announceRefused")}
+          </p>
+        ) : null}
         <div className="flex items-center justify-end gap-2">
           {active.standing_series_key !== null ? (
             <Button
@@ -492,14 +524,30 @@ export default function ConsentPanel() {
           ) : null}
         </div>
         {calendarPrompt ? (
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              className="border-gray-700"
-              checked={alwaysRecord}
-              onCheckedChange={(checked) => setAlwaysRecord(checked === true)}
-            />
-            <span>{t("consentPanel.alwaysRecord")}</span>
-          </label>
+          <>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                className="border-gray-700"
+                checked={alwaysRecord}
+                onCheckedChange={(checked) => setAlwaysRecord(checked === true)}
+              />
+              <span>{t("consentPanel.alwaysRecord")}</span>
+            </label>
+            {/* Remembered per series, like the decision above it. */}
+            <label
+              className="flex items-center gap-2 text-sm"
+              data-slot="consent-announce"
+            >
+              <Checkbox
+                className="border-gray-700"
+                checked={announceInChat}
+                onCheckedChange={(checked) =>
+                  setAnnounceInChat(checked === true)
+                }
+              />
+              <span>{t("consentPanel.announceInChat")}</span>
+            </label>
+          </>
         ) : null}
         <div className="flex items-end justify-between gap-3">
           <p className="max-w-[215px] text-xs leading-4 text-gray-900">

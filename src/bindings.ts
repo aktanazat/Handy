@@ -1623,6 +1623,43 @@ async meetingConsentPanelForgetSeries(sessionId: MeetingSessionId) : Promise<Res
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Post this recording's disclosure line into the meeting's chat.
+ *
+ * The line is the caller's because it comes from the i18next catalog. Answers
+ * with what the disclosure is now, so the live surface can say quietly that the
+ * target would not take it.
+ */
+async meetingAnnounceDisclosure(sessionId: MeetingSessionId, line: string) : Promise<Result<MeetingSessionDisclosure, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_announce_disclosure", { sessionId, line }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The meetings a person deleted and can still get back, newest first.
+ */
+async meetingTrashList() : Promise<Result<MeetingTrashEntry[], MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_trash_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Undo one deletion, by the deletion's own job id.
+ */
+async meetingTrashRestore(jobId: MeetingDeletionJobId) : Promise<Result<MeetingSessionSnapshot, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_trash_restore", { jobId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async meetingPause(request: MeetingMutationRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("meeting_pause", { request }) };
@@ -2168,6 +2205,22 @@ async meetingLoopAssign(request: MeetingLoopAssignRequest) : Promise<Result<Meet
 async meetingFollowUpDraft(operationId: MeetingOperationId, sessionId: MeetingSessionId) : Promise<Result<MeetingFollowUpDraft, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("meeting_follow_up_draft", { operationId, sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * D26. Build the `mailto:` URL that opens this meeting's follow-up in Mail.
+ *
+ * Takes the draft and the over-bound note because both are words a person
+ * reads, and those come from the i18next catalog rather than from Rust. Returns
+ * the URL for the caller to open: the addressing, the subject, the encoding and
+ * the length bound are this side's, opening a URL is the shell's.
+ */
+async meetingFollowUpMail(request: MeetingFollowUpMailRequest) : Promise<Result<MeetingFollowUpMail, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_follow_up_mail", { request }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -3435,7 +3488,13 @@ delivery: DetectionPromptDelivery;
  * One short explanation rendered only after the panel has acknowledged its
  * first successful prompt delivery.
  */
-showIntroduction: boolean }
+showIntroduction: boolean;
+/**
+ * What this prompt's series remembers about announcing itself, which is the
+ * state the panel's announce checkbox opens in. False for a meeting with no
+ * series behind it: there is nothing to remember and nothing remembered.
+ */
+announceInChat: boolean }
 /**
  * Which prompt to raise, carrying the fields the copy pattern interpolates.
  * The frontend localizes from these fields; the native notification uses the
@@ -3992,8 +4051,20 @@ export type MeetingCitation = { kind: CitationKind; session_id: MeetingSessionId
 export type MeetingCommandError = "consent_required" | "consent_stale" | "invalid_transition" | "stale_revision" | "capture_lease_busy" | "no_source_started" | "source_unavailable" | "storage_unavailable" | "recovery_required" | "deletion_in_progress" | "not_found" | "invalid_request" | "export_cancelled" | "export_failed" | "local_model_unavailable" | "remote_unavailable"
 export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel" | "loop_resolve" | "loop_reopen" | "loop_assign" | "loop_carry" | "series_template_set" | "series_digest_set" | "series_always_record_set" | "follow_up_draft" | "series_automation_set" | "series_remote_opt_out_set"
 export type MeetingConsentInput = { policy_version: number; microphone_acknowledged: boolean; system_audio_acknowledged: boolean; known_missing_sources_acknowledged: SourceKind[]; degraded_start_policy: DegradedStartPolicy; destination: ProcessingDestination; remote_acknowledgement: RemoteAcknowledgement | null }
-export type MeetingConsentPanelSessionState = { snapshot: MeetingSessionSnapshot; standing_series_key: string | null }
-export type MeetingConsentPanelStartRequest = { prompt_id: string; operation_id: MeetingOperationId; consent: MeetingConsentInput; always_record_series: boolean }
+export type MeetingConsentPanelSessionState = { snapshot: MeetingSessionSnapshot; standing_series_key: string | null;
+/**
+ * What this recording's disclosure is doing. The panel supplies the words
+ * for a `pending` one, because they come from the i18next catalog.
+ */
+disclosure: MeetingSessionDisclosure }
+export type MeetingConsentPanelStartRequest = { prompt_id: string; operation_id: MeetingOperationId; consent: MeetingConsentInput; always_record_series: boolean;
+/**
+ * Whether this recording posts one disclosure line into the meeting's own
+ * chat, and — for a recurring meeting — what its series should remember
+ * about that from now on.
+ */
+announce_in_chat: boolean }
+export type MeetingDeletionJobId = string
 export type MeetingDiarizationGenerationId = string
 export type MeetingDiarizationSnapshot = { status: DiarizationStatus; model_id: string; model_version: string; generation_id: MeetingDiarizationGenerationId | null; assigned_segment_count: number }
 export type MeetingEventPayload = { event_schema_version: number; session_id: MeetingSessionId | null; revision: number }
@@ -4033,6 +4104,42 @@ decisions: string[];
  * `effect_ids` names the engine that wrote it, or the fallback.
  */
 receipt: OperationReceipt }
+/**
+ * The compose window to open, and which words it will carry.
+ */
+export type MeetingFollowUpMail = { url: string; body: MeetingFollowUpMailBody }
+/**
+ * Which words the compose window opened with.
+ */
+export type MeetingFollowUpMailBody =
+/**
+ * The draft itself, in the URL.
+ */
+"draft" |
+/**
+ * The draft was too long for the URL, so it is on the clipboard and the
+ * compose window opened with the caller's one-line note in its place.
+ */
+"clipboard"
+/**
+ * Open one meeting's follow-up in the operator's mail client.
+ *
+ * Both strings are the caller's, already translated, for the same reason
+ * [`MeetingFollowUpDraft`] carries evidence rather than prose: the words a
+ * person reads come from the i18next catalog, and a Rust string cannot reach
+ * it. What this side owns is the address list, the subject, the encoding and
+ * the bound.
+ */
+export type MeetingFollowUpMailRequest = { session_id: MeetingSessionId;
+/**
+ * The draft, exactly as the sheet shows it.
+ */
+body: string;
+/**
+ * One line to open the compose window with when the draft is too long for
+ * a URL and goes to the clipboard instead.
+ */
+over_bound_note: string }
 /**
  * Who wrote the draft.
  */
@@ -4381,7 +4488,16 @@ always_record: boolean;
  * switch that quietly excluded series would make the global one a lie.
  * What is stored here is only the departure from that.
  */
-remote_intelligence_opt_out: boolean; revision: number }
+remote_intelligence_opt_out: boolean;
+/**
+ * True when this series posts one disclosure line into the meeting's own
+ * chat as it starts recording.
+ *
+ * The default is false: a recording announces itself only because somebody
+ * asked it to, and a line typed into a shared chat by an app nobody invited
+ * would be exactly the ambient authority this design refuses.
+ */
+announce_in_chat: boolean; revision: number }
 /**
  * D14. Keep this series' text on this Mac, or hand it back to the global
  * meeting-intelligence setting.
@@ -4415,6 +4531,31 @@ export type MeetingSeriesRemoteRow = { series_key: string; title: string; last_m
  */
 export type MeetingSeriesTemplateSetRequest = { operation_id: MeetingOperationId; series_key: string; template: MeetingNotesTemplate | null; expected_revision: number }
 export type MeetingSessionChangedEvent = MeetingEventPayload
+/**
+ * What one recording's disclosure — the line the consent panel offers to post
+ * in the meeting's own chat — is doing.
+ */
+export type MeetingSessionDisclosure =
+/**
+ * Nobody asked this meeting to announce itself, which is the default.
+ */
+{ kind: "not_asked" } |
+/**
+ * Asked for and not posted yet. `notetaker` is the name the room is told
+ * the notes are for: the calendar account's own attendee entry, which is
+ * the only place this app learns its operator's name.
+ *
+ * ponytail: falls back to the meeting's title when the calendar names
+ * nobody, so the one sentence always has something to interpolate. The
+ * upgrade path is an account name in settings, not a second phrasing.
+ */
+{ kind: "pending"; notetaker: string } |
+/**
+ * Posted, or refused. Delivery's own receipt says which: a target that
+ * cannot accept an insertion is `definitely_not_dispatched`, and that is
+ * the case the live surface mentions.
+ */
+{ kind: "attempted"; receipt: DeliveryReceipt }
 export type MeetingSessionId = string
 export type MeetingSessionSnapshot = { session_id: MeetingSessionId; phase: MeetingPhase; revision: number; title: string; started_at_utc_ms: number | null; elapsed_offset_ns: number | null; sources: MeetingSourceSnapshot[]; open_capture_window_started_at_ns: number | null; capture_completeness: CaptureCompleteness; storage: StorageAvailability; processing_status: ProcessingStatus;
 /**
@@ -4470,6 +4611,20 @@ export type MeetingTimeWindow = "any" | "today" | "last_7_days" | "last_30_days"
 export type MeetingTitleSetRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; title: string }
 export type MeetingTrackSnapshot = { track_id: SourceTrackId; source_kind: SourceKind; format: AudioFormat | null; first_offset_ns: number | null; last_offset_ns: number | null; durable_record_count: number }
 export type MeetingTranscriptChangedEvent = MeetingEventPayload
+/**
+ * One deleted meeting that can still be brought back.
+ *
+ * Not a stored shape: `expires_at_utc_ms` is derived from the deletion instant
+ * and the app's trash horizon, so the list and the sweep cannot disagree about
+ * when an undo runs out.
+ */
+export type MeetingTrashEntry = {
+/**
+ * The deletion job, which is the handle a restore is asked for by. There is
+ * no session id here on purpose: the session row is gone, and a restore is
+ * an undo of one deletion rather than an operation on a meeting.
+ */
+job_id: MeetingDeletionJobId; title: string; deleted_at_utc_ms: number; expires_at_utc_ms: number }
 /**
  * One local-calendar day in the meeting trend. Every requested date is
  * present, including dates with no retained meeting sessions.

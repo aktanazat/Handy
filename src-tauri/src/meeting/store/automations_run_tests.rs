@@ -29,9 +29,11 @@ use crate::meeting::ledger::{
     LedgerCommitment, LedgerFirmness, LedgerReceipt, LedgerReceiptState, MeetingLedger,
 };
 use crate::meeting::types::{
-    CitedArtifactText, GeneratedMeetingArtifacts, MeetingExportFormat, MeetingOperationId,
-    MeetingSessionId, OperationResult,
+    ArtifactCitation, CitedArtifactText, GeneratedMeetingArtifacts, MeetingActionItem,
+    MeetingExportFormat, MeetingOperationId, MeetingSessionId, OperationResult,
+    TranscriptSegmentId,
 };
+use chrono::NaiveDate;
 use parking_lot::Mutex;
 use rusqlite::params;
 use uuid::Uuid;
@@ -105,6 +107,17 @@ fn series_event(at_utc_ms: i64) -> CalendarEventSummary {
         notes: None,
         calendar_name: None,
         url: None,
+    }
+}
+
+/// One citation of a transcript segment. The offsets are the same for every
+/// citation here: nothing in this file reads them, and the segment is what joins
+/// a ledger row to the notes pass's reading of the same moment.
+fn citation(segment_id: TranscriptSegmentId) -> ArtifactCitation {
+    ArtifactCitation {
+        segment_id,
+        start_offset_ns: 0,
+        end_offset_ns: 1_000,
     }
 }
 
@@ -503,6 +516,90 @@ fn reminders_carry_only_what_the_operator_owes_and_link_back() {
         items[0].notes.contains("sona://loop/"),
         "a reminder has to lead back to the sentence that made it"
     );
+}
+
+/// A ledger commitment carries no due text of its own, so a reminder's day comes
+/// from the notes pass's action item read out of the same transcript segment.
+/// The date here is written as an ISO day on purpose: a day word resolves
+/// against the operator's local calendar day, and this assertion must not depend
+/// on which timezone the test runs in.
+#[test]
+fn a_commitment_the_notes_dated_reaches_reminders_with_that_day() {
+    let (_directory, store) = store();
+    let session_id = reviewable_meeting(&store, "Pricing review");
+    store
+        .remember_calendar_facts(session_id, &series_event(NOW))
+        .unwrap();
+    let segment = TranscriptSegmentId::new();
+    let mut ledger = ledger();
+    ledger.commitments[0].receipt.citations = vec![citation(segment)];
+    let mut content = artifact_content(Some(ledger));
+    content.action_items = vec![
+        MeetingActionItem {
+            text: CitedArtifactText {
+                text: "Send the tier comparison".to_string(),
+                citations: vec![citation(segment)],
+            },
+            owner_text: Some("Aktan".to_string()),
+            due_text: Some("by 2026-04-01".to_string()),
+        },
+        // Another moment in the same meeting, with a day on it. It must not
+        // reach a commitment it shares no segment with.
+        MeetingActionItem {
+            text: CitedArtifactText {
+                text: "Book the room".to_string(),
+                citations: vec![citation(TranscriptSegmentId::new())],
+            },
+            owner_text: None,
+            due_text: Some("2026-04-09".to_string()),
+        },
+    ];
+    store_current_artifact(&store, session_id, &content);
+    enable(&store, MeetingAutomationKind::Reminders, None);
+    let effects = RecordingEffects::accepting();
+
+    run_for_meeting(&store, session_id, &effects, NOW);
+
+    let asked = effects.asked();
+    let items = &asked.reminders[0];
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0].title, "Send the tier comparison");
+    assert_eq!(
+        items[0].due_on,
+        NaiveDate::from_ymd_opt(2026, 4, 1),
+        "the day belongs to the action item read from the same segment"
+    );
+}
+
+/// The same meeting with nothing dated: the reminder is written undated rather
+/// than given a day nobody said.
+#[test]
+fn a_commitment_the_notes_left_undated_becomes_a_reminder_with_no_day() {
+    let (_directory, store) = store();
+    let session_id = reviewable_meeting(&store, "Pricing review");
+    store
+        .remember_calendar_facts(session_id, &series_event(NOW))
+        .unwrap();
+    let segment = TranscriptSegmentId::new();
+    let mut ledger = ledger();
+    ledger.commitments[0].receipt.citations = vec![citation(segment)];
+    let mut content = artifact_content(Some(ledger));
+    content.action_items = vec![MeetingActionItem {
+        text: CitedArtifactText {
+            text: "Send the tier comparison".to_string(),
+            citations: vec![citation(segment)],
+        },
+        owner_text: None,
+        due_text: None,
+    }];
+    store_current_artifact(&store, session_id, &content);
+    enable(&store, MeetingAutomationKind::Reminders, None);
+    let effects = RecordingEffects::accepting();
+
+    run_for_meeting(&store, session_id, &effects, NOW);
+
+    let asked = effects.asked();
+    assert_eq!(asked.reminders[0][0].due_on, None);
 }
 
 #[test]

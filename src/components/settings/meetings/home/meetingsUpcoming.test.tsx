@@ -365,6 +365,7 @@ describe("Upcoming series controls", () => {
           digest_included: true,
           always_record: true,
           remote_intelligence_opt_out: false,
+          announce_in_chat: false,
           revision: 5,
         }),
       };

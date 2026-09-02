@@ -233,6 +233,7 @@ mod tests {
                 digest_included,
                 always_record,
                 remote_intelligence_opt_out: false,
+                announce_in_chat: false,
                 revision: 7,
             },
         )

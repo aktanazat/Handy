@@ -272,6 +272,46 @@ pub enum DeletionCause {
     Recovery,
 }
 
+/// One deleted meeting that can still be brought back.
+///
+/// Not a stored shape: `expires_at_utc_ms` is derived from the deletion instant
+/// and the app's trash horizon, so the list and the sweep cannot disagree about
+/// when an undo runs out.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub struct MeetingTrashEntry {
+    /// The deletion job, which is the handle a restore is asked for by. There is
+    /// no session id here on purpose: the session row is gone, and a restore is
+    /// an undo of one deletion rather than an operation on a meeting.
+    pub job_id: MeetingDeletionJobId,
+    pub title: String,
+    pub deleted_at_utc_ms: i64,
+    pub expires_at_utc_ms: i64,
+}
+
+/// What one recording's disclosure — the line the consent panel offers to post
+/// in the meeting's own chat — is doing.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum MeetingSessionDisclosure {
+    /// Nobody asked this meeting to announce itself, which is the default.
+    NotAsked,
+    /// Asked for and not posted yet. `notetaker` is the name the room is told
+    /// the notes are for: the calendar account's own attendee entry, which is
+    /// the only place this app learns its operator's name.
+    ///
+    /// ponytail: falls back to the meeting's title when the calendar names
+    /// nobody, so the one sentence always has something to interpolate. The
+    /// upgrade path is an account name in settings, not a second phrasing.
+    Pending { notetaker: String },
+    /// Posted, or refused. Delivery's own receipt says which: a target that
+    /// cannot accept an insertion is `definitely_not_dispatched`, and that is
+    /// the case the live surface mentions.
+    Attempted {
+        receipt: crate::delivery::DeliveryReceipt,
+    },
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum MeetingOrigin {

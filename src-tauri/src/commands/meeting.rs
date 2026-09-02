@@ -129,6 +129,40 @@ pub async fn meeting_consent_panel_forget_series(
     manager.forget_active_series(session_id).await
 }
 
+/// Post this recording's disclosure line into the meeting's chat.
+///
+/// The line is the caller's because it comes from the i18next catalog. Answers
+/// with what the disclosure is now, so the live surface can say quietly that the
+/// target would not take it.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_announce_disclosure(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    session_id: MeetingSessionId,
+    line: String,
+) -> Result<MeetingSessionDisclosure, MeetingCommandError> {
+    manager.announce_disclosure(session_id, line).await
+}
+
+/// The meetings a person deleted and can still get back, newest first.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_trash_list(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+) -> Result<Vec<MeetingTrashEntry>, MeetingCommandError> {
+    manager.trash_list().await
+}
+
+/// Undo one deletion, by the deletion's own job id.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_trash_restore(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    job_id: MeetingDeletionJobId,
+) -> Result<MeetingSessionSnapshot, MeetingCommandError> {
+    manager.trash_restore(job_id).await
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn meeting_pause(
