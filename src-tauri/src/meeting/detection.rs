@@ -516,6 +516,18 @@ impl RuntimeState {
         })
     }
 
+    /// Starts tracking a capture, and remembers it for the cross-link window.
+    ///
+    /// A sleep boundary is per capture, not per process: `slept` is set by
+    /// any loop iteration that crosses one, so without this reset a Mac that
+    /// slept while nothing was tracked would stop the next capture on its
+    /// first tick with `SleepBoundary`.
+    fn begin_tracked(&mut self, tracked: TrackedCapture, recent: RecentCapture) {
+        self.tracked = Some(tracked);
+        self.recent = Some(recent);
+        self.slept = false;
+    }
+
     /// Stops tracking `session_id` and hands back what was tracked, or `None`
     /// when that was not the tracked capture. A stop for some other session is
     /// how a stale receipt arrives, and it must change nothing.
@@ -1937,16 +1949,18 @@ impl DetectionRuntime {
     ) {
         let trigger_bundle_id = context.trigger_bundle_id.clone();
         let mut state = self.lock();
-        state.tracked = Some(TrackedCapture::new(
-            snapshot.session_id,
-            trigger_bundle_id.clone(),
-            context.event_end_utc_ms,
-        ));
-        state.recent = Some(RecentCapture {
-            session_id: snapshot.session_id.uuid().to_string(),
-            trigger_bundle_id,
-            started_utc_ms: utc_now_ms(),
-        });
+        state.begin_tracked(
+            TrackedCapture::new(
+                snapshot.session_id,
+                trigger_bundle_id.clone(),
+                context.event_end_utc_ms,
+            ),
+            RecentCapture {
+                session_id: snapshot.session_id.uuid().to_string(),
+                trigger_bundle_id,
+                started_utc_ms: utc_now_ms(),
+            },
+        );
         // A capture that ended by a route `track_ended` never heard about is
         // still tracked here, and its recording card is still in the slot.
         // `begin_capture` discards every ritual, that card included, and the
@@ -2068,19 +2082,18 @@ impl DetectionRuntime {
                 log::warn!("Meeting calendar facts could not be saved: {error:?}");
             }
         }
-        {
-            let mut state = self.lock();
-            state.tracked = Some(TrackedCapture::new(
+        self.lock().begin_tracked(
+            TrackedCapture::new(
                 snapshot.session_id,
                 trigger_bundle_id.clone(),
                 event_end_utc_ms,
-            ));
-            state.recent = Some(RecentCapture {
+            ),
+            RecentCapture {
                 session_id: snapshot.session_id.uuid().to_string(),
                 trigger_bundle_id,
                 started_utc_ms: now_utc_ms,
-            });
-        }
+            },
+        );
         crate::tray::set_meeting_tray_snapshot(&self.app, Some(&snapshot));
         crate::show_meeting_destination(
             &self.app,
@@ -2881,6 +2894,49 @@ mod tests {
             .observe_call_output(session_id, OutputSignal::Idle, 1_000)
             .expect("a call capture watches its output");
         assert!(watch.hung_up(1_000 + machine::CALL_HANGUP_GRACE_MS));
+    }
+
+    /* FS1 in the detection map: `slept` was set by any loop iteration and
+     * reset only when the tracked capture ended, so a Mac that slept while
+     * nothing was tracked stopped the next capture on its first tick. Sleep,
+     * then start, then tick: no `SleepBoundary`. */
+    #[test]
+    fn a_sleep_before_the_capture_is_not_a_sleep_during_it() {
+        let session_id = MeetingSessionId::new();
+        let mut state = RuntimeState::default();
+        state.slept = true;
+
+        state.begin_tracked(
+            tracked_call(session_id),
+            RecentCapture {
+                session_id: session_id.uuid().to_string(),
+                trigger_bundle_id: Some("com.apple.facetime".to_string()),
+                started_utc_ms: 1_700_000_000_000,
+            },
+        );
+
+        assert!(!state.slept);
+        assert_eq!(
+            evaluate_stop(
+                &StopInputs {
+                    now_utc_ms: 1_700_000_000_000,
+                    linked_event_end_utc_ms: None,
+                    last_voiced_utc_ms: None,
+                    self_holds_input_device: false,
+                    device_running_somewhere: true,
+                    call_output: None,
+                    trigger_app_running: true,
+                    slept_since_start: state.slept,
+                },
+                &StopPolicy::default()
+            ),
+            None
+        );
+
+        // A boundary crossed during the capture still ends it.
+        state.slept = true;
+        assert!(state.end_tracked(session_id).is_some());
+        assert!(!state.slept, "ending the capture clears its boundary");
     }
 
     fn recording_card(session_id: MeetingSessionId) -> MeetingRecordingCard {
