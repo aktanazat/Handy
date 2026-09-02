@@ -17,11 +17,69 @@
 //! back to the Calendar store: Sona records meetings, it does not answer
 //! invitations.
 
-use super::machine::{CalendarAttendee, CalendarEventSummary, CalendarSignal, ParticipationStatus};
+use super::machine::{
+    CalendarAttendee, CalendarEventSummary, CalendarSignal, ParticipationStatus, ATTENDEE_FLOOR,
+    CALENDAR_LEAD_SECONDS,
+};
 
 /// How far ahead to look for the next event. Wide enough that a tick can never
 /// step over an event's start, narrow enough that the query stays trivial.
 const LOOKAHEAD_MS: i64 = 2 * 60 * 60 * 1000;
+
+/// One event in the lookahead window, as the selection sees it: the summary
+/// the decision table reads, plus the one fact the summary does not carry and
+/// only the calendar can answer — how the operator answered the invitation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EventCandidate {
+    pub summary: CalendarEventSummary,
+    /// `Unknown` when the operator is not on the attendee list at all, which
+    /// is every event they own with no invitees.
+    pub self_status: ParticipationStatus,
+}
+
+/// Picks the one event the decision table hears about, by index into
+/// `candidates`.
+///
+/// Events that have ended are out, and so are events the operator declined:
+/// their own answer is the best evidence there is that they are not in that
+/// meeting, and a live microphone beside a declined event is a voice memo, not
+/// the meeting. Among the rest, three tiers, nearest start within each:
+///
+/// 1. A meeting about to start, inside the countdown lead. The countdown is
+///    the calendar path's one visible promise, and a meeting running over
+///    must not hide it.
+/// 2. A meeting under way. It outranks anything merely scheduled, so a solo
+///    block starting in five minutes cannot hide the meeting the operator is
+///    already in.
+/// 3. Everything else, nearest start first, which is how a solo block still
+///    reaches the table to be declined there for its own reason.
+///
+/// "Meeting" here means the attendee floor is met; the table applies the
+/// floor again on whatever wins, so a tier is a preference, never a decision.
+pub fn select_event<'a>(
+    candidates: impl IntoIterator<Item = &'a EventCandidate>,
+    now_utc_ms: i64,
+) -> Option<usize> {
+    candidates
+        .into_iter()
+        .enumerate()
+        .filter(|(_, candidate)| {
+            candidate.summary.end_utc_ms > now_utc_ms
+                && candidate.self_status != ParticipationStatus::Declined
+        })
+        .min_by_key(|(_, candidate)| {
+            let summary = &candidate.summary;
+            let meeting = summary.attendee_count >= ATTENDEE_FLOOR;
+            let to_start = summary.start_utc_ms - now_utc_ms;
+            let tier = match (meeting, to_start <= 0) {
+                (true, false) if to_start <= CALENDAR_LEAD_SECONDS * 1_000 => 0,
+                (true, true) => 1,
+                _ => 2,
+            };
+            (tier, to_start.abs())
+        })
+        .map(|(index, _)| index)
+}
 
 /// Authorization for reading events, as the operator would recognize it.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize, specta::Type)]
@@ -63,10 +121,10 @@ pub trait CalendarSource: Send + Sync {
     /// on, never from the detection tick.
     fn request_access(&self) -> CalendarAccess;
 
-    /// The single event whose window is nearest `now`, or `None`. Returning one
-    /// event rather than a list is deliberate: the decision table only ever asks
-    /// about the current moment, and a list would invite callers to invent
-    /// their own precedence.
+    /// The single event the decision table should hear about now, chosen by
+    /// `select_event`, or `None`. Returning one event rather than a list is
+    /// deliberate: the decision table only ever asks about the current moment,
+    /// and a list would invite callers to invent their own precedence.
     fn next_event(&self, now_utc_ms: i64, lookahead_ms: i64) -> Option<CalendarEventSummary>;
 
     /// Every event that overlaps `[start_utc_ms, end_utc_ms)`, oldest first.
@@ -231,8 +289,9 @@ pub use macos::EventKitCalendar;
 #[cfg(target_os = "macos")]
 mod macos {
     use super::{
-        event_text, named_attendee_with_email, occurrence_key, CalendarAccess,
-        CalendarEventSummary, CalendarOccurrence, CalendarSource,
+        event_text, named_attendee_with_email, occurrence_key, participation_status, select_event,
+        CalendarAccess, CalendarEventSummary, CalendarOccurrence, CalendarSource, EventCandidate,
+        ParticipationStatus,
     };
     use block2::RcBlock;
     use objc2::rc::Retained;
@@ -366,16 +425,31 @@ mod macos {
                     // kilobytes of string, and reading it for a dozen events
                     // every fifteen seconds to throw eleven away is the kind of
                     // waste that never shows up in a profile and never stops
-                    // costing.
-                    events
+                    // costing. The operator's own answer is read in the first
+                    // pass because the selection needs it: it is one status
+                    // per event, not the attendee list.
+                    let mut candidates = events
                         .iter()
-                        .filter_map(|event| summarize(&event).map(|summary| (event, summary)))
-                        .filter(|(_, summary)| summary.end_utc_ms > now_utc_ms)
-                        .min_by_key(|(_, summary)| (summary.start_utc_ms - now_utc_ms).abs())
-                        .map(|(event, mut summary)| {
-                            enrich(&event, &mut summary);
-                            summary
+                        .filter_map(|event| {
+                            let summary = summarize(&event)?;
+                            let self_status = self_participation(&event);
+                            Some((
+                                event,
+                                EventCandidate {
+                                    summary,
+                                    self_status,
+                                },
+                            ))
                         })
+                        .collect::<Vec<_>>();
+                    let index = select_event(
+                        candidates.iter().map(|(_, candidate)| candidate),
+                        now_utc_ms,
+                    )?;
+                    let (event, candidate) = candidates.swap_remove(index);
+                    let mut summary = candidate.summary;
+                    enrich(&event, &mut summary);
+                    Some(summary)
                 })
             })
         }
@@ -480,6 +554,22 @@ mod macos {
         })
     }
 
+    /// How the operator answered this event's invitation. `Unknown` when they
+    /// are not on its attendee list, which is every event they own with no
+    /// invitees: there was no invitation to answer.
+    fn self_participation(event: &EKEvent) -> ParticipationStatus {
+        // SAFETY: a plain property read on a live event.
+        let Some(attendees) = (unsafe { event.attendees() }) else {
+            return ParticipationStatus::Unknown;
+        };
+        attendees
+            .iter()
+            // SAFETY: plain property reads on a live participant.
+            .find(|participant| unsafe { participant.isCurrentUser() })
+            .map(|participant| participation_status(unsafe { participant.participantStatus() }.0))
+            .unwrap_or_default()
+    }
+
     /// Adds the facts the pre-meeting card renders to an already-selected
     /// event. Every one of them stays absent when EventKit reports nothing, so
     /// a card omits the row rather than showing an empty one.
@@ -561,6 +651,81 @@ mod tests {
             calendar_name: None,
             url: None,
         }
+    }
+
+    const MINUTE_MS: i64 = 60_000;
+
+    fn candidate(
+        start_offset_ms: i64,
+        attendee_count: usize,
+        self_status: ParticipationStatus,
+    ) -> EventCandidate {
+        EventCandidate {
+            summary: CalendarEventSummary {
+                attendee_count,
+                ..event(start_offset_ms, 60 * MINUTE_MS)
+            },
+            self_status,
+        }
+    }
+
+    /* FP5 in the detection map: a started event with enough attendees used to
+     * prompt over the operator's own "no". Their answer is the best evidence
+     * there is that a live microphone beside it is not that meeting. */
+    #[test]
+    fn an_event_the_operator_declined_is_never_selected() {
+        let declined_now = candidate(-10 * MINUTE_MS, 3, ParticipationStatus::Declined);
+        let accepted_later = candidate(30 * MINUTE_MS, 3, ParticipationStatus::Accepted);
+
+        assert_eq!(
+            select_event([&declined_now, &accepted_later], NOW),
+            Some(1),
+            "the declined meeting under way must not hide the accepted one"
+        );
+        assert_eq!(select_event([&declined_now], NOW), None);
+    }
+
+    /* FN10 in the detection map: nearest-by-start picked the solo block five
+     * minutes out over the meeting the operator had been in for ten. */
+    #[test]
+    fn a_meeting_under_way_beats_a_nearer_solo_block() {
+        let meeting_under_way = candidate(-10 * MINUTE_MS, 3, ParticipationStatus::Accepted);
+        let solo_block_soon = candidate(5 * MINUTE_MS, 1, ParticipationStatus::Unknown);
+
+        assert_eq!(
+            select_event([&solo_block_soon, &meeting_under_way], NOW),
+            Some(1)
+        );
+    }
+
+    /* Back-to-back meetings, the first running over. The countdown for the
+     * second is the calendar path's one visible promise and must show. */
+    #[test]
+    fn a_countdown_about_to_show_beats_a_meeting_running_over() {
+        let running_over = candidate(-50 * MINUTE_MS, 3, ParticipationStatus::Accepted);
+        let next_in_45s = candidate(45_000, 3, ParticipationStatus::Accepted);
+        let next_in_5m = candidate(5 * MINUTE_MS, 3, ParticipationStatus::Accepted);
+
+        assert_eq!(select_event([&running_over, &next_in_45s], NOW), Some(1));
+        assert_eq!(
+            select_event([&running_over, &next_in_5m], NOW),
+            Some(0),
+            "outside the lead window the meeting under way still wins"
+        );
+    }
+
+    #[test]
+    fn among_scheduled_events_the_nearest_start_still_wins() {
+        let ended = candidate(-90 * MINUTE_MS, 3, ParticipationStatus::Accepted);
+        let solo_soon = candidate(5 * MINUTE_MS, 1, ParticipationStatus::Unknown);
+        let meeting_later = candidate(40 * MINUTE_MS, 4, ParticipationStatus::Accepted);
+
+        assert_eq!(
+            select_event([&ended, &meeting_later, &solo_soon], NOW),
+            Some(2),
+            "a solo block reaches the table so it can be declined there for its own reason"
+        );
+        assert_eq!(select_event([&ended], NOW), None);
     }
 
     #[test]
