@@ -4096,8 +4096,18 @@ impl MeetingStore {
         &self,
         request: DashboardTrendRequest,
     ) -> Result<MeetingTrendProjection, StoreError> {
+        self.trend_projection_at(request, Local::now())
+    }
+
+    /// The same projection against a caller's clock, so a surface that prints
+    /// the moment it read the corpus at reads it at that moment.
+    pub(crate) fn trend_projection_at(
+        &self,
+        request: DashboardTrendRequest,
+        now: DateTime<Local>,
+    ) -> Result<MeetingTrendProjection, StoreError> {
         let mut connection = self.connection()?;
-        Self::trend_projection_with_connection_at(&mut connection, request, Local::now())
+        Self::trend_projection_with_connection_at(&mut connection, request, now)
     }
 
     fn trend_projection_with_connection_at(

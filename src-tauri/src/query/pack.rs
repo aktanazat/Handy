@@ -318,7 +318,7 @@ fn when(when_utc_ms: i64) -> String {
 /// (`protocol.rs::is_message_text`), and a newline inside a quote would
 /// otherwise be indistinguishable from the newline that ends it — which is how
 /// a transcript could write its own `link:` line.
-fn one_line(text: &str) -> String {
+pub(super) fn one_line(text: &str) -> String {
     let mut line = String::with_capacity(text.len());
     let mut pending_space = false;
     for character in text.chars() {

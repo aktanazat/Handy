@@ -32,11 +32,13 @@
 //! find the same meeting, the row is reported once, with the words that
 //! literally matched as its snippet.
 
+pub mod card;
 pub mod external;
 pub mod pack;
 pub mod semantic;
 #[cfg(test)]
 mod tests;
+pub mod tools;
 
 use crate::managers::history::semantic::SemanticModel;
 use crate::managers::history::{HistoryEntry, HistoryManager};
@@ -444,25 +446,7 @@ pub(crate) fn assemble(
     }
 
     for entry in dictations {
-        let text = entry
-            .post_processed_text
-            .as_deref()
-            .map(str::trim)
-            .filter(|text| !text.is_empty())
-            .unwrap_or(entry.transcription_text.as_str());
-        let title = match entry.title.trim() {
-            "" => text,
-            title => title,
-        };
-        candidates.push(QueryRow {
-            kind: QueryRowKind::Dictation,
-            id: entry.id.to_string(),
-            title: bounded(title, MAX_TITLE_CHARS),
-            snippet: bounded(text, MAX_SNIPPET_CHARS),
-            // History keeps UNIX seconds; the plane's order is milliseconds.
-            when_utc_ms: entry.timestamp * 1000,
-            link: dictation_link(entry.id),
-        });
+        candidates.push(dictation_row(&entry));
     }
 
     if scope.includes(QueryRowKind::Person) {
@@ -532,6 +516,31 @@ fn meeting_row(candidate: MeetingQueryCandidate) -> QueryRow {
         snippet: bounded(&candidate.snippet, MAX_SNIPPET_CHARS),
         when_utc_ms: candidate.when_utc_ms,
         link: meeting_link(candidate.session_id),
+    }
+}
+
+/// One dictation as the plane reports it: the delivered text is the snippet,
+/// and an untitled row is titled by it. Shared with the chat tools, which list
+/// dictations by recency rather than by match and must render the same row.
+pub(super) fn dictation_row(entry: &HistoryEntry) -> QueryRow {
+    let text = entry
+        .post_processed_text
+        .as_deref()
+        .map(str::trim)
+        .filter(|text| !text.is_empty())
+        .unwrap_or(entry.transcription_text.as_str());
+    let title = match entry.title.trim() {
+        "" => text,
+        title => title,
+    };
+    QueryRow {
+        kind: QueryRowKind::Dictation,
+        id: entry.id.to_string(),
+        title: bounded(title, MAX_TITLE_CHARS),
+        snippet: bounded(text, MAX_SNIPPET_CHARS),
+        // History keeps UNIX seconds; the plane's order is milliseconds.
+        when_utc_ms: entry.timestamp * 1000,
+        link: dictation_link(entry.id),
     }
 }
 

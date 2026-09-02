@@ -209,6 +209,53 @@ impl MeetingStore {
         rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
     }
 
+    /// The ledger headline of each listed meeting that has one, from its
+    /// current artifact. One read for a page of rows: the chat tools attach
+    /// it to the meeting rows a search or a listing returns, so the model can
+    /// tell where a meeting landed without opening it.
+    pub(crate) fn query_ledger_headlines(
+        &self,
+        session_ids: &[MeetingSessionId],
+    ) -> Result<Vec<(MeetingSessionId, String)>, StoreError> {
+        if session_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let placeholders = (1..=session_ids.len())
+            .map(|index| format!("?{index}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(&format!(
+            "SELECT m.id, json_extract(({content}), '$.ledger.headline')
+               FROM meeting_sessions m
+              WHERE m.id IN ({placeholders})
+                AND m.phase != 'deleting'",
+            content = super::CURRENT_ARTIFACT_CONTENT,
+        ))?;
+        let rows = statement.query_map(
+            params_from_iter(session_ids.iter().map(|session_id| super::id(*session_id))),
+            |row| {
+                Ok((
+                    MeetingSessionId::from_uuid(
+                        super::parse_uuid(&row.get::<_, String>(0)?)
+                            .map_err(super::to_sql_error)?,
+                    ),
+                    row.get::<_, Option<String>>(1)?,
+                ))
+            },
+        )?;
+        let mut headlines = Vec::new();
+        for row in rows {
+            let (session_id, headline) = row?;
+            if let Some(headline) = headline.map(|text| text.trim().to_string()) {
+                if !headline.is_empty() {
+                    headlines.push((session_id, headline));
+                }
+            }
+        }
+        Ok(headlines)
+    }
+
     /// Retained meetings whose semantic chunks are missing, built from older
     /// words, or written by a different model — newest first, because the
     /// meeting a reader is most likely to ask about is the one that just ended.

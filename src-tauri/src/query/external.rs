@@ -970,7 +970,7 @@ pub(crate) fn transcript(
 /// A segment whose effective text is empty is not a line: the review screen
 /// renders nothing for it either, and a reader parsing this stream would count
 /// it as a turn that never happened.
-fn transcript_line(
+pub(super) fn transcript_line(
     segment: &EffectiveTranscriptSegment,
     snapshot: &MeetingReviewSnapshot,
 ) -> Option<ExternalTranscriptLine> {
@@ -1130,7 +1130,7 @@ fn review(
 
 /// The generated artifacts a reader is looking at: the current revision's, or
 /// none while processing has not produced one.
-fn current_artifacts(
+pub(super) fn current_artifacts(
     snapshot: &MeetingReviewSnapshot,
 ) -> Option<&crate::meeting::types::GeneratedMeetingArtifacts> {
     snapshot
@@ -1142,7 +1142,7 @@ fn current_artifacts(
 
 /// The diarized speaker labels of a meeting, in the order the store assigned
 /// them. Empty before diarization has named anybody.
-fn speaker_names(snapshot: &MeetingReviewSnapshot) -> Vec<String> {
+pub(super) fn speaker_names(snapshot: &MeetingReviewSnapshot) -> Vec<String> {
     snapshot
         .speakers
         .iter()

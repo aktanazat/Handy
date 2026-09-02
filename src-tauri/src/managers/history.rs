@@ -2087,6 +2087,60 @@ impl HistoryManager {
         Ok(entry)
     }
 
+    /// The newest `limit` entries recorded at or after `since`, a UNIX-seconds
+    /// timestamp, newest first.
+    ///
+    /// The read behind the chat brain's word counts and its corpus card, which
+    /// need the text of a period rather than a page of it. One bounded `WHERE`
+    /// here instead of paging the whole table by id: ids follow insertion, not
+    /// time, so an imported archive would sit above newer captures and a walk
+    /// that stopped at the first old row would stop too early.
+    pub async fn get_history_entries_since(
+        &self,
+        since: i64,
+        limit: usize,
+    ) -> Result<Vec<HistoryEntry>> {
+        let limit = i64::try_from(limit)?;
+        self.storage.with_connection(|conn| {
+            let mut stmt = conn.prepare(
+                "SELECT
+                    id,
+                    file_name,
+                    timestamp,
+                    saved,
+                    title,
+                    transcription_text,
+                    post_processed_text,
+                    post_process_requested,
+                    parent_id
+                 FROM transcription_history
+                 WHERE timestamp >= ?1
+                 ORDER BY timestamp DESC
+                 LIMIT ?2",
+            )?;
+            let entries = stmt
+                .query_map(params![since, limit], Self::map_history_entry)?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            Ok(entries)
+        })
+    }
+
+    /// The oldest and newest entry timestamps, UNIX seconds, or `None` while
+    /// the history is empty.
+    pub async fn get_history_span(&self) -> Result<Option<(i64, i64)>> {
+        self.storage.with_connection(|conn| {
+            let span = conn.query_row(
+                "SELECT MIN(timestamp), MAX(timestamp) FROM transcription_history",
+                [],
+                |row| Ok((row.get::<_, Option<i64>>(0)?, row.get::<_, Option<i64>>(1)?)),
+            )?;
+            Ok(match span {
+                (Some(first), Some(last)) => Some((first, last)),
+                _ => None,
+            })
+        })
+    }
+
     pub async fn toggle_saved_status(&self, id: i64) -> Result<()> {
         // The event is emitted after the connection is released; nothing in the
         // emit path reads the database.

@@ -393,6 +393,12 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
         app_handle.clone(),
     )));
 
+    // The chat brain's tools and corpus card read the calendar ahead through
+    // `query::tools` and `query::card`, which take the source as a handle.
+    // Managed here, beside the runtime that also holds it, so the panel loop
+    // reaches the same calendar detection reads rather than a second one.
+    app_handle.manage(Arc::clone(&calendar_source));
+
     let runtime = Arc::new(DetectionRuntime::with_parts(
         app_handle.clone(),
         meetings,

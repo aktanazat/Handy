@@ -90,6 +90,10 @@ csv = "1"
 whatlang = "0.16"
 isolang = "2"
 chrono = "0.4"
+# The IANA name of the host zone, for the corpus card's `now:` line. Already
+# in the build as chrono's own way of reading `Local`; named here so the card
+# can print the zone rather than only its offset.
+iana-time-zone = "0.1"
 rusqlite = { version = "0.37", features = ["bundled-sqlcipher"] }
 tar = "0.4.44"
 flate2 = "1.0"

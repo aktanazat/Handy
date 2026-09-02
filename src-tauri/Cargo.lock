@@ -6022,6 +6022,7 @@ dependencies = [
  "hf-hub",
  "hkdf",
  "hound",
+ "iana-time-zone",
  "isolang",
  "keyring",
  "libc",

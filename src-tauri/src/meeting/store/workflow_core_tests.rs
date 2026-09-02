@@ -19,7 +19,7 @@ use uuid::Uuid;
 
 /// The learning-inputs boundary for tests that are not about the loops: an empty
 /// corpus and settings that claim nothing, so a mining pass is a no-op.
-pub(super) fn inputs() -> impl crate::meeting::store::learning::LearningInputs {
+pub(crate) fn inputs() -> impl crate::meeting::store::learning::LearningInputs {
     crate::meeting::learning::no_inputs()
 }
 
@@ -74,7 +74,7 @@ pub(crate) fn reviewable_meeting(
     id
 }
 
-pub(super) fn person(
+pub(crate) fn person(
     store: &MeetingStore,
     name: &str,
     aliases: &[&str],
@@ -97,7 +97,7 @@ pub(super) fn person(
     id
 }
 
-fn link(
+pub(crate) fn link(
     store: &MeetingStore,
     meeting_id: MeetingSessionId,
     person_id: PersonId,
@@ -214,7 +214,69 @@ fn artifact(store: &MeetingStore, meeting_id: MeetingSessionId, headline: &str) 
         .unwrap();
 }
 
-pub(super) fn transcript(store: &MeetingStore, meeting_id: MeetingSessionId, text: &str) {
+/// The current artifact revision of a meeting, from content the test wrote,
+/// generated against the meeting's transcript revision when it has one.
+/// [`artifact`] is one fixed ledger; this is for a test whose subject is the
+/// content itself.
+pub(crate) fn current_artifact(
+    store: &MeetingStore,
+    meeting_id: MeetingSessionId,
+    content: &serde_json::Value,
+    generated_at_utc_ms: i64,
+) {
+    let connection = store.connection().unwrap();
+    let transcript_revision_id: Option<String> = connection
+        .query_row(
+            "SELECT current_transcript_revision_id FROM meeting_sessions WHERE id = ?1",
+            params![meeting_id.uuid().to_string()],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let transcript_revision_id = transcript_revision_id.unwrap_or_else(|| {
+        let revision_id = Uuid::new_v4().to_string();
+        connection
+            .execute(
+                "INSERT INTO meeting_transcript_revisions (
+                    transcript_revision_id, session_id, engine_id, destination_json,
+                    source_set_json, language, state, created_at_utc_ms
+                 ) VALUES (?1, ?2, 'test', '{}', '[]', 'en', 'complete', 1)",
+                params![revision_id, meeting_id.uuid().to_string()],
+            )
+            .unwrap();
+        revision_id
+    });
+    let artifact_id = Uuid::new_v4();
+    connection
+        .execute(
+            "INSERT INTO meeting_artifact_revisions (
+                artifact_id, session_id, transcript_revision_id, input_revision,
+                template_id, template_version, generation_key, state,
+                content_json, generated_at_utc_ms
+             ) VALUES (?1, ?2, ?3, 0, 'test', 1, ?4, 'current', ?5, ?6)",
+            params![
+                artifact_id.to_string(),
+                meeting_id.uuid().to_string(),
+                transcript_revision_id,
+                format!("test-{artifact_id}"),
+                content.to_string(),
+                generated_at_utc_ms
+            ],
+        )
+        .unwrap();
+}
+
+pub(crate) fn transcript(store: &MeetingStore, meeting_id: MeetingSessionId, text: &str) {
+    transcript_segments(store, meeting_id, &[text]);
+}
+
+/// Several things one speaker said, a second apart, on a microphone track a
+/// review snapshot can read back: `health` is a JSON column, so it holds a
+/// JSON string.
+pub(crate) fn transcript_segments(
+    store: &MeetingStore,
+    meeting_id: MeetingSessionId,
+    texts: &[&str],
+) {
     let plan_id = Uuid::new_v4();
     let track_id = Uuid::new_v4();
     let speaker_id = Uuid::new_v4();
@@ -238,7 +300,7 @@ pub(super) fn transcript(store: &MeetingStore, meeting_id: MeetingSessionId, tex
             "INSERT INTO meeting_source_tracks (
                 track_id, session_id, plan_id, source_kind, required, requested,
                 descriptor_json, timestamp_bridge_json, health
-             ) VALUES (?1, ?2, ?3, 'microphone', 1, 1, '{}', '{}', 'healthy')",
+             ) VALUES (?1, ?2, ?3, 'microphone', 1, 1, '{}', '{}', '\"healthy\"')",
             params![
                 track_id.to_string(),
                 meeting_id.uuid().to_string(),
@@ -250,7 +312,7 @@ pub(super) fn transcript(store: &MeetingStore, meeting_id: MeetingSessionId, tex
         .execute(
             "INSERT INTO meeting_speakers (
                 speaker_id, session_id, source_kind, display_name, revision
-             ) VALUES (?1, ?2, 'local', 'Speaker 1', 0)",
+             ) VALUES (?1, ?2, 'microphone', 'Speaker 1', 0)",
             params![speaker_id.to_string(), meeting_id.uuid().to_string()],
         )
         .unwrap();
@@ -263,21 +325,27 @@ pub(super) fn transcript(store: &MeetingStore, meeting_id: MeetingSessionId, tex
             params![revision_id.to_string(), meeting_id.uuid().to_string()],
         )
         .unwrap();
-    connection
-        .execute(
-            "INSERT INTO meeting_transcript_segments (
-                segment_id, transcript_revision_id, track_id, ordinal,
-                start_offset_ns, end_offset_ns, speaker_id, base_text
-             ) VALUES (?1, ?2, ?3, 0, 0, 1, ?4, ?5)",
-            params![
-                Uuid::new_v4().to_string(),
-                revision_id.to_string(),
-                track_id.to_string(),
-                speaker_id.to_string(),
-                text
-            ],
-        )
-        .unwrap();
+    for (ordinal, text) in texts.iter().enumerate() {
+        let ordinal = ordinal as u64;
+        connection
+            .execute(
+                "INSERT INTO meeting_transcript_segments (
+                    segment_id, transcript_revision_id, track_id, ordinal,
+                    start_offset_ns, end_offset_ns, speaker_id, base_text
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![
+                    Uuid::new_v4().to_string(),
+                    revision_id.to_string(),
+                    track_id.to_string(),
+                    ordinal,
+                    ordinal * 1_000_000_000,
+                    ordinal * 1_000_000_000 + 1,
+                    speaker_id.to_string(),
+                    text
+                ],
+            )
+            .unwrap();
+    }
     connection
         .execute(
             "UPDATE meeting_sessions SET current_transcript_revision_id = ?1 WHERE id = ?2",
@@ -286,7 +354,7 @@ pub(super) fn transcript(store: &MeetingStore, meeting_id: MeetingSessionId, tex
         .unwrap();
 }
 
-pub(super) fn event(
+pub(crate) fn event(
     kind: WorkflowEventKind,
     payload: serde_json::Value,
     dedupe_key: &str,
