@@ -11,11 +11,33 @@
 //! on a phrase, and the half of it that still applies — a ledger never
 //! replaces the summary or the action list — is a frontend test.
 //!
-//! Offline, on one fixture: the transcript, transcribed from upstream into the
-//! shape Sona's importer reads, and a hand-written expected ledger in the
-//! shape the model is asked for. The expected ledger has to pass the
-//! structural checks and every rubric line, and a ledger mutated in each of
-//! the ways the checks exist for has to fail the one check that names it.
+//! Two halves, on one fixture:
+//!
+//! * **Offline.** The transcript, transcribed from upstream into the shape
+//!   Sona's importer reads, and a hand-written expected ledger in the shape
+//!   the model is asked for. The expected ledger has to pass the structural
+//!   checks and every rubric line, and a ledger mutated in each of the ways
+//!   the checks exist for has to fail the one check that names it.
+//!
+//! * **Model-backed, opt-in.** The same transcript read by a real engine
+//!   through `generate_ledger`, the seam a meeting's ledger goes through, and
+//!   graded by the same rubric. Ignored by default because it asks a model:
+//!
+//!   ```text
+//!   cargo test --lib ledger_evals -- --ignored --nocapture
+//!   ```
+//!
+//!   The engine is the one Sona would resolve for a meeting. A test has no
+//!   app handle, so remote intelligence reads as off and that leaves the
+//!   on-device engine, which needs Apple Intelligence switched on in System
+//!   Settings. Where it is off, name an OpenAI-compatible endpoint and the
+//!   model behind it instead:
+//!
+//!   ```text
+//!   SONA_LEDGER_EVAL_BASE_URL=http://127.0.0.1:11434/v1 \
+//!   SONA_LEDGER_EVAL_MODEL=gemma4:12b-mlx \
+//!   cargo test --lib ledger_evals -- --ignored --nocapture
+//!   ```
 //!
 //! Segment ids are `00000000-0000-0000-0000-000000000NNN`, `NNN` the 1-based
 //! turn number in the transcript fixture, so a citation in the expected
@@ -27,10 +49,16 @@ use super::ledger::{
     self, fold, CheckFailure, LedgerFirmness, LedgerPage, LedgerPageInput, LedgerReceipt,
     LedgerThreadState, MeetingLedger,
 };
-use super::processing::{validate_ledger_output, RawLedgerOutput};
+use super::processing::{
+    generate_ledger, validate_ledger_output, MeetingProcessingService, MeetingTextGenerationError,
+    MeetingTextGenerator, RawLedgerOutput,
+};
 use super::store::{ArtifactEvidence, MeetingEvidence};
-use super::types::{CitationKind, MeetingCitation, MeetingSessionId, SpeakerId, TranscriptSegmentId};
+use super::types::{
+    CitationKind, MeetingCitation, MeetingSessionId, SpeakerId, TranscriptSegmentId,
+};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
 const TRANSCRIPT: &str = include_str!("fixtures/ledger_evals/messy_two_party.json");
@@ -44,6 +72,8 @@ const ONBOARDING_EMAILS_MS: u64 = 109_000;
 const COMPARISON_TABLE_MS: u64 = 184_000;
 const LOOP_BACK_MS: u64 = 211_000;
 const SIGN_OFF_MS: u64 = 264_000;
+
+const NOW: i64 = 1_700_000_000_000;
 
 fn segment_id(turn: usize) -> TranscriptSegmentId {
     TranscriptSegmentId::from_uuid(
@@ -61,6 +91,17 @@ struct Fixture {
 }
 
 fn fixture(session_id: MeetingSessionId) -> Fixture {
+    fixture_with(session_id, segment_id)
+}
+
+/// `id_of` names the segment of each 1-based turn. The offline half reads
+/// the readable ids the expected ledger cites by hand; the model half reads
+/// fresh v4 ids, the shape production sends, because a run of zeros is a
+/// repetition trap a small model falls into and the transcript never sets.
+fn fixture_with(
+    session_id: MeetingSessionId,
+    id_of: impl Fn(usize) -> TranscriptSegmentId,
+) -> Fixture {
     let imported = parse_transcript_export("messy_two_party", TRANSCRIPT).expect("fixture parses");
     let spans = resolve_spans(&imported.segments);
     let mut speakers: HashMap<String, SpeakerId> = HashMap::new();
@@ -72,7 +113,7 @@ fn fixture(session_id: MeetingSessionId) -> Fixture {
         let speaker_id = *speakers
             .entry(name)
             .or_insert_with(|| SpeakerId::from_uuid(Uuid::from_u128(next as u128)));
-        let segment_id = segment_id(index + 1);
+        let segment_id = id_of(index + 1);
         let start_offset_ns = start_ms * 1_000_000;
         let end_offset_ns = end_ms * 1_000_000;
         segments.push(AnalyticsSegment {
@@ -110,7 +151,12 @@ fn fixture(session_id: MeetingSessionId) -> Fixture {
 
 impl Fixture {
     fn haystack(&self) -> String {
-        ledger::fold_haystack(self.evidence.transcript.iter().map(|item| item.text.as_str()))
+        ledger::fold_haystack(
+            self.evidence
+                .transcript
+                .iter()
+                .map(|item| item.text.as_str()),
+        )
     }
 
     /// The page this ledger renders as, built the way the exporter builds it.
@@ -192,7 +238,9 @@ impl Rubric {
             Self::Structural => "check_ledger.py exits 0",
             Self::LoopBack => "Pricing tiers -> open, with two segments on the timeline",
             Self::Decision => "Annual versus monthly -> decided or agreed, with its receipt",
-            Self::Unanswered => "Which tier does the trial convert into? -> unanswered, in open loops",
+            Self::Unanswered => {
+                "Which tier does the trial convert into? -> unanswered, in open loops"
+            }
             Self::Dropped => "Onboarding email copy -> dropped, in open loops",
             Self::Action => "Tier comparison table -> action, owner Amir, firm",
             Self::Verbatim => "Receipts keep the disfluencies",
@@ -210,10 +258,9 @@ impl Rubric {
                 .filter(move |thread| (at_ms..until_ms).contains(&thread.receipt.t_ms))
         };
         let loops_mentioning = |word: &str| {
-            ledger
-                .open_loops
-                .iter()
-                .any(|loop_| fold(&loop_.question).contains(word) || fold(&loop_.instead).contains(word))
+            ledger.open_loops.iter().any(|loop_| {
+                fold(&loop_.question).contains(word) || fold(&loop_.instead).contains(word)
+            })
         };
         match self {
             Self::Structural => {
@@ -225,21 +272,24 @@ impl Rubric {
                 }
             }
             Self::LoopBack => {
-                let looped = ledger
-                    .threads
-                    .iter()
-                    .zip(&subject.page.topics)
-                    .any(|(thread, topic)| {
-                        thread.state == LedgerThreadState::Open
-                            && topic.segs.iter().any(|seg| {
-                                (SMALL_TALK_ENDS_MS / 1_000..TRIAL_QUESTION_MS / 1_000).contains(&seg.0)
-                            })
-                            && topic.segs.iter().any(|seg| {
-                                (LOOP_BACK_MS / 1_000..SIGN_OFF_MS / 1_000).contains(&seg.0)
-                            })
-                    });
+                let looped =
+                    ledger
+                        .threads
+                        .iter()
+                        .zip(&subject.page.topics)
+                        .any(|(thread, topic)| {
+                            thread.state == LedgerThreadState::Open
+                                && topic.segs.iter().any(|seg| {
+                                    (SMALL_TALK_ENDS_MS / 1_000..TRIAL_QUESTION_MS / 1_000)
+                                        .contains(&seg.0)
+                                })
+                                && topic.segs.iter().any(|seg| {
+                                    (LOOP_BACK_MS / 1_000..SIGN_OFF_MS / 1_000).contains(&seg.0)
+                                })
+                        });
                 looped.then_some(()).ok_or_else(|| {
-                    "no open thread cites both the opening pricing stretch and the loop-back".to_string()
+                    "no open thread cites both the opening pricing stretch and the loop-back"
+                        .to_string()
                 })
             }
             Self::Decision => {
@@ -253,14 +303,15 @@ impl Rubric {
                             || quote.contains("annual only, monthly in q3")
                     }
                 });
-                landed
-                    .then_some(())
-                    .ok_or_else(|| "no decided or agreed thread quotes the annual-only decision".to_string())
+                landed.then_some(()).ok_or_else(|| {
+                    "no decided or agreed thread quotes the annual-only decision".to_string()
+                })
             }
             Self::Unanswered => {
                 let asked: Vec<_> = threads_at(TRIAL_QUESTION_MS, ONBOARDING_EMAILS_MS)
                     .filter(|thread| {
-                        fold(&thread.receipt.quote).contains("which tier does the trial convert into")
+                        fold(&thread.receipt.quote)
+                            .contains("which tier does the trial convert into")
                     })
                     .collect();
                 if asked.is_empty() {
@@ -272,7 +323,10 @@ impl Rubric {
                         LedgerThreadState::Agreed | LedgerThreadState::Closed
                     )
                 }) {
-                    return Err(format!("the trial question is {:?}; hard fail", thread.state));
+                    return Err(format!(
+                        "the trial question is {:?}; hard fail",
+                        thread.state
+                    ));
                 }
                 if !asked
                     .iter()
@@ -301,12 +355,17 @@ impl Rubric {
             Self::Action => {
                 let owned = ledger.threads.iter().any(|thread| {
                     thread.state == LedgerThreadState::Action
-                        && thread.owner.as_deref().is_some_and(|owner| fold(owner).contains("amir"))
+                        && thread
+                            .owner
+                            .as_deref()
+                            .is_some_and(|owner| fold(owner).contains("amir"))
                         && ((COMPARISON_TABLE_MS..LOOP_BACK_MS).contains(&thread.receipt.t_ms)
                             || fold(&thread.receipt.quote).contains("feature matrix"))
                 });
                 if !owned {
-                    return Err("no action thread owned by Amir cites the comparison table".to_string());
+                    return Err(
+                        "no action thread owned by Amir cites the comparison table".to_string()
+                    );
                 }
                 let committed = ledger.commitments.iter().any(|commitment| {
                     fold(&commitment.who).contains("amir")
@@ -316,19 +375,30 @@ impl Rubric {
                             what.contains("comparison") || what.contains("table")
                         }
                 });
-                committed
-                    .then_some(())
-                    .ok_or_else(|| "no firm commitment by Amir for the comparison table".to_string())
+                committed.then_some(()).ok_or_else(|| {
+                    "no firm commitment by Amir for the comparison table".to_string()
+                })
             }
             Self::Verbatim => {
                 let receipts: Vec<&LedgerReceipt> = ledger
                     .threads
                     .iter()
                     .map(|thread| &thread.receipt)
-                    .chain(ledger.commitments.iter().map(|commitment| &commitment.receipt))
+                    .chain(
+                        ledger
+                            .commitments
+                            .iter()
+                            .map(|commitment| &commitment.receipt),
+                    )
                     .collect();
-                let quotes: Vec<String> = receipts.iter().map(|receipt| fold(&receipt.quote)).collect();
-                if !quotes.iter().any(|quote| quote.contains("we keep, we keep circling it")) {
+                let quotes: Vec<String> = receipts
+                    .iter()
+                    .map(|receipt| fold(&receipt.quote))
+                    .collect();
+                if !quotes
+                    .iter()
+                    .any(|quote| quote.contains("we keep, we keep circling it"))
+                {
                     return Err("no receipt keeps \"we keep, we keep circling it\"".to_string());
                 }
                 if let Some(tidied) = quotes.iter().find(|quote| {
@@ -346,7 +416,10 @@ impl Rubric {
                 .any(|stance| {
                     fold(&stance.from).contains("amir")
                         && (fold(&stance.what).contains("annual")
-                            || stance.note.as_deref().is_some_and(|note| fold(note).contains("annual")))
+                            || stance
+                                .note
+                                .as_deref()
+                                .is_some_and(|note| fold(note).contains("annual")))
                 })
                 .then_some(())
                 .ok_or_else(|| "no stance records Amir taking up annual-only".to_string()),
@@ -400,7 +473,10 @@ fn the_expected_ledger_passes_every_structural_check() {
     let fixture = fixture(MeetingSessionId::new());
     let expected = fixture.expected();
     let page = fixture.page(&expected);
-    assert_eq!(ledger::check(&expected, &page, &fixture.haystack()), Vec::new());
+    assert_eq!(
+        ledger::check(&expected, &page, &fixture.haystack()),
+        Vec::new()
+    );
 }
 
 #[test]
@@ -421,43 +497,64 @@ fn the_loop_back_thread_has_two_segments_on_the_timeline() {
 #[test]
 fn a_landed_decision_exists_with_its_receipt() {
     let fixture = fixture(MeetingSessionId::new());
-    assert_eq!(subject_holds(&fixture, &fixture.expected(), Rubric::Decision), Ok(()));
+    assert_eq!(
+        subject_holds(&fixture, &fixture.expected(), Rubric::Decision),
+        Ok(())
+    );
 }
 
 #[test]
 fn the_unanswered_question_is_in_open_loops() {
     let fixture = fixture(MeetingSessionId::new());
-    assert_eq!(subject_holds(&fixture, &fixture.expected(), Rubric::Unanswered), Ok(()));
+    assert_eq!(
+        subject_holds(&fixture, &fixture.expected(), Rubric::Unanswered),
+        Ok(())
+    );
 }
 
 #[test]
 fn the_dropped_thread_is_in_open_loops() {
     let fixture = fixture(MeetingSessionId::new());
-    assert_eq!(subject_holds(&fixture, &fixture.expected(), Rubric::Dropped), Ok(()));
+    assert_eq!(
+        subject_holds(&fixture, &fixture.expected(), Rubric::Dropped),
+        Ok(())
+    );
 }
 
 #[test]
 fn the_comparison_table_is_a_firm_action_owned_by_amir() {
     let fixture = fixture(MeetingSessionId::new());
-    assert_eq!(subject_holds(&fixture, &fixture.expected(), Rubric::Action), Ok(()));
+    assert_eq!(
+        subject_holds(&fixture, &fixture.expected(), Rubric::Action),
+        Ok(())
+    );
 }
 
 #[test]
 fn the_messy_quote_is_kept_verbatim() {
     let fixture = fixture(MeetingSessionId::new());
-    assert_eq!(subject_holds(&fixture, &fixture.expected(), Rubric::Verbatim), Ok(()));
+    assert_eq!(
+        subject_holds(&fixture, &fixture.expected(), Rubric::Verbatim),
+        Ok(())
+    );
 }
 
 #[test]
 fn the_stance_records_amir_taking_up_annual_only() {
     let fixture = fixture(MeetingSessionId::new());
-    assert_eq!(subject_holds(&fixture, &fixture.expected(), Rubric::Stance), Ok(()));
+    assert_eq!(
+        subject_holds(&fixture, &fixture.expected(), Rubric::Stance),
+        Ok(())
+    );
 }
 
 #[test]
 fn small_talk_and_the_sign_off_are_not_substantive() {
     let fixture = fixture(MeetingSessionId::new());
-    assert_eq!(subject_holds(&fixture, &fixture.expected(), Rubric::SmallTalk), Ok(()));
+    assert_eq!(
+        subject_holds(&fixture, &fixture.expected(), Rubric::SmallTalk),
+        Ok(())
+    );
 }
 
 // ── mutations ───────────────────────────────────────────────────────────────
@@ -494,8 +591,13 @@ fn a_dropped_thread_missing_from_open_loops_fails_the_unlisted_check() {
         .open_loops
         .retain(|loop_| !loop_.question.contains("onboarding"));
     let failures = ledger::check(&mutated, &fixture.page(&mutated), &fixture.haystack());
-    assert_eq!(failures, vec![CheckFailure::UnlistedUnresolved { count: 1 }]);
-    assert!(failures[0].caveat().is_some_and(|caveat| caveat.contains("1")));
+    assert_eq!(
+        failures,
+        vec![CheckFailure::UnlistedUnresolved { count: 1 }]
+    );
+    assert!(failures[0]
+        .caveat()
+        .is_some_and(|caveat| caveat.contains("1")));
     assert!(subject_holds(&fixture, &mutated, Rubric::Dropped).is_err());
 }
 
@@ -504,7 +606,10 @@ fn a_cue_shaped_transcript_fails_the_density_check() {
     let fixture = fixture(MeetingSessionId::new());
     let expected = fixture.expected();
     let haystack = fixture.haystack();
-    let (dana, amir) = (fixture.segments[0].speaker_id, fixture.segments[1].speaker_id);
+    let (dana, amir) = (
+        fixture.segments[0].speaker_id,
+        fixture.segments[1].speaker_id,
+    );
     // Every turn as fifteen cues, the way a subtitle export arrives.
     let cues = |jitter: bool| -> Vec<AnalyticsSegment> {
         fixture
@@ -588,4 +693,217 @@ fn a_missing_headline_fails() {
     mutated.headline = "  ".to_string();
     let failures = ledger::check(&mutated, &fixture.page(&mutated), &fixture.haystack());
     assert_eq!(failures, vec![CheckFailure::MissingHeadline]);
+}
+
+// ── model-backed ────────────────────────────────────────────────────────────
+
+/// An OpenAI-compatible chat endpoint, for a Mac whose test process has no
+/// engine of its own: Apple Intelligence switched off, and no app handle to
+/// reach a relay through. Used only when the operator names one, and never
+/// by the app.
+struct ChatEndpointGenerator {
+    base_url: String,
+    model: String,
+}
+
+impl ChatEndpointGenerator {
+    /// `SONA_LEDGER_EVAL_BASE_URL` names the endpoint, `/v1` included, and
+    /// `SONA_LEDGER_EVAL_MODEL` the model it should answer with.
+    fn from_env() -> Option<Self> {
+        let base_url = std::env::var("SONA_LEDGER_EVAL_BASE_URL").ok()?;
+        let model = std::env::var("SONA_LEDGER_EVAL_MODEL")
+            .expect("SONA_LEDGER_EVAL_MODEL names the model at SONA_LEDGER_EVAL_BASE_URL");
+        Some(Self { base_url, model })
+    }
+}
+
+impl MeetingTextGenerator for ChatEndpointGenerator {
+    fn is_available(&self) -> bool {
+        true
+    }
+
+    fn model_id(&self) -> &'static str {
+        "ledger-eval-endpoint"
+    }
+
+    fn model_version(&self) -> &'static str {
+        "v1"
+    }
+
+    fn max_input_bytes(&self) -> usize {
+        usize::MAX
+    }
+
+    /// One chat turn, with Sona's own output budget on the wire: a model that
+    /// falls into a repetition loop otherwise runs until the operator kills
+    /// it. Reasoning is switched off for the same budget, because Ollama's
+    /// thinking models spend it on their reasoning and answer with nothing.
+    fn generate(
+        &self,
+        system_prompt: &str,
+        evidence: &str,
+        max_tokens: i32,
+    ) -> Result<String, MeetingTextGenerationError> {
+        let body = serde_json::json!({
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": evidence},
+            ],
+            "max_tokens": max_tokens,
+            "reasoning_effort": "none",
+            "response_format": {"type": "json_object"},
+        });
+        let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
+        tauri::async_runtime::block_on(async {
+            let answer: serde_json::Value = reqwest::Client::new()
+                .post(url)
+                .json(&body)
+                .send()
+                .await
+                .map_err(|_| MeetingTextGenerationError::Unreachable)?
+                .json()
+                .await
+                .map_err(|_| MeetingTextGenerationError::Failed)?;
+            // Printed because a server-side context window shorter than the
+            // evidence truncates the prompt without saying so.
+            println!(
+                "{}: prompt {} tokens, answer {} tokens, finished by {}",
+                self.model,
+                answer["usage"]["prompt_tokens"],
+                answer["usage"]["completion_tokens"],
+                answer["choices"][0]["finish_reason"]
+            );
+            let Some(content) = answer["choices"][0]["message"]["content"].as_str() else {
+                println!("{}: no answer in {answer}", self.model);
+                return Err(MeetingTextGenerationError::Failed);
+            };
+            // A chat model fences its JSON whatever it is told, and not every
+            // engine behind Ollama enforces `response_format`. The object
+            // inside is what is graded; anything else is left for the seam
+            // to refuse and the test to print.
+            let object = match (content.find('{'), content.rfind('}')) {
+                (Some(open), Some(close)) if open < close => &content[open..=close],
+                _ => content,
+            };
+            Ok(object.to_string())
+        })
+    }
+}
+
+/// Keeps every answer the engine gave, so a run that produced no usable
+/// ledger can show what it did produce and where the seam refused it.
+struct Recording<'a> {
+    inner: &'a dyn MeetingTextGenerator,
+    answers: Mutex<Vec<String>>,
+}
+
+impl MeetingTextGenerator for Recording<'_> {
+    fn is_available(&self) -> bool {
+        self.inner.is_available()
+    }
+
+    fn model_id(&self) -> &'static str {
+        self.inner.model_id()
+    }
+
+    fn model_version(&self) -> &'static str {
+        self.inner.model_version()
+    }
+
+    fn max_input_bytes(&self) -> usize {
+        self.inner.max_input_bytes()
+    }
+
+    fn generate(
+        &self,
+        system_prompt: &str,
+        evidence: &str,
+        max_tokens: i32,
+    ) -> Result<String, MeetingTextGenerationError> {
+        let answer = self.inner.generate(system_prompt, evidence, max_tokens)?;
+        self.answers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .push(answer.clone());
+        Ok(answer)
+    }
+}
+
+/// The scenario as upstream runs it: the transcript read by a real engine and
+/// graded line by line. The engine is the one Sona would resolve for this
+/// meeting unless an endpoint is named in the environment, and the ledger
+/// goes through the same acceptance seam a meeting's does, checks and caveats
+/// included. The whole scorecard is printed before anything is asserted, so
+/// one failed line does not hide the rest.
+#[test]
+#[ignore = "asks a model: cargo test --lib ledger_evals -- --ignored --nocapture"]
+fn messy_two_party_with_model() {
+    let (_directory, store) = super::store::workflow_core_tests::store();
+    let session_id = super::store::workflow_core_tests::meeting(&store, "Pricing sync", NOW);
+    let fixture = fixture_with(session_id, |_| TranscriptSegmentId::new());
+    let generator: Arc<dyn MeetingTextGenerator> = match ChatEndpointGenerator::from_env() {
+        Some(endpoint) => Arc::new(endpoint),
+        None => MeetingProcessingService::new(None)
+            .text_generator_for_session(&store, session_id)
+            .expect(
+                "no text engine: Apple Intelligence is off on this Mac and a test has no relay; set SONA_LEDGER_EVAL_BASE_URL and SONA_LEDGER_EVAL_MODEL to an OpenAI-compatible endpoint",
+            ),
+    };
+    let recording = Recording {
+        inner: generator.as_ref(),
+        answers: Mutex::new(Vec::new()),
+    };
+    let ledger = generate_ledger(&recording, &fixture.evidence, &fixture.segments, session_id);
+    let answers = recording
+        .answers
+        .into_inner()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    println!(
+        "{}: {} answer(s) for session {}",
+        generator.model_id(),
+        answers.len(),
+        session_id.uuid()
+    );
+    let Some(ledger) = ledger else {
+        // Say where each answer was refused, in the order the seam asks.
+        for (attempt, answer) in answers.iter().enumerate() {
+            println!("--- answer {} ---\n{answer}", attempt + 1);
+            match serde_json::from_str::<RawLedgerOutput>(answer) {
+                Err(error) => println!("does not parse as a ledger: {error}"),
+                Ok(raw) => match validate_ledger_output(&raw, &fixture.evidence.transcript) {
+                    Err(()) => println!(
+                        "refused at validation: a citation that is not a transcript entity_id, an empty field, an unknown state or firmness, or no threads"
+                    ),
+                    Ok(candidate) => println!(
+                        "accepted, then {} receipt(s) were not in the transcript",
+                        ledger::unverified_receipts(&candidate, &fixture.haystack())
+                    ),
+                },
+            }
+        }
+        panic!("the model produced no usable ledger");
+    };
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&ledger).expect("ledger serializes")
+    );
+    let page = fixture.page(&ledger);
+    let haystack = fixture.haystack();
+    let subject = Subject {
+        ledger: &ledger,
+        page: &page,
+        haystack: &haystack,
+    };
+    let mut failed = Vec::new();
+    for rubric in Rubric::ALL {
+        match rubric.holds(&subject) {
+            Ok(()) => println!("  ok   {}", rubric.line()),
+            Err(why) => {
+                println!("  FAIL {}: {why}", rubric.line());
+                failed.push(rubric);
+            }
+        }
+    }
+    assert!(failed.is_empty(), "rubric lines failed: {failed:?}");
 }
