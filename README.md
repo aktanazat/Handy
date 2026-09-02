@@ -4,7 +4,7 @@ Sona is a local-first desktop app for spoken words: dictation delivered into any
 
 ## What Sona does
 
-Dictation
+### Dictation
 
 - Local Whisper-family GGUF and ONNX transcription models.
 - Per-mode recognition, context, prompt, delivery, and shortcut settings.
@@ -14,7 +14,7 @@ Dictation
 - Audio-file transcription, vocabulary corrections, CSV vocabulary tools, and optional emoji replacements.
 - Context capture from the focused field on macOS, Windows, and Linux.
 
-Meetings
+### Meetings
 
 - Records the microphone and system audio of a meeting after a consent step, with no bot joining the call. Detects meetings from the calendar, from the meeting app you are in, from a call tab in Safari, Chrome, Edge, Firefox, or Arc, and from FaceTime and Phone calls. Presence is not participation: an open but untouched meeting app never prompts, and the status line says why. Calls in apps you grant can record automatically.
 - Transcribes after the meeting, with diarization, notes, a ledger of every thread with its verbatim receipt, people, and series memory; catch-up and questions also work while the meeting is still running. A finished meeting opens on its ledger.
@@ -23,13 +23,13 @@ Meetings
 - Follow-up drafts that open in Mail, Reminders with due dates, an announce-in-chat line, and a thirty-day undo bin for deleted meetings.
 - Meeting intelligence runs on Apple Intelligence, or on your own server through the paired relay.
 
-Agents
+### Agents
 
 - A chat that answers from your corpus. Once you allow it to send matching quotes to your server, it can search recordings, read a meeting or transcript, look up a person, check open loops and the calendar, and count words and activity, at most three lookups per question, each shown as a step. It can also offer changes (close a commitment, assign an owner, rename a speaker, add a vocabulary term) that apply only when you press Apply, each with a receipt and an undo.
 - A `sona` CLI and MCP server for reading meetings, people, loops, and the upcoming calendar, plus a consent-gated write to close a loop. `skills/sona/SKILL.md` documents the surface.
 - Local agent hooks for Claude Code, Codex, Grok, and OMP, with permission requests answerable from Sona where the tool has a reply channel.
 
-Phone and watch
+### Phone and watch
 
 - `mobile/` holds the iPhone and Apple Watch recorders. They pair with your Mac through the same end-to-end encrypted vault the desktop syncs through, record in-person conversations, and hand them to the Mac as meetings. On iPhone, Sona offers to record a note when a call ends; iOS gives no app access to call audio.
 

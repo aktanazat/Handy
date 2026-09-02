@@ -243,7 +243,7 @@ export function installMockedRuntime(payload: MockPayload): void {
        resolves to null, and the gate then logs "Failed to load release notes"
        from a version parse that never sees a string. Kept in step with
        src-tauri/tauri.conf.json's version. */
-    ["plugin:app|version", "1.0.0"],
+    ["plugin:app|version", "1.1.0"],
     ["plugin:event|listen", 1],
     ["plugin:event|unlisten", null],
     ["get_available_microphones", []],

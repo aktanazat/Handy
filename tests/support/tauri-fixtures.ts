@@ -563,7 +563,7 @@ export const APP_SETTINGS = {
   typing_tool: "auto",
   update_check_enabled: true,
   vad_enabled: true,
-  whats_new_last_seen_version: "1.0.0",
+  whats_new_last_seen_version: "1.1.0",
   word_correction_threshold: 0.18,
 };
 

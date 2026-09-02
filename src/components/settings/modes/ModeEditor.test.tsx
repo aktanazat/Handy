@@ -400,6 +400,7 @@ describe("turns on by itself", () => {
     const html = editor();
 
     expect(html).toContain("Include browser URLs");
+    expect(html).toContain("in Privacy");
     expect(html.includes("Capture current website")).toBe(false);
   });
 });

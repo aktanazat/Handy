@@ -248,6 +248,9 @@ describe("english catalogue", () => {
     "meetings.detection.why.unknownApp",
     "meetings.detection.why.browserUnreadable",
     "meetings.detection.why.browserNotMeeting",
+    "meetings.detection.calendar.refusedLabel",
+    "meetings.detection.calendar.refused",
+    "meetings.detection.calendar.openSettings",
   ];
 
   for (const key of KEYS) {
@@ -701,10 +704,10 @@ describe("a refused calendar enable", () => {
 
   /* The backend never turned the path on, so the status it hands back after
    * the refused request still says the calendar is off. */
-  const refusedStatus = (): DetectionStatus => ({
-    ...status(true),
-    settings: { ...status(true).settings, calendarEnabled: false },
-  });
+  const refusedStatus = (): DetectionStatus => {
+    const base = status(true);
+    return { ...base, settings: { ...base.settings, calendarEnabled: false } };
+  };
 
   beforeAll(() => {
     Object.defineProperty(globalThis, "window", {
@@ -733,7 +736,35 @@ describe("a refused calendar enable", () => {
     else Reflect.deleteProperty(globalThis, "window");
   });
 
-  test("sets the flag, leaves the path off, and turning off clears it", async () => {
+  test("sets the flag, writes nothing, and turning off clears it", async () => {
+    const sent: DetectionSettings[] = [];
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        ...globalThis.window,
+        __TAURI_INTERNALS__: {
+          invoke: (command: string, args: { settings?: DetectionSettings }) => {
+            if (command === "detection_calendar_access_request") {
+              return Promise.resolve("denied");
+            }
+            if (command === "detection_status_get") {
+              return Promise.resolve(refusedStatus());
+            }
+            if (command === "detection_settings_set") {
+              if (args.settings) {
+                sent.push(args.settings);
+              }
+              return Promise.resolve({
+                ...refusedStatus(),
+                settings: args.settings,
+              });
+            }
+            throw new Error(`unexpected command: ${command}`);
+          },
+        },
+      },
+    });
+
     useDetectionStore.setState({
       status: refusedStatus(),
       prompts: [],
@@ -743,26 +774,11 @@ describe("a refused calendar enable", () => {
 
     await useDetectionStore.getState().enableCalendar(true);
     expect(useDetectionStore.getState().calendarRefused).toBe(true);
-    expect(useDetectionStore.getState().status?.settings.calendarEnabled).toBe(
-      false,
-    );
+    expect(sent).toEqual([]);
 
     await useDetectionStore.getState().enableCalendar(false);
     expect(useDetectionStore.getState().calendarRefused).toBe(false);
-  });
-
-  /* A static render only ever sees the store's initial snapshot (see the file
-   * header), so the rows the flag adds are checked through the catalogue they
-   * read, the way every other state-dependent line in this file is. */
-  test("the advanced rows then point at System Settings", () => {
-    expect(i18n.t("meetings.detection.calendar.refusedLabel")).toBe(
-      "Calendar access is limited",
-    );
-    expect(i18n.t("meetings.detection.calendar.openSettings")).toBe(
-      "Open System Settings",
-    );
-    expect(i18n.t("meetings.detection.calendar.refused")).toContain(
-      "Full Calendar Access",
-    );
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.calendarEnabled).toBe(false);
   });
 });
