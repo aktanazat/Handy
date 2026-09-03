@@ -6,6 +6,7 @@ use reqwest::redirect::Policy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock};
+use std::time::Duration;
 use zeroize::Zeroizing;
 
 #[derive(Debug, Serialize)]
@@ -191,6 +192,24 @@ fn build_headers(
     Ok(headers)
 }
 
+/// One bound on every post-processing request. Without it a dictation waits
+/// indefinitely on an endpoint that accepts the connection and then never
+/// answers, which reqwest does not report on its own: its default is no
+/// timeout at all.
+///
+/// Twenty seconds is chosen for the warm case and deliberately sacrifices the
+/// cold one — it does not protect a model that is still loading its weights,
+/// because that load does not fit in any bound a dictation can afford. A warm
+/// local answer lands in well under a second; a cold 7.7 GB `gemma4:12b-mlx`
+/// measured over three minutes on a loaded machine. So the first dictation
+/// after a cold start does not wait for the model: it skips post-processing and
+/// delivers the raw transcript, with only a log line saying so — nothing in the
+/// UI reports the dropped rewrite. That is the intended trade, since unpolished
+/// words beat words that arrive minutes late, and `post_process_transcription`
+/// already reads the failure as "no rewrite". Raising the bound to cover a cold
+/// load would buy nothing except making that first dictation hang for it.
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
+
 /// Create an HTTP client with provider-specific headers. Redirects are disabled
 /// so an Authorization header cannot reach a destination outside the frozen
 /// endpoint.
@@ -202,6 +221,7 @@ fn create_client(
     reqwest::Client::builder()
         .default_headers(headers)
         .redirect(Policy::none())
+        .timeout(REQUEST_TIMEOUT)
         .build()
         .map_err(|e| report_reqwest_error("Failed to build HTTP client", &e))
 }
@@ -902,6 +922,112 @@ mod tests {
         assert_eq!(
             answer,
             Err("API request failed with status 500 Internal Server Error".to_string())
+        );
+    }
+
+    /// Proves a keyless local endpoint end to end through this client, because
+    /// no fixture can: every other test here serves its own canned bytes, so
+    /// none of them can show that a real OpenAI-compatible server accepts what
+    /// we send with no `Authorization` header at all.
+    ///
+    /// Ignored by default — it needs something listening on 11434. Run it with
+    /// `cargo test --lib ollama -- --ignored --nocapture`, and set
+    /// `SONA_LOCAL_MODEL` if the served model is not the one below.
+    ///
+    /// The provider fields are the shipped `custom` defaults verbatim
+    /// (`settings.rs` `default_post_process_providers`), the credential is
+    /// `None` exactly as `provider_allows_unauthenticated_request` makes it for
+    /// a loopback `custom` route, `disable_reasoning` is true exactly as
+    /// `post_process_transcription` sets it, and the prompt is a real rendered
+    /// command-mode pair concatenated the same way. So a pass here is a pass
+    /// for the production path, not for a lookalike.
+    #[tokio::test]
+    #[ignore = "requires a local OpenAI-compatible server on 127.0.0.1:11434"]
+    async fn a_keyless_loopback_endpoint_rewrites_a_selection() {
+        let provider = PostProcessProvider {
+            id: "custom".to_string(),
+            label: "Custom".to_string(),
+            base_url: "http://localhost:11434/v1".to_string(),
+            allow_base_url_edit: true,
+            models_endpoint: Some("/models".to_string()),
+            supports_structured_output: false,
+        };
+        let endpoint = endpoint(&provider);
+        // The whole reason no key is needed: a loopback route is not remote, so
+        // neither the consent gate nor the credential lookup applies.
+        assert!(!endpoint.is_remote());
+
+        // The dropdown is keyless on the same terms: for a loopback `custom`
+        // route `fetch_post_process_models` passes no secret either, so an
+        // empty list here would mean typing the model name by hand.
+        let listed = fetch_models(&provider, &endpoint, None)
+            .await
+            .expect("the local endpoint listed its models");
+        println!("models: {listed:?}");
+        assert!(!listed.is_empty());
+
+        let model = std::env::var("SONA_LOCAL_MODEL").unwrap_or_else(|_| "gemma4:12b-mlx".into());
+        let rendered = crate::prompt_renderer::render_instruction(
+            crate::prompt_renderer::InstructionRenderInput {
+                instruction: "make that a question",
+                input: "The plan is ready by Friday.",
+                language: "en",
+                target: &crate::context::TargetMetadata::default(),
+            },
+        );
+        let prompt = format!("{}\n\n{}", rendered.system_message, rendered.user_message);
+
+        let started = std::time::Instant::now();
+        let answer = send_chat_completion(&provider, &endpoint, None, &model, prompt, true).await;
+        let elapsed = started.elapsed();
+
+        let text = answer
+            .expect("the local endpoint answered")
+            .expect("the answer carried content");
+        println!("model: {model}");
+        println!("latency: {elapsed:?}");
+        println!("output: {text}");
+        assert!(!text.trim().is_empty());
+    }
+
+    /// The check behind `REQUEST_TIMEOUT`. A refused connect already fails
+    /// fast, so it proves nothing about the bound; the state that needed one is
+    /// an endpoint that accepts the connection, reads the request, and then
+    /// never answers — a local model still loading its weights, or a wedged
+    /// server. Without the bound this hangs forever, because reqwest's default
+    /// is no timeout.
+    ///
+    /// Ignored by default because passing costs the full 20 seconds. Run it
+    /// with `cargo test --lib hangs -- --ignored --nocapture`. The elapsed
+    /// assertion is the point: it fails if some other error path short-circuits
+    /// instead, which would make the timeout untested while looking green.
+    #[tokio::test]
+    #[ignore = "waits out the full 20s request timeout"]
+    async fn an_endpoint_that_never_answers_times_out() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut request = [0_u8; 2048];
+            let _ = stream.read(&mut request).await;
+            // Hold the connection open and answer nothing.
+            tokio::time::sleep(Duration::from_secs(120)).await;
+        });
+
+        let provider = provider("custom", &format!("http://{address}"));
+        let endpoint = endpoint(&provider);
+        let started = std::time::Instant::now();
+        let answer =
+            send_chat_completion(&provider, &endpoint, None, "any", "hi".into(), false).await;
+        let elapsed = started.elapsed();
+        println!("gave up after {elapsed:?}: {answer:?}");
+
+        let error = answer.expect_err("a silent endpoint is an error, not text");
+        assert!(error.contains("timeout"), "unexpected failure: {error}");
+        assert!(elapsed >= REQUEST_TIMEOUT, "gave up early: {elapsed:?}");
+        assert!(
+            elapsed < REQUEST_TIMEOUT + Duration::from_secs(5),
+            "outlasted the bound: {elapsed:?}"
         );
     }
 }
