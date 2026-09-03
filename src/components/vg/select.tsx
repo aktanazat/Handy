@@ -44,9 +44,13 @@ function SelectTrigger({
        * (observed: "Use this mode's local model" rendered as "…local mode",
        * a different real word). `min-w-0` lets it shrink inside the trigger's
        * own flex row. A value that pairs an icon with text keeps them inline;
-       * give it its own flex wrapper if it needs a gap. */
+       * give it its own flex wrapper if it needs a gap.
+       *
+       * The kit's 3px translucent focus ring is gone so base.css's 2px bronze
+       * `--focus-outline` applies, which is what every other control in the
+       * app draws. Focus is an outline here, never a glow. */
       className={cn(
-        "flex w-fit items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:block *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+        "flex w-fit items-center justify-between gap-2 rounded-control border border-input bg-transparent px-3 py-2 text-[13px] whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:block *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
         className,
       )}
       {...props}
@@ -70,8 +74,16 @@ function SelectContent({
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         data-slot="select-content"
+        /* Same surface as the popover, for the same reason: a menu is chrome.
+         * `glass-surface` under Glass, --surface-raised under Solid,
+         * --radius-panel, one soft --shadow-popover, and the app's one popup
+         * shape from styles/popups.css in place of the kit's fade + 0.95 zoom
+         * + 8px slide. The `slide-in-from-*` set is what `popup-motion` reads
+         * `data-side` for, so it goes; the `position === "popper"` nudges stay,
+         * because those are the resting offset from the trigger rather than
+         * motion. */
         className={cn(
-          "relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-panel border bg-popover text-popover-foreground shadow-[var(--shadow-popover)] data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          "glass-surface popup-motion relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-panel border bg-popover text-popover-foreground shadow-[var(--shadow-popover)]",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
           className,
@@ -103,7 +115,13 @@ function SelectLabel({
   return (
     <SelectPrimitive.Label
       data-slot="select-label"
-      className={cn("px-2 py-1.5 text-xs text-muted-foreground", className)}
+      /* 11px secondary, the same as a group heading in the palette: a label
+       * over rows is the smallest type on a list surface. `text-xs` rendered
+       * at 10.5px against this app's 14px root. */
+      className={cn(
+        "px-2 py-1.5 text-[11px] leading-4 text-muted-foreground",
+        className,
+      )}
       {...props}
     />
   );
@@ -117,8 +135,12 @@ function SelectItem({
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
+      /* The palette's row language, so the app's two list surfaces read alike:
+       * `--radius-control` corners and 13px type, not the kit's 3.5px and
+       * 10.5px. `pr-8`/`pl-2` are physical because the check indicator they
+       * clear is pinned with `right-2`; both stay as found. */
       className={cn(
-        "relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "relative flex w-full cursor-default items-center gap-2 rounded-control py-1.5 pr-8 pl-2 text-[13px] outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className,
       )}
       {...props}

@@ -29,8 +29,18 @@ function PopoverContent({
         data-slot="popover-content"
         align={align}
         sideOffset={sideOffset}
+        /* A menu is chrome, so it takes the frost: `glass-surface` under
+         * Glass, `--color-popover` (--surface-raised) under Solid, radius
+         * --radius-panel and one soft --shadow-popover either way.
+         *
+         * `popup-motion` (styles/popups.css) replaces the kit's fade + 0.95
+         * zoom + 8px slide with the app's one popup shape: 180ms --ease-out
+         * from --popup-enter-scale and --popup-enter-travel toward the anchor,
+         * 120ms --ease-in-out out, no travel on the way out. The kit's
+         * `slide-in-from-*` set is what the shared class reads `data-side` for,
+         * so those four go with it. */
         className={cn(
-          "z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-panel border bg-popover p-4 text-popover-foreground shadow-[var(--shadow-popover)] outline-hidden data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          "glass-surface popup-motion z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-panel border bg-popover p-4 text-popover-foreground shadow-[var(--shadow-popover)] outline-hidden",
           className,
         )}
         {...props}
