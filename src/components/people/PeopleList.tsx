@@ -87,7 +87,7 @@ const PersonRow: React.FC<{
           {entry.person.organization === null ? null : (
             <span
               data-slot="person-organization"
-              className="flex-none text-[10px] leading-4 text-gray-700"
+              className="flex-none text-[11px] leading-4 text-gray-800"
             >
               {entry.person.organization}
             </span>

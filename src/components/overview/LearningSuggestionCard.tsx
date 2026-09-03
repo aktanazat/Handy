@@ -90,14 +90,14 @@ export const LearningSuggestionCardView: React.FC<
                 {entry.evidence.examples.map((example) => (
                   <li
                     key={example}
-                    className="truncate text-[11px] text-gray-700 italic"
+                    className="truncate text-[11px] text-gray-800 italic"
                   >
                     {t("learningV2.feed.example", { text: example })}
                   </li>
                 ))}
               </ul>
             )}
-            <p className="text-[11px] text-gray-700 tabular-nums">
+            <p className="text-[11px] text-gray-800 tabular-nums">
               {t("learningV2.feed.evidence", {
                 count: entry.evidence.occurrences,
                 days: entry.evidence.distinct_days,

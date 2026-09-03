@@ -23,7 +23,7 @@ const HistoryFeedState: React.FC<{
   children?: React.ReactNode;
 }> = ({ title, description, tone, icon: Icon, children }) => (
   <SettingsCard className="flex flex-col items-center gap-3 px-8 py-12 text-center">
-    {Icon ? <Icon aria-hidden="true" className="size-6 text-gray-700" /> : null}
+    {Icon ? <Icon aria-hidden="true" className="size-4 text-gray-800" /> : null}
     <p
       className={`text-[13px] leading-[19px] ${tone === "danger" ? "text-red-900" : "text-gray-1000"}`}
       role={tone === "danger" ? "alert" : undefined}

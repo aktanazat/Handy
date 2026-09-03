@@ -750,7 +750,7 @@ describe("library page chrome", () => {
      * changes the column changes both sides at once, while losing the column
      * or drawing a second one still fails here. */
     expect(occurrences(markup, PAGE_COLUMN)).toBe(1);
-    expect(markup).toContain("pt-12");
+    expect(markup).toContain("pt-8");
     expect(markup).toContain("pb-[72px]");
   });
 

@@ -102,7 +102,10 @@ export const MeetingsFilterBar: React.FC<MeetingsFilterBarProps> = ({
     <div
       role="group"
       aria-label={t("meetings.list.filters.label", "Filter meetings")}
-      className={cn(SETTINGS_CARD, "flex flex-nowrap items-center gap-4 px-4 py-2")}
+      className={cn(
+        SETTINGS_CARD,
+        "flex flex-nowrap items-center gap-4 px-4 py-2",
+      )}
     >
       <FilterSelect<MeetingStatusFilter>
         filterKey={t("meetings.list.filters.statusKey", "Status")}

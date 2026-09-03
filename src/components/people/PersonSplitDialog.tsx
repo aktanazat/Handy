@@ -215,7 +215,7 @@ export const PersonSplitDialog: React.FC<PersonSplitDialogProps> = ({
           <div className="space-y-3">
             <Microlabel>{t("people.detail.splitEvidence")}</Microlabel>
             {availableCount === 0 ? (
-              <p className="text-[13px] text-gray-700">
+              <p className="text-[13px] text-gray-800">
                 {t("people.detail.splitNoItems")}
               </p>
             ) : (
@@ -265,7 +265,7 @@ export const PersonSplitDialog: React.FC<PersonSplitDialogProps> = ({
               </>
             )}
             {!createTarget && selectedCount === 0 ? (
-              <p className="text-[12px] text-gray-700">
+              <p className="text-[12px] text-gray-800">
                 {t("people.detail.splitNothingSelected")}
               </p>
             ) : null}

@@ -79,7 +79,10 @@ export const SettingsPage: React.FC<
   <div
     className={cn(
       PAGE_COLUMN,
-      "flex flex-col gap-10 pt-12 pb-[72px]",
+      /* Section gap 28, page head 28 over the first section. `gap-10` and
+         `pt-12` were sized for a 24px page title; against a 14px one they
+         read as a hole rather than as air. */
+      "flex flex-col gap-8 pt-8 pb-[72px]",
       className,
     )}
     {...props}

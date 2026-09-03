@@ -71,7 +71,7 @@ const OverviewCardStateRow: React.FC<{
 
   if (status === "loading") {
     return (
-      <div role="status" className="px-4 py-3 text-[13px] text-gray-700">
+      <div role="status" className="px-4 py-3 text-[13px] text-gray-900">
         {t("common.loading")}
       </div>
     );

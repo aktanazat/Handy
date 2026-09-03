@@ -113,7 +113,7 @@ export const MeetingsHistory: React.FC<MeetingsHistoryProps> = ({
           <SettingsCard className="flex flex-col items-center gap-2 px-4 py-12 text-center">
             <MeetingsEmptyIcon
               aria-hidden="true"
-              className="size-6 text-gray-700"
+              className="size-4 text-gray-800"
             />
             <p className="text-[13px] text-gray-1000">
               {unfiltered
