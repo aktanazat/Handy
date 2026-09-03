@@ -247,6 +247,11 @@ pub struct DetectionInputs {
     /// True when Sona itself holds the default input device — its own dictation
     /// run or the microphone lane of its own meeting capture.
     pub self_holds_input_device: bool,
+    /// True while Sona's own microphone stream closed recently enough that
+    /// CoreAudio's device-global property may still be reporting it. Only the
+    /// ad-hoc opt-in reads this: every other path carries evidence that is not
+    /// the device reading.
+    pub self_mic_just_closed: bool,
     /// True when a Sona meeting capture is already running.
     pub capture_active: bool,
 }
@@ -402,6 +407,10 @@ pub enum SuppressReason {
     /// A meeting app is running, but the operator has not been in front of it
     /// since the microphone went active. Presence is not participation.
     AppPresentNotInUse,
+    /// The microphone Sona itself just used still reads as in use. Distinct
+    /// from `SonaHoldsInputDevice`, which is the stream being open: this is
+    /// the interval after it closed where the device has not caught up.
+    SonaMicJustClosed,
 }
 
 /// The decision table's output. Exactly one of these per evaluation.
@@ -691,11 +700,13 @@ fn ad_hoc_path(inputs: &DetectionInputs, policy: &DetectionPolicy) -> DetectionO
             display_name,
         } => browser_outcome(inputs, policy, bundle_id, display_name),
         // Case 6.
-        AppSignal::Absent => any_mic_outcome(policy, SuppressReason::UnknownMicSource),
+        AppSignal::Absent => any_mic_outcome(inputs, policy, SuppressReason::UnknownMicSource),
         // Presence is not participation: an app the operator has not touched
         // since the microphone went active explains nothing about it, so this
         // degrades to case 6's opt-in exactly as a browser's non-match does.
-        AppSignal::Present { .. } => any_mic_outcome(policy, SuppressReason::AppPresentNotInUse),
+        AppSignal::Present { .. } => {
+            any_mic_outcome(inputs, policy, SuppressReason::AppPresentNotInUse)
+        }
     }
 }
 
@@ -739,17 +750,31 @@ fn browser_outcome(
             app_name: display_name.to_string(),
         }),
         BrowserTitleEvidence::NoMatch => {
-            any_mic_outcome(policy, SuppressReason::BrowserTitleNotMeeting)
+            any_mic_outcome(inputs, policy, SuppressReason::BrowserTitleNotMeeting)
         }
         BrowserTitleEvidence::Unreadable => {
-            any_mic_outcome(policy, SuppressReason::BrowserTitleUnreadable)
+            any_mic_outcome(inputs, policy, SuppressReason::BrowserTitleUnreadable)
         }
     }
 }
 
 /// The opt-in escape hatch. Off by default because voice memos, music
 /// production, and every other audio app land here.
-fn any_mic_outcome(policy: &DetectionPolicy, reason: SuppressReason) -> DetectionOutcome {
+///
+/// This is the one outcome in the table whose entire evidence is the device
+/// reading, so it is the one the cooldown gates. A microphone Sona itself
+/// just released is not an unknown source; it is a known one the property has
+/// not caught up with. Every other arm above got here with something else to
+/// go on — an event, an app in use, a matched tab, an output device — and
+/// decides on that.
+fn any_mic_outcome(
+    inputs: &DetectionInputs,
+    policy: &DetectionPolicy,
+    reason: SuppressReason,
+) -> DetectionOutcome {
+    if inputs.self_mic_just_closed {
+        return DetectionOutcome::Suppress(SuppressReason::SonaMicJustClosed);
+    }
     if policy.any_mic_activity {
         return DetectionOutcome::Prompt(PromptKind::UnknownMicSource);
     }
@@ -1023,6 +1048,7 @@ mod tests {
             standing_app_consent: false,
             recent_capture: None,
             self_holds_input_device: false,
+            self_mic_just_closed: false,
             capture_active: false,
         }
     }
@@ -1404,6 +1430,109 @@ mod tests {
         assert_eq!(
             outcome,
             DetectionOutcome::Prompt(PromptKind::UnknownMicSource)
+        );
+    }
+
+    /* The bug the cooldown exists for. The operator dictates with a shortcut,
+     * lets go, and the stream closes; CoreAudio's device-global property has
+     * not caught up, so the microphone still reads as in use with nothing to
+     * explain it. On the opt-in path that was a "microphone activity
+     * detected" prompt for Sona's own dictation. */
+    #[test]
+    fn a_dictation_that_just_ended_does_not_prompt_for_its_own_microphone() {
+        let just_stopped = DetectionInputs {
+            mic: MicSignal::Active,
+            self_mic_just_closed: true,
+            ..inputs()
+        };
+
+        assert_eq!(
+            evaluate(
+                &just_stopped,
+                &DetectionPolicy {
+                    any_mic_activity: true,
+                    ..DetectionPolicy::default()
+                }
+            ),
+            DetectionOutcome::Suppress(SuppressReason::SonaMicJustClosed)
+        );
+    }
+
+    /* The cooldown silences one path: the opt-in escape hatch, whose only
+     * evidence is the device reading it can no longer trust. Everything with
+     * evidence of its own decides on that evidence, cooldown or not. */
+    #[test]
+    fn the_cooldown_leaves_every_path_that_has_its_own_evidence_alone() {
+        let cooling = DetectionInputs {
+            mic: MicSignal::Active,
+            self_mic_just_closed: true,
+            ..inputs()
+        };
+        let policy = DetectionPolicy {
+            any_mic_activity: true,
+            ..calendar_policy()
+        };
+
+        assert_eq!(
+            evaluate(
+                &DetectionInputs {
+                    calendar: CalendarSignal::Started { event: event(3) },
+                    ..cooling.clone()
+                },
+                &policy
+            ),
+            DetectionOutcome::Prompt(PromptKind::CalendarEvent {
+                event_key: "event-1".to_string(),
+                event_title: "Quarterly planning".to_string(),
+            }),
+            "a scheduled event is evidence the device reading is not"
+        );
+
+        assert_eq!(
+            evaluate(
+                &DetectionInputs {
+                    app: zoom(),
+                    ..cooling.clone()
+                },
+                &policy
+            ),
+            DetectionOutcome::Prompt(PromptKind::AppMeeting {
+                bundle_id: "us.zoom.xos".to_string(),
+                app_name: "Zoom".to_string(),
+            }),
+            "a meeting app the operator is using explains the microphone"
+        );
+
+        assert_eq!(
+            evaluate(
+                &DetectionInputs {
+                    call: facetime(true),
+                    output: OutputSignal::Active,
+                    ..cooling.clone()
+                },
+                &policy
+            ),
+            DetectionOutcome::Prompt(PromptKind::AppCall {
+                bundle_id: "com.apple.facetime".to_string(),
+                app_name: "FaceTime".to_string(),
+            }),
+            "a call carries the output device, which Sona's capture never raises"
+        );
+
+        assert_eq!(
+            evaluate(
+                &DetectionInputs {
+                    app: chrome(),
+                    browser_title: BrowserTitleEvidence::MeetingMatch,
+                    ..cooling
+                },
+                &policy
+            ),
+            DetectionOutcome::Prompt(PromptKind::BrowserCall {
+                bundle_id: "com.google.chrome".to_string(),
+                app_name: "Chrome".to_string(),
+            }),
+            "a matched tab title names the call on screen"
         );
     }
 

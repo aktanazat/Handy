@@ -2438,7 +2438,8 @@
         "unknownApp": "Something is using the microphone, but it is not a known meeting app.",
         "browserUnreadable": "A browser is in front, but its tab title cannot be read.",
         "browserNotMeeting": "A browser is in front and its tab is not a call.",
-        "appPresentNotInUse": "A meeting app is open, but you have not switched to it since the microphone came on."
+        "appPresentNotInUse": "A meeting app is open, but you have not switched to it since the microphone came on.",
+        "sonaMicJustClosed": "The microphone Sona itself just used still reads as in use, so nothing else can be identified yet."
       }
     },
     "preview": {

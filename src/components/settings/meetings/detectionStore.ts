@@ -45,7 +45,8 @@ export type DetectionSuppressReason =
   | "unknown_mic_source"
   | "browser_title_unreadable"
   | "browser_title_not_meeting"
-  | "app_present_not_in_use";
+  | "app_present_not_in_use"
+  | "sona_mic_just_closed";
 
 export type DetectionStopTrigger =
   | "sleep_boundary"

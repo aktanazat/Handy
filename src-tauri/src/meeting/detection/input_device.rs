@@ -31,7 +31,8 @@
 //! the level means.
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
 use super::machine::{MicSignal, OutputSignal};
 
@@ -395,6 +396,29 @@ mod macos {
     }
 }
 
+/// How long after Sona's own stream closes the input device still reads as
+/// Sona's.
+///
+/// `kAudioDevicePropertyDeviceIsRunningSomewhere` is a device-global aggregate
+/// CoreAudio recomputes after a client tears its stream down, and Apple
+/// documents neither when that lands nor when the property listener fires for
+/// it. So the instant `close()` returns is not the instant the device reads
+/// idle, and the interval between them is where an ad-hoc prompt for Sona's
+/// own microphone comes from. The lease covers the stream; this covers the
+/// property's tail.
+///
+/// Twenty seconds is chosen from what being wrong costs, not from a measured
+/// lag: the lag is a property of CoreAudio's bookkeeping and is not observable
+/// from inside this process. It is three orders of magnitude past the stream
+/// teardown this codebase has measured (130-170 ms, see
+/// `STREAM_IDLE_TIMEOUT`), so it is not a race with the close itself. What
+/// bounds it above is the single path it silences: the opt-in
+/// `any_mic_activity` escape hatch, which by construction has no evidence of
+/// its own. Being wrong here withholds one prompt about a microphone nothing
+/// could identify anyway, for twenty seconds, and manual start is unaffected.
+/// Being wrong the other way is the bug this exists to fix.
+pub const SELF_MIC_COOLDOWN: Duration = Duration::from_secs(20);
+
 /// Tracks whether Sona itself is the process holding the input device, which the
 /// decision table needs in order to discount its own microphone.
 ///
@@ -409,6 +433,9 @@ mod macos {
 #[derive(Debug, Default)]
 pub struct SelfInputDeviceLease {
     held: AtomicBool,
+    /// When the last holder let go, for [`SELF_MIC_COOLDOWN`]. `None` until
+    /// Sona has held the device once in this process.
+    released_at: Mutex<Option<Instant>>,
     wakeup: OnceLock<Arc<super::Wakeup>>,
 }
 
@@ -428,6 +455,7 @@ impl SelfInputDeviceLease {
         if !self.held.swap(false, Ordering::AcqRel) {
             return;
         }
+        *self.lock() = Some(Instant::now());
         if let Some(wakeup) = self.wakeup.get() {
             wakeup.wake();
         }
@@ -435,6 +463,19 @@ impl SelfInputDeviceLease {
 
     pub fn is_held(&self) -> bool {
         self.held.load(Ordering::Acquire)
+    }
+
+    /// True while the device may still be reporting a stream Sona has already
+    /// closed. Read beside `is_held`: together they answer "is this reading
+    /// Sona's" for the live case and the just-closed case.
+    pub fn released_within(&self, cooldown: Duration) -> bool {
+        self.lock().is_some_and(|at| at.elapsed() < cooldown)
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<'_, Option<Instant>> {
+        self.released_at
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     /// Registers the decision loop's wakeup.
@@ -458,6 +499,24 @@ mod tests {
         let lease = SelfInputDeviceLease::default();
 
         assert!(!lease.is_held());
+    }
+
+    /// The cooldown is measured from the close, and a process that has never
+    /// opened the microphone has nothing to cool down from. Detection would
+    /// otherwise suppress its own ad-hoc path from launch.
+    #[test]
+    fn the_cooldown_starts_at_the_release_and_not_before_it() {
+        let lease = SelfInputDeviceLease::default();
+
+        assert!(!lease.released_within(SELF_MIC_COOLDOWN));
+
+        lease.acquire();
+        lease.release();
+        assert!(lease.released_within(SELF_MIC_COOLDOWN));
+        assert!(
+            !lease.released_within(Duration::ZERO),
+            "no cooldown window means no cooldown"
+        );
     }
 
     /// The stream is the one holder, and `set_stream_open` only calls these on

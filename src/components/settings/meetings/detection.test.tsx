@@ -250,6 +250,7 @@ describe("english catalogue", () => {
     "meetings.detection.why.browserUnreadable",
     "meetings.detection.why.browserNotMeeting",
     "meetings.detection.why.appPresentNotInUse",
+    "meetings.detection.why.sonaMicJustClosed",
     "meetings.detection.calendar.refusedLabel",
     "meetings.detection.calendar.refused",
     "meetings.detection.calendar.openSettings",
@@ -274,6 +275,7 @@ describe("english catalogue", () => {
       "browserUnreadable",
       "browserNotMeeting",
       "appPresentNotInUse",
+      "sonaMicJustClosed",
     ];
 
     expect(Object.keys(catalogue.meetings.detection.why).sort()).toEqual(

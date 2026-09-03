@@ -59,7 +59,10 @@ use crate::settings::AppSettings;
 
 use apps::{BrowserTitleReader, RunningApp, RunningAppsSource};
 use calendar::{CalendarAccess, CalendarSource};
-use input_device::{InputDeviceLevel, InputDeviceObserver, InputDeviceState, SelfInputDeviceLease};
+use input_device::{
+    InputDeviceLevel, InputDeviceObserver, InputDeviceState, SelfInputDeviceLease,
+    SELF_MIC_COOLDOWN,
+};
 use machine::{
     evaluate, evaluate_stop, CalendarEventSummary, CalendarSignal, DetectionInputs,
     DetectionOutcome, DetectionPolicy, MicSignal, OutputSignal, PromptKind, RecentCapture,
@@ -843,6 +846,10 @@ impl DetectionRuntime {
         let mic = self.input.mic_signal();
         let output = self.input.output_signal();
         let sona_holds = self.self_lease.is_held();
+        // The device may still be reporting a stream Sona already closed. Read
+        // once here so the decision table and the retraction rules cannot
+        // disagree about it inside one tick.
+        let sona_mic_cooling = self.self_lease.released_within(SELF_MIC_COOLDOWN);
 
         // The calendar query only runs when the sub-toggle is on, so an operator
         // who never enabled it pays nothing and is never prompted for access.
@@ -918,7 +925,13 @@ impl DetectionRuntime {
         // precisely on the idle path — as is
         // `input_device_reporting_suspect`, which is derived from it and was
         // therefore never able to fire here either.
-        self.retract_stale_prompts(now_utc_ms, &running, mic, call_evidence, sona_holds);
+        self.retract_stale_prompts(
+            now_utc_ms,
+            &running,
+            mic,
+            call_evidence,
+            sona_holds || sona_mic_cooling,
+        );
 
         let inert = mic == MicSignal::Idle && calendar == CalendarSignal::Absent && !call_live;
         if inert && tracked.is_none() {
@@ -1007,6 +1020,7 @@ impl DetectionRuntime {
             standing_app_consent,
             recent_capture: self.lock().recent.clone(),
             self_holds_input_device: sona_holds,
+            self_mic_just_closed: sona_mic_cooling,
             capture_active: active.is_some(),
         };
 

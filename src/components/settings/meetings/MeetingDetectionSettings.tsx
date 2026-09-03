@@ -49,6 +49,10 @@ const SUPPRESS_REASON_COPY = {
     "meetings.detection.why.appPresentNotInUse",
     "A meeting app is open, but you have not switched to it since the microphone came on.",
   ],
+  sona_mic_just_closed: [
+    "meetings.detection.why.sonaMicJustClosed",
+    "The microphone Sona itself just used still reads as in use, so nothing else can be identified yet.",
+  ],
 } satisfies Record<DetectionSuppressReason, [string, string]>;
 
 /* The one sentence the status line says for a suppressed tick. Exported as a
