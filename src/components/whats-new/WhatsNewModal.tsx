@@ -46,6 +46,12 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({
        * The close button's accessible name comes from the primitive, which
        * reads the same `common.close` string this modal used to pass in. */}
       <DialogContent
+        /* The other modal that asks for the frost. A release note is prose all
+         * the way down — headings, paragraphs, a list, sometimes a screenshot
+         * — so there is nothing on it whose reading a translucent backdrop
+         * would contest. Modals are solid by default; see `material` in
+         * vg/dialog. */
+        material="glass"
         aria-describedby={undefined}
         onOpenAutoFocus={() => {
           focusReturnRef.current =

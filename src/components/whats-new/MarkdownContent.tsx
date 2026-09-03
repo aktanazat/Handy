@@ -51,38 +51,51 @@ const isSafeImageSrc = (src: string) => {
   return true;
 };
 
+/* Every colour here comes from the warm gray ramp rather than from the ink at
+ * an alpha. Two reasons, and the second is the one that forced it: an alpha on
+ * `text-text` is a second vocabulary beside `--gray-900`, so one "quiet body
+ * copy" decision was expressed two ways in one app; and on the frosted dialog
+ * this modal now sits in, an alpha composites the ink over a translucent
+ * tint, which lets the desktop behind the window show through the letters
+ * themselves. Every step of the ramp is opaque.
+ *
+ * Sizes follow theme.css's ladder: a heading is 13-14 semibold, body is 13,
+ * code and notes are 12. The kit's `text-base`/`text-[15px]` pair put release
+ * notes a step above the type on every other page in the app. */
 const components: Components = {
   h1: ({ children }) => (
-    <h3 className="text-base font-semibold leading-snug text-text">
+    <h3 className="text-[14px] leading-5 font-semibold text-gray-1000">
       {children}
     </h3>
   ),
   h2: ({ children }) => (
-    <h3 className="text-[15px] font-semibold leading-snug text-text">
+    <h3 className="text-[13px] leading-5 font-semibold text-gray-1000">
       {children}
     </h3>
   ),
   h3: ({ children }) => (
-    <h3 className="text-sm font-semibold leading-snug text-text">{children}</h3>
+    <h3 className="text-[13px] leading-5 font-medium text-gray-1000">
+      {children}
+    </h3>
   ),
   p: ({ children }) => (
-    <p className="text-sm leading-relaxed text-text/80">{children}</p>
+    <p className="text-[13px] leading-5 text-gray-900">{children}</p>
   ),
   ul: ({ children }) => (
-    <ul className="list-disc space-y-1 ps-5 text-sm leading-relaxed text-text/80">
+    <ul className="list-disc space-y-1 ps-5 text-[13px] leading-5 text-gray-900">
       {children}
     </ul>
   ),
   li: ({ children }) => (
-    <li className="pl-1 marker:text-text/50">{children}</li>
+    <li className="ps-1 marker:text-gray-800">{children}</li>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal space-y-1 ps-5 text-sm leading-relaxed text-text/80">
+    <ol className="list-decimal space-y-1 ps-5 text-[13px] leading-5 text-gray-900">
       {children}
     </ol>
   ),
   br: () => <br />,
-  hr: () => <hr className="border-mid-gray/20" />,
+  hr: () => <hr className="border-gray-alpha-400" />,
   img: ({ alt, src }) => {
     /* SAFETY: React 19 widened an <img>'s `src` prop to `string | Blob`, but
      * react-markdown builds these nodes from a parsed document, and a text
@@ -91,17 +104,20 @@ const components: Components = {
     if (!url || !isSafeImageSrc(url)) return null;
 
     return (
+      /* The inset hairline is what gives a screenshot an edge on a surface
+       * whose own colour it may share. Inset rather than a border, so it costs
+       * no layout. */
       <img
         src={url}
         alt={alt ?? ""}
         loading="lazy"
         decoding="async"
-        className="mx-auto block max-h-72 max-w-full object-contain"
+        className="mx-auto block max-h-72 max-w-full rounded-card object-contain ring-1 ring-gray-alpha-400 ring-inset"
       />
     );
   },
   blockquote: ({ children }) => (
-    <blockquote className="border-s-2 border-logo-primary/50 ps-3 text-sm leading-relaxed text-text/70">
+    <blockquote className="border-s border-gray-alpha-500 ps-3 text-[13px] leading-5 text-gray-900">
       {children}
     </blockquote>
   ),
@@ -109,17 +125,19 @@ const components: Components = {
     const isBlock = className?.startsWith("language-");
 
     if (isBlock) {
-      return <code className="block whitespace-pre text-xs">{children}</code>;
+      return (
+        <code className="block text-[12px] whitespace-pre">{children}</code>
+      );
     }
 
     return (
-      <code className="rounded bg-mid-gray/10 px-1 py-0.5 text-[0.85em]">
+      <code className="rounded-xs bg-gray-alpha-200 px-1 py-0.5 text-[0.9em]">
         {children}
       </code>
     );
   },
   pre: ({ children }) => (
-    <pre className="overflow-x-auto rounded-md bg-mid-gray/10 p-3 text-xs leading-relaxed text-text/80">
+    <pre className="overflow-x-auto rounded-control bg-gray-alpha-100 p-3 text-[12px] leading-5 text-gray-900">
       {children}
     </pre>
   ),
@@ -129,6 +147,9 @@ const components: Components = {
     }
 
     return (
+      /* The app's one link treatment (see chat/ChatTurns.tsx): ink type with a
+       * quiet underline that firms up on hover, rather than a coloured link.
+       * The bronze accent is scarce and spent on actions. */
       <a
         href={href}
         rel="noreferrer"
@@ -136,7 +157,7 @@ const components: Components = {
           event.preventDefault();
           void openSafeUrl(href);
         }}
-        className="text-logo-primary underline decoration-logo-primary/40 underline-offset-2 hover:decoration-logo-primary"
+        className="text-gray-1000 underline decoration-gray-alpha-600 underline-offset-2 hover:decoration-gray-1000"
       >
         {children}
       </a>

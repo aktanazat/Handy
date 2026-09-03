@@ -102,20 +102,29 @@ export interface CommandPaletteProps {
   onAsk: () => void;
 }
 
-/* One row of the list, and one heading over a set of them. Both were spelled
- * out four and three times respectively; they are one string each now, because
- * a row that reads differently in the actions section than in the results
- * section is the shape this surface keeps regressing into.
+/* One row of the list, one heading over a set of them, and the icon a row
+ * carries. The first two were spelled out four and three times respectively;
+ * they are one string each now, because a row that reads differently in the
+ * actions section than in the results section is the shape this surface keeps
+ * regressing into.
  *
  * The icon is sized to the cap height of the 13px row rather than to the
  * text's em box: at `size-4` it drew a 14px glyph beside a 9px capital, which
  * is the "icon larger than the thing it labels" tell. 11px is that cap height,
  * and lucide's 24-unit viewBox insets its ink, so the drawn mark lands just
  * under the capitals — a monochrome mark beside the words, the way the
- * reference panel does it. The muted tier comes from the kit's own
- * `[&_svg:not([class*='text-'])]` rule, so only the size is stated here. */
+ * reference panel does it.
+ *
+ * It has to go on the element, not on the row as a descendant variant. The
+ * kit's own `[&_svg:not([class*='size-'])]:size-4` is a more specific selector
+ * than `[&_svg]`, so a size stated on the row loses to it and the glyph stays
+ * 14px — measured. Naming a `size-` class on the icon is what excludes that
+ * rule, which is exactly what its `:not` is an escape hatch for. The muted
+ * tier still comes from the kit's matching `[class*='text-']` rule. */
 const ROW =
-  "min-h-9 gap-2.5 rounded-md px-2 py-2 text-[13px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300 [&_svg]:size-[11px]";
+  "min-h-9 gap-2.5 rounded-md px-2 py-2 text-[13px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300";
+
+const ROW_ICON = "size-[11px]";
 
 /* 11px, secondary, sentence case: a heading over rows is the smallest type on
  * the surface, not a second row. It shipped at the rows' own 13px, which made
@@ -149,7 +158,7 @@ const ResultRow: React.FC<ResultRowProps> = ({
     onSelect={onSelect}
     className={cn(ROW, "items-start")}
   >
-    <RowIcon aria-hidden="true" className="mt-[3px]" />
+    <RowIcon aria-hidden="true" className={cn(ROW_ICON, "mt-[3px]")} />
     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
       <span className="truncate">{row.title}</span>
       {row.snippet !== "" && (
@@ -345,20 +354,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
+        /* One of the two modals that asks for the frost. The palette is
+           chrome: a list of destinations and one field, no measured data on it
+           anywhere, and styles/primitives.css names it by hand as the surface
+           that opts in. Modals are solid by default; see `material` there. */
+        material="glass"
         /* Sits high rather than centred — a palette is read against the top of
            the window, not its middle — so the kit's vertical centring is
            replaced outright instead of offset.
 
            A floating panel, not a modal sheet: `--radius-panel` and the glass
-           shadow, over the dialog's own 18px and `--shadow-dialog`. Under
-           Glass the material rule in styles/primitives.css replaces the fill
-           with `--glass-tint` and adds the specular line above this same
-           shadow, so the lift is one soft shadow in either material; under
-           Solid the panel is `--surface-raised`, which is the step a floating
-           object takes over the page it floats on. `bg-background-100` was the
-           page's own colour, so the panel read as a hole in the window rather
-           than as a card over it. */
-        className="glass-surface top-[max(12vh,64px)] translate-y-0 gap-0 overflow-hidden rounded-panel border border-gray-alpha-400 bg-surface-raised p-0 shadow-[var(--glass-shadow)] sm:max-w-[560px]"
+           shadow, over the dialog's own 18px and `--shadow-dialog`. */
+        className="top-[max(12vh,64px)] translate-y-0 gap-0 overflow-hidden rounded-panel border-gray-alpha-400 bg-surface-raised p-0 shadow-[var(--glass-shadow)] sm:max-w-[560px]"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>{t("commandPalette.open")}</DialogTitle>
@@ -434,7 +441,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                          where they belong — group headings and the icons. */
                       className={ROW}
                     >
-                      <ActionIcon aria-hidden="true" />
+                      <ActionIcon aria-hidden="true" className={ROW_ICON} />
                       <span className="min-w-0 truncate">{action.label}</span>
                     </CommandItem>
                   );
@@ -458,7 +465,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onSelect={() => run(prompt)}
                     className={ROW}
                   >
-                    <Sparkles aria-hidden="true" />
+                    <Sparkles aria-hidden="true" className={ROW_ICON} />
                     <span className="min-w-0 truncate">{prompt.name}</span>
                   </CommandItem>
                 ))}
@@ -485,7 +492,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             {asking && (
               <CommandGroup className="p-1.5">
                 <CommandItem value={ASK_VALUE} onSelect={ask} className={ROW}>
-                  <MessageSquare aria-hidden="true" />
+                  <MessageSquare aria-hidden="true" className={ROW_ICON} />
                   <span className="min-w-0 truncate">
                     {t("chat.ask.row", { query: query.trim() })}
                   </span>
