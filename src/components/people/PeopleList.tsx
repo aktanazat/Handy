@@ -99,7 +99,7 @@ const PersonRow: React.FC<{
           </span>
           {lastMeeting === null ? null : (
             <>
-              <span aria-hidden="true" className="text-gray-700">
+              <span aria-hidden="true" className="text-gray-800">
                 ·
               </span>
               <span>
