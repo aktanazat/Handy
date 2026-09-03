@@ -343,9 +343,34 @@ pub fn apply_text_replacements(text: &str, rules: &[ReplacementRule]) -> String 
 }
 
 /// Applies exact phrase replacements while respecting Unicode token boundaries.
-/// This intentionally never performs fuzzy matching or case normalization.
+///
+/// Matching folds case, exactly as [`apply_text_replacements`] and
+/// [`crate::snippets::apply_snippets`] do, and for the same reason: the stored
+/// phrase is a *spoken* form, so the recognizer decides its case and the user
+/// cannot. A byte-exact match made that decision load-bearing — the settings
+/// UI offers `smiley face` as its worked example, and a recognizer writes
+/// `Smiley face` at the start of a sentence, so the app's own example fired
+/// mid-sentence and stayed silent at the start of one. Measured on
+/// `say`-rendered speech through the real pipeline: `Smiley face, that is my
+/// answer.` left a `smiley face` rule unfired while the same string as a
+/// snippet trigger or a replacement rule fired.
+///
+/// Fuzzy matching stays deliberately absent. Case folding is not fuzz: it
+/// matches the phrase the user wrote and no other. Only the
+/// threshold-governed vocabulary stage may match a phrase it was not given.
 pub fn apply_emoji_replacements(text: &str, replacements: &[EmojiReplacement]) -> String {
-    if text.is_empty() || replacements.is_empty() {
+    if text.is_empty() {
+        return text.to_string();
+    }
+    let prepared: Vec<PreparedReplacement<'_>> = replacements
+        .iter()
+        .filter(|replacement| replacement.is_usable())
+        .map(|replacement| PreparedReplacement {
+            lowercase_spoken: replacement.spoken.trim().to_lowercase(),
+            written: replacement.written.as_str(),
+        })
+        .collect();
+    if prepared.is_empty() {
         return text.to_string();
     }
 
@@ -356,27 +381,24 @@ pub fn apply_emoji_replacements(text: &str, replacements: &[EmojiReplacement]) -
         if start < cursor {
             continue;
         }
-        let mut selected: Option<&EmojiReplacement> = None;
-        for replacement in replacements
-            .iter()
-            .filter(|replacement| replacement.is_usable())
-        {
-            let end = start + replacement.spoken.len();
-            if text[start..].starts_with(&replacement.spoken)
-                && has_token_boundaries(text, start, end)
-                && selected
-                    .as_ref()
-                    .is_none_or(|current| replacement.spoken.len() > current.spoken.len())
+        let mut selected: Option<(usize, &str)> = None;
+        for replacement in &prepared {
+            let Some(length) = lowercase_prefix_len(&text[start..], &replacement.lowercase_spoken)
+            else {
+                continue;
+            };
+            let end = start + length;
+            if has_token_boundaries(text, start, end)
+                && selected.is_none_or(|(current, _)| length > current)
             {
-                selected = Some(replacement);
+                selected = Some((length, replacement.written));
             }
         }
 
-        if let Some(replacement) = selected {
-            let end = start + replacement.spoken.len();
+        if let Some((length, written)) = selected {
             result.push_str(&text[cursor..start]);
-            result.push_str(&replacement.written);
-            cursor = end;
+            result.push_str(written);
+            cursor = start + length;
         }
     }
 
@@ -970,20 +992,37 @@ pub fn apply_literal_punctuation(
 /// Filler tokens that are not lexical words in any language Sona's models can
 /// output, so removing them cannot corrupt text regardless of the (possibly
 /// unknown) output language. Kept deliberately conservative: anything that is a
-/// real word somewhere ("um" pt/de, "ha" es, "ah"/"eh" interjections, "mm"
-/// millimetres) belongs in the language-gated lists instead.
+/// real word somewhere ("um" pt/de, "ah"/"eh" interjections, "mm" millimetres)
+/// belongs in the language-gated lists instead - or, if it is also a real word
+/// in the language that would remove it, in neither list. See "ha" below.
 const UNIVERSAL_FILLER_WORDS: &[&str] = &[
     "uh", "uhm", "umm", "uhh", "uhhh", "ehh", "ehm", "ahm", "hmm", "hm", "mmm", "хм", "ммм",
 ];
 
 /// Filler words that are only safe to remove with evidence for the output
 /// language, because the same token is a real word elsewhere (e.g. Portuguese
-/// "um" = "a/an", German "um" = "at/around", Spanish "ha" = "has").
+/// "um" = "a/an", German "um" = "at/around").
+///
+/// Language evidence guards a token against *other* languages and cannot guard
+/// it against its own. "ha" was here until it was caught deleting a word from
+/// English: it is the first syllable of Ha Long, Ha Noi and Hanoi, and it is
+/// how laughter transcribes, so `say "Ha Long Bay is beautiful"` came back as
+/// "Long Bay is beautiful". Nothing was gained by carrying it - "uh", "uhm",
+/// "um", "ah" and "eh" already cover the English hesitation it stood for. A
+/// token that collides inside its own language belongs in a custom list the
+/// user chose, not in a built-in one they never saw.
+///
+/// That said, `custom_filler_words` has no editor in the app: it exists at both
+/// the root and per mode, is `null` in both, and the only way to set it is to
+/// hand-edit `settings_store.json`. So the sentence above describes where such
+/// a token *belongs*, not a place a user can put one today. Its sibling
+/// `custom_words` has two editors built on `useVocabularyRows`, so the control
+/// this list needs already ships for vocabulary.
 fn gated_filler_words_for_language(lang: &str) -> &'static [&'static str] {
     let base_lang = lang.split(&['-', '_'][..]).next().unwrap_or(lang);
 
     match base_lang {
-        "en" => &["um", "ah", "eh", "ha"],
+        "en" => &["um", "ah", "eh"],
         "de" => &["äh", "ähm"],
         "fr" => &["euh"],
         _ => &[],
@@ -1485,6 +1524,28 @@ mod tests {
     }
 
     #[test]
+    fn test_filter_english_preserves_ha() {
+        // Deleted a real word before it left the English list: "Ha" opens Ha
+        // Long, Ha Noi and Hanoi, so a built-in filler cannot claim it.
+        let text = "Ha Long Bay is beautiful.";
+        let result = filter_transcription_output(text, "en", &None);
+        assert_eq!(
+            result, "Ha Long Bay is beautiful.",
+            "a built-in filler must not delete the first syllable of a place name"
+        );
+
+        let laughter = filter_transcription_output("ha ha very funny", "en", &None);
+        assert_eq!(
+            laughter, "ha ha very funny",
+            "laughter is text the speaker said, not hesitation"
+        );
+
+        // The hesitations it stood for still go.
+        let hesitation = filter_transcription_output("um so ah I think eh yes", "en", &None);
+        assert_eq!(hesitation, "so I think yes");
+    }
+
+    #[test]
     fn test_filter_language_code_with_region() {
         // "pt-BR" should normalize to "pt"
         let text = "um gato bonito";
@@ -1785,6 +1846,40 @@ mod tests {
         assert_eq!(
             apply_emoji_replacements("你好 smiley face。你smiley face", &replacements),
             "你好 🙂。你smiley face"
+        );
+    }
+
+    /// The settings UI prints `smiley face` as its worked example, and a
+    /// recognizer capitalizes the first word of a sentence, so a byte-exact
+    /// matcher made the shipped example fire mid-sentence and stay silent at
+    /// the start of one. Measured on `say`-rendered speech: parakeet writes
+    /// `Smiley face, that is my answer.`
+    ///
+    /// The replacement stage is asserted beside it because the two are copies
+    /// of one matcher and this is the copy that drifted. `apply_snippets` is
+    /// the third; its own module already pins the same folding.
+    #[test]
+    fn an_emoji_rule_matches_the_case_the_recognizer_chose() {
+        let spoken = "smiley face";
+        let heard = "Smiley face, that is my answer.";
+        let expected = "🙂, that is my answer.";
+
+        let emoji = vec![EmojiReplacement {
+            spoken: spoken.to_string(),
+            written: "🙂".to_string(),
+        }];
+        assert_eq!(apply_emoji_replacements(heard, &emoji), expected);
+
+        assert_eq!(
+            apply_text_replacements(heard, &[rule(spoken, "🙂")]),
+            expected
+        );
+
+        // Folding case is not fuzz: a phrase the user never wrote still misses,
+        // and a token boundary still bounds the one they did.
+        assert_eq!(
+            apply_emoji_replacements("Smiler face and xsmiley face", &emoji),
+            "Smiler face and xsmiley face"
         );
     }
     #[test]
