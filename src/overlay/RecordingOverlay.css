@@ -40,24 +40,49 @@
   --ov-wave-w: 148px;
   --ov-bar-w: 4px;
 
-  /* Spacing and motion remain local because the native overlay geometry is
-     fixed. The card reads the shared 12px radius; only the pill radius is
-     component-specific. */
+  /* Spacing stays local because the native overlay geometry is fixed. Motion
+     does not: these four were verbatim copies of theme.css's values, so a
+     change to the app's timing ladder reached every surface in the app except
+     this one. app/layout.tsx loads the shared theme into this route, so they
+     are aliases now and the duplication is gone. */
   --ov-radius-pill: 999px;
   --ov-gap-1-5: 6px;
   --ov-gap-2: 8px;
   --ov-gap-2-5: 10px;
-  --ov-duration-fast: 120ms;
-  --ov-duration-standard: 180ms;
-  --ov-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ov-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ov-duration-fast: var(--duration-fast);
+  --ov-duration-standard: var(--duration-standard);
+  --ov-ease-out: var(--ease-out);
+  --ov-ease-in-out: var(--ease-in-out);
 
-  /* The idle Glass pill uses a theme-derived tint without blur. */
-  --ov-glass-tint: color-mix(
-    in srgb,
-    var(--color-background-100) 85%,
-    transparent
-  );
+  /* ---- colour, all of it an alias.
+
+     Every rule below named a shared token at its call site before, which read
+     fine until the palette turned warm and the accent turned bronze: the one
+     hue in this window that says "it is hearing you" was still
+     --color-blue-700, the last blue on a surface whose neutrals are stone.
+     Naming the roles here is what makes the HUD follow the theme rather than
+     quote it, and it leaves one place to look when it does not.
+
+     The card is --surface-raised rather than the page's own colour: this
+     window floats over whatever is on screen, so it takes the raised step
+     every other floating object in the app takes. */
+  --ov-surface: var(--surface-raised);
+  --ov-hairline: var(--border);
+  --ov-ink: var(--text-primary);
+  --ov-ink-muted: var(--text-secondary);
+  --ov-ink-quiet: var(--text-tertiary);
+  --ov-wash-hover: var(--wash-hover);
+  --ov-wash-active: var(--wash-active);
+  --ov-speech: var(--accent);
+  --ov-error: var(--error);
+  --ov-focus: var(--focus-ring);
+
+  /* The idle Glass pill takes the theme's dense tint and no blur of its own:
+     what is behind this window is the desktop, and a backdrop-filter over an
+     unblurred desktop is a second blurring surface with nothing to sample.
+     It was a local 85% color-mix of the page colour, which is the dense tint
+     to within a percent — one name now, and it warms with the theme. */
+  --ov-glass-tint: var(--glass-tint-dense);
 }
 
 /* The measurement guard, formerly inherited from theme.css. A transition or a
@@ -124,8 +149,9 @@
  * contests exactly the reading it exists to show. Glass lives on the idle pill
  * only, where nothing measured is rendered.
  *
- * background-100 is the shared card surface and gray-alpha-400 is its hairline.
- * Width never transitions because this card stays visible while ASR runs. */
+ * --ov-surface is the card and --ov-hairline its edge, both aliases of the
+ * shared warm tokens (see the :root block). Width never transitions because
+ * this card stays visible while ASR runs. */
 .scard {
   box-sizing: border-box;
   max-inline-size: var(--ov-card-max-w);
@@ -135,8 +161,8 @@
   flex-direction: column;
   flex: none;
   transform-origin: bottom center;
-  background: var(--color-background-100);
-  border: 1px solid var(--color-gray-alpha-400);
+  background: var(--ov-surface);
+  border: 1px solid var(--ov-hairline);
   box-shadow: var(--shadow-overlay);
   animation: scard-pop var(--ov-duration-standard) var(--ov-ease-out);
 }
@@ -208,7 +234,7 @@
   font-size: 13px;
   font-weight: 400;
   line-height: 19px;
-  color: var(--color-gray-1000);
+  color: var(--ov-ink);
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* legacy Edge */
 }
@@ -222,7 +248,7 @@
   margin: auto 0 0;
 }
 .stext-cap .tentative {
-  color: var(--color-gray-900);
+  color: var(--ov-ink-muted);
 }
 .scaret {
   display: inline-block;
@@ -230,7 +256,7 @@
   height: 1.02em;
   translate: 0 3px;
   margin-left: 1px;
-  background: var(--color-blue-700);
+  background: var(--ov-speech);
   border-radius: 2px;
   animation: scaret-blink 1.05s steps(1) infinite;
 }
@@ -293,7 +319,7 @@
 .smark {
   flex: none;
   display: block;
-  color: var(--color-gray-1000);
+  color: var(--ov-ink);
 }
 
 /* The failure names its cause, in prose, in the one semantic colour that means
@@ -306,7 +332,7 @@
   font-size: 13px;
   font-weight: 500;
   line-height: 19px;
-  color: var(--color-red-900);
+  color: var(--ov-error);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -321,14 +347,17 @@
    layout property.
 
    Three appearances, one geometry, so the row never reflows:
-     arming    dim gray-800, pulsing        the stream is still opening
-     ready     gray-900, snapped to buckets audio is flowing
-     working   dim gray-800, one travelling highlight across a fixed low scale
+     arming    dim --ov-ink-quiet, pulsing        the stream is still opening
+     ready     --ov-ink-muted, snapped to buckets audio is flowing
+     working   dim --ov-ink-quiet, one travelling highlight on a fixed scale
 
-   `ready` carries the one colour event on this surface: while a reported bucket
-   is at the top of the visualiser's calibrated speech range the bars go
-   blue-700 (see .hearing). That is the whole "is it hearing me" answer, and it
-   is why nothing else in this window is allowed an accent colour.
+   `ready` carries the one colour event on this surface: while a reported
+   bucket is at the top of the visualiser's calibrated speech range the bars go
+   --ov-speech, which is the app's bronze accent (it was blue-700, the last
+   blue on a surface whose neutrals are stone). That is the whole "is it
+   hearing me" answer, and it is why nothing else in this window is allowed an
+   accent colour — the cancel button's focus ring included, which now reads
+   --ov-focus instead of sharing this hue.
 
    `working` is deliberately unlike `ready`: no bar ever leaves its fixed scale,
    so the row cannot be misread as input while the transcriber runs. Only the
@@ -357,7 +386,7 @@
   /* Ink, not accent: a meter that is always coloured has no way left to say
      "this is you talking". gray-900 is the secondary-text step, which is
      exactly the weight a resting readout wants. */
-  background: var(--color-gray-900);
+  background: var(--ov-ink-muted);
   transform-origin: center;
   transition: none;
 }
@@ -365,10 +394,10 @@
    visualiser's speech window; no transition, because the tint is derived from
    the same measurement the scale is and must snap with it. */
 .swave.hearing i {
-  background: var(--color-blue-700);
+  background: var(--ov-speech);
 }
 .swave.arming i {
-  background: var(--color-gray-800);
+  background: var(--ov-ink-quiet);
   opacity: 0.35;
   /* The pulse overrides the inline scaleY, which is the resting floor anyway. */
   animation: swave-arming 900ms var(--ov-ease-in-out) infinite;
@@ -397,7 +426,7 @@
    once per cycle. `--bar-index` is that bar's position, set by the renderer, so
    the crest travels rather than blinking in place. */
 .swave.working i {
-  background: var(--color-gray-800);
+  background: var(--ov-ink-quiet);
   /* 0.34, not a hairline: at 0.2 a 4px-wide bar renders square and the row
      reads as a row of dots. A third of full scale is unmistakably a bar and
      still nowhere near a level any speech would produce. */
@@ -443,8 +472,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-gray-800);
-  background: var(--color-background-100);
+  color: var(--ov-ink-quiet);
+  background: var(--ov-surface);
   cursor: pointer;
   opacity: 0;
   /* Invisible and unclickable: a phantom 24px hit target over the meter is
@@ -461,9 +490,16 @@
   opacity: 1;
   pointer-events: auto;
 }
+/* Longhands with --ov-focus, not the accent and not the --focus-outline
+   shorthand. Focus and speech are two different statements and were sharing
+   one hue by accident; and the shorthand keeps the width and style through
+   substitution while dropping the colour, which computes `2px solid
+   currentColor` — ink, not bronze. */
 .sx:focus-visible {
-  outline: 2px solid var(--color-blue-700);
-  outline-offset: 2px;
+  outline-width: var(--focus-ring-width);
+  outline-style: solid;
+  outline-color: var(--ov-focus);
+  outline-offset: var(--focus-ring-offset);
 }
 .sx svg {
   width: 9px;
@@ -471,12 +507,12 @@
   display: block;
 }
 .sx:hover {
-  color: var(--color-gray-1000);
-  box-shadow: inset 0 0 0 1px var(--color-gray-alpha-400);
+  color: var(--ov-ink);
+  box-shadow: inset 0 0 0 1px var(--ov-hairline);
 }
 .sx:active {
-  color: var(--color-gray-1000);
-  background: var(--color-gray-alpha-200);
+  color: var(--ov-ink);
+  background: var(--ov-wash-active);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -553,7 +589,7 @@
   background: transparent;
   border: 0;
   border-radius: var(--ov-radius-pill);
-  color: var(--color-gray-900);
+  color: var(--ov-ink-muted);
   cursor: pointer;
   font: inherit;
   padding-inline: var(--ov-gap-2);
@@ -564,15 +600,15 @@
 
 .hud-pill button:hover,
 .hud-pill:hover button {
-  color: var(--color-gray-1000);
+  color: var(--ov-ink);
 }
 
 .hud-pill button:hover {
-  background: var(--color-gray-alpha-100);
+  background: var(--ov-wash-hover);
 }
 
 .hud-pill button:active {
-  background: var(--color-gray-alpha-200);
+  background: var(--ov-wash-active);
 }
 
 /* The pill is inside a panel that never takes focus, so :focus-visible would
@@ -617,7 +653,7 @@
 
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   :root[data-material="glass"] .hud-pill:not(.hud-error) {
-    background: var(--color-background-100);
+    background: var(--ov-surface);
   }
 }
 
