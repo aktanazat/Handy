@@ -1,4 +1,47 @@
+/// Stamp the commit this binary came from, so "which Sona is this" has an
+/// answer. The version cannot say: an installed 1.1.0 bundle and a working
+/// tree eight commits ahead both call themselves 1.1.0, which is how a stale
+/// install gets exercised as if it were current. `unknown` when git is not
+/// there to ask, as in a source tarball.
+///
+/// It is the commit this build script last observed, not a claim about the
+/// tree. Everything below emits `rerun-if-changed`, which replaces cargo's
+/// default of rerunning on any package change, so a source edit alone does
+/// not re-run this — only a move of `HEAD` or a ref does. A `-dirty` marker
+/// was tried and removed for that reason: it would have gone stale in both
+/// directions and lied with confidence. The sha alone carries the story.
+///
+/// Only `sona --version` reads it. The update check keeps comparing bare
+/// `CARGO_PKG_VERSION`, which is the number releases are ordered by.
+fn emit_build_identity() {
+    let git = |args: &[&str]| {
+        std::process::Command::new("git")
+            .args(args)
+            .output()
+            .ok()
+            .filter(|out| out.status.success())
+            .map(|out| String::from_utf8_lossy(&out.stdout).trim().to_owned())
+    };
+    // `--git-path` resolves through a worktree's `.git` file, where a literal
+    // `../.git/HEAD` does not exist and the stamp would freeze at whatever
+    // the first build saw.
+    for name in ["HEAD", "refs"] {
+        if let Some(path) = git(&["rev-parse", "--git-path", name]) {
+            if std::path::Path::new(&path).exists() {
+                println!("cargo:rerun-if-changed={path}");
+            }
+        }
+    }
+    let commit = git(&["rev-parse", "--short=7", "HEAD"]).filter(|sha| !sha.is_empty());
+    println!(
+        "cargo:rustc-env=SONA_BUILD_COMMIT={}",
+        commit.as_deref().unwrap_or("unknown")
+    );
+}
+
 fn main() {
+    emit_build_identity();
+
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     build_apple_intelligence_bridge();
 

@@ -15,6 +15,12 @@ use std::path::PathBuf;
  * answer. */
 #[derive(Parser, Debug, Clone, Default)]
 #[command(name = "sona", about = "Sona — speech to text")]
+#[command(version = concat!(
+    env!("CARGO_PKG_VERSION"),
+    " (",
+    env!("SONA_BUILD_COMMIT"),
+    ")"
+))]
 #[command(group(ArgGroup::new("read").args([
     "query", "meetings", "meeting", "transcript", "loops", "people", "events",
     "upcoming", "loop_resolve",
