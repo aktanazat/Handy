@@ -2,7 +2,13 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
 import { installTauriMock } from "./support/tauri-mock";
-import { APP_SETTINGS, CAPTURE_AT_FULL_HEIGHT } from "./support/tauri-fixtures";
+import {
+  APP_SETTINGS,
+  CAPTURE_AT_FULL_HEIGHT,
+  HISTORY_ENTRIES,
+  HISTORY_RECEIPTS,
+  HISTORY_STATS,
+} from "./support/tauri-fixtures";
 
 /* The shell is Tailwind utilities on its components now, so nothing here
  * selects by class: every locator is a role or an accessible name, which is
@@ -164,6 +170,125 @@ test.describe("App shell", () => {
 
     await page.getByRole("button", { name: "Search", exact: true }).click();
     await expect(palette(page)).toBeVisible();
+  });
+
+  /* The regression that moved the chat's door into the rail.
+   *
+   * The door used to be a pill the shell mounted at `top-[7px] end-[28px]`
+   * inside the content pane. That corner is not the shell's: every page puts
+   * its own primary action at the top right of its title row, so the pill lay
+   * across whichever control the route drew there. On Library the two boxes
+   * measured 803–872 x 7–35 and 761–872 x 28–56 at the shipped window size —
+   * a 69 x 7px overlap directly on "Import audio".
+   *
+   * So this measures the rule rather than the pill: no control the shell draws
+   * may share a pixel with a control the page draws. The shell's controls are
+   * the rail's rows plus anything in `main` outside the scroll owner, which is
+   * exactly where a floating affordance would have to live to reoccupy that
+   * gutter. Read at rest and again with the page scrolled to its bottom,
+   * because a pane-level overlay collides with whatever scrolls under it. */
+  test("no shell control overlaps a page control on Library", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 900, height: 800 });
+    await installTauriMock(page, {
+      responses: {
+        get_settings: PAIRED_SETTINGS,
+        get_app_settings: PAIRED_SETTINGS,
+        history_entries: HISTORY_ENTRIES,
+        history_stats: HISTORY_STATS,
+        history_receipts: HISTORY_RECEIPTS,
+      },
+    });
+    await page.goto("/");
+    await sidebarNav(page)
+      .getByRole("button", { name: "Library", exact: true })
+      .click();
+    await expect(page.getByTestId("history-import")).toBeVisible();
+
+    const overlaps = (scrolled: boolean) =>
+      page.evaluate((toBottom: boolean) => {
+        // SAFETY: both slots are App.tsx's own rendered elements, and the
+        // caller has already waited for the route's own button inside the
+        // scroll owner.
+        const pane = document.querySelector(
+          '[data-slot="page-scroll"]',
+        ) as HTMLElement;
+        if (toBottom) pane.scrollTop = pane.scrollHeight;
+
+        /* `:is()` because a descendant prefix in front of a bare comma list
+         * only binds its first selector: `main button, input` is every input
+         * in the document. */
+        const CONTROLS =
+          ':is(button, a[href], input, select, textarea, [role="button"])';
+        const drawn = (node: Element) =>
+          node.getClientRects().length > 0 &&
+          node.getBoundingClientRect().width > 0;
+        const named = (node: Element) =>
+          node.getAttribute("data-testid") ??
+          node.getAttribute("aria-label") ??
+          ((node.textContent ?? "").trim().slice(0, 32) ||
+            node.tagName.toLowerCase());
+        const boxOf = (node: Element) => {
+          const box = node.getBoundingClientRect();
+          return {
+            what: named(node),
+            left: Math.round(box.left),
+            top: Math.round(box.top),
+            right: Math.round(box.right),
+            bottom: Math.round(box.bottom),
+          };
+        };
+
+        const railRows = Array.from(
+          document.querySelectorAll(`[data-slot="sidebar"] ${CONTROLS}`),
+        );
+        /* Anything the shell floats over the page: `main`'s own controls that
+         * are not inside the region the page scrolls in. The deleted pill was
+         * the only member this set ever had. */
+        const floating = Array.from(
+          document.querySelectorAll(`main ${CONTROLS}`),
+        ).filter((node) => node.closest('[data-slot="page-scroll"]') === null);
+        const chrome = [...railRows, ...floating].filter(drawn).map(boxOf);
+        const pageControls = Array.from(pane.querySelectorAll(CONTROLS))
+          .filter(drawn)
+          .map(boxOf);
+
+        const collisions: string[] = [];
+        for (const shellBox of chrome)
+          for (const pageBox of pageControls)
+            if (
+              shellBox.left < pageBox.right &&
+              pageBox.left < shellBox.right &&
+              shellBox.top < pageBox.bottom &&
+              pageBox.top < shellBox.bottom
+            )
+              collisions.push(
+                `shell "${shellBox.what}" (${shellBox.left}–${shellBox.right} x ${shellBox.top}–${shellBox.bottom}) covers page "${pageBox.what}" (${pageBox.left}–${pageBox.right} x ${pageBox.top}–${pageBox.bottom})`,
+              );
+
+        return {
+          chrome: chrome.length,
+          pageControls: pageControls.length,
+          scrolledTo: pane.scrollTop,
+          scrolls: pane.scrollHeight - pane.clientHeight,
+          collisions,
+        };
+      }, scrolled);
+
+    for (const scrolled of [false, true]) {
+      const report = await overlaps(scrolled);
+      test.info().annotations.push({
+        type: "boxes",
+        description: `${scrolled ? "scrolled to bottom" : "at rest"}: ${report.chrome} shell controls against ${report.pageControls} page controls, pane at ${report.scrolledTo}/${report.scrolls}px`,
+      });
+
+      // The measurement has to have measured something: the page's own primary
+      // action is in the set, and so are the rail's rows.
+      expect(report.pageControls).toBeGreaterThan(0);
+      expect(report.chrome).toBeGreaterThanOrEqual(7);
+      expect(report.collisions, report.collisions.join("\n")).toEqual([]);
+    }
   });
 });
 
@@ -606,8 +731,8 @@ test.describe("the fold at the shipped window size", () => {
    * loses a whole one of when a route hides content. */
   const measureFold = (page: Page): Promise<FoldReport> =>
     page.getByRole("main").evaluate((main) => {
-      // The Chat pill sits before the scroll owner in `main`, so the region is
-      // addressed by its slot rather than by position.
+      // The pane's drag band sits before the scroll owner in `main`, so the
+      // region is addressed by its slot rather than by position.
       // SAFETY: the slot is App.tsx's rendered <div>; evaluate types the tree
       // as bare Element, so the narrow restores what the DOM guarantees.
       const region = main.querySelector(
@@ -764,10 +889,10 @@ test.describe("the fold at the shipped window size", () => {
     await page.goto("/");
     await expect(page.getByRole("region", { name: "Activity" })).toBeVisible();
 
-    /* The pill is the way in, and it needs the pairing above to be live at
-     * all. It becomes unreachable once the column is open — the column's own
-     * close button owns the way back out — so it is pressed once and not read
-     * again. */
+    /* The rail's chat row is the way in, and it needs the pairing above to be
+     * live at all. It stays in the rail once the column is open — the column's
+     * own close button owns the way back out — so it is pressed once and not
+     * read again. */
     await page
       .getByRole("button", { name: "Chat with the Sona agent" })
       .click();

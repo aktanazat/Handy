@@ -33,8 +33,8 @@ const CHAT = 340;
 const PAGE_NARROW = WINDOW.width - RAIL_GLYPH - CHAT;
 const PAGE_WIDE = WINDOW.width - RAIL_NAMED;
 
-/* Paired, because an unpaired pill is inert on purpose: nothing would answer a
- * turn, and the reason is a tooltip rather than a column. */
+/* Paired, because an unpaired chat row is inert on purpose: nothing would
+ * answer a turn, and the reason is a tooltip rather than a column. */
 const PAIRED_SETTINGS = {
   ...APP_SETTINGS,
   agent_panel_paired: true,
@@ -122,7 +122,10 @@ const palette = (page: Page) => page.getByRole("dialog");
 const column = (page: Page) => page.locator('[data-slot="chat-sheet"]');
 const shell = (page: Page) => page.locator(".app-shell");
 const frame = (page: Page) => page.locator('[data-slot="chat-frame"]');
-const pill = (page: Page) =>
+/* The rail's chat row: found by its accessible name, which is the part of the
+ * door that is not allowed to change silently. The outgoing visual rail during
+ * travel is `aria-hidden` and `inert`, so a role query never sees its twin. */
+const chatRow = (page: Page) =>
   page.getByRole("button", { name: "Chat with the Sona agent" });
 
 const openApp = async (page: Page, extra: Record<string, JsonValue> = {}) => {
@@ -148,7 +151,7 @@ const settle = async (page: Page) => {
 };
 
 const openChat = async (page: Page) => {
-  await pill(page).click();
+  await chatRow(page).click();
   await expect(column(page)).toBeVisible();
   await settle(page);
 };
@@ -296,7 +299,7 @@ test.describe("the shell's three columns", () => {
     expect(shell.chat).toBe(0);
     expect(shell.rail + shell.pane).toBe(WINDOW.width);
     await expect(column(page)).toBeHidden();
-    await expect(pill(page)).toBeVisible();
+    await expect(chatRow(page)).toBeVisible();
   });
 
   test("open: 48 + 512 + 340, beside each other, same window", async ({
@@ -365,8 +368,8 @@ test.describe("the shell's three columns", () => {
     /* And the door is back where the press started, with focus on it: whoever
      * closed the column with its X had the element under their focus taken off
      * screen, and a keyboard reader may not be left on the body. */
-    await expect(pill(page)).toBeVisible();
-    await expect(pill(page)).toBeFocused();
+    await expect(chatRow(page)).toBeVisible();
+    await expect(chatRow(page)).toBeFocused();
   });
 });
 
@@ -409,7 +412,6 @@ test.describe("the shell's one travel", () => {
     ).toEqual(
       [
         "--shell-chat-offset",
-        "--shell-pill-opacity",
         "--shell-rail-enter-opacity",
         "--shell-rail-exit-opacity",
       ].sort(),
@@ -454,13 +456,9 @@ test.describe("the shell's one travel", () => {
       });
     });
 
-    await pill(page).click();
+    await chatRow(page).click();
     await expect(shell(page)).toHaveAttribute("data-shell-moving", "true");
     await expect(frame(page)).toHaveCSS("will-change", "transform");
-    await expect(page.locator('[data-slot="chat-pill"]')).toHaveCSS(
-      "will-change",
-      "opacity",
-    );
     await expect(page.locator('[data-slot="sidebar"]')).toHaveCSS(
       "will-change",
       "opacity",
@@ -496,7 +494,6 @@ test.describe("the shell's one travel", () => {
       )
       .toEqual([
         { property: "--shell-chat-offset", target: "shell" },
-        { property: "--shell-pill-opacity", target: "shell" },
         { property: "--shell-rail-enter-opacity", target: "shell" },
         { property: "--shell-rail-exit-opacity", target: "shell" },
       ]);
@@ -504,10 +501,6 @@ test.describe("the shell's one travel", () => {
     await settle(page);
     await expect(shell(page)).not.toHaveAttribute("data-shell-moving", "true");
     await expect(frame(page)).toHaveCSS("will-change", "auto");
-    await expect(page.locator('[data-slot="chat-pill"]')).toHaveCSS(
-      "will-change",
-      "auto",
-    );
     await expect(page.locator('[data-slot="sidebar"]')).toHaveCSS(
       "will-change",
       "auto",
@@ -539,7 +532,7 @@ test.describe("the shell's one travel", () => {
   }) => {
     await openApp(page);
 
-    await pill(page).click();
+    await chatRow(page).click();
     await expect(shell(page)).toHaveAttribute("data-shell-moving", "true");
     expect(await samplePaneWidths(page)).toEqual(
       Array.from({ length: 5 }, () => PAGE_NARROW),
@@ -591,7 +584,7 @@ test.describe("the shell's one travel", () => {
       sidebarNav(page).getByRole("button", { name: "Capture", exact: true }),
     ).toBeVisible();
 
-    await pill(page).click();
+    await chatRow(page).click();
 
     expect((await travelOf(page, ".app-shell")).properties).toBe("none");
     expect((await travelOf(page, '[data-slot="chat-frame"]')).properties).toBe(
@@ -616,17 +609,27 @@ test.describe("the shell's one travel", () => {
 });
 
 test.describe("the gestures that open and close it", () => {
-  test("the pill is the door, and only the column's X and Esc close it", async ({
+  test("the rail's row is the door, and only the column's X and Esc close it", async ({
     page,
   }) => {
     await openApp(page);
     await openChat(page);
 
-    // One control for one fold: the pill is off screen while the column is up.
-    await expect(pill(page)).toHaveCount(0);
+    /* One control for one fold. The door stays in the rail and says the column
+     * is showing, rather than vanishing from under the pointer that pressed
+     * it; what it does not become is a second closer. */
+    await expect(chatRow(page)).toHaveCount(1);
+    await expect(chatRow(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(chatRow(page)).not.toHaveAttribute("aria-current", "page");
     await expect(
       page.getByRole("button", { name: "Close chat" }),
     ).toBeVisible();
+
+    /* And pressing it again is the same request, not the opposite one: the
+     * column is still open and still 340 wide. */
+    await chatRow(page).click();
+    await settle(page);
+    expect((await measure(page)).chat).toBe(CHAT);
   });
 
   /* Opening moves focus into the column, which is what makes Escape reach it at
@@ -645,7 +648,7 @@ test.describe("the gestures that open and close it", () => {
     await settle(page);
 
     expect((await measure(page)).chat).toBe(0);
-    await expect(pill(page)).toBeVisible();
+    await expect(chatRow(page)).toBeVisible();
   });
 
   /* The palette's own way in. It is the same fold: a second surface that opened
