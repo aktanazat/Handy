@@ -819,6 +819,18 @@ fn resolve_consent_panel_material(
     AppearanceMaterial::Solid
 }
 
+/// True while macOS Reduce Transparency is on.
+///
+/// WebKit does not implement `prefers-reduced-transparency`, so the webview
+/// cannot answer this and the CSS fallback in primitives.css never fires. The
+/// setting is read here, where the vibrancy view is applied, and the answer is
+/// Solid: the accessibility preference outranks the appearance intent.
+#[cfg(target_os = "macos")]
+fn reduce_transparency() -> bool {
+    use objc2_app_kit::NSWorkspace;
+    NSWorkspace::sharedWorkspace().accessibilityDisplayShouldReduceTransparency()
+}
+
 #[cfg(target_os = "macos")]
 fn resolve_window_material(app: &AppHandle, material: AppearanceMaterial) -> AppearanceMaterial {
     use window_vibrancy::{
@@ -827,6 +839,11 @@ fn resolve_window_material(app: &AppHandle, material: AppearanceMaterial) -> App
 
     let Some(window) = app.get_webview_window("main") else {
         return AppearanceMaterial::Solid;
+    };
+    let material = if reduce_transparency() {
+        AppearanceMaterial::Solid
+    } else {
+        material
     };
     match material {
         AppearanceMaterial::Solid => {

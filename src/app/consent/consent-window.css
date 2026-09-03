@@ -59,13 +59,17 @@ body > #root {
 }
 
 /* The kit's controls draw a 3px translucent ring on focus. In this window they
-   take the shell's outline (base.css) instead, so focus reads the same as in
-   the main window. Unlayered on purpose: layer order beats the utilities'
-   ring without a specificity contest. */
+   take the shell's outline instead, so focus reads the same as in the main
+   window. Unlayered on purpose: layer order beats the utilities' ring without
+   a specificity contest. Longhands for the reason base.css names: the
+   `outline` shorthand carries width and style through a var substitution and
+   drops the colour, which painted the ring in the control's own ink. */
 .consent-card :is(button, [role="checkbox"]):focus-visible {
   box-shadow: none;
-  outline: var(--focus-outline);
-  outline-offset: var(--focus-offset);
+  outline-width: var(--focus-ring-width);
+  outline-style: solid;
+  outline-color: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 @media (prefers-reduced-motion: reduce) {

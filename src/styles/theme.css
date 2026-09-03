@@ -240,14 +240,15 @@
    * gets R - P, so the two curves stay parallel. */
   --radius-in-control: calc(var(--radius-control) - var(--space-1));
 
-  /* -- focus. A real outline in the accent, not a box-shadow glow.
-     --focus-outline goes on standalone controls; --focus-ring-inset goes on
-     rows, cells and segments inside a dense list, where an outset outline
-     would collide with the neighbouring row's divider. */
+  /* -- focus. A real outline in the accent, not a box-shadow glow. The width,
+     style and colour are named one at a time by every consumer: an `outline`
+     shorthand built from a var carries the width and style and drops the
+     colour, which is how the whole app spent a release painting its focus
+     ring in the control's own ink. --focus-ring-inset goes on rows, cells and
+     segments inside a dense list, where an outset outline would collide with
+     the neighbouring row's divider. */
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
-  --focus-outline: var(--focus-ring-width) solid var(--focus-ring);
-  --focus-offset: var(--focus-ring-offset);
   --focus-ring-inset: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--focus-ring);
 
   /* Dividers and object outlines share the approved one-pixel hairline. */
