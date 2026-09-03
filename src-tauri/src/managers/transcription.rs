@@ -3173,8 +3173,49 @@ fn post_process_transcription_text(
     supported_languages: &[String],
 ) -> String {
     fail_open_text_transform(raw, |raw| {
-        let corrected = apply_literal_punctuation(
+        // Filler removal runs first, on the recogniser's own words, because
+        // every later pass *authors* text: a replacement's written form, a
+        // snippet expansion, a vocabulary correction. Rescanning that output
+        // for fillers deletes spans the user never spoke. Measured on stock
+        // settings, with this pass at the tail: `Ha Long Bay is beautiful.`
+        // became `Long Bay is beautiful.` (`ha` is a built-in English filler),
+        // and a replacement whose written form is `Ha Long Bay` lost the same
+        // word. It also destroyed dictated punctuation — `a um comma b` became
+        // `a b`, because literal punctuation had already produced `a um, b` and
+        // the filler match took the comma with the word. From here the pass
+        // sees `um` and `comma` as the two separate tokens the user spoke.
+        //
+        // Nothing it needs is produced by the pipeline. `output_language` and
+        // `supported_languages` are both the caller's, resolved by
+        // `resolve_output_language_evidence` before any text pass runs, so the
+        // `Unknown` text-detection fallback moves here intact — and reads
+        // better evidence than it did at the tail, where snippets and emoji
+        // rules had already rewritten its sample. The upgrade stays local to
+        // this pass: the passes below keep the caller's evidence exactly as
+        // they had it.
+        let filler_language = match output_language {
+            OutputLanguageEvidence::Unknown
+                if asr.filler_word_removal_enabled && asr.custom_filler_words.is_none() =>
+            {
+                match detect_output_language(&raw, supported_languages) {
+                    Some(language) => {
+                        debug!("Text-based language detection resolved '{}'", language);
+                        OutputLanguageEvidence::TextDetected(language)
+                    }
+                    None => OutputLanguageEvidence::Unknown,
+                }
+            }
+            other => other.clone(),
+        };
+        let corrected = remove_filler_words(
             &raw,
+            &filler_language,
+            &asr.custom_filler_words,
+            asr.filler_word_removal_enabled,
+        );
+
+        let corrected = apply_literal_punctuation(
+            &corrected,
             output_language,
             asr.literal_punctuation,
             &asr.custom_words,
@@ -3215,30 +3256,7 @@ fn post_process_transcription_text(
         } else {
             corrected
         };
-
-        let output_language = match output_language {
-            OutputLanguageEvidence::Unknown
-                if asr.filler_word_removal_enabled && asr.custom_filler_words.is_none() =>
-            {
-                match detect_output_language(&corrected, supported_languages) {
-                    Some(language) => {
-                        debug!("Text-based language detection resolved '{}'", language);
-                        OutputLanguageEvidence::TextDetected(language)
-                    }
-                    None => OutputLanguageEvidence::Unknown,
-                }
-            }
-            other => other.clone(),
-        };
-
-        let without_fillers = remove_filler_words(
-            &corrected,
-            &output_language,
-            &asr.custom_filler_words,
-            asr.filler_word_removal_enabled,
-        );
-
-        normalize_transcription_output(&without_fillers)
+        normalize_transcription_output(&corrected)
     })
 }
 
@@ -4719,6 +4737,67 @@ mod tests {
             model_produced_text,
         };
         assert!(decode.text.is_empty() && decode.model_produced_text);
+    }
+
+    /// Filler removal runs before every pass that authors text, and this is the
+    /// dependency that decides it: `apply_literal_punctuation` turns dictated
+    /// punctuation words into punctuation, so with filler removal at the tail
+    /// it saw `a um, b` and took the comma away with the word — `a um comma b`
+    /// delivered as `a b`, losing punctuation the user asked for out loud. From
+    /// the head it sees `um` and `comma` as the two tokens actually spoken.
+    ///
+    /// The second case is the class this reorder was made for: a replacement's
+    /// written form is text the pipeline authored, and rescanning it for
+    /// fillers deleted a word the user never spoke.
+    ///
+    /// Both directions are asserted, so reordering this pipeline back fails
+    /// here rather than in someone's dictation. Note what is deliberately NOT
+    /// claimed: pass order protects text the pipeline *authored*, and a filler
+    /// the recogniser itself produced is still removed. Whether a given token
+    /// counts as a filler at all is the built-in list's business
+    /// (`audio_toolkit::text::gated_filler_words_for_language`), which is where
+    /// the other half of the `Ha Long Bay` defect was fixed. Neither half is
+    /// sufficient alone.
+    #[test]
+    fn filler_removal_precedes_the_passes_that_author_text() {
+        let settings = AppSettings {
+            replacements_enabled: true,
+            replacements_rules: vec![crate::settings::ReplacementRule {
+                spoken: "hanoi".to_string(),
+                written: "Ha Long Bay".to_string(),
+                enabled: true,
+            }],
+            ..AppSettings::default()
+        };
+        assert!(
+            settings.filler_word_removal_enabled,
+            "this test is about the stock install"
+        );
+        let mut asr = AsrPlan::from_settings(&settings);
+        asr.literal_punctuation = true;
+        let english = OutputLanguageEvidence::UserSelected("en-US".to_string());
+        let deliver = |raw: &str| {
+            post_process_transcription_text(
+                raw.to_string(),
+                &asr,
+                false,
+                &english,
+                &languages(&["en"]),
+            )
+        };
+
+        // Dictated punctuation survives a filler spoken beside it.
+        assert_eq!(deliver("a um comma b"), "a, b");
+        assert_eq!(deliver("hello um period"), "hello.");
+        // And a filler is still removed there, so this is not just literal
+        // punctuation winning: the same input without the filler agrees.
+        assert_eq!(deliver("a comma b"), "a, b");
+
+        // A replacement's written form is not rescanned for fillers.
+        assert_eq!(deliver("hanoi is beautiful"), "Ha Long Bay is beautiful");
+
+        // A literal mention of a punctuation word is still left alone.
+        assert_eq!(deliver("the word comma itself"), "the word comma itself");
     }
 
     /// `BatchDecode::untimed` never sees post-processing, so its flag is just
