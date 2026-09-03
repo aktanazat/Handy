@@ -46,10 +46,12 @@ export interface SidebarProps {
 /* The wordmark is the product's name, not copy; it never localizes. */
 const WORDMARK = "Sona";
 
-/* One row, in every state it has. The selected border and fill are applied
- * directly from currentSection, while blue remains reserved for focus. */
+/* One row, in every state it has. Selection is a wash at the control radius,
+ * not a bordered plate: a border on the selected row alone puts a second
+ * hairline inside a rail that already has one, and the wash says the same
+ * thing with nothing drawn. Focus is the shared bronze ring. */
 const NAV_ROW =
-  "flex items-center rounded-md border border-transparent text-[13px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none";
+  "flex items-center rounded-md text-[13px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none";
 
 /* The two shapes a row takes. The glyph square is the named row with its words
  * clipped off, not a second navigation: same 32pt height, same radius, same
@@ -158,6 +160,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       inert={decorative}
       className={cn(
         "glass-surface flex min-h-0 flex-none flex-col overflow-hidden border-e border-gray-alpha-400 bg-background-200 pb-[10px] transition-none",
+        /* Chrome that carries 13px labels takes the dense tint rather than
+           the airy one: over a bright wallpaper the 0.70 tint left secondary
+           text at 3.1:1, and the dense step measures 5.5:1 on the same
+           backdrop. The token is read by the material rule in
+           primitives.css, so setting it here is the whole opt-in. */
+        "[--glass-tint:var(--glass-tint-dense)]",
         collapsed ? "w-[48px] px-[8px]" : "w-[220px] px-[10px]",
         className,
       )}
@@ -267,8 +275,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className={cn(
                   NAV_ROW,
                   collapsed ? NAV_ROW_GLYPH : NAV_ROW_NAMED,
-                  current &&
-                    "border-gray-alpha-400 bg-background-100 text-gray-1000",
+                  current && "bg-gray-alpha-200 text-gray-1000",
                 )}
                 onClick={() => onSectionChange(section)}
               >

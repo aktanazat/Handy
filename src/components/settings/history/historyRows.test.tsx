@@ -778,8 +778,10 @@ describe("library page chrome", () => {
     expect(header).toContain('data-testid="history-summary-loading"');
   });
 
-  test("the page title is 24px, not text-2xl's 21px at this app's 14px root", () => {
-    expect(markup).toContain("text-[24px] leading-[30px]");
+  /* The page's own name is chrome. 14px semibold in px rather than `text-sm`,
+   * which is 12.25px at this app's 14px root. */
+  test("the page title is 14px semibold", () => {
+    expect(markup).toContain("text-[14px] leading-[20px] font-semibold");
   });
 
   test("no text action is left invisible at rest", () => {

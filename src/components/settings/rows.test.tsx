@@ -93,7 +93,7 @@ describe("a settings section", () => {
 
     expect(markup.split("rounded-card").length - 1).toBe(1);
     expect(markup).toContain("divide-y");
-    expect(markup).toContain("bg-background-100");
+    expect(markup).toContain("bg-surface-raised");
     // A section at rest casts nothing.
     expect(markup).not.toContain("shadow-");
   });

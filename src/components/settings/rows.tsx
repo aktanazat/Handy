@@ -31,24 +31,29 @@ export const PAGE_COLUMN = "mx-auto w-full max-w-[760px] px-8";
  * 308px, not the 352 its name implies. */
 export const FIELD_MAX_W = "max-w-[308px]";
 
-/* A section's surface: one `background-100` box inside a hairline, rows
- * divided by hairlines rather than spaced apart. `SettingsSection` draws it
- * under a label, `SettingsSurface` draws it alone, and the history feed puts
- * it on an `<ol>` — hence a class string and not only a component. */
+/* A section's surface: one raised box inside a hairline, rows divided by
+ * hairlines rather than spaced apart. It sits on --surface-raised, a step off
+ * the page canvas, which is the whole of what makes it read as a card — the
+ * fill used to be the canvas colour itself, so the hairline was carrying the
+ * card alone and a card with nothing inside it was invisible. Flat: no shadow
+ * in either theme (--shadow-card is `none`). `SettingsSection` draws it under
+ * a label, `SettingsSurface` draws it alone, and the history feed puts it on
+ * an `<ol>` — hence a class string and not only a component. */
 export const SETTINGS_SURFACE =
-  "divide-y divide-gray-alpha-400 overflow-hidden rounded-card border border-gray-alpha-400 bg-background-100";
+  "divide-y divide-gray-alpha-400 overflow-hidden rounded-card border border-gray-alpha-400 bg-surface-raised";
 
-/* Explicit px, not `text-2xl`. This app sets `:root { font-size: 14px }`
- * (styles/base.css), so every rem utility renders at 87.5% of its name:
- * `text-2xl` would be 21px here, not the 24 the type scale intends. Any size
- * that has to be a specific size is written in px on these pages. */
+/* Explicit px, not a `text-*` utility. This app sets `:root { font-size: 14px }`
+ * (styles/base.css), so every rem utility renders at 87.5% of its name. The
+ * page's own name is chrome, not a headline: 14px semibold is the size the
+ * reference sets its panel titles at, and it leaves the largest type on a page
+ * to whatever the page is actually about. */
 export const PageTitle: React.FC<React.ComponentProps<"h1">> = ({
   className,
   ...props
 }) => (
   <h1
     className={cn(
-      "text-[24px] leading-[30px] font-medium tracking-tight text-gray-1000",
+      "text-[14px] leading-[20px] font-semibold tracking-[-0.01em] text-gray-1000",
       className,
     )}
     {...props}
@@ -89,12 +94,13 @@ export const SettingsPage: React.FC<
   </div>
 );
 
-/** Sentence-case SF at 13px in the secondary text color. */
+/** Sentence-case SF at 12px in the secondary text colour: the label above a
+ * section, the caption under a title, the name of a measurement. */
 export const Microlabel: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ children, className }) => (
-  <span className={cn("text-[13px] leading-5 text-gray-900", className)}>
+  <span className={cn("text-[12px] leading-4 text-gray-900", className)}>
     {children}
   </span>
 );
@@ -141,7 +147,7 @@ export const SettingsSection: React.FC<{
 }> = ({ label, action, children, className }) => (
   <section className={cn("flex flex-col gap-3", className)}>
     <div className="flex min-h-6 items-center justify-between gap-4">
-      <h2 className="text-[13px] leading-5 text-gray-900">{label}</h2>
+      <h2 className="text-[12px] leading-4 text-gray-900">{label}</h2>
       {action}
     </div>
     <div className={SETTINGS_SURFACE}>{children}</div>
@@ -159,12 +165,12 @@ export const SettingsSurface: React.FC<React.ComponentProps<"div">> = ({
   ...props
 }) => <div className={cn(SETTINGS_SURFACE, className)} {...props} />;
 
-/* One concept, one box. A class string as well as a component because four of
- * its sites cannot be a `<section>`: two are `<div>`s inside a `<dl>`, one is
- * the `<p role="alert">` that states an import failure, and the meeting
- * preview is an `<li>`. */
+/* One concept, one box, on the same raised fill as a section surface. A class
+ * string as well as a component because four of its sites cannot be a
+ * `<section>`: two are `<div>`s inside a `<dl>`, one is the `<p role="alert">`
+ * that states an import failure, and the meeting preview is an `<li>`. */
 export const SETTINGS_CARD =
-  "rounded-card border border-gray-alpha-400 bg-background-100";
+  "rounded-card border border-gray-alpha-400 bg-surface-raised";
 
 export const SettingsCard: React.FC<React.ComponentProps<"section">> = ({
   className,

@@ -131,7 +131,7 @@ export const ProcessAgainDialog: React.FC<ProcessAgainDialogProps> = ({
           {error && (
             <p
               role="alert"
-              className="rounded-md border border-gray-alpha-400 bg-background-100 px-3 py-2 text-sm break-words text-red-900"
+              className="rounded-md border border-gray-alpha-400 bg-surface-raised px-3 py-2 text-sm break-words text-red-900"
             >
               {error}
             </p>

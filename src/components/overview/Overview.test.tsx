@@ -196,7 +196,7 @@ describe("the Capture hero", () => {
 
     expect(card).toContain("rounded-card");
     expect(card).toContain("border-gray-alpha-400");
-    expect(card).toContain("bg-background-100");
+    expect(card).toContain("bg-surface-raised");
     expect(card).toContain('aria-labelledby="overview-status"');
     expect(card.includes("shadow")).toBe(false);
     /* The hero remains one card, without nested surfaces. */

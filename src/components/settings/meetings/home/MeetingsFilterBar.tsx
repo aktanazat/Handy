@@ -5,7 +5,8 @@ import type {
   MeetingStatusFilter,
   MeetingTimeWindow,
 } from "@/bindings";
-import { Microlabel } from "@/components/settings/rows";
+import { Microlabel, SETTINGS_CARD } from "@/components/settings/rows";
+import { cn } from "@/lib/cn";
 import { Button } from "@/components/vg/button";
 import { Input } from "@/components/vg/input";
 import {
@@ -101,7 +102,7 @@ export const MeetingsFilterBar: React.FC<MeetingsFilterBarProps> = ({
     <div
       role="group"
       aria-label={t("meetings.list.filters.label", "Filter meetings")}
-      className="flex flex-nowrap items-center gap-4 rounded-card border border-gray-alpha-400 bg-background-100 px-4 py-2"
+      className={cn(SETTINGS_CARD, "flex flex-nowrap items-center gap-4 px-4 py-2")}
     >
       <FilterSelect<MeetingStatusFilter>
         filterKey={t("meetings.list.filters.statusKey", "Status")}
