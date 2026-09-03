@@ -17,19 +17,21 @@ body > #root {
 /* The card's motion. This webview never loads App.css, so the reduced-motion
    clamp at the end is its own.
 
-   Enter is the overlay's `scard-pop` (RecordingOverlay.css): 180ms --ease-out
-   on opacity plus a 0.96 scale from the anchor. The anchor is the window's
+   One shape for every popup in the app, from the tokens in theme.css: in over
+   --duration-standard on --ease-out from --popup-enter-scale and
+   --popup-enter-travel of slide out of the anchor, out over --duration-fast on
+   --ease-in-out to opacity 0 with no travel. The anchor is the window's
    top-right corner, which consent_panel.rs pins to the screen's, so it is a
-   physical corner rather than a logical one. Exit is a 120ms fade; the panel
-   keeps the card mounted for that long after its state clears, and
-   consent_panel.rs waits the same 120ms before it hides the window. */
+   physical corner rather than a logical one. The panel keeps the card mounted
+   for the exit's length after its state clears, and consent_panel.rs waits the
+   same before it hides the window. */
 .consent-card {
   transform-origin: top right;
   animation: consent-card-enter var(--duration-standard) var(--ease-out);
 }
 
 [data-leaving] > .consent-card {
-  animation: consent-card-leave var(--duration-fast) var(--ease-out) forwards;
+  animation: consent-card-leave var(--duration-fast) var(--ease-in-out) forwards;
   /* A card on its way out answers nothing. */
   pointer-events: none;
 }
@@ -37,7 +39,12 @@ body > #root {
 @keyframes consent-card-enter {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale(var(--popup-enter-scale))
+      translate3d(
+        var(--popup-enter-travel),
+        calc(-1 * var(--popup-enter-travel)),
+        0
+      );
   }
   to {
     opacity: 1;

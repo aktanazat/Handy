@@ -3075,7 +3075,7 @@
     "announceInChat": "채팅에 알리기",
     "announceLine": "Sona가 {{name}}을(를) 위해 메모를 작성하고 있습니다. 원하지 않으시면 말씀해 주세요.",
     "announceRefused": "고지가 게시되지 않았습니다. 이 앱이 받아들이지 않았습니다.",
-    "assurance": "미팅에 있는 모두가 녹음에 동의한 뒤에 시작하세요.",
+    "assurance": "오디오는 이 Mac에만 저장됩니다. 통화에 참여하는 봇은 없습니다.",
     "record": "녹음",
     "ignore": "무시",
     "recording": "녹음 중",

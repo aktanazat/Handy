@@ -3101,7 +3101,7 @@
     "announceInChat": "Announce in chat",
     "announceLine": "Sona is taking notes for {{name}}. Say so if you'd rather it didn't.",
     "announceRefused": "The disclosure wasn't posted: this app wouldn't take it.",
-    "assurance": "Only start after everyone in the meeting has agreed to be recorded.",
+    "assurance": "Audio stays on this Mac. Nothing joins the call.",
     "record": "Record",
     "ignore": "Ignore",
     "recording": "Recording",

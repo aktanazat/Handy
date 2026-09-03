@@ -3087,7 +3087,7 @@
     "announceInChat": "Sohbette duyur",
     "announceLine": "Sona {{name}} için not alıyor. İstemiyorsanız lütfen belirtin.",
     "announceRefused": "Bildirim gönderilemedi: bu uygulama kabul etmedi.",
-    "assurance": "Yalnızca toplantıdaki herkes kaydedilmeyi kabul ettikten sonra başlatın.",
+    "assurance": "Ses bu Mac'te kalır. Görüşmeye kimse katılmaz.",
     "record": "Kaydet",
     "ignore": "Yoksay",
     "recording": "Kayıt",

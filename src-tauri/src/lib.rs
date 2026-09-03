@@ -1494,6 +1494,7 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::meeting_consent_panel_start,
             commands::meeting::meeting_consent_panel_active_state,
             commands::meeting::meeting_consent_panel_forget_series,
+            commands::meeting::meeting_consent_panel_fit_disclosure,
             commands::meeting::meeting_announce_disclosure,
             commands::meeting::meeting_trash_list,
             commands::meeting::meeting_trash_restore,

@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { FocusScope } from "radix-ui/internal";
+import { Mic } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
@@ -34,19 +35,21 @@ import {
 } from "@/components/settings/meetings/review/followUpDraft";
 import { elapsedLabel } from "./elapsed";
 
-/* The card is the window: consent_panel.rs sizes the NSPanel to it before the
- * webview draws, so nothing here may grow past what that file measured. The
- * surface tokens are the overlay's (`.scard` in RecordingOverlay.css): card
- * radius, hairline, lifted shadow, so the two floating windows read as one
- * app. Its motion lives in app/consent/consent-window.css under `consent-card`. */
+/* The card IS the window: consent_panel.rs sizes the NSPanel to it and macOS
+ * clips the panel to `--radius-panel` and draws its shadow, so nothing here
+ * may grow past what that file measured and nothing here draws a shadow.
+ * `glass-surface` is the app's frosted material; Rust writes `data-material`
+ * on this webview only when a vibrancy view is actually behind it, so on a
+ * solid window the card falls back to the raised surface. Its motion lives in
+ * app/consent/consent-window.css under `consent-card`. */
 const panelClass =
-  "consent-card m-2 flex h-[calc(100%-1rem)] flex-col gap-3 rounded-card border border-gray-alpha-400 bg-background-100 p-4 text-gray-1000 shadow-[var(--shadow-overlay)]";
+  "consent-card glass-surface flex h-full flex-col gap-2.5 rounded-panel border border-gray-alpha-400 bg-background-100 p-4 text-gray-1000";
 
 /* The type layer (theme.css) in the roles this card uses: a 13/20 sentence-case
- * microlabel above a 14/20 heading, 13/20 body and a 12/16 note. Root type is
- * 14px, so the kit's rem sizes would land between the roles. */
+ * microlabel, a 13/18 heading, 13/20 body and a 12/16 note. Root type is 14px,
+ * so the kit's rem sizes would land between the roles. */
 const kickerClass = "text-[13px] leading-[20px] text-gray-900";
-const titleClass = "text-[14px] leading-[20px] font-semibold";
+const titleClass = "min-w-0 truncate text-[13px] leading-[18px] font-semibold";
 const bodyClass = "text-[13px] leading-[20px] text-gray-900";
 const noteClass = "text-[12px] leading-[16px] text-gray-900";
 
@@ -532,6 +535,24 @@ export default function ConsentPanel() {
     return () => window.clearInterval(timer);
   }, [active, ritual]);
 
+  /* Whether the recording card owes the refused-disclosure row. Derived here
+   * because the window has to grow for it before the row paints. */
+  const disclosureRefused =
+    active?.disclosure.kind === "attempted" &&
+    active.disclosure.receipt.outcome === "definitely_not_dispatched";
+
+  /* The panel's window was sized for a recording card without that row. Only
+   * this document knows the row is coming, so it asks for the height; the
+   * request is idempotent and the backend re-pins the top-right corner. */
+  useEffect(() => {
+    if (active === null) return;
+    void commands
+      .meetingConsentPanelFitDisclosure(disclosureRefused)
+      .catch((error) => {
+        console.error("Could not size the recording card", error);
+      });
+  }, [active, disclosureRefused]);
+
   const briefing = useMemo(() => {
     if (prompt?.prompt.kind !== "CalendarEvent") return null;
     const countdown = status?.countdown;
@@ -685,26 +706,26 @@ export default function ConsentPanel() {
               className="size-2 rounded-full bg-red-700"
               aria-hidden="true"
             />
-            <strong className="text-[13px] leading-[20px] font-semibold">
+            <strong className="text-[13px] leading-[18px] font-semibold">
               {t("consentPanel.recording")}
             </strong>
-            <span className={`ms-auto tabular-nums ${bodyClass}`}>
+            <span className={`ms-auto tabular-nums ${noteClass}`}>
               {elapsedLabel(active.snapshot.started_at_utc_ms, now)}
             </span>
           </div>
-          <p className="truncate text-[14px] leading-[20px] font-medium">
+          <p className="truncate text-[13px] leading-[18px] font-medium">
             {active.snapshot.title}
           </p>
           {/* A disclosure the target would not take is worth saying once,
            * quietly: the recording is running either way, and the room was
-           * not told. */}
-          {active.disclosure.kind === "attempted" &&
-          active.disclosure.receipt.outcome === "definitely_not_dispatched" ? (
+           * not told. The window grew for this row before it drew, in the
+           * effect above. */}
+          {disclosureRefused ? (
             <p className={noteClass} data-slot="consent-announce-refused">
               {t("consentPanel.announceRefused")}
             </p>
           ) : null}
-          <div className="flex items-center justify-end gap-2">
+          <div className="mt-auto flex items-center justify-end gap-2">
             {active.standing_series_key !== null ? (
               <Button
                 type="button"
@@ -729,29 +750,38 @@ export default function ConsentPanel() {
         <Card
           key={`prompt:${prompt.promptId}`}
           labelledBy="consent-title"
-          describedBy={
-            prompt.showIntroduction
-              ? "consent-introduction consent-body"
-              : "consent-body"
-          }
+          describedBy="consent-body"
           onEscape={() => void ignore()}
         >
-          <div className="min-h-0 overflow-hidden">
-            <h1 id="consent-title" className={titleClass}>
+          {/* One title row. The glyph says what the card is about at a glance
+           * and costs no height; the title carries the meeting or app name and
+           * truncates, with the full text on hover for a long calendar
+           * title. */}
+          <div className="flex min-w-0 items-center gap-2">
+            <Mic
+              aria-hidden="true"
+              className="size-3.5 shrink-0 text-gray-900"
+            />
+            <h1 id="consent-title" className={titleClass} title={title}>
               {title}
             </h1>
-            {prompt.showIntroduction ? (
-              <p id="consent-introduction" className={`mt-1 ${bodyClass}`}>
-                {t("consentPanel.introduction")}
-              </p>
-            ) : null}
-            {briefing !== null ? (
-              <p className={`mt-1 ${bodyClass}`}>{briefing}</p>
-            ) : null}
           </div>
+          {briefing !== null ? (
+            <p className={`${noteClass} truncate`} title={briefing}>
+              {briefing}
+            </p>
+          ) : null}
+          {/* The one line of prose. On the first prompt it is the friendlier
+           * introduction; after that the plain fact. Two sentences saying the
+           * same thing is what made this card tall. */}
+          <p id="consent-body" className={noteClass}>
+            {prompt.showIntroduction
+              ? t("consentPanel.introduction")
+              : t("consentPanel.assurance")}
+          </p>
           {calendarPrompt ? (
-            <>
-              <label className="flex items-center gap-2 text-[13px] leading-[20px]">
+            <div className="flex flex-col gap-1.5">
+              <label className="flex items-center gap-2 text-[12px] leading-[16px]">
                 <Checkbox
                   className="border-gray-700"
                   checked={alwaysRecord}
@@ -763,7 +793,7 @@ export default function ConsentPanel() {
               </label>
               {/* Remembered per series, like the decision above it. */}
               <label
-                className="flex items-center gap-2 text-[13px] leading-[20px]"
+                className="flex items-center gap-2 text-[12px] leading-[16px]"
                 data-slot="consent-announce"
               >
                 <Checkbox
@@ -775,19 +805,9 @@ export default function ConsentPanel() {
                 />
                 <span>{t("consentPanel.announceInChat")}</span>
               </label>
-            </>
+            </div>
           ) : null}
-          {/* Full width, on its own row: beside the buttons it ran to four
-           * lines in the locales with the widest button labels, and the
-           * window, sized for the tallest locale, opened a band under the
-           * buttons everywhere else. */}
-          <p id="consent-body" className={noteClass}>
-            {t(
-              "meetings.start.assurance",
-              "Records your Mac's audio locally. Nothing joins the call.",
-            )}
-          </p>
-          <div className="flex justify-end gap-2">
+          <div className="mt-auto flex justify-end gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={ignore}>
               {t("consentPanel.ignore")}
             </Button>

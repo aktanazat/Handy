@@ -3075,7 +3075,7 @@
     "announceInChat": "在聊天中告知",
     "announceLine": "Sona 正在為 {{name}} 記錄筆記。如果你不希望如此,請直接說明。",
     "announceRefused": "告知訊息未能發佈:此 App 不接受該訊息。",
-    "assurance": "請在會議中所有人都同意錄製之後再開始。",
+    "assurance": "音訊只會留在這台 Mac 上。不會有任何程式加入通話。",
     "record": "錄製",
     "ignore": "忽略",
     "recording": "錄製中",

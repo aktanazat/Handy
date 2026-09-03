@@ -1548,7 +1548,12 @@ impl DetectionRuntime {
         while let Some(command) = commands.pop_front() {
             match command {
                 PanelCommand::ShowPanel => {
-                    let _ = self.prompts.show_panel(ConsentPanelLayout::Recording);
+                    let _ = self.prompts.show_panel(ConsentPanelLayout::Recording {
+                        // The refused-disclosure row is not known yet: the
+                        // announcement is attempted from the panel, which
+                        // asks for the height when it draws the note.
+                        disclosure_note: false,
+                    });
                 }
                 PanelCommand::HidePanel => self.prompts.hide_panel(),
                 PanelCommand::WithdrawPrompt { prompt_id } => {
@@ -2381,10 +2386,9 @@ fn prompt_priority(prompt: &PromptKind) -> u8 {
 /// Which rows the consent panel will draw for this prompt.
 ///
 /// The window is sized before the webview renders, so the presenter has to
-/// predict the three conditionals in ConsentPanel.tsx: the always-record
-/// checkbox belongs to calendar prompts, the introduction is the one-time
-/// explanation the prompt carries, and the series brief needs a countdown for
-/// this same event that has someone to brief about.
+/// predict the two conditionals in ConsentPanel.tsx: the always-record
+/// checkbox belongs to calendar prompts, and the series brief needs a
+/// countdown for this same event that has someone to brief about.
 fn prompt_panel_layout(
     pending: &PendingPrompt,
     countdown: Option<&DetectionCountdown>,
@@ -2399,7 +2403,6 @@ fn prompt_panel_layout(
     };
     ConsentPanelLayout::Prompt {
         always_record_checkbox: event_key.is_some(),
-        introduction: pending.show_introduction,
         series_brief: event_key.is_some_and(|key| {
             countdown.is_some_and(|countdown| {
                 countdown.event.event_key == key && !countdown.briefing.is_empty()
@@ -2419,7 +2422,9 @@ fn ritual_panel_layout(ritual: &MeetingRitual) -> ConsentPanelLayout {
             loop_delta: card.follow_up_count != 0 || card.waiting_on_count != 0,
         },
         // The pill this card replaces is the same three rows at the same width.
-        MeetingRitual::Recording(_) => ConsentPanelLayout::Recording,
+        MeetingRitual::Recording(_) => ConsentPanelLayout::Recording {
+            disclosure_note: false,
+        },
     }
 }
 
@@ -2702,7 +2707,6 @@ mod tests {
             prompt_panel_layout(&prompt, Some(&countdown("event-1", true))),
             ConsentPanelLayout::Prompt {
                 always_record_checkbox: false,
-                introduction: false,
                 series_brief: false,
             }
         );
@@ -2723,7 +2727,6 @@ mod tests {
             layout(countdown)
                 == ConsentPanelLayout::Prompt {
                     always_record_checkbox: true,
-                    introduction: true,
                     series_brief: true,
                 }
         };
@@ -3140,7 +3143,9 @@ mod tests {
             ritual_panel_layout(&MeetingRitual::Recording(recording_card(
                 MeetingSessionId::from_uuid(Uuid::nil())
             ))),
-            ConsentPanelLayout::Recording
+            ConsentPanelLayout::Recording {
+                disclosure_note: false
+            }
         );
     }
 }

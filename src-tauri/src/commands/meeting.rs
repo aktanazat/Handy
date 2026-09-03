@@ -131,6 +131,24 @@ pub async fn meeting_consent_panel_forget_series(
     manager.forget_active_series(session_id).await
 }
 
+/// Re-sizes the recording window for the disclosure note the card is about to
+/// draw, or drops it again.
+///
+/// The panel's window is sized before the webview paints, and a refused
+/// disclosure arrives after the capture started: the announcement is attempted
+/// from the panel itself. So the card, which is the only place that knows the
+/// row is on screen, asks for the height it needs.
+#[tauri::command]
+#[specta::specta]
+pub fn meeting_consent_panel_fit_disclosure(app: tauri::AppHandle, note: bool) {
+    crate::meeting::consent_panel::show(
+        &app,
+        crate::meeting::consent_panel::ConsentPanelLayout::Recording {
+            disclosure_note: note,
+        },
+    );
+}
+
 /// Post this recording's disclosure line into the meeting's chat.
 ///
 /// The line is the caller's because it comes from the i18next catalog. Answers

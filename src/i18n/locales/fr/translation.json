@@ -3103,7 +3103,7 @@
     "announceInChat": "Annoncer dans la discussion",
     "announceLine": "Sona prend des notes pour {{name}}. Dites-le si vous préférez que ce ne soit pas le cas.",
     "announceRefused": "L'annonce n'a pas été publiée : cette application ne l'a pas acceptée.",
-    "assurance": "Ne démarrez qu'une fois que tout le monde a accepté d'être enregistré.",
+    "assurance": "L'audio reste sur ce Mac. Rien ne rejoint l'appel.",
     "record": "Enregistrer",
     "ignore": "Ignorer",
     "recording": "Enregistrement",
