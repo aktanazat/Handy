@@ -170,6 +170,47 @@
   opacity: var(--shell-pill-opacity);
 }
 
+/* The chat column under Glass.
+ *
+ * Rust owns `data-material` and only writes "glass" when native vibrancy
+ * actually applied, so CSS only reads it — the same contract primitives.css
+ * states. The pill and the two chrome bands take a tint and no blur of their
+ * own: `.app-shell` is transparent in this material, so what is behind them is
+ * already the vibrancy view's blurred sample, and a second backdrop-filter
+ * over it is the nested-blur the material rules forbid.
+ *
+ * Three tiers, which is what makes the column read as one object rather than
+ * as a flat strip: the frame is the quiet canvas (--glass-canvas, the same
+ * plate `.settings-main` takes), the header and composer are the denser bands
+ * at its ends (--glass-tint-dense, because both carry type and controls), and
+ * the pill is dense too — it is a 28px control on the window's own title-bar
+ * row, where the sample behind it is whatever the desktop happens to be. */
+:root[data-material="glass"] .app-shell [data-slot="chat-frame"] {
+  background: var(--glass-canvas);
+}
+
+:root[data-material="glass"] .app-shell [data-slot="chat-header"],
+:root[data-material="glass"] .app-shell [data-slot="chat-composer"],
+:root[data-material="glass"] .app-shell [data-slot="chat-pill"] {
+  background: var(--glass-tint-dense);
+}
+
+/* Increase Contrast flattens the tints back to the opaque surfaces the Solid
+ * material draws, which is what the system does natively. Reduce Transparency
+ * is not readable from a WKWebView today; the query is written anyway, inert
+ * until WebKit ships it, for the same reason primitives.css writes it. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root[data-material="glass"] .app-shell [data-slot="chat-frame"] {
+    background: var(--surface-1);
+  }
+
+  :root[data-material="glass"] .app-shell [data-slot="chat-header"],
+  :root[data-material="glass"] .app-shell [data-slot="chat-composer"],
+  :root[data-material="glass"] .app-shell [data-slot="chat-pill"] {
+    background: var(--surface-raised);
+  }
+}
+
 /* The root owns the one transition, but an inner hover wash or color fade that
  * lands while it travels becomes a second visible clock. Hold every descendant
  * still for the same interval; the frame and rail opacity continue to sample

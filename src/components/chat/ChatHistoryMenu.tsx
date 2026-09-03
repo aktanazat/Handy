@@ -49,7 +49,7 @@ export const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
             }
             onClick={() => onSelect(conversation.conversation_id)}
             className={cn(
-              "w-full truncate rounded-md px-2 py-1.5 text-start text-[13px] leading-5 transition-colors hover:bg-gray-alpha-200 motion-reduce:transition-none",
+              "w-full truncate rounded-control px-2 py-1.5 text-start text-[13px] leading-5 transition-colors hover:bg-gray-alpha-200 motion-reduce:transition-none",
               conversation.conversation_id === currentId
                 ? "bg-gray-alpha-100 text-gray-1000"
                 : "text-gray-900 hover:text-gray-1000",
@@ -91,7 +91,10 @@ export const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({
         data-slot="chat-history"
         aria-label={t("chat.history")}
         title={t("chat.history")}
-        className="grid size-7 place-items-center rounded-full border border-gray-alpha-400 text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
+        /* Same box as the header's other two round buttons, and the same
+         * reason for having no focus classes of its own: base.css paints the
+         * shell's --focus-outline on :focus-visible. */
+        className="grid size-7 place-items-center rounded-full border border-gray-alpha-400 text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 motion-reduce:transition-none"
       >
         <Clock aria-hidden="true" className="size-3.5" />
       </PopoverTrigger>

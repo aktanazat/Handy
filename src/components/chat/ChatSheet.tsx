@@ -54,9 +54,13 @@ interface ChatSheetHeaderProps {
 }
 
 /* The title names the independent chat surface; the hairline beneath it keeps
- * its controls from merging into the conversation. */
+ * its controls from merging into the conversation.
+ *
+ * No focus classes of its own: base.css paints the shell's --focus-outline on
+ * every button's :focus-visible, and the kit's 3px translucent ring was one of
+ * the last two glows in the chrome. The pill dropped its copy already. */
 const ROUND_BUTTON =
-  "grid size-7 place-items-center rounded-full border border-gray-alpha-400 text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none";
+  "grid size-7 place-items-center rounded-full border border-gray-alpha-400 text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none";
 
 const ChatSheetHeader: React.FC<ChatSheetHeaderProps> = ({
   history,
@@ -70,9 +74,15 @@ const ChatSheetHeader: React.FC<ChatSheetHeaderProps> = ({
   onNewChat,
 }) => {
   const { t } = useTranslation();
-
   return (
-    <header className="grid flex-none grid-cols-[64px_minmax(0,1fr)_64px] items-center border-b border-gray-alpha-400 px-3 py-2.5">
+    /* Frosted, like the composer at the other end: the column reads as a
+       quiet canvas between two bands of chrome, which is the reference
+       panel's own structure. --surface-raised is that band under Solid;
+       styles/shell.css swaps it for --glass-tint-dense under Glass. */
+    <header
+      data-slot="chat-header"
+      className="grid flex-none grid-cols-[64px_minmax(0,1fr)_64px] items-center border-b border-gray-alpha-400 bg-surface-raised px-3 py-2.5"
+    >
       <div>
         <button
           type="button"
@@ -365,7 +375,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
               data-slot="chat-empty"
               className="flex h-full items-center justify-center"
             >
-              <p className="max-w-[32ch] text-center text-[13px] leading-5 text-gray-800">
+              <p className="max-w-[32ch] text-center text-[13px] leading-5 text-gray-900">
                 {t("chat.empty")}
               </p>
             </div>

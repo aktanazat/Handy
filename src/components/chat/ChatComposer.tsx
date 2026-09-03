@@ -52,16 +52,21 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const inert = disabled || running;
 
   return (
+    /* The band at the other end of the column from the header, frosted the
+       same way: --surface-raised under Solid, --glass-tint-dense under Glass
+       (styles/shell.css). Between the two bands the scrollback keeps the
+       page's own colour, so the column reads as a canvas with chrome at its
+       ends rather than as one flat strip. */
     <form
       data-slot="chat-composer"
-      className="flex flex-none flex-col gap-2 border-t border-gray-alpha-400 p-3"
+      className="flex flex-none flex-col gap-2 border-t border-gray-alpha-400 bg-surface-raised p-3"
       onSubmit={(event) => {
         event.preventDefault();
         onSend();
       }}
     >
       <div className="flex items-center gap-2">
-        <span className="shrink-0 text-[11px] text-gray-800">
+        <span className="shrink-0 text-[11px] text-gray-900">
           {t("chat.scopeLabel")}
         </span>
         <div

@@ -383,7 +383,16 @@ describe("a turn on screen", () => {
   });
 
   /* Steps exist: the line becomes a disclosure, collapsed, with one row and a
-   * duration per step. */
+   * duration per step.
+   *
+   * The disclosure is a button with `aria-expanded` and an `aria-controls`
+   * list, not <details>/<summary>. WebKit's accessibility layer exposes no
+   * press action on a <summary>, so a live accessibility run could not open
+   * this list at all, and the app ships in a WKWebView. The list is `hidden`
+   * while closed rather than unmounted, which is what keeps it out of the
+   * accessibility tree and the tab order while leaving `aria-controls`
+   * pointing at a node that exists — and is why the step's own label is in
+   * the closed markup below. */
   test("running with steps: the line folds the steps away, closed", () => {
     const markup = sheet({
       conversation: [user("What did we decide?")],
@@ -402,11 +411,71 @@ describe("a turn on screen", () => {
       },
     });
 
-    expect(markup).toContain("<details");
-    expect(markup).not.toContain("<details open");
+    expect(markup).not.toContain("<details");
+    expect(markup).toContain('data-slot="chat-steps-toggle"');
+    expect(markup).toContain('aria-expanded="false"');
+    /* The button names the list it opens, and that list is the one on the
+       page: a dangling `aria-controls` is a disclosure a screen reader cannot
+       follow. */
+    const controls = /aria-controls="([^"]+)"/.exec(markup)?.[1] ?? "";
+    expect(controls).not.toBe("");
+    /* `hidden` on that same element, not merely somewhere in the markup:
+       `aria-hidden="true"` also contains the substring, so the two attributes
+       are matched together or the assertion proves nothing. */
+    expect(markup).toContain(`id="${controls}" hidden=""`);
     expect(markup).toContain("Read the transcript");
     // 2500 - 500.
     expect(markup).toContain("2s");
+  });
+
+  /* The tool steps' own reading. A tool's name is a machine's name, so it
+   * renders as a mono uppercase chip rather than as a sentence beside the
+   * model's own prose steps — those two are not the same kind of event, and
+   * they used to be typeset identically. */
+  test("a tool step wears the chip; a thought step stays prose", () => {
+    const markup = sheet({
+      conversation: [user("How many words?"), assistant("4,812.")],
+      turn: {
+        ...TURN,
+        state: "succeeded",
+        completed_at_utc_ms: 4_000,
+        steps: [
+          {
+            id: "tool-1-0",
+            label: "word_stats",
+            state: "done",
+            started_after_ms: 1_000,
+            ended_after_ms: 2_000,
+            tool: "word_stats",
+          },
+          {
+            id: "step-1",
+            label: "Thought about it",
+            state: "done",
+            started_after_ms: 2_000,
+            ended_after_ms: 3_000,
+            tool: null,
+          },
+        ],
+      },
+    });
+
+    const chip = new RegExp(
+      `<span data-slot="chat-tool" class="([^"]*)">${en.chat.tool.word_stats}`,
+    ).exec(markup);
+    expect(chip).not.toBeNull();
+    expect(chip?.[1]).toContain("font-mono");
+    expect(chip?.[1]).toContain("uppercase");
+    expect(chip?.[1]).toContain("tracking-[0.08em]");
+    expect(chip?.[1]).toContain("text-[11px]");
+    /* Hairline, no fill: a chip that fills reads as a button. */
+    expect(chip?.[1]).toContain("border-gray-alpha-400");
+    expect(chip?.[1]).not.toContain("bg-");
+    /* The raw tool key never reaches the screen; the localized name does. */
+    expect(markup).not.toContain(">word_stats<");
+    /* And a step the model narrated is prose, chipless. */
+    expect(markup).toContain("Thought about it");
+    expect(occurrences(markup, 'data-slot="chat-tool"')).toBe(1);
   });
 
   test("answered: the reply is prose on the surface, its links pressable", () => {

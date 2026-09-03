@@ -84,6 +84,22 @@ const TurnWork: React.FC<TurnWorkProps> = ({
   onRetry,
 }) => {
   const { t } = useTranslation();
+  /* The disclosure is a button and a list rather than <details>/<summary>.
+   *
+   * A <summary> is a disclosure to a browser but not to WebKit's
+   * accessibility layer, which exposes no press action on it: a live
+   * accessibility run could not open this list at all, and the app ships in a
+   * WKWebView. `aria-expanded` on a real button is the pattern the rest of
+   * the app already uses for a collapsible row (see
+   * settings/meetings/MeetingPreviewCard.tsx), and it is what an assistive
+   * client can both read and act on.
+   *
+   * The list stays in the document and is `hidden` while closed rather than
+   * unmounted: `hidden` is what takes it out of the accessibility tree and
+   * out of the tab order, and keeping the node means the button's
+   * `aria-controls` always points at something that exists. */
+  const [open, setOpen] = React.useState(false);
+  const stepsId = React.useId();
   const running = isTurnRunning(turn);
   const failure = turnFailure(turn);
   const showTiming = running || turn.steps.length > 0;
@@ -103,40 +119,69 @@ const TurnWork: React.FC<TurnWorkProps> = ({
             {label}
           </p>
         ) : (
-          <details className="group">
-            <summary
-              className={cn(
-                WORK_LINE,
-                "cursor-default list-none outline-none marker:content-none hover:text-gray-1000 focus-visible:text-gray-1000 [&::-webkit-details-marker]:hidden",
-              )}
+          <div className="flex flex-col items-start">
+            <button
+              type="button"
+              data-slot="chat-steps-toggle"
+              aria-expanded={open}
+              aria-controls={stepsId}
+              onClick={() => setOpen(!open)}
+              className={cn(WORK_LINE, "hover:text-gray-1000")}
             >
               <ChevronRight
                 aria-hidden="true"
-                className="size-3 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+                className={cn(
+                  "size-3 transition-transform motion-reduce:transition-none",
+                  open && "rotate-90",
+                )}
               />
               {label}
-            </summary>
-            <ol className="mt-1.5 flex list-none flex-col gap-1 border-s border-gray-alpha-400 py-0.5 ps-3">
+            </button>
+            <ol
+              id={stepsId}
+              hidden={!open}
+              className="mt-1.5 flex list-none flex-col gap-1 border-s border-gray-alpha-400 py-0.5 ps-3"
+            >
               {turn.steps.map((step) => (
                 <li
                   key={step.id}
-                  className="flex items-baseline gap-2 text-[12px] leading-4"
+                  data-slot="chat-step"
+                  className="flex items-center gap-2 text-[12px] leading-4"
                 >
-                  <span
-                    className={cn(
-                      "min-w-0 flex-1 truncate",
-                      step.state === "failed"
-                        ? "text-red-900"
-                        : "text-gray-900",
-                    )}
-                  >
-                    {step.tool === null
-                      ? step.label
-                      : t(`chat.tool.${step.tool}`, {
-                          defaultValue: step.label,
-                        })}
-                  </span>
-                  <span className="flex-none tabular-nums text-gray-800">
+                  {/* A tool's name is a machine's name, so it reads as one: a
+                      mono uppercase chip in a hairline pill with no fill, the
+                      reference's treatment for a status word. It replaces the
+                      plain sentence the tool used to render as, which was
+                      indistinguishable from the model's own "Thought about it"
+                      beside it — and those two are not the same kind of event.
+                      A step with no tool stays prose, because it is prose. */}
+                  {step.tool === null ? (
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 truncate",
+                        step.state === "failed"
+                          ? "text-red-900"
+                          : "text-gray-900",
+                      )}
+                    >
+                      {step.label}
+                    </span>
+                  ) : (
+                    <span
+                      data-slot="chat-tool"
+                      className={cn(
+                        "min-w-0 flex-1 truncate rounded-full border px-1.5 font-mono text-[11px] leading-4 tracking-[0.08em] uppercase",
+                        step.state === "failed"
+                          ? "border-red-400 text-red-900"
+                          : "border-gray-alpha-400 text-gray-900",
+                      )}
+                    >
+                      {t(`chat.tool.${step.tool}`, {
+                        defaultValue: step.label,
+                      })}
+                    </span>
+                  )}
+                  <span className="flex-none text-gray-900 tabular-nums">
                     {t("chat.stepSeconds", {
                       seconds: Math.round(stepMs(step, turn, now) / 1000),
                     })}
@@ -144,12 +189,12 @@ const TurnWork: React.FC<TurnWorkProps> = ({
                 </li>
               ))}
             </ol>
-          </details>
+          </div>
         ))}
       {searchedCorpus && (
         <p
           data-slot="chat-searched-corpus"
-          className="text-[11px] leading-4 text-gray-800"
+          className="text-[11px] leading-4 text-gray-900"
         >
           {t("chat.working.searchedCorpus")}
         </p>
@@ -353,6 +398,16 @@ export interface ChatTurnsProps {
   onOpenLink: (link: string) => void;
 }
 
+/* A question of your own, as an object on the surface rather than a wash over
+ * it. `bg-gray-alpha-200` was the hover tier — a question drawn in it read as
+ * the row a pointer happened to be resting on — and on the frosted column an
+ * ink alpha lets the backdrop show through the bubble. --surface-raised plus
+ * the approved hairline is how the rest of the app says "this is an object",
+ * and it is the same object in both materials. Flat: a bubble inside a 340pt
+ * column is not floating, so it takes no shadow. */
+const USER_BUBBLE =
+  "max-w-[85%] self-end rounded-card border border-gray-alpha-400 bg-surface-raised px-3 py-2 text-[13px] leading-[19px] whitespace-pre-wrap text-gray-1000 [overflow-wrap:anywhere]";
+
 /**
  * The scrollback: what was said, what the turn did on the way, the one card a
  * settings answer becomes, and the cards a corpus change is offered as.
@@ -392,11 +447,8 @@ export const ChatTurns: React.FC<ChatTurnsProps> = ({
         <React.Fragment key={key}>
           {index === workIndex && <li>{work}</li>}
           <li
-            className={
-              row.role === "user"
-                ? "max-w-[85%] self-end rounded-[14px] bg-gray-alpha-200 px-3 py-2 text-[13px] leading-[19px] whitespace-pre-wrap text-gray-1000 [overflow-wrap:anywhere]"
-                : ""
-            }
+            data-slot={row.role === "user" ? "chat-bubble" : "chat-answer"}
+            className={row.role === "user" ? USER_BUBBLE : ""}
           >
             {row.role === "user" ? (
               row.message

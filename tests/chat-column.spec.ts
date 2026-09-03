@@ -870,11 +870,27 @@ test.describe("the chat at 340", () => {
     await expect(
       chat.getByRole("button", { name: "sona://meeting/meeting-1" }),
     ).toBeVisible();
-    // The work line is a disclosure, closed, with the step inside it.
-    const work = chat.locator("details");
+    /* The work line is a disclosure, closed, with the step inside it. It is a
+     * button with `aria-expanded` rather than a <summary>: WebKit's
+     * accessibility layer exposes no press action on a summary element, so a
+     * live accessibility run could not open this list, and the app ships in a
+     * WKWebView. Read here as the reader meets it — press it and the steps
+     * appear — because that is the half a <summary> could not keep. */
+    const work = chat.locator('[data-slot="chat-steps-toggle"]');
     await expect(work).toHaveCount(1);
-    await expect(work).not.toHaveAttribute("open", "");
+    await expect(work).toHaveAttribute("aria-expanded", "false");
     await expect(chat).toContainText("Worked for 3s");
+    /* The list stays in the document and is `hidden` while closed — that is
+     * what keeps it out of the accessibility tree and the tab order while
+     * leaving `aria-controls` pointing at a node that exists — so what is read
+     * here is visibility, not presence. */
+    const steps = chat.locator('[data-slot="chat-step"]');
+    await expect(steps).toHaveCount(1);
+    await expect(steps).toBeHidden();
+
+    await work.click();
+    await expect(work).toHaveAttribute("aria-expanded", "true");
+    await expect(steps).toBeVisible();
   });
 
   test("nothing inside the column overflows its own 340", async ({ page }) => {
