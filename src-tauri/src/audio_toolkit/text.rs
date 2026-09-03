@@ -123,6 +123,17 @@ fn find_best_vocabulary_match<'a>(
         } else {
             1.0
         };
+        // Admission is decided on spelling alone, because spelling is what
+        // `word_correction_threshold` names. Letting the Soundex bonus into
+        // this comparison stretched the user's threshold by 3.3x: at 0.18 it
+        // admitted the candidate "some" against the entry "Sona" (levenshtein
+        // 2 of 4 characters, both Soundex S500, 0.5 * 0.3 = 0.15) and rewrote
+        // a common English word in unrelated dictation. A phonetic tie is
+        // corroboration for a near-miss spelling, not a licence to replace a
+        // different word, so it only ranks the candidates that already passed.
+        if levenshtein_score >= threshold {
+            continue;
+        }
         let phonetic_match = supports_soundex(candidate)
             && supports_soundex(&match_key.key)
             && soundex(candidate, &match_key.key);
@@ -132,7 +143,7 @@ fn find_best_vocabulary_match<'a>(
             levenshtein_score
         };
 
-        if combined_score < threshold && combined_score < best_score {
+        if combined_score < best_score {
             best_match = Some(&entries[match_key.entry_index]);
             best_score = combined_score;
         }
@@ -1725,6 +1736,31 @@ mod tests {
             apply_vocabulary_entries(unrelated, &entries, 0.18),
             unrelated
         );
+    }
+
+    /// Measured on a real dictation: parakeet emitted "if you want some of
+    /// the most tender" and the shipped `Sona` entry rewrote "some" as
+    /// "Sona", because the two share Soundex S500 and the phonetic bonus was
+    /// admitting matches the 0.18 threshold rejects on spelling.
+    #[test]
+    fn a_rhyming_common_word_survives_a_short_vocabulary_entry() {
+        let entries = vec![pair("Sona", "Sona")];
+        let dictation = "if you want some of the most tender";
+        assert_eq!(
+            apply_vocabulary_entries(dictation, &entries, 0.18),
+            dictation
+        );
+        // The transcript the defect was measured on, in full.
+        let measured = "If you want some of the most tender, collagen-rich meat \
+            on the entire cow, stop buying the cuts everyone else is buying.";
+        assert_eq!(apply_vocabulary_entries(measured, &entries, 0.18), measured);
+        // Same Soundex code, one edit rather than two, and still not a
+        // spelling the threshold admits.
+        for rhyme in ["son", "soma", "sonny"] {
+            assert_eq!(apply_vocabulary_entries(rhyme, &entries, 0.18), rhyme);
+        }
+        // The entry still does its job on its own spelling.
+        assert_eq!(apply_vocabulary_entries("sona", &entries, 0.18), "Sona");
     }
 
     #[test]
