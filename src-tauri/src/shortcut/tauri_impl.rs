@@ -49,11 +49,20 @@ pub fn validate_shortcut(raw: &str) -> Result<(), String> {
     // Check for at least one non-modifier key
     let has_non_modifier = parts.iter().any(|part| !modifiers.contains(&part.as_str()));
 
-    if has_non_modifier {
-        Ok(())
-    } else {
-        Err("Tauri shortcuts must include a main key (letter, number, F-key, etc.) in addition to modifiers".into())
+    if !has_non_modifier {
+        return Err("Tauri shortcuts must include a main key (letter, number, F-key, etc.) in addition to modifiers".into());
     }
+
+    // The accelerator parser is the authority on what this backend can
+    // register, and it is stricter than any name table: it has no
+    // side-specific modifiers, so `option_left+space` — which is exactly what
+    // the handy-keys recorder persists for a left-option chord — reads as a
+    // bare main key above and would pass. Asking the parser here is what
+    // makes the implementation switch reset such a chord and report it,
+    // rather than failing to register it and saying nothing.
+    raw.parse::<Shortcut>()
+        .map(|_| ())
+        .map_err(|e| format!("Tauri global shortcuts cannot parse '{raw}': {e}"))
 }
 
 /// Register a shortcut using Tauri's global-shortcut plugin
@@ -161,9 +170,10 @@ pub fn register_cancel_shortcut(app: &AppHandle) {
     {
         let app_clone = app.clone();
         tauri::async_runtime::spawn(async move {
-            if let Some(cancel_binding) = get_settings(&app_clone).bindings.get("cancel").cloned() {
-                if let Err(e) = register_shortcut(&app_clone, cancel_binding) {
-                    error!("Failed to register cancel shortcut: {}", e);
+            for binding in super::cancel_bindings_for_registration(&get_settings(&app_clone)) {
+                let id = binding.id.clone();
+                if let Err(e) = register_shortcut(&app_clone, binding) {
+                    error!("Failed to register cancel shortcut '{id}': {e}");
                 }
             }
         });
@@ -183,9 +193,9 @@ pub fn unregister_cancel_shortcut(app: &AppHandle) {
     {
         let app_clone = app.clone();
         tauri::async_runtime::spawn(async move {
-            if let Some(cancel_binding) = get_settings(&app_clone).bindings.get("cancel").cloned() {
+            for binding in super::cancel_bindings_for_registration(&get_settings(&app_clone)) {
                 // We ignore errors here as it might already be unregistered
-                let _ = unregister_shortcut(&app_clone, cancel_binding);
+                let _ = unregister_shortcut(&app_clone, binding);
             }
         });
     }

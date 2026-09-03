@@ -118,6 +118,63 @@ pub(crate) fn bindings_for_registration(settings: &AppSettings) -> Vec<ShortcutB
     bindings
 }
 
+/// The cancel key's full registration set for a recording that is open.
+///
+/// The stored chord is a bare key, and both backends match a hotkey's
+/// modifiers exactly — so an Escape struck while a push-to-talk chord is still
+/// down arrives carrying that chord's modifiers and is not the cancel hotkey.
+/// That left cancel deaf for exactly as long as a recording was held open,
+/// which is when it is reached for. The key is therefore also registered under
+/// each modifier prefix a recording can be held by: never a combination the
+/// user has not already dedicated to Sona, and only for the length of a
+/// recording.
+///
+/// Each variant carries its own id, because registrations are keyed by binding
+/// id: reusing `cancel` would leak every variant but the last and leave its
+/// chord swallowed for the life of the process.
+pub(crate) fn cancel_bindings_for_registration(settings: &AppSettings) -> Vec<ShortcutBinding> {
+    let Some(cancel) = settings.bindings.get("cancel") else {
+        return Vec::new();
+    };
+
+    let mut prefixes: Vec<String> = settings
+        .bindings
+        .iter()
+        .filter(|(id, _)| {
+            settings.command_mode_enabled || id.as_str() != crate::command_mode::COMMAND_BINDING_ID
+        })
+        .filter(|(id, _)| crate::modes::TranscriptionIntent::from_binding(id).is_some())
+        .filter_map(|(_, binding)| modifier_prefix(&binding.current_binding))
+        .collect();
+    prefixes.sort_unstable();
+    prefixes.dedup();
+
+    let mut bindings = Vec::with_capacity(prefixes.len() + 1);
+    bindings.push(cancel.clone());
+    bindings.extend(prefixes.into_iter().map(|prefix| ShortcutBinding {
+        id: format!("cancel#{prefix}"),
+        current_binding: format!("{prefix}+{}", cancel.current_binding),
+        ..cancel.clone()
+    }));
+    bindings
+}
+
+/// The modifiers a key struck during `chord` arrives with, in the canonical
+/// order the stored format uses. `None` when the chord holds no modifier,
+/// which the bare cancel key already covers.
+///
+/// The stored format is handy-keys' own, so its parser is what decides which
+/// parts are modifiers — the same authority `validate_shortcut` defers to,
+/// rather than a second modifier-name table to keep in step with it.
+fn modifier_prefix(chord: &str) -> Option<String> {
+    let hotkey: ::handy_keys::Hotkey = chord.parse().ok()?;
+    // A modifier-only hotkey renders as exactly the prefix, and an empty
+    // modifier set cannot build one — so this rejects bare keys for free.
+    ::handy_keys::Hotkey::new(hotkey.modifiers, None::<::handy_keys::Key>)
+        .ok()
+        .map(|modifiers| modifiers.to_handy_string())
+}
+
 // ============================================================================
 // Binding Management Commands
 // ============================================================================
@@ -1104,33 +1161,6 @@ pub fn change_extra_recording_buffer_setting(app: AppHandle, ms: u64) -> Result<
 
 #[tauri::command]
 #[specta::specta]
-pub fn change_paste_delay_ms_setting(app: AppHandle, ms: u64) -> Result<(), String> {
-    settings::update_settings(&app, |settings| {
-        settings.paste_delay_ms = ms;
-    });
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn change_paste_delay_after_ms_setting(app: AppHandle, ms: u64) -> Result<(), String> {
-    settings::update_settings(&app, |settings| {
-        settings.paste_delay_after_ms = ms;
-    });
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn change_reliable_paste_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
-    settings::update_settings(&app, |settings| {
-        settings.reliable_paste = enabled;
-    });
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn get_available_typing_tools() -> Vec<String> {
     #[cfg(target_os = "linux")]
     {
@@ -1562,6 +1592,118 @@ mod tests {
             .any(|binding| binding.id == id && binding.current_binding == rebound));
         assert!(tauri_impl::validate_shortcut(&rebound).is_ok());
         assert!(handy_keys::validate_shortcut(&rebound).is_ok());
+        Ok(())
+    }
+
+    /// Why the cancel key needs more than its stored chord. handy-keys
+    /// matches a hotkey's modifier groups exactly: a group the hotkey does not
+    /// name must be absent from the event. So the bare `escape` this ships
+    /// with — the live registration reads `Registered handy-keys shortcut:
+    /// cancel -> Hotkey { modifiers: Modifiers(0x0), key: Some(Escape) }` — is
+    /// not the hotkey an Escape struck mid-hold produces, and on its own it
+    /// left hold-to-talk with no keyboard abort at all.
+    /// `every_recording_chord_leaves_the_cancel_key_reachable` is the other
+    /// half: what makes the key reachable anyway.
+    #[test]
+    fn the_stored_cancel_chord_alone_cannot_hear_a_mid_hold_escape() -> Result<(), String> {
+        let mut settings = settings::get_default_settings();
+        ensure_mode_settings(&mut settings);
+
+        let chord = |id: &str| -> Result<::handy_keys::Hotkey, String> {
+            settings
+                .bindings
+                .get(id)
+                .ok_or_else(|| format!("missing default binding '{id}'"))?
+                .current_binding
+                .parse()
+                .map_err(|error| format!("'{id}' is not a handy-keys chord: {error}"))
+        };
+
+        let cancel = chord("cancel")?;
+        assert!(cancel.modifiers.is_empty(), "cancel ships as a bare key");
+
+        // Every chord that can hold a recording open carries a modifier, and
+        // while it is held those are exactly the modifiers Escape arrives with.
+        for id in ["transcribe", "command", "mode/email/transcribe"] {
+            let held = chord(id)?;
+            assert!(!held.modifiers.is_empty(), "'{id}' holds no modifier");
+            assert!(
+                !cancel.modifiers.matches(held.modifiers),
+                "cancel is deaf while '{id}' is held"
+            );
+        }
+        Ok(())
+    }
+
+    /// The contract that answers it: whatever chord is holding a recording
+    /// open, some member of the cancel set is the hotkey an Escape struck
+    /// during that hold produces. Asserted against the modifier state the
+    /// listener would stamp on that Escape, so it fails if the set stops
+    /// covering a chord — and the exact set is pinned too, so it also fails
+    /// if the set widens beyond the modifiers the user has already given
+    /// Sona.
+    #[test]
+    fn every_recording_chord_leaves_the_cancel_key_reachable() -> Result<(), String> {
+        let mut settings = settings::get_default_settings();
+        ensure_mode_settings(&mut settings);
+
+        let parse = |chord: &str| -> Result<::handy_keys::Hotkey, String> {
+            chord
+                .parse()
+                .map_err(|error| format!("'{chord}' is not a handy-keys chord: {error}"))
+        };
+
+        let cancel_set = cancel_bindings_for_registration(&settings)
+            .into_iter()
+            .map(|binding| binding.current_binding)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            cancel_set,
+            vec!["escape", "option+escape", "option+shift+escape"],
+            "the cancel set is the bare key plus the prefixes already in use"
+        );
+
+        let cancel_hotkeys = cancel_set
+            .iter()
+            .map(|chord| parse(chord))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        for (id, binding) in &settings.bindings {
+            if crate::modes::TranscriptionIntent::from_binding(id).is_none() {
+                continue;
+            }
+            let held = parse(&binding.current_binding)?.modifiers;
+            assert!(
+                cancel_hotkeys.iter().any(|cancel| {
+                    cancel.modifiers.matches(held) && cancel.key == Some(::handy_keys::Key::Escape)
+                }),
+                "no cancel hotkey fires while '{id}' is held"
+            );
+        }
+        Ok(())
+    }
+
+    /// The handy-keys recorder persists what the macOS listener saw, and that
+    /// listener tracks modifiers by side: recording option+space on the left
+    /// option key stores `option_left+space`. The Tauri accelerator grammar
+    /// has no side-specific names, so this chord has to be reported invalid
+    /// for that backend — otherwise switching to it neither registers the
+    /// chord nor lists it in `reset_bindings`, and the user's shortcut
+    /// disappears without a word.
+    #[test]
+    fn a_side_specific_chord_is_invalid_for_the_tauri_backend() -> Result<(), String> {
+        let recorded =
+            ::handy_keys::Hotkey::new(::handy_keys::Modifiers::OPT_LEFT, ::handy_keys::Key::Space)
+                .map_err(|error| format!("could not build the recorded chord: {error}"))?
+                .to_handy_string();
+        assert_eq!(recorded, "option_left+space");
+
+        handy_keys::validate_shortcut(&recorded)
+            .map_err(|error| format!("handy-keys rejected its own recording: {error}"))?;
+        assert!(
+            tauri_impl::validate_shortcut(&recorded).is_err(),
+            "the Tauri backend cannot register '{recorded}' and must say so"
+        );
         Ok(())
     }
 }

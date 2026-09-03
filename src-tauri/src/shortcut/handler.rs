@@ -19,7 +19,10 @@ enum ShortcutIntent {
 }
 
 fn shortcut_intent(binding_id: &str) -> Option<ShortcutIntent> {
-    if binding_id == "cancel" {
+    // The cancel key is registered once bare and once per modifier prefix a
+    // recording can be held by, each under its own id, so that an Escape
+    // struck mid-hold is still cancel. Every one of them means cancel.
+    if binding_id == "cancel" || binding_id.starts_with("cancel#") {
         return Some(ShortcutIntent::Cancel);
     }
     if let Some((mode_id, ModeShortcutKind::Switch)) = parse_mode_shortcut_id(binding_id) {
@@ -80,6 +83,10 @@ mod tests {
             Some(ShortcutIntent::SwitchMode("email".to_string()))
         );
         assert_eq!(shortcut_intent("cancel"), Some(ShortcutIntent::Cancel));
+        assert_eq!(
+            shortcut_intent("cancel#option+shift"),
+            Some(ShortcutIntent::Cancel)
+        );
         assert_eq!(shortcut_intent("test"), None);
     }
 }

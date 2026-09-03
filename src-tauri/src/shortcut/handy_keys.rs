@@ -454,11 +454,12 @@ pub fn register_cancel_shortcut(app: &AppHandle) {
     {
         let app_clone = app.clone();
         tauri::async_runtime::spawn(async move {
-            if let Some(cancel_binding) = get_settings(&app_clone).bindings.get("cancel").cloned() {
-                if let Some(state) = app_clone.try_state::<HandyKeysState>() {
-                    if let Err(e) = state.register(&cancel_binding) {
-                        error!("Failed to register cancel shortcut: {}", e);
-                    }
+            let Some(state) = app_clone.try_state::<HandyKeysState>() else {
+                return;
+            };
+            for binding in super::cancel_bindings_for_registration(&get_settings(&app_clone)) {
+                if let Err(e) = state.register(&binding) {
+                    error!("Failed to register cancel shortcut '{}': {e}", binding.id);
                 }
             }
         });
@@ -477,10 +478,11 @@ pub fn unregister_cancel_shortcut(app: &AppHandle) {
     {
         let app_clone = app.clone();
         tauri::async_runtime::spawn(async move {
-            if let Some(cancel_binding) = get_settings(&app_clone).bindings.get("cancel").cloned() {
-                if let Some(state) = app_clone.try_state::<HandyKeysState>() {
-                    let _ = state.unregister(&cancel_binding);
-                }
+            let Some(state) = app_clone.try_state::<HandyKeysState>() else {
+                return;
+            };
+            for binding in super::cancel_bindings_for_registration(&get_settings(&app_clone)) {
+                let _ = state.unregister(&binding);
             }
         });
     }
