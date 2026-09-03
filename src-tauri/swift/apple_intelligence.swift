@@ -35,18 +35,42 @@ private func truncatedText(_ text: String, limit: Int) -> String {
     return words.prefix(limit).joined(separator: " ")
 }
 
-@_cdecl("is_apple_intelligence_available")
-public func isAppleIntelligenceAvailable() -> Int32 {
+/// The refusal a caller can act on, keyed by the status codes in
+/// apple_intelligence_bridge.h. Three of these are different instructions, not
+/// three ways of saying "unavailable".
+private func unavailableMessage(_ status: Int32) -> String {
+    switch status {
+    case 1:
+        return "Apple Intelligence is switched off in System Settings > Apple Intelligence & Siri."
+    case 2:
+        return "Apple Intelligence is still downloading its model."
+    case 3:
+        return "This Mac is not eligible for Apple Intelligence."
+    case 4:
+        return "Apple Intelligence requires macOS 26 or newer."
+    default:
+        return "Apple Intelligence is unavailable for an unrecognized reason."
+    }
+}
+
+/// Status codes are documented once, in apple_intelligence_bridge.h.
+@_cdecl("apple_intelligence_status")
+public func appleIntelligenceStatus() -> Int32 {
     guard #available(macOS 26.0, *) else {
-        return 0
+        return 4
     }
 
-    let model = SystemLanguageModel.default
-    switch model.availability {
+    switch SystemLanguageModel.default.availability {
     case .available:
-        return 1
-    case .unavailable:
         return 0
+    case .unavailable(.appleIntelligenceNotEnabled):
+        return 1
+    case .unavailable(.modelNotReady):
+        return 2
+    case .unavailable(.deviceNotEligible):
+        return 3
+    case .unavailable:
+        return 5
     }
 }
 
@@ -62,19 +86,18 @@ public func processTextWithSystemPrompt(
     responsePtr.initialize(to: AppleLLMResponse(response: nil, success: 0, error_message: nil))
 
     guard #available(macOS 26.0, *) else {
-        responsePtr.pointee.error_message = duplicateCString(
-            "Apple Intelligence requires macOS 26 or newer."
-        )
+        responsePtr.pointee.error_message = duplicateCString(unavailableMessage(4))
         return responsePtr
     }
 
-    let model = SystemLanguageModel.default
-    guard model.availability == .available else {
-        responsePtr.pointee.error_message = duplicateCString(
-            "Apple Intelligence is not currently available on this device."
-        )
+    // One availability read, shared with the status entry point, so the refusal
+    // names which of the reasons applies instead of flattening them.
+    let status = appleIntelligenceStatus()
+    guard status == 0 else {
+        responsePtr.pointee.error_message = duplicateCString(unavailableMessage(status))
         return responsePtr
     }
+    let model = SystemLanguageModel.default
 
     let tokenLimit = max(0, Int(maxTokens))
     let semaphore = DispatchSemaphore(value: 0)

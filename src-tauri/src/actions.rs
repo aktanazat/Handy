@@ -542,8 +542,10 @@ pub(crate) async fn post_process_transcription(
     if provider.supports_structured_output && provider.id == APPLE_INTELLIGENCE_PROVIDER_ID {
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         {
-            if !apple_intelligence::check_apple_intelligence_availability() {
-                debug!("Apple Intelligence selected but is not currently available");
+            // Which reason it is decides what the user would have to do about
+            // it, and this log line is the only place that ever says so.
+            if let Some(reason) = apple_intelligence::apple_intelligence_unavailable_reason() {
+                warn!("Post-processing skipped because {reason}");
                 return None;
             }
 
@@ -555,7 +557,10 @@ pub(crate) async fn post_process_transcription(
             ) {
                 Ok(result) if result.trim().is_empty() => None,
                 Ok(result) => Some(strip_invisible_chars(&result)),
-                Err(_) => None,
+                Err(error) => {
+                    warn!("Apple Intelligence post-processing failed: {error}");
+                    None
+                }
             };
         }
 

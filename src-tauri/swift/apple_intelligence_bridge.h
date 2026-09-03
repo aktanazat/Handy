@@ -13,8 +13,12 @@ typedef struct {
     char* error_message; // Only valid when success = 0
 } AppleLLMResponse;
 
-// Check if Apple Intelligence is available on the device
-int is_apple_intelligence_available(void);
+// Why Apple Intelligence can or cannot answer right now. The OS distinguishes
+// three unavailability reasons and they call for different user action, so the
+// bridge reports the reason rather than a bare yes/no.
+//   0 available, 1 switched off in System Settings, 2 model still downloading,
+//   3 device not eligible, 4 macOS older than 26, 5 reason unknown to us.
+int apple_intelligence_status(void);
 
 // Process text using Apple's on-device LLM with separate system prompt and user content
 AppleLLMResponse* process_text_with_system_prompt_apple(const char* system_prompt, const char* user_content, int max_tokens);

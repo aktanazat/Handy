@@ -11,14 +11,40 @@ pub struct AppleLLMResponse {
 
 // Link to the Swift functions
 extern "C" {
-    pub fn is_apple_intelligence_available() -> c_int;
+    pub fn apple_intelligence_status() -> c_int;
     pub fn free_apple_llm_response(response: *mut AppleLLMResponse);
 }
 
-// Safe wrapper functions
-pub fn check_apple_intelligence_availability() -> bool {
+/// The reason Apple Intelligence cannot answer right now, or `None` when it
+/// can. Status codes are defined once, in `swift/apple_intelligence_bridge.h`.
+///
+/// The OS distinguishes three unavailability reasons and they call for
+/// different action — a switch to flip, a download to wait for, or hardware
+/// that will never qualify — so the bridge carries the reason rather than
+/// collapsing them into a bare "unavailable". The text is diagnostic English
+/// for `sona.log`; the settings UI has its own translated string.
+///
+/// This is deliberately a reason string and not a typed enum. Nothing branches
+/// per reason today, so an enum's discriminating power would be unused, and the
+/// consumer that would use it — settings copy choosing one of three translated
+/// keys — does not exist yet. The Swift codes are the stable contract; when
+/// that consumer arrives it can map them to variants then.
+pub fn apple_intelligence_unavailable_reason() -> Option<&'static str> {
     // SAFETY: The Swift bridge exports this no-argument function for the lifetime of the process.
-    unsafe { is_apple_intelligence_available() == 1 }
+    match unsafe { apple_intelligence_status() } {
+        0 => None,
+        1 => Some(
+            "Apple Intelligence is switched off in System Settings > Apple Intelligence & Siri",
+        ),
+        2 => Some("Apple Intelligence is still downloading its model"),
+        3 => Some("this Mac is not eligible for Apple Intelligence"),
+        4 => Some("Apple Intelligence requires macOS 26 or newer"),
+        _ => Some("Apple Intelligence is unavailable for an unrecognized reason"),
+    }
+}
+
+pub fn check_apple_intelligence_availability() -> bool {
+    apple_intelligence_unavailable_reason().is_none()
 }
 
 // Link to the Swift function for system prompt support
@@ -81,9 +107,53 @@ pub fn process_text_with_system_prompt(
 mod tests {
     use super::*;
 
+    /// Drives the whole bridge: prompt in through the FFI, and either text or a
+    /// reason back. A refusal carrying an empty or fallback message means the
+    /// Swift side never populated `error_message`, which is a marshalling bug
+    /// this catches and a bare availability print would not.
+    ///
+    /// Ignored by default for the same reason the loopback tests in
+    /// `llm_client` are: on a Mac with Apple Intelligence enabled this performs
+    /// a real on-device generation, and the Swift side blocks on a semaphore
+    /// with no timeout, so a wedged `LanguageModelSession` would hang
+    /// `cargo test` indefinitely — libtest has no per-test deadline. Run it
+    /// with `cargo test --lib apple_intelligence -- --ignored --nocapture`.
+    ///
+    /// Deliberately asserts nothing about status agreeing with the answer.
+    /// Rust reads the status here, Swift re-reads availability inside the call,
+    /// and the Swift read is the authoritative one; the two can legitimately
+    /// disagree when the model finishes downloading between them. A guardrail
+    /// refusal from `session.respond` is likewise a legitimate `Err` on a
+    /// perfectly healthy Mac. Neither is a bridge fault, so neither fails.
     #[test]
-    fn test_availability() {
-        let available = check_apple_intelligence_availability();
-        println!("Apple Intelligence available: {}", available);
+    #[ignore = "performs a real on-device generation when Apple Intelligence is enabled"]
+    fn the_bridge_answers_or_says_why_not() {
+        println!(
+            "availability: {}",
+            apple_intelligence_unavailable_reason().unwrap_or("available")
+        );
+
+        let started = std::time::Instant::now();
+        let answer = process_text_with_system_prompt(
+            "Rewrite the user's text as a question. Reply with the rewrite only.",
+            "The plan is ready by Friday.",
+            0,
+        );
+        println!("round trip: {:?}", started.elapsed());
+
+        match answer {
+            Ok(text) => {
+                println!("output: {text}");
+                assert!(!text.trim().is_empty(), "answered with empty text");
+            }
+            Err(error) => {
+                println!("refusal: {error}");
+                assert!(!error.trim().is_empty(), "refused with an empty reason");
+                assert_ne!(
+                    error, "Unknown error",
+                    "the Swift side left error_message null"
+                );
+            }
+        }
     }
 }

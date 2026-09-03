@@ -6,9 +6,12 @@ import Foundation
 
 private typealias ResponsePointer = UnsafeMutablePointer<AppleLLMResponse>
 
-@_cdecl("is_apple_intelligence_available")
-public func isAppleIntelligenceAvailable() -> Int32 {
-    return 0
+// No FoundationModels in this build, so there is no OS availability to read and
+// no reason code to map. Reports the unknown reason; the inference call below
+// carries the build-time explanation the user can act on.
+@_cdecl("apple_intelligence_status")
+public func appleIntelligenceStatus() -> Int32 {
+    return 5
 }
 
 @_cdecl("process_text_with_system_prompt_apple")
