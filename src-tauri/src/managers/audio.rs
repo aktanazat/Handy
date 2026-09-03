@@ -775,7 +775,7 @@ impl AudioRecordingManager {
         let Some(lease_generation) = self.meeting_lease.try_acquire() else {
             return Err(MeetingCaptureError::Unavailable);
         };
-        if !matches!(*self.state.lock().unwrap(), RecordingState::Idle) {
+        if !matches!(*lock_recover(&self.state), RecordingState::Idle) {
             self.meeting_lease.release(lease_generation);
             return Err(MeetingCaptureError::InvalidState);
         }
@@ -787,11 +787,19 @@ impl AudioRecordingManager {
         })
     }
 
+    /// Hands the microphone back and closes the stream the meeting was holding.
+    ///
+    /// Every lock here goes through `lock_recover`, and that is load-bearing
+    /// rather than stylistic: the lease is already down by the time the mode is
+    /// read, so a panic between the two would leave the device open with
+    /// nothing holding it and no path left that closes it. A poisoned mutex is
+    /// reachable from any panic elsewhere under `state` or `mode`, and this is
+    /// the one release the meeting has.
     fn release_meeting_microphone(&self, lease_generation: u64) {
         if !self.meeting_lease.release(lease_generation) {
             return;
         }
-        if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
+        if matches!(*lock_recover(&self.mode), MicrophoneMode::OnDemand) {
             if get_settings(&self.app_handle).lazy_stream_close {
                 self.schedule_lazy_close();
             } else {
@@ -1118,7 +1126,7 @@ impl AudioRecordingManager {
 
         match (cur_mode, &new_mode) {
             (MicrophoneMode::AlwaysOn, MicrophoneMode::OnDemand) => {
-                if matches!(*self.state.lock().unwrap(), RecordingState::Idle) {
+                if matches!(*lock_recover(&self.state), RecordingState::Idle) {
                     self.close_generation.fetch_add(1, Ordering::SeqCst);
                     self.stop_microphone_stream();
                 }
@@ -1332,7 +1340,7 @@ impl AudioRecordingManager {
                 self.set_state(&mut lock_recover(&self.state), RecordingState::Idle);
 
                 // In on-demand mode, close the mic (lazily if the setting is enabled)
-                if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
+                if matches!(*lock_recover(&self.mode), MicrophoneMode::OnDemand) {
                     if get_settings(&self.app_handle).lazy_stream_close {
                         self.schedule_lazy_close();
                     } else {
@@ -1443,7 +1451,7 @@ impl AudioRecordingManager {
                 *lock_recover(&self.is_recording) = false;
 
                 // In on-demand mode, close the mic (lazily if the setting is enabled)
-                if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
+                if matches!(*lock_recover(&self.mode), MicrophoneMode::OnDemand) {
                     if get_settings(&self.app_handle).lazy_stream_close {
                         self.schedule_lazy_close();
                     } else {

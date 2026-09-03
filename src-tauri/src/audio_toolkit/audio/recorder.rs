@@ -1969,9 +1969,10 @@ mod tests {
         RecordedAudio, TimedCaptureState, VadConfig, VadPolicy, MAX_NO_SPEECH_HISTORY_SAMPLES,
     };
     use crate::audio_toolkit::vad::{VadFrame, VoiceActivityDetector};
+    use crate::meeting::capture::PacketLaneReader;
     use crate::meeting::types::{
-        MeetingSessionId, SessionClockAnchor, SourceEpoch, SourceKind, SourceStartPlan,
-        SourceTrackId,
+        MeetingCaptureError, MeetingSessionId, SessionClockAnchor, SourceEpoch, SourceKind,
+        SourceStartPlan, SourceTrackId,
     };
     use cpal::{InputCallbackInfo, InputStreamTimestamp, StreamInstant};
     use std::{
@@ -2084,6 +2085,31 @@ mod tests {
             offline_hangover_frames: 0,
             streaming_hangover_frames: 0,
         }
+    }
+
+    /// Reports one utterance and then silence, and counts every frame it was
+    /// shown. The count is the assertion: a meeting lane that consults the
+    /// segmenter at all has taken on dictation's utterance-delimited lifetime,
+    /// whatever it then does with the answer.
+    ///
+    /// `reset` clears nothing, because the count is about the whole run rather
+    /// than about one session of it.
+    struct CountingVad {
+        frames_shown: Arc<AtomicUsize>,
+        speech_frames: usize,
+    }
+
+    impl VoiceActivityDetector for CountingVad {
+        fn push_frame<'a>(&'a mut self, frame: &'a [f32]) -> anyhow::Result<VadFrame<'a>> {
+            let shown = self.frames_shown.fetch_add(1, Ordering::AcqRel) + 1;
+            if shown <= self.speech_frames {
+                Ok(VadFrame::Speech(frame))
+            } else {
+                Ok(VadFrame::Noise)
+            }
+        }
+
+        fn reset(&mut self) {}
     }
     /// Reference downmix: the straight-to-`Vec` conversion the capture callback
     /// used before the lane existed. Equivalence against this is what proves the
@@ -2591,6 +2617,160 @@ mod tests {
         cmd_tx.send(Cmd::Shutdown).expect("send shutdown");
         worker.join().expect("join consumer");
         capture_into_lane(&buffer, 1, None, &mut producer);
+    }
+
+    /// A meeting's microphone lane ends when the meeting is stopped, and
+    /// nothing about speech starting or stopping may end it.
+    ///
+    /// Dictation's lane is utterance-delimited by design — a closed segment is
+    /// the end of that run — and the two lanes are the same cpal stream taken
+    /// in turn. What keeps the two lifetimes apart is that the meeting arm of
+    /// the consumer never reaches the segmenter at all, so there is no segment
+    /// on it to close. Both halves of that are asserted here, because either
+    /// one failing brings the defect back: a capture that ended when the room
+    /// went quiet, with a transcript of three fragments and forty seconds of
+    /// audio nobody kept.
+    #[test]
+    fn a_closed_speech_segment_cannot_end_a_meeting_capture() {
+        let frames_shown = Arc::new(AtomicUsize::new(0));
+        let (mut producer, consumer) = capture_lane::timed_lane_with_descriptor_capacity(
+            native_rate_samples() * super::LANE_SECONDS,
+            native_rate_samples() * super::LANE_SECONDS,
+        );
+        let (cmd_tx, cmd_rx) = mpsc::channel();
+        let meeting_control = Arc::new(MeetingCallbackControl::new());
+        let callback_control = Arc::clone(&meeting_control);
+        let vad = VadConfig {
+            detector: Arc::new(Mutex::new(Box::new(CountingVad {
+                frames_shown: Arc::clone(&frames_shown),
+                speech_frames: 8,
+            }))),
+            offline_hangover_frames: 0,
+            streaming_hangover_frames: 0,
+        };
+        let worker = thread::spawn(move || {
+            run_consumer(ConsumerInputs {
+                in_sample_rate: NATIVE_RATE,
+                vad: Some(vad),
+                lane: consumer,
+                cmd_rx,
+                level_cb: None,
+                audio_cb: None,
+                stream_running_at: Instant::now(),
+                meeting_control,
+            });
+        });
+
+        let track_id = SourceTrackId::new();
+        let (sink, mut reader) = PacketSink::new(track_id, native_rate_samples(), 256);
+        let (start_reply, start_result) = mpsc::channel();
+        let plan = |epoch| SourceStartPlan {
+            session_id: MeetingSessionId::new(),
+            track_id,
+            source_kind: SourceKind::Microphone,
+            required: true,
+            frozen_application_bundle_ids: Vec::new(),
+            source_epoch: SourceEpoch::new(epoch),
+        };
+        let anchor = SessionClockAnchor {
+            host_monotonic_anchor_ns: 0,
+            wall_start_utc_ms: 0,
+            clock_policy_version: 1,
+        };
+        cmd_tx
+            .send(Cmd::StartMeeting {
+                plan: plan(1),
+                anchor,
+                sink,
+                reply: start_reply,
+            })
+            .expect("send start meeting");
+
+        // Silence is buffers of zeros, not an absent callback: a quiet room
+        // still delivers audio, which is the whole reason a segmenter is what
+        // decides an utterance has ended. 480 frames is 10 ms at 48 kHz.
+        let speech = interleaved(480, 1, 0);
+        let silence = vec![0.0_f32; 480];
+        let mut timestamp_ns = 1_000_000_i64;
+        let mut last_timestamp = None;
+        let mut pump = |producer: &mut CaptureProducer, buffer: &[f32], buffers: usize| {
+            for _ in 0..buffers {
+                timestamp_ns += 10_000_000;
+                capture_into_timed_lane(
+                    buffer,
+                    &callback_info(timestamp_ns),
+                    TimedCaptureState {
+                        channels: 1,
+                        use_channel: None,
+                        sample_rate: NATIVE_RATE,
+                        meeting_control: &callback_control,
+                        last_timestamp_value: &mut last_timestamp,
+                        producer,
+                    },
+                );
+                thread::sleep(Duration::from_millis(1));
+            }
+        };
+        let mut scratch = Vec::new();
+        let mut drain = |reader: &mut PacketLaneReader| {
+            let mut packets = 0;
+            while let Ok(Some(_)) = reader.pop_into(&mut scratch) {
+                packets += 1;
+            }
+            packets
+        };
+
+        pump(&mut producer, &speech, 8);
+        assert!(
+            start_result.recv_timeout(Duration::from_secs(2)).is_ok(),
+            "the meeting source never acknowledged its start"
+        );
+        assert!(drain(&mut reader) > 0, "no audio reached the meeting lane");
+
+        // Six hundred milliseconds of it, two orders of magnitude past any
+        // hangover tail this recorder configures.
+        pump(&mut producer, &silence, 60);
+        let through_silence = drain(&mut reader);
+        pump(&mut producer, &speech, 8);
+        let after_silence = through_silence + drain(&mut reader);
+
+        assert_eq!(
+            frames_shown.load(Ordering::Acquire),
+            0,
+            "the meeting lane consulted the segmenter, so a closed segment can reach it"
+        );
+        assert!(
+            after_silence > 0,
+            "the meeting lane stopped carrying audio once the room went quiet"
+        );
+        assert!(
+            reader.pop_gap().is_none() && !reader.take_gap_overflow(),
+            "the silence was reported as a break in the capture"
+        );
+
+        // The capture is still the consumer's: a second start is refused only
+        // while one is held, so this reads the state the silence would have
+        // cleared without opening that state up for a test.
+        let (second_reply, second_result) = mpsc::channel();
+        let (second_sink, _second_reader) = PacketSink::new(SourceTrackId::new(), 16, 1);
+        cmd_tx
+            .send(Cmd::StartMeeting {
+                plan: plan(2),
+                anchor,
+                sink: second_sink,
+                reply: second_reply,
+            })
+            .expect("send second start meeting");
+        assert!(
+            matches!(
+                second_result.recv_timeout(Duration::from_secs(2)),
+                Ok(Err(MeetingCaptureError::InvalidState))
+            ),
+            "the capture was gone by the time the room spoke again"
+        );
+
+        cmd_tx.send(Cmd::Shutdown).expect("send shutdown");
+        worker.join().expect("join consumer");
     }
 
     /// The overlay's listening state, the start chime, and the forced mute all
