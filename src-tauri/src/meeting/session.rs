@@ -397,6 +397,47 @@ pub enum RecordingOrigin {
     PairedDevice { device_id: String },
 }
 
+/// Which surface asked for a capture to stop.
+///
+/// A stop is the one meeting command four unrelated surfaces issue, and until
+/// this existed a committed one was unattributable: `stop` logged nothing and
+/// filed every receipt under [`OperationActor::User`], including the auto-stops
+/// detection issues on its own. That made the corpus's own audit trail wrong in
+/// the one field a reader would trust, and it is why a capture that ended after
+/// eleven seconds took a day to notice.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MeetingStopCause {
+    /// A press on a stop control in the app's own windows.
+    Operator,
+    /// The tray's Stop Meeting Notes item.
+    Tray,
+    /// A press on the auto-record card detection put on the panel. An operator
+    /// press like [`Self::Operator`], reported apart from it because the card
+    /// names one capture and can outlive it.
+    RecordingCard,
+    /// §5.5: detection ended the capture itself, on the trigger it names.
+    Detection(super::detection::machine::StopTrigger),
+}
+
+impl MeetingStopCause {
+    /// Who the receipt says did it. Only detection acts without a press.
+    const fn actor(self) -> OperationActor {
+        match self {
+            Self::Operator | Self::Tray | Self::RecordingCard => OperationActor::User,
+            Self::Detection(_) => OperationActor::System,
+        }
+    }
+
+    fn describe(self) -> String {
+        match self {
+            Self::Operator => "an operator press".to_string(),
+            Self::Tray => "the tray".to_string(),
+            Self::RecordingCard => "the recording card".to_string(),
+            Self::Detection(trigger) => format!("detection on {}", trigger.as_str()),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
 pub struct MeetingMutationResult {
     pub receipt: OperationReceipt,
@@ -1863,9 +1904,13 @@ impl MeetingSessionManager {
         Ok(MeetingMutationResult { receipt, snapshot })
     }
 
+    /// `cause` names the surface that asked. It decides the receipt's actor and
+    /// is logged at the commit, so a stop is attributable from the corpus and
+    /// from the log without the caller having to remember to say so.
     pub async fn stop(
         &self,
         request: MeetingMutationRequest,
+        cause: MeetingStopCause,
     ) -> Result<MeetingMutationResult, MeetingCommandError> {
         let store = self.store().await?;
         if let Some(receipt) = store
@@ -1875,8 +1920,9 @@ impl MeetingSessionManager {
             return self.result_for_receipt(store, receipt, request.session_id);
         }
         let mut actor = self.actor_lock();
-        let receipt = required_transition(
+        let receipt = required_transition_by(
             &store,
+            cause.actor(),
             &request,
             MeetingCommandKind::Stop,
             &[
@@ -1893,6 +1939,13 @@ impl MeetingSessionManager {
             drop(actor);
             return self.result_for_receipt(store, receipt, request.session_id);
         }
+        // After the fence, so this names a stop that happened rather than one
+        // that was asked for.
+        log::info!(
+            "Meeting capture {} stopped by {}",
+            request.session_id.uuid(),
+            cause.describe()
+        );
         let mut active = actor
             .active
             .take()
@@ -4535,11 +4588,14 @@ pub(crate) mod tests {
             .unwrap();
         assert_eq!(aborts.load(Ordering::Acquire), 0);
         assert_eq!(
-            tauri::async_runtime::block_on(manager.stop(MeetingMutationRequest {
-                operation_id: MeetingOperationId::new(),
-                session_id: active.snapshot.session_id,
-                expected_revision: active.snapshot.revision,
-            }))
+            tauri::async_runtime::block_on(manager.stop(
+                MeetingMutationRequest {
+                    operation_id: MeetingOperationId::new(),
+                    session_id: active.snapshot.session_id,
+                    expected_revision: active.snapshot.revision,
+                },
+                MeetingStopCause::Operator,
+            ))
             .unwrap()
             .snapshot
             .phase,
@@ -6166,11 +6222,14 @@ pub(crate) mod tests {
                 .unwrap()
                 .revision
         });
-        tauri::async_runtime::block_on(manager.stop(MeetingMutationRequest {
-            operation_id: MeetingOperationId::new(),
-            session_id,
-            expected_revision: revision,
-        }))
+        tauri::async_runtime::block_on(manager.stop(
+            MeetingMutationRequest {
+                operation_id: MeetingOperationId::new(),
+                session_id,
+                expected_revision: revision,
+            },
+            MeetingStopCause::Operator,
+        ))
         .unwrap();
         let after_processing = calls.load(Ordering::Acquire);
 
@@ -6186,6 +6245,65 @@ pub(crate) mod tests {
             calls.load(Ordering::Acquire),
             after_processing,
             "a recap after the stop recognizes nothing: the transcript is already written"
+        );
+    }
+
+    /// Who ended a capture has to survive in the receipt, because the receipt
+    /// is the corpus's own answer to that question and the only one a reader
+    /// gets days later.
+    ///
+    /// `stop` used to file every caller under [`OperationActor::User`]. Four
+    /// unrelated surfaces issue this command — a press in the app, the tray,
+    /// the auto-record card, and detection acting on a [`StopTrigger`] — and
+    /// the receipt claimed a person for all of them, including the one nobody
+    /// touched. That is not a missing record, it is a false one, and it is why
+    /// a capture that ended by itself after eleven seconds went a day without
+    /// an explanation.
+    #[test]
+    fn a_stop_receipt_says_whether_the_app_or_a_person_ended_the_capture() {
+        let actor_for = |cause: MeetingStopCause| {
+            let busy = Arc::new(AtomicBool::new(false));
+            let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let (_directory, manager, session_id, _lane) = capturing_meeting(
+                line_engine(&busy, &calls),
+                Arc::new(FixedGenerator {
+                    available: false,
+                    output: String::new(),
+                }),
+            );
+            let revision = tauri::async_runtime::block_on(async {
+                manager
+                    .store()
+                    .await
+                    .unwrap()
+                    .session_snapshot(session_id)
+                    .unwrap()
+                    .revision
+            });
+            tauri::async_runtime::block_on(manager.stop(
+                MeetingMutationRequest {
+                    operation_id: MeetingOperationId::new(),
+                    session_id,
+                    expected_revision: revision,
+                },
+                cause,
+            ))
+            .unwrap()
+            .receipt
+            .actor
+        };
+
+        assert_eq!(
+            actor_for(MeetingStopCause::Operator),
+            OperationActor::User,
+            "a press is still a person"
+        );
+        assert_eq!(
+            actor_for(MeetingStopCause::Detection(
+                crate::meeting::detection::machine::StopTrigger::SleepBoundary
+            )),
+            OperationActor::System,
+            "an auto-stop nobody asked for must not be recorded as the user's"
         );
     }
 

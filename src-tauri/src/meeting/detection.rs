@@ -1948,11 +1948,14 @@ impl DetectionRuntime {
         };
         let stopped = self
             .meetings
-            .stop(crate::meeting::session::MeetingMutationRequest {
-                operation_id: MeetingOperationId::new(),
-                session_id: active.session_id,
-                expected_revision: active.revision,
-            })
+            .stop(
+                crate::meeting::session::MeetingMutationRequest {
+                    operation_id: MeetingOperationId::new(),
+                    session_id: active.session_id,
+                    expected_revision: active.revision,
+                },
+                crate::meeting::session::MeetingStopCause::RecordingCard,
+            )
             .await;
         match stopped {
             Ok(_) => {
@@ -2211,6 +2214,9 @@ impl DetectionRuntime {
         let Some(trigger) = evaluate_stop(&inputs, &policy) else {
             return;
         };
+        // `stop` logs the committed stop and its cause; this names the trigger
+        // at the instant the decision was taken, before the spawn that carries
+        // it out can fail.
         log::info!("Meeting detection is stopping capture on {trigger:?}");
         let runtime = Arc::clone(self);
         let meetings = Arc::clone(&self.meetings);
@@ -2221,7 +2227,13 @@ impl DetectionRuntime {
         };
         let session_id = active.session_id;
         tauri::async_runtime::spawn(async move {
-            match meetings.stop(request).await {
+            match meetings
+                .stop(
+                    request,
+                    crate::meeting::session::MeetingStopCause::Detection(trigger),
+                )
+                .await
+            {
                 Ok(_) => {
                     meetings
                         .record_auto_record_stopped(session_id, trigger)

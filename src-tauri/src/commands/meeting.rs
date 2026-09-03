@@ -209,7 +209,9 @@ pub async fn meeting_stop(
     request: MeetingMutationRequest,
 ) -> Result<MeetingMutationResult, MeetingCommandError> {
     let session_id = request.session_id;
-    let result = manager.stop(request).await;
+    let result = manager
+        .stop(request, crate::meeting::session::MeetingStopCause::Operator)
+        .await;
     if result.is_ok() {
         detection.track_ended(session_id);
     }
