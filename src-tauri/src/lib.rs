@@ -891,11 +891,14 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
                         return;
                     }
                     match manager
-                        .stop(MeetingMutationRequest {
-                            operation_id: MeetingOperationId::new(),
-                            session_id: snapshot.session_id,
-                            expected_revision: snapshot.revision,
-                        })
+                        .stop(
+                            MeetingMutationRequest {
+                                operation_id: MeetingOperationId::new(),
+                                session_id: snapshot.session_id,
+                                expected_revision: snapshot.revision,
+                            },
+                            meeting::session::MeetingStopCause::Tray,
+                        )
                         .await
                     {
                         Ok(result) => tray::set_meeting_tray_snapshot(&app, Some(&result.snapshot)),
@@ -1066,6 +1069,27 @@ fn is_headless_mode(args: &CliArgs) -> bool {
         || query::external::is_external_query(args)
 }
 
+/// The ASR plan a headless run transcribes under: the active mode's, exactly as
+/// a dictation would freeze it.
+///
+/// Reading the legacy global roots instead made this flag reproduce a
+/// configuration no dictation uses. Filler removal, vocabulary and literal
+/// punctuation are carried by the mode, and `literal_punctuation` has no global
+/// at all — `AsrPlan::from_settings` hardcodes it false — so a check run through
+/// this flag certified the wrong plan while looking like evidence.
+/// `active_mode_id` is persisted, so nothing was missing here; it was simply not
+/// being read. The mode still inherits every field it does not carry (the model
+/// when its own id is empty, the global vocabulary, the text-pass settings that
+/// live only at the root).
+fn headless_asr_plan(settings: &crate::settings::AppSettings) -> modes::AsrPlan {
+    match modes::active_mode(settings) {
+        Some(mode) => modes::AsrPlan::from_mode(settings, &mode.asr),
+        // Unreachable through a loaded document: every load runs
+        // `ensure_mode_settings`, which seeds the default modes.
+        None => modes::AsrPlan::from_settings(settings),
+    }
+}
+
 /// Headless one-shot transcription for the `--transcribe-file` / `--list-devices`
 /// path. Drives the same `TranscriptionManager::transcribe` the app uses; no
 /// mic, no VAD, no download. Returns a process exit code (0 ok, 1 runtime
@@ -1179,7 +1203,11 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
 
     let tm = app.state::<Arc<TranscriptionManager>>();
 
-    let mut asr = modes::AsrPlan::from_settings(&get_settings(app));
+    let settings = get_settings(app);
+    let mode_id = modes::active_mode(&settings)
+        .map(|mode| mode.id.clone())
+        .unwrap_or_default();
+    let mut asr = headless_asr_plan(&settings);
     if let Some(model_id) = args.model.clone() {
         asr.model_id = model_id;
     }
@@ -1241,6 +1269,7 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
         println!(
             "{}",
             serde_json::json!({
+                "mode": mode_id,
                 "model": model_id,
                 "requested_device": requested_device,
                 "bound_backend": bound_backend,
@@ -1254,7 +1283,8 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
         );
     } else {
         println!(
-            "model={} device={} backend={} audio={:.2}s load={}ms best={}ms rtf={:.2}x",
+            "mode={} model={} device={} backend={} audio={:.2}s load={}ms best={}ms rtf={:.2}x",
+            mode_id,
             model_id,
             requested_device,
             bound_backend.as_deref().unwrap_or("?"),
@@ -1411,9 +1441,6 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_debug_mode_setting,
             shortcut::change_word_correction_threshold_setting,
             shortcut::change_extra_recording_buffer_setting,
-            shortcut::change_paste_delay_ms_setting,
-            shortcut::change_paste_delay_after_ms_setting,
-            shortcut::change_reliable_paste_setting,
             shortcut::get_available_typing_tools,
             shortcut::change_external_script_path_setting,
             shortcut::change_post_process_enabled_setting,
@@ -2106,6 +2133,29 @@ pub fn run(cli_args: CliArgs) {
                 let unlock_secrets = secret_manager.clone();
                 tauri::async_runtime::spawn(async move {
                     unlock_history.unlock_storage(&unlock_secrets).await;
+                    // The one trigger retention has that is not a new dictation.
+                    //
+                    // `cleanup_old_entries` otherwise runs only from an insert and
+                    // from the two settings commands, and for `preserve_limit` that
+                    // is enough: a count can only be exceeded by an insert, and an
+                    // insert runs the sweep. The three time-based periods are made
+                    // eligible by time passing instead, and nothing else observes
+                    // time passing — so "delete after 3 days" kept every recording
+                    // for a user who chose it and then stopped dictating.
+                    //
+                    // Here rather than in `unlock_storage`, which is the obvious
+                    // home and a trap: `ensure_storage_unlocked` reaches that
+                    // function on the read path, which is how the headless corpus
+                    // verbs open the database, so a sweep inside it would make
+                    // `sona --query` delete recordings while `cli.rs` promises
+                    // those verbs only read. This callback belongs to a process
+                    // that has a window, and it runs after the paint.
+                    //
+                    // Once per launch, deliberately. A timer would be a second
+                    // source of truth about when deletion happens.
+                    if let Err(error) = unlock_history.cleanup_old_entries() {
+                        log::warn!("Retention sweep at startup is unavailable: {error:#}");
+                    }
                 });
             });
 
@@ -2236,6 +2286,51 @@ mod headless_guard_tests {
             ..Default::default()
         };
         assert!(is_headless_mode(&args));
+    }
+}
+
+#[cfg(test)]
+mod headless_plan_tests {
+    use super::headless_asr_plan;
+    use crate::modes::ensure_mode_settings;
+    use crate::settings::get_default_settings;
+
+    /// The flag is the only route an automated check has to the text pipeline,
+    /// so it has to freeze the plan a dictation would. Filler removal and
+    /// literal punctuation are carried by the mode alone, and reading the roots
+    /// instead reported the mode's choices as their global namesakes.
+    #[test]
+    fn a_headless_run_transcribes_under_the_active_mode() {
+        let mut settings = get_default_settings();
+        ensure_mode_settings(&mut settings);
+        settings.selected_model = "globally-chosen-model".to_string();
+        settings.filler_word_removal_enabled = true;
+        settings.active_mode_id = settings.modes[1].id.clone();
+        let mode = &mut settings.modes[1];
+        mode.asr.model_id = "mode-chosen-model".to_string();
+        mode.asr.literal_punctuation = true;
+        mode.asr.filler_word_removal_enabled = false;
+
+        let plan = headless_asr_plan(&settings);
+
+        assert_eq!(plan.model_id, "mode-chosen-model");
+        assert!(plan.literal_punctuation);
+        assert!(!plan.filler_word_removal_enabled);
+    }
+
+    /// An empty per-mode model still inherits the global selection, which is
+    /// what Aktan's `message` mode carries.
+    #[test]
+    fn an_empty_mode_model_still_inherits_the_global_selection() {
+        let mut settings = get_default_settings();
+        ensure_mode_settings(&mut settings);
+        settings.selected_model = "globally-chosen-model".to_string();
+        settings.modes[0].asr.model_id.clear();
+
+        assert_eq!(
+            headless_asr_plan(&settings).model_id,
+            "globally-chosen-model"
+        );
     }
 }
 #[cfg(test)]

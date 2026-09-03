@@ -1553,25 +1553,7 @@ impl HistoryManager {
     /// connection and deleting them on another let a row change in between.
     fn cleanup_by_count(&self, limit: usize) -> Result<()> {
         let deleted_count = self.storage.with_connection(|conn| {
-            // Get all entries that are not saved, ordered by timestamp desc
-            let entries: Vec<(i64, String)> = {
-                let mut stmt = conn.prepare(
-                    "SELECT id, file_name FROM transcription_history WHERE saved = 0 ORDER BY timestamp DESC"
-                )?;
-                let rows = stmt.query_map([], |row| {
-                    Ok((row.get::<_, i64>("id")?, row.get::<_, String>("file_name")?))
-                })?;
-                rows.collect::<rusqlite::Result<Vec<_>>>()?
-            };
-
-            if entries.len() <= limit {
-                return Ok(0);
-            }
-            Self::delete_entries_and_files_with_connection(
-                conn,
-                &self.recordings_dir,
-                &entries[limit..],
-            )
+            Self::sweep_by_count_with_connection(conn, &self.recordings_dir, limit)
         })?;
 
         if deleted_count > 0 {
@@ -1581,36 +1563,41 @@ impl HistoryManager {
         Ok(())
     }
 
+    /// The rows a count sweep deletes, and their deletion, on one connection.
+    ///
+    /// Separate from the settings read above so the selection is reachable from
+    /// a test: which rows are chosen is the half of retention that had no
+    /// coverage, and it is not the half that needs an `AppHandle`.
+    fn sweep_by_count_with_connection(
+        conn: &Connection,
+        recordings_dir: &Path,
+        limit: usize,
+    ) -> Result<usize> {
+        // Get all entries that are not saved, ordered by timestamp desc
+        let entries: Vec<(i64, String)> = {
+            let mut stmt = conn.prepare(
+                "SELECT id, file_name FROM transcription_history WHERE saved = 0 ORDER BY timestamp DESC"
+            )?;
+            let rows = stmt.query_map([], |row| {
+                Ok((row.get::<_, i64>("id")?, row.get::<_, String>("file_name")?))
+            })?;
+            rows.collect::<rusqlite::Result<Vec<_>>>()?
+        };
+
+        if entries.len() <= limit {
+            return Ok(0);
+        }
+        Self::delete_entries_and_files_with_connection(conn, recordings_dir, &entries[limit..])
+    }
+
     fn cleanup_by_time(
         &self,
         retention_period: crate::settings::RecordingRetentionPeriod,
     ) -> Result<()> {
-        // Calculate cutoff timestamp (current time minus retention period)
-        let now = Utc::now().timestamp();
-        let cutoff_timestamp = match retention_period {
-            crate::settings::RecordingRetentionPeriod::Days3 => now - (3 * 24 * 60 * 60), // 3 days in seconds
-            crate::settings::RecordingRetentionPeriod::Weeks2 => now - (2 * 7 * 24 * 60 * 60), // 2 weeks in seconds
-            crate::settings::RecordingRetentionPeriod::Months3 => now - (3 * 30 * 24 * 60 * 60), // 3 months in seconds (approximate)
-            _ => unreachable!("Should not reach here"),
-        };
+        let cutoff_timestamp = retention_cutoff_timestamp(retention_period, Utc::now().timestamp());
 
         let deleted_count = self.storage.with_connection(|conn| {
-            // Get all unsaved entries older than the cutoff timestamp
-            let entries_to_delete: Vec<(i64, String)> = {
-                let mut stmt = conn.prepare(
-                    "SELECT id, file_name FROM transcription_history WHERE saved = 0 AND timestamp < ?1",
-                )?;
-                let rows = stmt.query_map(params![cutoff_timestamp], |row| {
-                    Ok((row.get::<_, i64>("id")?, row.get::<_, String>("file_name")?))
-                })?;
-                rows.collect::<rusqlite::Result<Vec<_>>>()?
-            };
-
-            Self::delete_entries_and_files_with_connection(
-                conn,
-                &self.recordings_dir,
-                &entries_to_delete,
-            )
+            Self::sweep_by_time_with_connection(conn, &self.recordings_dir, cutoff_timestamp)
         })?;
 
         if deleted_count > 0 {
@@ -1621,6 +1608,27 @@ impl HistoryManager {
         }
 
         Ok(())
+    }
+
+    /// The rows a time sweep deletes, and their deletion, on one connection.
+    /// Split out for the same reason as the count sweep's half.
+    fn sweep_by_time_with_connection(
+        conn: &Connection,
+        recordings_dir: &Path,
+        cutoff_timestamp: i64,
+    ) -> Result<usize> {
+        // Get all unsaved entries older than the cutoff timestamp
+        let entries_to_delete: Vec<(i64, String)> = {
+            let mut stmt = conn.prepare(
+                "SELECT id, file_name FROM transcription_history WHERE saved = 0 AND timestamp < ?1",
+            )?;
+            let rows = stmt.query_map(params![cutoff_timestamp], |row| {
+                Ok((row.get::<_, i64>("id")?, row.get::<_, String>("file_name")?))
+            })?;
+            rows.collect::<rusqlite::Result<Vec<_>>>()?
+        };
+
+        Self::delete_entries_and_files_with_connection(conn, recordings_dir, &entries_to_delete)
     }
 
     /// Read all-time aggregates from the retained history rows. The one grouped
@@ -2521,6 +2529,39 @@ fn backfill_semantic_chunk_with_connection(
     Ok(pending.len())
 }
 
+/// The instant a time-based retention period cuts at, in the same unit the
+/// `timestamp` column stores.
+///
+/// That unit is the whole reason this is a named function rather than a `match`
+/// inside the sweep. `timestamp` is written as `Utc::now().timestamp()`, which
+/// is **seconds**, so every period here is expressed in seconds and `now` must
+/// arrive in seconds too. A cutoff computed in milliseconds against a
+/// seconds column would be far in the future, select every row, and delete a
+/// user's whole history; one computed the other way would select nothing and
+/// silently keep it forever. Taking `now` as an argument is what lets a test
+/// pin both the unit and the arithmetic without waiting three days.
+///
+/// `Months3` is 90 days, not three calendar months.
+///
+/// Only the three time-based periods reach here. `Never` and `PreserveLimit`
+/// are answered by `cleanup_old_entries` before a cutoff means anything.
+fn retention_cutoff_timestamp(
+    retention_period: crate::settings::RecordingRetentionPeriod,
+    now_seconds: i64,
+) -> i64 {
+    const DAY: i64 = 24 * 60 * 60;
+    let window = match retention_period {
+        crate::settings::RecordingRetentionPeriod::Days3 => 3 * DAY,
+        crate::settings::RecordingRetentionPeriod::Weeks2 => 14 * DAY,
+        crate::settings::RecordingRetentionPeriod::Months3 => 90 * DAY,
+        crate::settings::RecordingRetentionPeriod::Never
+        | crate::settings::RecordingRetentionPeriod::PreserveLimit => {
+            unreachable!("cleanup_old_entries answers these without a cutoff")
+        }
+    };
+    now_seconds - window
+}
+
 /// The single owner of the recordings-directory join.
 ///
 /// `Path::join` silently replaces the base for an absolute argument and walks
@@ -3368,6 +3409,136 @@ mod tests {
             .expect("child survives");
         assert_eq!(text, "reprocessed");
         assert_eq!(parent_id, None);
+    }
+
+    /// Every period the setting offers, pinned in the unit the column stores.
+    ///
+    /// The arithmetic had no test, and a units mistake here is the difference
+    /// between deleting a user's whole history and silently keeping it forever.
+    /// Asserted against a fixed `now` so each window is an exact number of
+    /// seconds rather than "about three days".
+    #[test]
+    fn each_retention_period_cuts_at_its_own_number_of_seconds() {
+        const DAY: i64 = 86_400;
+        // A fixed instant, so the assertions are arithmetic and not a clock.
+        const NOW: i64 = 1_788_417_783;
+
+        for (period, days) in [
+            (crate::settings::RecordingRetentionPeriod::Days3, 3),
+            (crate::settings::RecordingRetentionPeriod::Weeks2, 14),
+            (crate::settings::RecordingRetentionPeriod::Months3, 90),
+        ] {
+            assert_eq!(
+                retention_cutoff_timestamp(period, NOW),
+                NOW - days * DAY,
+                "{period:?} must cut {days} days back, in seconds"
+            );
+        }
+    }
+
+    /// A row one second inside the window survives and a row one second outside
+    /// it does not, for every period, and starring a row exempts it either way.
+    ///
+    /// This is the selection half of retention, which had no coverage: the
+    /// existing deletion test covers what happens to a chosen row's audio, not
+    /// which rows get chosen.
+    #[test]
+    fn a_time_sweep_deletes_only_unsaved_rows_past_the_cutoff() {
+        const NOW: i64 = 1_788_417_783;
+
+        for period in [
+            crate::settings::RecordingRetentionPeriod::Days3,
+            crate::settings::RecordingRetentionPeriod::Weeks2,
+            crate::settings::RecordingRetentionPeriod::Months3,
+        ] {
+            let conn = setup_conn();
+            let recordings = tempfile::tempdir().expect("recordings directory");
+            let cutoff = retention_cutoff_timestamp(period, NOW);
+
+            let inside = insert_base_entry(&conn, cutoff + 1, "inside the window");
+            let on_the_boundary = insert_base_entry(&conn, cutoff, "exactly at the cutoff");
+            let outside = insert_base_entry(&conn, cutoff - 1, "past the window");
+            let starred = insert_base_entry(&conn, cutoff - 1, "starred and ancient");
+            conn.execute(
+                "UPDATE transcription_history SET saved = 1 WHERE id = ?1",
+                params![starred],
+            )
+            .expect("star the ancient row");
+
+            let deleted =
+                HistoryManager::sweep_by_time_with_connection(&conn, recordings.path(), cutoff)
+                    .expect("time sweep runs");
+
+            assert_eq!(deleted, 1, "{period:?} must delete exactly the stale row");
+            assert!(row_exists(&conn, inside), "{period:?} kept the recent row");
+            // `timestamp < cutoff` is strict, so the boundary row is retained.
+            assert!(
+                row_exists(&conn, on_the_boundary),
+                "{period:?} treats the cutoff itself as inside the window"
+            );
+            assert!(
+                !row_exists(&conn, outside),
+                "{period:?} deleted the stale row"
+            );
+            assert!(
+                row_exists(&conn, starred),
+                "{period:?} must never delete a starred row"
+            );
+        }
+    }
+
+    /// The count sweep keeps the newest `limit` unsaved rows and no more, and a
+    /// starred row is kept without spending one of those places.
+    #[test]
+    fn a_count_sweep_keeps_the_newest_unsaved_rows_and_every_starred_one() {
+        let conn = setup_conn();
+        let recordings = tempfile::tempdir().expect("recordings directory");
+
+        // Oldest first, so `newest` really is the newest timestamp.
+        let oldest = insert_base_entry(&conn, 100, "oldest");
+        let middle = insert_base_entry(&conn, 200, "middle");
+        let newest = insert_base_entry(&conn, 300, "newest");
+        let starred_and_oldest = insert_base_entry(&conn, 50, "starred");
+        conn.execute(
+            "UPDATE transcription_history SET saved = 1 WHERE id = ?1",
+            params![starred_and_oldest],
+        )
+        .expect("star the oldest row");
+
+        let deleted = HistoryManager::sweep_by_count_with_connection(&conn, recordings.path(), 2)
+            .expect("count sweep runs");
+
+        assert_eq!(deleted, 1, "three unsaved rows at a limit of two loses one");
+        assert!(row_exists(&conn, newest));
+        assert!(row_exists(&conn, middle));
+        assert!(!row_exists(&conn, oldest), "the oldest unsaved row goes");
+        assert!(
+            row_exists(&conn, starred_and_oldest),
+            "a starred row is exempt and does not occupy one of the two places"
+        );
+    }
+
+    /// A limit the corpus has not reached must not touch the database at all.
+    #[test]
+    fn a_count_sweep_under_its_limit_deletes_nothing() {
+        let conn = setup_conn();
+        let recordings = tempfile::tempdir().expect("recordings directory");
+        let only = insert_base_entry(&conn, 100, "the only dictation");
+
+        let deleted = HistoryManager::sweep_by_count_with_connection(&conn, recordings.path(), 5)
+            .expect("count sweep runs");
+
+        assert_eq!(deleted, 0);
+        assert!(row_exists(&conn, only));
+    }
+
+    fn row_exists(conn: &Connection, id: i64) -> bool {
+        conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM transcription_history WHERE id = ?1)",
+            params![id],
+            |row| row.get(0),
+        )
+        .expect("read row existence")
     }
 
     #[test]
