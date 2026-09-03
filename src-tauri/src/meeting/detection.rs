@@ -701,10 +701,6 @@ impl DetectionRuntime {
         self.wakeup.wake();
     }
 
-    pub fn self_lease(&self) -> Arc<SelfInputDeviceLease> {
-        Arc::clone(&self.self_lease)
-    }
-
     pub fn app_handle(&self) -> &AppHandle {
         &self.app
     }

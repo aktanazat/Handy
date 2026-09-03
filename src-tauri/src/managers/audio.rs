@@ -8,6 +8,7 @@ use crate::audio_toolkit::{
 };
 use crate::helpers::clamshell;
 use crate::managers::transcription::{StreamRouter, TranscriptionManager};
+use crate::meeting::detection::input_device::SelfInputDeviceLease;
 use crate::meeting::{
     capture::{MeetingCaptureSource, PacketSink},
     types::{
@@ -565,6 +566,10 @@ pub struct AudioRecordingManager {
     /// the recorder resolves the current default itself, cheaply.
     cached_device: Arc<Mutex<Option<(String, cpal::Device)>>>,
     meeting_lease: Arc<MeetingMicrophoneLease>,
+    /// What meeting detection reads to discount Sona's own microphone. Raised
+    /// and dropped by `set_stream_open` alone; see its doc for why the stream
+    /// and not the recording state owns it.
+    self_lease: Arc<SelfInputDeviceLease>,
 }
 
 impl AudioRecordingManager {
@@ -597,6 +602,7 @@ impl AudioRecordingManager {
             capture_generation: Arc::new(AtomicU64::new(0)),
             cached_device: Arc::new(Mutex::new(None)),
             meeting_lease: Arc::new(MeetingMicrophoneLease::new()),
+            self_lease: Arc::new(SelfInputDeviceLease::default()),
         };
 
         // Always-on?  Open immediately.
@@ -633,6 +639,16 @@ impl AudioRecordingManager {
 
     pub fn invalidate_device_cache(&self) {
         *lock_recover(&self.cached_device) = None;
+    }
+
+    /// The detection lease this manager raises for its own microphone stream.
+    ///
+    /// Handed out rather than reached for through the app handle, because the
+    /// detection runtime is built after this manager and an always-on stream
+    /// is already open by then. A second lease would mean detection watching
+    /// a fact nobody writes.
+    pub fn self_input_device_lease(&self) -> Arc<SelfInputDeviceLease> {
+        Arc::clone(&self.self_lease)
     }
 
     fn resolve_microphone_device(&self, settings: &AppSettings) -> MicrophoneResolution {
@@ -897,6 +913,41 @@ impl AudioRecordingManager {
         );
     }
 
+    /// The one place `is_open` is written, and therefore the one owner of the
+    /// detection lease.
+    ///
+    /// `is_open` is the only fact in this manager that means "Sona's process
+    /// is holding the input device". Every path that opens the stream ends
+    /// here — always-on construction, the on-demand keypress, the rebuild
+    /// after a device dropout, a meeting capture's microphone lane — and so
+    /// does every close, including the idle watcher's lazy one.
+    ///
+    /// Deriving the lease from the recording state instead is what produced
+    /// the bug this replaces. The state leaves `Recording` when the user lets
+    /// go of the key; the stream outlives it, by up to
+    /// [`STREAM_IDLE_TIMEOUT`] with `lazy_stream_close` on and by however long
+    /// the close itself takes without it. For that whole window meeting
+    /// detection saw a device in use that nobody was holding, and the ad-hoc
+    /// path raised "microphone activity detected" for Sona's own dictation.
+    ///
+    /// Takes the lease rather than reading it off `self`, so the transition is
+    /// testable without a CoreAudio device. The no-change guard is what makes
+    /// a repeated open safe: the always-on and prewarmed paths call
+    /// `start_microphone_stream` against a stream that is already running, and
+    /// a lease that counted those would never be released by the single close
+    /// that follows.
+    fn set_stream_open(lease: &SelfInputDeviceLease, open_flag: &mut bool, open: bool) {
+        if *open_flag == open {
+            return;
+        }
+        *open_flag = open;
+        if open {
+            lease.acquire();
+        } else {
+            lease.release();
+        }
+    }
+
     pub fn start_microphone_stream(&self) -> Result<(), anyhow::Error> {
         let mut open_flag = lock_recover(&self.is_open);
         if *open_flag {
@@ -931,7 +982,7 @@ impl AudioRecordingManager {
                 let _ = rec.close();
             }
             *lock_recover(&self.is_recording) = false;
-            *open_flag = false;
+            Self::set_stream_open(&self.self_lease, &mut open_flag, false);
             self.invalidate_device_cache();
             // Fall through to the same fresh resolution and fallback path used
             // when an on-demand stream opens after its device was unplugged.
@@ -988,7 +1039,7 @@ impl AudioRecordingManager {
         );
         drop(recorder_opt);
 
-        *open_flag = true;
+        Self::set_stream_open(&self.self_lease, &mut open_flag, true);
         if let Some(unavailable_name) = resolution.unavailable_selected_microphone {
             // Do this only after the default stream opened successfully. A
             // failed fallback must not erase the user's microphone preference.
@@ -1032,7 +1083,7 @@ impl AudioRecordingManager {
             let _ = rec.close();
         }
 
-        *open_flag = false;
+        Self::set_stream_open(&self.self_lease, &mut open_flag, false);
         debug!("Microphone stream stopped");
     }
 
@@ -1066,11 +1117,10 @@ impl AudioRecordingManager {
     /// so the two can never drift: a new `RecordingState` variant only needs
     /// its active-set membership decided here, once.
     ///
-    /// It is also where meeting detection learns that Sona itself is the
-    /// process holding the input device. CoreAudio's device-in-use property is
-    /// device-global, so without this a dictation run reads as somebody being
-    /// on a call — which for an application on the auto-record list would start
-    /// a recording of nothing.
+    /// It used to raise the detection lease as well. It no longer does, and
+    /// must not: the recording state is not when Sona holds the input device,
+    /// only when it is consuming what the device delivers. `set_stream_open`
+    /// owns that.
     fn set_state(&self, guard: &mut RecordingState, new_state: RecordingState) {
         *guard = new_state;
         let active = matches!(
@@ -1080,17 +1130,6 @@ impl AudioRecordingManager {
         if self.recording_active.swap(active, Ordering::SeqCst) != active {
             if let Some(manager) = self.app_handle.try_state::<Arc<TranscriptionManager>>() {
                 manager.signal_idle_watcher();
-            }
-            if let Some(detection) = self
-                .app_handle
-                .try_state::<Arc<crate::meeting::detection::DetectionRuntime>>()
-            {
-                let lease = detection.self_lease();
-                if active {
-                    lease.acquire();
-                } else {
-                    lease.release();
-                }
             }
         }
     }
@@ -1612,6 +1651,77 @@ mod meeting_microphone_lease_tests {
         let second = lease.try_acquire().expect("second lease");
         assert_ne!(first, second);
         assert!(lease.release(second));
+    }
+}
+
+#[cfg(test)]
+mod stream_lease_tests {
+    use super::AudioRecordingManager;
+    use crate::meeting::detection::input_device::SelfInputDeviceLease;
+
+    /// The gap this replaces: the lease used to follow the recording state, so
+    /// it dropped when a dictation stopped while the stream stayed open for up
+    /// to `STREAM_IDLE_TIMEOUT`. Meeting detection read a device in use with
+    /// nobody holding it and prompted about Sona's own microphone.
+    #[test]
+    fn the_lease_is_held_while_the_stream_is_open_and_dropped_when_it_closes() {
+        let lease = SelfInputDeviceLease::default();
+        let mut is_open = false;
+
+        AudioRecordingManager::set_stream_open(&lease, &mut is_open, true);
+        assert!(is_open);
+        assert!(lease.is_held(), "an open stream is Sona holding the device");
+
+        AudioRecordingManager::set_stream_open(&lease, &mut is_open, false);
+        assert!(!is_open);
+        assert!(!lease.is_held());
+    }
+
+    /// The prewarmed and always-on paths call `start_microphone_stream` against
+    /// a stream that is already open, and the idle watcher closes it exactly
+    /// once. A lease that counted the second open would stay held after that
+    /// close for the rest of the process.
+    #[test]
+    fn a_prewarmed_stream_reopened_still_releases_on_its_one_lazy_close() {
+        let lease = SelfInputDeviceLease::default();
+        let mut is_open = false;
+
+        AudioRecordingManager::set_stream_open(&lease, &mut is_open, true);
+        AudioRecordingManager::set_stream_open(&lease, &mut is_open, true);
+        assert!(lease.is_held());
+
+        AudioRecordingManager::set_stream_open(&lease, &mut is_open, false);
+        assert!(!lease.is_held(), "the lazy close ends the episode");
+    }
+
+    /// A device dropout tears the stalled stream down and builds a new one
+    /// under the same lock. The device did go free in between, so the release
+    /// is correct — what matters is that the rebuild takes the lease back.
+    #[test]
+    fn a_reopen_after_a_device_dropout_ends_holding_the_lease() {
+        let lease = SelfInputDeviceLease::default();
+        let mut is_open = false;
+
+        AudioRecordingManager::set_stream_open(&lease, &mut is_open, true);
+        AudioRecordingManager::set_stream_open(&lease, &mut is_open, false);
+        AudioRecordingManager::set_stream_open(&lease, &mut is_open, true);
+
+        assert!(lease.is_held());
+    }
+
+    /// The reopen path returns an error with the flag already down. Nothing
+    /// re-opens, so the lease must not be left held for a stream that failed
+    /// to come back.
+    #[test]
+    fn a_reopen_that_fails_leaves_the_lease_down() {
+        let lease = SelfInputDeviceLease::default();
+        let mut is_open = true;
+        lease.acquire();
+
+        AudioRecordingManager::set_stream_open(&lease, &mut is_open, false);
+
+        assert!(!is_open);
+        assert!(!lease.is_held());
     }
 }
 

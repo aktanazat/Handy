@@ -341,7 +341,7 @@ pub(crate) fn dispatch_deep_link(app: &AppHandle, raw: &str) -> bool {
 /// running-application list, which is what keeps the allowlist honest while
 /// nothing is happening.
 fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionManager>) {
-    use meeting::detection::input_device::{InputDeviceLevel, SelfInputDeviceLease};
+    use meeting::detection::input_device::InputDeviceLevel;
     use meeting::detection::{apps, calendar, notify, DetectionRuntime};
 
     // The delegate must be registered before the runtime exists, and its target
@@ -411,10 +411,21 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
     // reaches the same calendar detection reads rather than a second one.
     app_handle.manage(Arc::clone(&calendar_source));
 
+    // The lease belongs to whatever opens the microphone stream, which is the
+    // recording manager: it is the only thing in the process that can hold the
+    // input device, and it is already managed by the time this runs. Creating a
+    // second one here would leave detection watching a fact nobody writes. No
+    // recording manager means no Sona stream, so a lease that is never raised
+    // is the honest answer rather than a reason to fail detection.
+    let self_lease = app_handle
+        .try_state::<Arc<managers::audio::AudioRecordingManager>>()
+        .map(|audio| audio.self_input_device_lease())
+        .unwrap_or_default();
+
     let runtime = Arc::new(DetectionRuntime::with_parts(
         app_handle.clone(),
         meetings,
-        Arc::new(SelfInputDeviceLease::default()),
+        self_lease,
         calendar_source,
         running_apps,
         Arc::clone(&level) as Arc<_>,
