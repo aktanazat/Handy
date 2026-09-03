@@ -2425,7 +2425,8 @@
         "unknownApp": "Có thứ gì đang dùng micrô, nhưng đó không phải ứng dụng họp đã biết.",
         "browserUnreadable": "Một trình duyệt đang ở trước, nhưng không đọc được tiêu đề thẻ của nó.",
         "browserNotMeeting": "Một trình duyệt đang ở trước và thẻ của nó không phải một cuộc gọi.",
-        "appPresentNotInUse": "Một ứng dụng họp đang mở, nhưng bạn chưa chuyển sang ứng dụng đó kể từ khi micrô được bật."
+        "appPresentNotInUse": "Một ứng dụng họp đang mở, nhưng bạn chưa chuyển sang ứng dụng đó kể từ khi micrô được bật.",
+        "sonaMicJustClosed": "Micrô mà chính Sona vừa sử dụng vẫn được ghi nhận là đang bận, nên chưa thể nhận diện ứng dụng nào khác."
       }
     },
     "preview": {

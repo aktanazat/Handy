@@ -2431,7 +2431,8 @@
         "unknownApp": "Noget bruger mikrofonen, men det er ikke en kendt mødeapp.",
         "browserUnreadable": "En browser er forrest, men dens fanetitel kan ikke læses.",
         "browserNotMeeting": "En browser er forrest, og dens fane er ikke et opkald.",
-        "appPresentNotInUse": "En mødeapp er åben, men du har ikke skiftet til den, siden mikrofonen blev slået til."
+        "appPresentNotInUse": "En mødeapp er åben, men du har ikke skiftet til den, siden mikrofonen blev slået til.",
+        "sonaMicJustClosed": "Mikrofonen, som Sona selv lige har brugt, registreres stadig som værende i brug, så der kan endnu ikke identificeres noget andet."
       }
     },
     "preview": {

@@ -2443,7 +2443,8 @@
         "unknownApp": "Něco používá mikrofon, ale není to známá aplikace pro schůzky.",
         "browserUnreadable": "V popředí je prohlížeč, ale název jeho panelu nelze přečíst.",
         "browserNotMeeting": "V popředí je prohlížeč a jeho panel není hovor.",
-        "appPresentNotInUse": "Aplikace pro schůzky je otevřená, ale od zapnutí mikrofonu jste do ní nepřepnuli."
+        "appPresentNotInUse": "Aplikace pro schůzky je otevřená, ale od zapnutí mikrofonu jste do ní nepřepnuli.",
+        "sonaMicJustClosed": "Mikrofon, který právě používala samotná aplikace Sona, se stále jeví jako používaný, takže zatím nelze rozpoznat nic jiného."
       }
     },
     "preview": {

@@ -5821,7 +5821,13 @@ export type SuppressReason =
  * A meeting app is running, but the operator has not been in front of it
  * since the microphone went active. Presence is not participation.
  */
-"app_present_not_in_use"
+"app_present_not_in_use" |
+/**
+ * The microphone Sona itself just used still reads as in use. Distinct
+ * from `SonaHoldsInputDevice`, which is the stream being open: this is
+ * the interval after it closed where the device has not caught up.
+ */
+"sona_mic_just_closed"
 /**
  * UI appearance mode. `System` follows the OS `prefers-color-scheme`; `Light`
  * and `Dark` force one of the two palettes Sona already ships.

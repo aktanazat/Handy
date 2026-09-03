@@ -2443,7 +2443,8 @@
         "unknownApp": "Coś używa mikrofonu, ale nie jest to znana aplikacja do spotkań.",
         "browserUnreadable": "Przeglądarka jest na pierwszym planie, ale nie da się odczytać tytułu jej karty.",
         "browserNotMeeting": "Przeglądarka jest na pierwszym planie, a jej karta nie jest rozmową.",
-        "appPresentNotInUse": "Aplikacja do spotkań jest otwarta, ale nie przełączono się na nią od włączenia mikrofonu."
+        "appPresentNotInUse": "Aplikacja do spotkań jest otwarta, ale nie przełączono się na nią od włączenia mikrofonu.",
+        "sonaMicJustClosed": "Mikrofon, którego przed chwilą używała sama Sona, jest nadal wykazywany jako zajęty, więc nie można jeszcze rozpoznać niczego innego."
       }
     },
     "preview": {

@@ -2431,7 +2431,8 @@
         "unknownApp": "Etwas nutzt das Mikrofon, aber es ist keine bekannte Besprechungs-App.",
         "browserUnreadable": "Ein Browser ist im Vordergrund, aber sein Tab-Titel ist nicht lesbar.",
         "browserNotMeeting": "Ein Browser ist im Vordergrund und sein Tab ist kein Anruf.",
-        "appPresentNotInUse": "Eine Meeting-App ist geöffnet, aber du hast seit dem Einschalten des Mikrofons nicht zu ihr gewechselt."
+        "appPresentNotInUse": "Eine Meeting-App ist geöffnet, aber du hast seit dem Einschalten des Mikrofons nicht zu ihr gewechselt.",
+        "sonaMicJustClosed": "Das Mikrofon, das Sona selbst gerade verwendet hat, wird noch als in Benutzung angezeigt, daher kann noch nichts anderes erkannt werden."
       }
     },
     "preview": {

@@ -2437,7 +2437,8 @@
         "unknownApp": "Qualcosa sta usando il microfono, ma non è un'app di riunione nota.",
         "browserUnreadable": "Un browser è in primo piano, ma il titolo della sua scheda non è leggibile.",
         "browserNotMeeting": "Un browser è in primo piano e la sua scheda non è una chiamata.",
-        "appPresentNotInUse": "Un'app per riunioni è aperta, ma non l'hai ancora usata da quando il microfono è stato attivato."
+        "appPresentNotInUse": "Un'app per riunioni è aperta, ma non l'hai ancora usata da quando il microfono è stato attivato.",
+        "sonaMicJustClosed": "Il microfono appena utilizzato da Sona risulta ancora in uso, quindi non è ancora possibile identificare nient'altro."
       }
     },
     "preview": {

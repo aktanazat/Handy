@@ -2425,7 +2425,8 @@
         "unknownApp": "有東西在使用麥克風，但不是已知的會議應用程式。",
         "browserUnreadable": "前景是瀏覽器，但無法讀取它的標籤頁標題。",
         "browserNotMeeting": "前景是瀏覽器，且它的標籤頁不是通話。",
-        "appPresentNotInUse": "已開啟會議 App，但自麥克風啟用後你尚未切換至該 App。"
+        "appPresentNotInUse": "已開啟會議 App，但自麥克風啟用後你尚未切換至該 App。",
+        "sonaMicJustClosed": "Sona 剛才使用的麥克風目前仍顯示為使用中，因此尚無法辨識其他項目。"
       }
     },
     "preview": {

@@ -2431,7 +2431,8 @@
         "unknownApp": "Iets gebruikt de microfoon, maar het is geen bekende vergaderapp.",
         "browserUnreadable": "Er staat een browser op de voorgrond, maar de titel van het tabblad is niet leesbaar.",
         "browserNotMeeting": "Er staat een browser op de voorgrond en het tabblad is geen gesprek.",
-        "appPresentNotInUse": "Er is een vergader-app geopend, maar je hebt er niet naar gewisseld sinds de microfoon aanging."
+        "appPresentNotInUse": "Er is een vergader-app geopend, maar je hebt er niet naar gewisseld sinds de microfoon aanging.",
+        "sonaMicJustClosed": "De microfoon die Sona zojuist zelf gebruikte, wordt nog als in gebruik gezien, dus er kan nog niets anders worden herkend."
       }
     },
     "preview": {
