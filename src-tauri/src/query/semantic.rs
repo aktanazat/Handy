@@ -238,4 +238,71 @@ mod tests {
         assert!(chunk_transcript(&[]).is_empty());
         assert!(chunk_transcript(&["   ".to_string(), "\n".to_string()]).is_empty());
     }
+
+    /// The fixture model directory, the same one
+    /// `managers::history::semantic`'s own tests use: `SONA_SEMANTIC_MODEL_DIR`
+    /// or the conventional unpacked copy. Never the operator's application
+    /// support directory — a test whose subject is whether *this* machine
+    /// happens to have downloaded 28.8MB is a test that reports nothing.
+    fn fixture_model_directory() -> Option<std::path::PathBuf> {
+        let directory = std::path::PathBuf::from(
+            std::env::var("SONA_SEMANTIC_MODEL_DIR")
+                .unwrap_or_else(|_| "/tmp/potion8m".to_string()),
+        );
+        directory
+            .join("model.safetensors")
+            .is_file()
+            .then_some(directory)
+    }
+
+    /// Every search asks [`HistoryManager::semantic_model`] for the model, and
+    /// a pack runs a search behind a card, so the cost of loading it has to be
+    /// paid once for the process and never again. Loading it per call would put
+    /// a sha256 over thirty megabytes and a safetensors parse in front of every
+    /// question a reader types.
+    ///
+    /// Residency is asserted by identity, not by duration:
+    /// [`SemanticModelSlot::model`] memoises into a `Mutex<Option<Arc<_>>>`, so
+    /// the claim is that two calls hand back the same allocation, and
+    /// [`Arc::ptr_eq`] states exactly that. A wall-clock ratio would state it
+    /// only on an idle machine, and would pass or fail on this one depending on
+    /// how many other builds are running.
+    ///
+    /// Both halves assert. With a fixture on disk the memoised `Arc` is
+    /// checked; without one the documented absent case is checked instead — an
+    /// absent directory stays unloaded and is retried, which is what lets a
+    /// finished background fetch take effect with no signalling. Neither branch
+    /// is a no-op, so this never silently passes.
+    #[test]
+    fn the_recall_model_is_loaded_once_per_process_not_once_per_search() {
+        use crate::managers::history::semantic::SemanticModelSlot;
+
+        match fixture_model_directory() {
+            Some(directory) => {
+                let slot = SemanticModelSlot::without_fetch(directory.clone());
+                let first = slot
+                    .model()
+                    .unwrap_or_else(|| panic!("the fixture at {} must load", directory.display()));
+                let second = slot.model().expect("a memoised model stays loaded");
+                assert!(
+                    Arc::ptr_eq(&first, &second),
+                    "a second search re-loaded the model instead of reusing the one in the slot"
+                );
+                assert_eq!(
+                    Arc::strong_count(&first),
+                    3,
+                    "the slot and both handles are the only owners, so the load happened once"
+                );
+            }
+            None => {
+                let directory = std::env::temp_dir().join("sona-query-semantic-absent-model");
+                let _ = std::fs::remove_dir_all(&directory);
+                let slot = SemanticModelSlot::without_fetch(directory);
+                assert!(
+                    slot.model().is_none() && slot.model().is_none(),
+                    "an absent model directory loads nothing and is retried, not cached as broken"
+                );
+            }
+        }
+    }
 }

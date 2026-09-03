@@ -59,6 +59,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Instant;
 use uuid::Uuid;
 
 /// How many rows one question is answered from.
@@ -105,7 +106,13 @@ pub async fn for_question(
     if question.is_empty() {
         return Err(QueryError::InvalidRequest);
     }
+    // One debug line per assembled pack, naming where the wall time went. A
+    // pack is the only thing between a typed question and a signed submission,
+    // so a reader who sees the panel sit still needs to be able to tell a slow
+    // corpus read from a slow card from a slow relay without a rebuild.
+    let started = Instant::now();
     let card = super::card::corpus_card(meetings, history, calendar, chrono::Local::now()).await;
+    let card_done = started.elapsed();
     let page = super::search(
         meetings,
         history,
@@ -115,12 +122,20 @@ pub async fn for_question(
         None,
     )
     .await?;
+    let search_done = started.elapsed();
     // The same mount the search just read through, so the exclusion is decided
     // against the store that produced the rows.
     let store = meetings.store().await?;
     let rows = without_excluded_series(&store, page.entries);
     let ceiling = MAX_CONTEXT_PACK_BYTES.saturating_sub(card.len() + 2);
     let evidence = build_within(question, rows, page.next_cursor.is_some(), ceiling);
+    let finished = started.elapsed();
+    log::debug!(
+        "Context pack assembled in {finished:?}: card {card_done:?}, search {:?}, \
+         exclude+render {:?}",
+        search_done - card_done,
+        finished - search_done,
+    );
     Ok(QueryPack {
         schema_version: evidence.schema_version,
         pack: format!("{card}\n\n{}", evidence.pack),
