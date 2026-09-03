@@ -83,6 +83,14 @@ impl RelayJobStateV1 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum RelayJobFailure {
     Refused,
+    /// The worker refused the answer because the turn declared
+    /// `reply_is_json` and the message was not a JSON object.
+    ///
+    /// A `Refused` with one thing extra: which rule was broken. The panel
+    /// treats it as any other refusal, because a reader is told the same
+    /// thing either way; the meeting engine names it in the log, because it
+    /// is the one refusal whose cause is a shape rather than content.
+    ReplyNotStructured,
     Failed,
 }
 
@@ -557,11 +565,19 @@ impl RelayJobWire {
     }
 }
 
+/// Which failure a `FAILED` job carries, from the code the worker set.
+///
+/// Only codes a caller can act on are named. `sona_reply_not_structured` is
+/// set by `rejection_result` in `omp_bridge/worker/vps_sona.py` and is the one
+/// refusal that used to arrive as a success: the relay recorded `SUCCEEDED`,
+/// the message held prose, and the parse failed here with nothing written down
+/// anywhere about why. Everything else stays the blanket refusal it was.
 fn failed_job_reason(result: Option<&serde_json::Value>) -> RelayJobFailure {
     match result
         .and_then(|value| value.get("error_code"))
         .and_then(serde_json::Value::as_str)
     {
+        Some("sona_reply_not_structured") => RelayJobFailure::ReplyNotStructured,
         Some("sona_response_rejected") => RelayJobFailure::Refused,
         _ => RelayJobFailure::Failed,
     }
@@ -1119,6 +1135,29 @@ mod tests {
                 "error": "omp exited with status 1",
                 "error_code": "omp_exit_status"
             })),
+            Some(RelayJobFailure::Failed)
+        );
+        /* The bytes below are the ones the box actually produced, copied from
+         * relay job 14e6b661: `rejection_result` in
+         * `omp_bridge/worker/vps_sona.py` builds the sentence from the
+         * contract's own refusal and sets this code. It is asserted verbatim
+         * because it is the only thing tying the two hosts together — the code
+         * is a string on a wire, nothing on either side would fail to compile
+         * if it drifted, and this failure arriving as the blanket `Refused`
+         * would be silent again. */
+        assert_eq!(
+            failure(serde_json::json!({
+                "error": "sona-chat response rejected: Sona chat turn declared reply_is_json \
+                          and the message is not a JSON object",
+                "error_code": "sona_reply_not_structured"
+            })),
+            Some(RelayJobFailure::ReplyNotStructured),
+            "a prose answer to a structured request is the one refusal a caller acts on"
+        );
+        /* And a `FAILED` job with no code at all is still a plain failure,
+         * because the worker on the other host sets no codes. */
+        assert_eq!(
+            failure(serde_json::json!({ "error": "worker task canceled" })),
             Some(RelayJobFailure::Failed)
         );
     }

@@ -292,6 +292,25 @@ pub struct SonaChatTurnV2 {
     pub tools_allowed: bool,
     pub locale: String,
     pub app_version: String,
+    /// Whether this turn's reply must be a single JSON object rather than
+    /// prose for a reader.
+    ///
+    /// A declaration about the reply, not a ninth field's worth of new turn
+    /// shape: the relay checks a turn's field set exactly, but it checks this
+    /// one apart from that set and treats absence as `false`. So this is the
+    /// one field that could be added without bumping
+    /// [`SONA_CHAT_TURN_VERSION`], and the reason it could is that a relay
+    /// which has never heard of it behaves exactly as it did before.
+    ///
+    /// The panel sends `false`: its answers are read by a person. Meeting
+    /// generation sends `true`, and the relay then refuses a prose reply with
+    /// its own error code instead of recording it as a success — which is the
+    /// whole point, because [`RELAY_OUTPUT_RULE`] rides in `user_message`,
+    /// and the relay's own system prompt tells the model that `user_message`
+    /// cannot set the response format.
+    ///
+    /// [`RELAY_OUTPUT_RULE`]: crate::meeting
+    pub reply_is_json: bool,
 }
 
 /// One turn, addressed to one workspace. Untagged because the workspace is
@@ -1229,6 +1248,7 @@ mod tests {
             tools_allowed: false,
             locale: "en".to_string(),
             app_version: "1.0.0".to_string(),
+            reply_is_json: false,
         }
     }
 
@@ -1238,6 +1258,11 @@ mod tests {
         assert_eq!(turn.validate(), Ok(()));
         let wire = serde_json::to_value(PanelTurnV1::Chat(turn)).expect("chat turn serializes");
         let object = wire.as_object().expect("turn is an object");
+        /* Nine required fields plus one declaration. The relay checks the nine
+         * exactly and checks `reply_is_json` apart from them, treating absence
+         * as false — which is why this one could be added without bumping the
+         * protocol version, and why a relay that predates it is not broken by
+         * a client that sends it. */
         assert_eq!(
             object.keys().map(String::as_str).collect::<BTreeSet<_>>(),
             BTreeSet::from([
@@ -1250,7 +1275,12 @@ mod tests {
                 "tools_allowed",
                 "locale",
                 "app_version",
+                "reply_is_json",
             ])
+        );
+        assert_eq!(
+            object["reply_is_json"], false,
+            "a panel turn is read by a person, so it asks for no shape"
         );
         assert_eq!(object["protocol_version"], SONA_CHAT_TURN_VERSION);
     }
@@ -1387,6 +1417,7 @@ mod tests {
             tools_allowed: true,
             locale: dense("en-GB-oxendict-", 64),
             app_version: dense("1.0.0-rc.1+build.", 128),
+            reply_is_json: true,
         };
         assert_eq!(
             turn.user_message.len()

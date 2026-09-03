@@ -658,7 +658,13 @@ impl MeetingProcessingService {
                  * finished pass to the pipeline, an engine failure to a person
                  * who pressed a button and got nothing. */
                 other => {
-                    Err(generation_shortfall(&other).unwrap_or(ProcessingFailure::EngineFailure))
+                    let reason =
+                        generation_shortfall(&other).unwrap_or(ProcessingFailure::EngineFailure);
+                    log::warn!(
+                        "Meeting {session_id:?} regenerated no notes: {reason:?}. The reason \
+                         travels to the caller; this line is so it is also written down."
+                    );
+                    Err(reason)
                 }
             })?
     }
@@ -1050,7 +1056,16 @@ impl MeetingProcessingService {
                  * transcript and the reason are waiting and the operator can
                  * ask again. The reason is only waiting there because this
                  * names it: the arm here used to be empty. */
-                generation_shortfall(&outcome)
+                let shortfall = generation_shortfall(&outcome);
+                /* And logged, because a reason on a review surface answers
+                 * "why is this meeting empty" only for somebody already
+                 * looking at that meeting. A relay that answered in the wrong
+                 * shape looked, from every surface at once, exactly like a
+                 * meeting that had simply finished. */
+                if let Some(reason) = shortfall {
+                    log::warn!("Meeting {session_id:?} reached review with no notes: {reason:?}");
+                }
+                shortfall
             }
             /* The record behind the pass could not be read. The transcript
              * landed regardless, so this is a meeting with no notes rather
