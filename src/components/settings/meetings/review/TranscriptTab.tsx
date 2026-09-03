@@ -337,8 +337,11 @@ export const TranscriptTurn: React.FC<TranscriptTurnProps> = ({
             }
       }
       className={cn(
-        "group relative flex gap-3 px-4 py-3 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-700 motion-reduce:transition-none",
-        flashing ? "bg-blue-alpha-200" : landed ? "bg-gray-alpha-100" : "",
+        /* The flash marked the jumped-to row with `bg-blue-alpha-200`, a token
+         * that does not exist, so the row it pointed at looked like every
+         * other row. The soft accent is the one that does. */
+        "group relative flex gap-3 px-4 py-3 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent motion-reduce:transition-none",
+        flashing ? "bg-accent-soft" : landed ? "bg-gray-alpha-100" : "",
       )}
     >
       <span className={cn(MEASURED_FACT, "w-10 flex-none pt-0.5")}>{time}</span>

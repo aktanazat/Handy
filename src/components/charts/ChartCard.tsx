@@ -21,9 +21,12 @@ export interface ChartCardProps
   footerFacts?: ChartCardFact[];
 }
 
+/* `bg-blue-alpha-200` and `bg-red-alpha-200` named tokens that do not exist:
+ * only the gray scale has alphas, so a positive or negative delta drew its
+ * text on nothing. The soft accent and the soft red do exist. */
 const deltaClass = {
-  positive: "bg-blue-alpha-200 text-blue-900",
-  negative: "bg-red-alpha-200 text-red-900",
+  positive: "bg-accent-soft text-accent-strong",
+  negative: "bg-red-100 text-red-900",
   neutral: "bg-gray-alpha-200 text-gray-900",
 } as const;
 

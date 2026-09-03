@@ -323,10 +323,10 @@ describe("landing on the segment a summary line named", () => {
   test("the segment a jump lands on is lit, and only that one", () => {
     const markup = transcript({ segmentId: "segment-2", nonce: 1 });
 
-    expect(occurrences(markup, "bg-blue-alpha-200")).toBe(1);
+    expect(occurrences(markup, "bg-accent-soft")).toBe(1);
     const rows = markup.split('data-slot="transcript-segment"');
     expect(rows.length).toBe(3);
-    expect(rows[2]).toContain("bg-blue-alpha-200");
+    expect(rows[2]).toContain("bg-accent-soft");
     /* A fade is a transition, which prefers-reduced-motion already zeroes. */
     expect(markup).toContain("motion-reduce:transition-none");
   });
@@ -334,7 +334,7 @@ describe("landing on the segment a summary line named", () => {
   test("with no jump, no row is lit", () => {
     const markup = transcript(null);
 
-    expect(occurrences(markup, "bg-blue-alpha-200")).toBe(0);
+    expect(occurrences(markup, "bg-accent-soft")).toBe(0);
     expect(occurrences(markup, "bg-gray-alpha-100")).toBe(0);
   });
 });
