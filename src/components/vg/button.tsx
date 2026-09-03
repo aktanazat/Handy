@@ -4,21 +4,33 @@ import { Slot } from "radix-ui";
 
 import { cn } from "@/lib/cn";
 
+/* Three roles and two exceptions. Primary is the one scarce accent, filled;
+ * secondary is a hairline on the raised surface; ghost is text with a wash
+ * under the pointer. `outline` and `secondary` are one look under two names
+ * the kit's callers already use — a bordered plate and a filled plate were
+ * never two different answers, and shipping them as two invited a surface
+ * with two competing seconds on it.
+ *
+ * No focus classes here. base.css paints one 2px bronze outline for the whole
+ * app on `:where(button, a, …):focus-visible`, and the kit's stock recipe
+ * (`outline-none` plus a 3px ring at half alpha) both cancelled it and
+ * replaced it with the glow the direction rules out. */
+const SECONDARY =
+  "border border-border bg-surface-raised hover:bg-hover active:bg-pressed";
+
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default:
+          "bg-primary text-primary-foreground hover:bg-accent-hover active:bg-accent-pressed",
         destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
-        outline:
-          "border border-border bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary:
-          "border border-border bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-destructive text-white hover:bg-destructive/90 dark:bg-destructive/60",
+        outline: SECONDARY,
+        secondary: SECONDARY,
+        ghost: "hover:bg-hover hover:text-gray-1000 active:bg-pressed",
+        link: "text-accent-strong underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

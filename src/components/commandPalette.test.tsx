@@ -305,8 +305,10 @@ describe("Sidebar", () => {
     expect(markup).toContain("bg-background-200");
     expect(markup).toContain("border-gray-alpha-400");
     expect(markup).toContain("hover:bg-gray-alpha-100");
-    expect(markup).toContain("bg-background-100");
-    expect(markup).toContain("focus-visible:ring-blue-700");
+    // Selection is a wash at the control radius, not a bordered plate.
+    expect(markup).toContain("bg-gray-alpha-200 text-gray-1000");
+    expect(markup).toContain("focus-visible:ring-focus-ring");
+    expect(markup).not.toContain("blue");
     // Violet is dead, and so is every accent-soft fill it used to tint.
     expect(markup).not.toContain("violet");
     expect(markup).not.toContain("accent-soft");
@@ -355,8 +357,8 @@ describe("the rail, collapsed for the chat column", () => {
 
     expect([...markup.matchAll(/aria-current="page"/g)]).toHaveLength(1);
     expect(markup).toMatch(/aria-current="page"[^>]*Meetings/);
-    // Same border and fill the named row carries.
-    expect(markup).toContain("border-gray-alpha-400 bg-background-100");
+    // Same wash the named row carries.
+    expect(markup).toContain("bg-gray-alpha-200 text-gray-1000");
   });
 
   test("the wordmark goes and the mark stays; the chord loses its keycap", () => {
