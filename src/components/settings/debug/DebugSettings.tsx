@@ -7,15 +7,16 @@ import { SoundPicker } from "../SoundPicker";
 import { KeyboardDiagnostic } from "./KeyboardDiagnostic";
 import { LiveLogViewer } from "./LiveLogViewer";
 import { LogLevelSelector } from "./LogLevelSelector";
-import { PasteDelay } from "./PasteDelay";
 import { RecordingBuffer } from "./RecordingBuffer";
-import { ReliablePasteToggle } from "./ReliablePaste";
 import { WhatsNewPreview } from "./WhatsNewPreview";
 import { WordCorrectionThreshold } from "./WordCorrectionThreshold";
 
-/* Instrumentation, so the density here is the point: twelve affordances,
- * sorted into the four things people come to this page to debug. What it does
- * not get is a sentence per group explaining the group's own heading. */
+/* Instrumentation, so the density here is the point: nine affordances, sorted
+ * into the four things people come to this page to debug. What it does not get
+ * is a sentence per group explaining the group's own heading. The delivery
+ * group holds only what is genuinely global — the three per-mode delivery
+ * knobs that used to sit here live in the mode editor, beside their siblings
+ * and bound to the field a run actually reads. */
 export const DebugSettings: React.FC = () => {
   const { t } = useTranslation();
 
@@ -30,9 +31,6 @@ export const DebugSettings: React.FC = () => {
 
       <SettingsSection label={t("settings.debug.groups.delivery")}>
         <WordCorrectionThreshold />
-        <PasteDelay />
-        <PasteDelay settingKey="paste_delay_after_ms" />
-        <ReliablePasteToggle />
       </SettingsSection>
 
       <SettingsSection label={t("settings.debug.groups.diagnostics")}>

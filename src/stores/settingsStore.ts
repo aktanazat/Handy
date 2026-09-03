@@ -130,10 +130,6 @@ const settingUpdaters: SettingUpdaters = {
   debug_mode: (value) => commands.changeDebugModeSetting(value),
   word_correction_threshold: (value) =>
     commands.changeWordCorrectionThresholdSetting(value),
-  paste_delay_ms: (value) => commands.changePasteDelayMsSetting(value),
-  paste_delay_after_ms: (value) =>
-    commands.changePasteDelayAfterMsSetting(value),
-  reliable_paste: (value) => commands.changeReliablePasteSetting(value),
   external_script_path: (value) =>
     commands.changeExternalScriptPathSetting(value),
   history_limit: (value) => commands.updateHistoryLimit(value),

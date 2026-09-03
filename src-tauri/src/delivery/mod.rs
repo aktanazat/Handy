@@ -36,6 +36,13 @@ pub enum DeliveryOutcome {
     /// Input was sent or may have reached the target, but the target cannot
     /// confirm it. Never retry this outcome.
     DispatchedButUnconfirmed,
+    /// Dispatched through synthetic key events while macOS held Secure Event
+    /// Input, which is the one condition under which those events are known
+    /// to be dropped before any application sees them. Still unconfirmed —
+    /// the platform never reports where a key event landed — but not the same
+    /// unconfirmed as an ordinary paste, because here Sona knows the target
+    /// was locked to exactly the mechanism it used. Never retry.
+    DispatchedUnderSecureInput,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize, Type)]
@@ -98,6 +105,12 @@ pub fn deliver(app: &AppHandle, text: String, settings: &DeliveryPlan) -> Delive
         }
     }
 
+    // Sampled before dispatch, because that is when the events go out and
+    // Secure Event Input can end at any moment. Sona already runs this
+    // monitor for its own shortcuts; asking it here is what keeps a
+    // suppressed paste distinguishable from an ordinary unconfirmed one.
+    let dispatched = dispatched_outcome(settings.paste_method, secure_input_holds_keys_now());
+
     match clipboard::paste_frozen(&text, app, settings) {
         ClipboardDispatch::DefinitelyNotDispatched(error) => {
             log::warn!("Text delivery was not dispatched: {error}");
@@ -105,15 +118,46 @@ pub fn deliver(app: &AppHandle, text: String, settings: &DeliveryPlan) -> Delive
         }
         ClipboardDispatch::Dispatched => {
             finish_after_dispatch(app, settings, &text);
-            DeliveryReceipt::new(primary, DeliveryOutcome::DispatchedButUnconfirmed)
+            DeliveryReceipt::new(primary, dispatched)
         }
         // A backend error leaves the insertion unproven, so no submit key and
         // no clipboard rewrite follow it; the reliable transaction already ran
         // its own finishing.
         ClipboardDispatch::DispatchedWithBackendError
-        | ClipboardDispatch::DispatchedAndFinished => {
-            DeliveryReceipt::new(primary, DeliveryOutcome::DispatchedButUnconfirmed)
-        }
+        | ClipboardDispatch::DispatchedAndFinished => DeliveryReceipt::new(primary, dispatched),
+    }
+}
+
+/// Whether this route inserts text by posting synthetic key events, which is
+/// what Secure Event Input suppresses. Accessibility insertion is not one of
+/// them (it is a cross-process attribute write, and it refuses secure fields
+/// on its own), and an external script owns whatever mechanism it chooses.
+fn uses_synthetic_keys(method: PasteMethod) -> bool {
+    is_clipboard_family(method) || method == PasteMethod::Direct
+}
+
+/// The receipt value for a route that has dispatched. The platform never says
+/// where a key event landed, so neither of these claims delivery; they differ
+/// in whether Sona knows the events were posted into a system that drops
+/// them.
+fn dispatched_outcome(method: PasteMethod, secure_input_active: bool) -> DeliveryOutcome {
+    if secure_input_active && uses_synthetic_keys(method) {
+        DeliveryOutcome::DispatchedUnderSecureInput
+    } else {
+        DeliveryOutcome::DispatchedButUnconfirmed
+    }
+}
+
+/// Live Secure Event Input check. Only macOS has the state.
+fn secure_input_holds_keys_now() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        crate::secure_input::is_enabled_now()
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        false
     }
 }
 
@@ -372,6 +416,44 @@ mod tests {
                     copy_final_to_clipboard: false,
                 },
                 "finishing for {method:?}"
+            );
+        }
+    }
+
+    /// A dictation that vanishes into a password field used to produce the
+    /// same receipt as one that landed. Secure Event Input is the one thing
+    /// Sona can observe about that, and only the routes it actually
+    /// suppresses may carry the distinction.
+    #[test]
+    fn secure_input_separates_a_suppressed_dispatch_from_an_ordinary_one() {
+        for method in EVERY_METHOD {
+            assert_eq!(
+                dispatched_outcome(method, false),
+                DeliveryOutcome::DispatchedButUnconfirmed,
+                "no secure input, {method:?}"
+            );
+        }
+
+        for method in [
+            PasteMethod::CtrlV,
+            PasteMethod::CtrlShiftV,
+            PasteMethod::ShiftInsert,
+            PasteMethod::Direct,
+        ] {
+            assert_eq!(
+                dispatched_outcome(method, true),
+                DeliveryOutcome::DispatchedUnderSecureInput,
+                "secure input, {method:?}"
+            );
+        }
+
+        // An external script owns its own insertion mechanism, and `None`
+        // dispatched nothing, so neither may blame Secure Input.
+        for method in [PasteMethod::ExternalScript, PasteMethod::None] {
+            assert_eq!(
+                dispatched_outcome(method, true),
+                DeliveryOutcome::DispatchedButUnconfirmed,
+                "secure input, {method:?}"
             );
         }
     }

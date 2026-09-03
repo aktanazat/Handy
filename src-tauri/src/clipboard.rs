@@ -872,6 +872,21 @@ pub(crate) enum ClipboardDispatch {
     DispatchedAndFinished,
 }
 
+/// A configured paste chord the running platform has no key for. macOS is the
+/// case that exists: it has no Insert key, and the keycode the Shift+Insert
+/// sender carries for every non-Windows target is X11's Insert (0x76), which
+/// macOS reads as F4 — so the chord pastes nothing and presses a Launchpad or
+/// Spotlight key at the user's frontmost application instead. Refusing here,
+/// before the transcript reaches the clipboard, keeps it the clean miss the
+/// caller is allowed to report.
+fn unsupported_paste_method(method: PasteMethod) -> Option<&'static str> {
+    match method {
+        #[cfg(target_os = "macos")]
+        PasteMethod::ShiftInsert => Some("Shift+Insert is not a paste chord on macOS"),
+        _ => None,
+    }
+}
+
 /// Delivers the already-composed text with settings copied into a RunPlan,
 /// never reading the mutable store. The caller may fall back only from
 /// DefinitelyNotDispatched.
@@ -880,6 +895,10 @@ pub(crate) fn paste_frozen(
     app_handle: &AppHandle,
     settings: &DeliveryPlan,
 ) -> ClipboardDispatch {
+    if let Some(reason) = unsupported_paste_method(settings.paste_method) {
+        return ClipboardDispatch::DefinitelyNotDispatched(reason.to_string());
+    }
+
     match settings.paste_method {
         PasteMethod::None => ClipboardDispatch::DefinitelyNotDispatched(
             "Text delivery is disabled for this mode".to_string(),
@@ -1022,6 +1041,33 @@ fn paste_via_clipboard_frozen(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every chord the settings offer has to either exist on this platform or
+    /// be refused before the transcript is published. A chord that resolves to
+    /// an unrelated key is the worst of the three: it takes the clipboard,
+    /// presses something else, and reports a dispatch.
+    #[test]
+    fn only_chords_this_platform_can_send_reach_the_clipboard() {
+        for method in [
+            PasteMethod::CtrlV,
+            PasteMethod::CtrlShiftV,
+            PasteMethod::Direct,
+            PasteMethod::ExternalScript,
+            PasteMethod::None,
+        ] {
+            assert_eq!(
+                unsupported_paste_method(method),
+                None,
+                "supported method {method:?}"
+            );
+        }
+
+        // macOS has no Insert key; every other target has one.
+        assert_eq!(
+            unsupported_paste_method(PasteMethod::ShiftInsert).is_some(),
+            cfg!(target_os = "macos")
+        );
+    }
 
     #[cfg(target_os = "linux")]
     const YDOTOOL_0_1_8_HELP: &str = r#"
