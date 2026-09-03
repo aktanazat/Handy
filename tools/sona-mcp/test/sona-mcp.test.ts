@@ -318,7 +318,7 @@ describe("running sona", () => {
         JSON.stringify({
           schema_version: 1,
           error: "unavailable",
-          message: "Meeting storage is not open.",
+          message: "The corpus is not open.",
         }),
       ].join("\n"),
       exit: 1,
@@ -458,6 +458,45 @@ describe("the stdio server", () => {
       code: "consent_required",
       settingsPath: "Settings > Agents > External access",
     });
+  });
+
+  /* The other half of that branch. A caller told "internal error" retries or
+   * gives up; a caller told "invalid params" fixes the id it passed. Sona
+   * already distinguishes the two, so losing it here would be this server's
+   * doing. The token leads the message because most clients render the
+   * message and nothing else. */
+  test("a corpus refusal is the caller's fault only when Sona says it is", async () => {
+    stub({
+      stderr: JSON.stringify({
+        schema_version: 1,
+        error: "not_found",
+        message: "No loop m:loop:abc in this corpus.",
+      }),
+      exit: 1,
+    });
+    const missing = await errorOf("sona_loop_resolve", {
+      loop_id: "m:loop:abc",
+    });
+
+    stub({
+      stderr: JSON.stringify({
+        schema_version: 1,
+        error: "failed",
+        message: "The corpus read failed.",
+      }),
+      exit: 1,
+    });
+    const broke = await errorOf("sona_search", { query: "notes" });
+
+    expect(missing.code).toBe(ErrorCode.InvalidParams);
+    expect(missing.message).toContain("sona not_found:");
+    expect(missing.data).toEqual({
+      code: "not_found",
+      settingsPath: undefined,
+    });
+    expect(broke.code).toBe(ErrorCode.InternalError);
+    expect(broke.message).toContain("sona failed:");
+    expect(broke.data).toEqual({ code: "failed", settingsPath: undefined });
   });
 
   /* Arguments come from a model rather than from a validating client, so the

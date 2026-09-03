@@ -68,16 +68,19 @@ One JSON object per call, as one text block. Every payload carries a
 
 ## Refusals
 
-Errors are MCP errors carrying Sona's own machine token in `data.code`:
+Errors are MCP errors. The message leads with Sona's own token — `sona
+not_found: No loop … in this corpus.` — and `data.code` carries the same token
+for a caller that reads structured error data:
 
 | `data.code`        | Means                                                                 |
 | ------------------ | --------------------------------------------------------------------- |
 | `consent_required` | External access is off. `data.settingsPath` names the row to turn on. |
-| `unavailable`      | Meeting storage is not open — usually a locked login keychain.        |
+| `unavailable`      | The corpus is not open — usually a locked login keychain.             |
 | `invalid_request`  | A bad id, date or limit.                                              |
 | `not_found`        | The id parsed but names nothing in this corpus.                       |
 | `not_installed`    | No Sona binary where this server looked.                              |
 | `timed_out`        | Sona did not answer in 30s.                                           |
+| `failed`           | Sona reached the corpus and the read did not finish.                  |
 
 ## Tests
 

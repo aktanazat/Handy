@@ -18,6 +18,26 @@ import {
 import { runSona, SonaCliError } from "./cli.ts";
 import { SonaInputError, TOOL_INPUT, TOOLS } from "./tools.ts";
 
+/* JSON-RPC's vocabulary over Sona's. Only three of Sona's refusals are the
+ * caller's to fix: two name an argument that matches nothing in the corpus,
+ * and one names a switch a human has to flip. Everything else — `unavailable`,
+ * `failed`, `timed_out`, `not_installed` — happened on this side of the call,
+ * and the default is where they land: an agent reads InternalError as "stop
+ * and report", not "try different arguments". A switch rather than a lookup
+ * table because Sona's code arrives as a string and the fall-through is the
+ * half that carries the meaning. */
+function refusalCode(refusal: string): ErrorCode {
+  switch (refusal) {
+    case "consent_required":
+      return ErrorCode.InvalidRequest;
+    case "invalid_request":
+    case "not_found":
+      return ErrorCode.InvalidParams;
+    default:
+      return ErrorCode.InternalError;
+  }
+}
+
 /** The server, wired to the eight tools and to nothing else.
  *
  * Construction is separated from `connect` so a test can hold this server on
@@ -75,17 +95,16 @@ export function createServer(): Server {
         throw new McpError(ErrorCode.InvalidParams, error.message);
       }
       if (error instanceof SonaCliError) {
-        /* Sona's refusal, passed through rather than reworded. The consent one
-         * is the only refusal a human can clear, so its message is the one that
-         * names where the switch is — and an agent that reads `data.code` can
-         * tell "you have not been allowed in" from "the corpus is not open". */
+        /* Sona's refusal, passed through rather than reworded, with its own
+         * word for what went wrong in front of it. `data.code` carries the
+         * same word, but a coding agent reads the rendered message and most
+         * clients render nothing else, so a cause left only in `data` is a
+         * cause the caller never sees. */
         throw new McpError(
-          error.code === "consent_required"
-            ? ErrorCode.InvalidRequest
-            : ErrorCode.InternalError,
+          refusalCode(error.code),
           error.settingsPath === undefined
-            ? error.message
-            : `${error.message} (${error.settingsPath})`,
+            ? `sona ${error.code}: ${error.message}`
+            : `sona ${error.code}: ${error.message} (${error.settingsPath})`,
           { code: error.code, settingsPath: error.settingsPath },
         );
       }
