@@ -40,9 +40,11 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     env:
-      # Signing and notarization are opt-in: a fork without Apple secrets still
-      # gets a complete release, with macOS bundles ad-hoc signed as configured
-      # by `signingIdentity: "-"` in tauri.conf.json.
+      # Signing and notarization are opt-in. With the Apple secrets set,
+      # APPLE_SIGNING_IDENTITY overrides `signingIdentity` in tauri.conf.json,
+      # which names this project's own Apple Development certificate; there is no
+      # ad-hoc fallback, so a fork without those secrets must point
+      # `signingIdentity` at a certificate it holds.
       HAS_APPLE_SIGNING: ${{ secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_SIGNING_IDENTITY != '' }}
       HAS_APPLE_NOTARIZATION: ${{ secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
 

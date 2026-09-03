@@ -51,6 +51,20 @@ cd src-tauri && cargo test --bin sona-agent-hook
 
 Run `bun run prepare:agent-hook` before a Tauri build or package build. The package audit expects one executable `sona-agent-hook` sidecar and a `sona` main executable.
 
+## Version bump
+
+1. `src-tauri/Cargo.toml` `[package] version` — the only place this app declares a version.
+2. `src-tauri/Cargo.lock` — run any cargo command, then commit the changed `sona` entry.
+3. `package.json` `version`.
+4. `src/content/release-notes/index.ts` — add a `RELEASE_NOTE_MARKDOWN` entry keyed by the new version, or What's New has nothing to show.
+5. `mobile/Sona.xcodeproj/project.pbxproj` `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION`, only when shipping the companion app.
+
+`src-tauri/tauri.conf.json` deliberately carries no `version` field. With it absent, `tauri-codegen` compiles `PackageInfo.version` from `env!("CARGO_PKG_VERSION")` (tauri-codegen 2.6.3, `src/context.rs:273-278`), so `getVersion()` in Settings > About, the What's New gate, `sona --version`, and the bundle version all read step 1 — do not add it back, or About and `--version` can disagree. `tools/sona-mcp` and `cloudflare/sona-companion` version independently. No script checks agreement; this prints one line when steps 1-4 match, and two if a version reappears in the Tauri config:
+
+```bash
+{ awk -F'"' '/^version = /{print $2; exit}' src-tauri/Cargo.toml; jq -r '.version // empty' src-tauri/tauri.conf.json; jq -r .version package.json; sed -n 's/^  "\([0-9][0-9.]*\)".*/\1/p' src/content/release-notes/index.ts | sort -V | tail -1; } | sort -u
+```
+
 ## Package layout
 
 | Platform | Main executable                | Application identity | Private runtime directory |
@@ -59,7 +73,7 @@ Run `bun run prepare:agent-hook` before a Tauri build or package build. The pack
 | Windows  | `sona.exe`                     | `com.aktanazat.sona` | Next to the executable    |
 | Linux    | `sona`                         | `com.aktanazat.sona` | `/usr/lib/sona`           |
 
-Sona uses ad-hoc local signing on macOS (`signingIdentity: "-"`). This repository does not provide notarization, automatic updates, SmartScreen reputation, or signed distribution credentials.
+macOS builds sign with the Apple Development identity named in `tauri.conf.json` (`Apple Development: Created via API (JWV9B89S4H)`, team `AAVB324H37`) and enable the hardened runtime. That certificate is a development identity, not a distribution one: this repository does not provide notarization, SmartScreen reputation, or signed distribution credentials. Nothing updates itself either; `commands/updates.rs` only compares the running `CARGO_PKG_VERSION` against a releases URL when the user asks.
 
 ## Platform notes
 
