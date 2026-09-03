@@ -314,6 +314,7 @@ export function installMockedRuntime(payload: MockPayload): void {
     ["meeting_suggestions_list", []],
     ["meeting_list", { entries: [], has_more: false }],
     ["meeting_recovery_list", []],
+    ["meeting_trash_list", []],
     ["meeting_retention_get", { policy: { kind: "forever" }, revision: 1 }],
     ["meeting_trend", null],
     ["people_list", { schema_version: 1, revision: 1, entries: [] }],
