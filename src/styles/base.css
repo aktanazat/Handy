@@ -67,9 +67,7 @@ body {
   :where(
     a,
     button,
-    input,
     select,
-    textarea,
     summary,
     [role="button"],
     [role="option"],
@@ -80,6 +78,30 @@ body {
     outline-style: solid;
     outline-color: var(--focus-ring);
     outline-offset: var(--focus-ring-offset);
+  }
+
+  /* A field you type in shows focus in its own edge, not in a ring around it.
+   * A text field matches :focus-visible on a plain click, so the offset ring
+   * was a second box drawn around the box being typed in — on the chat
+   * composer, whose own wrapper already darkens its hairline, two boxes at
+   * once. The border goes to the accent at the width it already draws, so the
+   * field changes state without changing size, and a borderless field nested
+   * in a bordered wrapper leaves the indicator to that wrapper. Sliders,
+   * checkboxes and radios keep the ring: they are not text. */
+  :where(
+    input:not([type]),
+    input[type="text"],
+    input[type="search"],
+    input[type="password"],
+    input[type="email"],
+    input[type="url"],
+    input[type="tel"],
+    input[type="number"],
+    textarea,
+    [contenteditable="true"]
+  ):focus-visible {
+    border-color: var(--color-accent);
+    outline: none;
   }
 }
 
