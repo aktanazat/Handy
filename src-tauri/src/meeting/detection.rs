@@ -557,7 +557,7 @@ impl RuntimeState {
 
 /// Wakes the tick thread early. The ad-hoc path must fire on the input-device
 /// transition itself, not on the next scheduled tick.
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct Wakeup {
     flagged: Mutex<bool>,
     signal: Condvar,
@@ -643,6 +643,13 @@ impl DetectionRuntime {
         prompts: Arc<dyn ConsentPromptSurface>,
         browser_titles: Arc<dyn BrowserTitleReader>,
     ) -> Self {
+        // The lease is created by whoever opens the microphone stream, which
+        // happens before this thread exists. Handing it the wakeup here is what
+        // turns a release into a tick instead of a fact the loop notices up to
+        // `TICK` later — and a stale ad-hoc prompt is on screen for that whole
+        // interval.
+        let wakeup = Arc::new(Wakeup::default());
+        self_lease.attach_wakeup(Arc::clone(&wakeup));
         Self {
             app,
             meetings,
@@ -653,7 +660,7 @@ impl DetectionRuntime {
             prompts,
             browser_titles,
             state: Mutex::new(RuntimeState::default()),
-            wakeup: Arc::new(Wakeup::default()),
+            wakeup,
             stop: Arc::new(AtomicBool::new(false)),
             enabled: AtomicBool::new(false),
         }
@@ -915,7 +922,7 @@ impl DetectionRuntime {
         // precisely on the idle path — as is
         // `input_device_reporting_suspect`, which is derived from it and was
         // therefore never able to fire here either.
-        self.retract_stale_prompts(now_utc_ms, &running, mic, call_evidence);
+        self.retract_stale_prompts(now_utc_ms, &running, mic, call_evidence, sona_holds);
 
         let inert = mic == MicSignal::Idle && calendar == CalendarSignal::Absent && !call_live;
         if inert && tracked.is_none() {
@@ -1470,6 +1477,7 @@ impl DetectionRuntime {
         running: &[RunningApp],
         mic: MicSignal,
         call_evidence: bool,
+        sona_mic: bool,
     ) {
         let retract = self
             .lock()
@@ -1477,7 +1485,7 @@ impl DetectionRuntime {
             .iter()
             .filter_map(|(prompt_id, pending)| match pending {
                 PendingPanel::Prompt(pending) => {
-                    prompt_retraction(pending, now_utc_ms, running, mic, call_evidence)
+                    prompt_retraction(pending, now_utc_ms, running, mic, call_evidence, sona_mic)
                         .map(|reason| (prompt_id.to_string(), Some(reason)))
                 }
                 PendingPanel::Ritual(pending) if ritual_is_stale(&pending.ritual, now_utc_ms) => {
@@ -2430,12 +2438,17 @@ fn ritual_panel_layout(ritual: &MeetingRitual) -> ConsentPanelLayout {
 
 /// Why a pending prompt no longer applies, or `None` while it still does.
 /// Pure, so the retraction rules are testable without a panel.
+///
+/// `sona_mic` is true while the input device reading belongs to Sona itself,
+/// live or just closed. It retracts exactly one prompt kind, for the reason
+/// that kind exists: see the arm below.
 fn prompt_retraction(
     pending: &PendingPrompt,
     now_utc_ms: i64,
     running: &[RunningApp],
     mic: MicSignal,
     call_evidence: bool,
+    sona_mic: bool,
 ) -> Option<DetectionPromptRetractionReason> {
     if pending
         .linked_event_end()
@@ -2460,10 +2473,19 @@ fn prompt_retraction(
         PromptKind::CalendarEvent { .. } => None,
         PromptKind::AppMeeting { .. }
         | PromptKind::AppHuddle { .. }
-        | PromptKind::BrowserCall { .. }
-        | PromptKind::UnknownMicSource => {
+        | PromptKind::BrowserCall { .. } => {
             (mic == MicSignal::Idle).then_some(DetectionPromptRetractionReason::MicEpisodeEnded)
         }
+        // The unknown-source prompt's whole evidence is "the device reads as
+        // in use and nothing explains it". Sona's own stream explains it, so
+        // the prompt has to go the instant the lease is held — and it cannot
+        // wait for the microphone to report idle, because Sona keeping the
+        // stream warm means it may never report idle at all. That is how one
+        // of these stayed on screen for ninety seconds after the app that
+        // raised it had quit. The three kinds above are unaffected: each
+        // names an app the operator is using, which is evidence of its own.
+        PromptKind::UnknownMicSource => (mic == MicSignal::Idle || sona_mic)
+            .then_some(DetectionPromptRetractionReason::MicEpisodeEnded),
     }
 }
 
@@ -2593,6 +2615,8 @@ impl PromptResponder for RuntimeResponder {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const NOW: i64 = 1_700_000_000_000;
 
     #[test]
     fn a_normal_tick_is_never_read_as_sleep() {
@@ -2767,6 +2791,7 @@ mod tests {
                 block.end_utc_ms,
                 &zoom_running,
                 MicSignal::Active,
+                false,
                 false
             ),
             None,
@@ -2791,11 +2816,93 @@ mod tests {
                 block.end_utc_ms,
                 &[],
                 MicSignal::Active,
+                false,
                 false
             ),
             Some(DetectionPromptRetractionReason::EventEnded)
         );
     }
+
+    /* Measured on the running 1.1.0 build: an ad-hoc prompt raised for Voice
+     * Memos was still on screen ninety seconds after Voice Memos quit. The
+     * unknown-source prompt carries no bundle ID, so the trigger-app rule
+     * above can never fire for it, and its only other rule is a microphone
+     * that goes idle — which never happens while Sona's own stream keeps the
+     * device reading as in use. Nothing was left to withdraw it. */
+    #[test]
+    fn an_unknown_mic_prompt_is_withdrawn_once_sonas_own_stream_explains_the_device() {
+        let orphaned = pending(PromptKind::UnknownMicSource, false);
+
+        assert_eq!(
+            prompt_retraction(&orphaned, NOW, &[], MicSignal::Active, false, true),
+            Some(DetectionPromptRetractionReason::MicEpisodeEnded),
+            "the device reads as in use because Sona holds it, so the prompt has \
+             no unknown source left to offer"
+        );
+    }
+
+    #[test]
+    fn a_mic_idle_edge_withdraws_a_pending_ad_hoc_prompt() {
+        let orphaned = pending(PromptKind::UnknownMicSource, false);
+
+        assert_eq!(
+            prompt_retraction(&orphaned, NOW, &[], MicSignal::Idle, false, false),
+            Some(DetectionPromptRetractionReason::MicEpisodeEnded)
+        );
+    }
+
+    /// Sona's microphone is not a reason to drop a prompt that named an app.
+    /// A dictation run beside a live Zoom meeting says nothing about the Zoom
+    /// meeting, and retracting there would lose the prompt the operator was
+    /// about to answer.
+    #[test]
+    fn a_named_app_prompt_outlives_sonas_own_microphone() {
+        let zoom_running = [RunningApp {
+            bundle_id: "us.zoom.xos".to_string(),
+            display_name: "Zoom".to_string(),
+            frontmost: true,
+        }];
+        let zoom_prompt = pending(
+            PromptKind::AppMeeting {
+                bundle_id: "us.zoom.xos".to_string(),
+                app_name: "Zoom".to_string(),
+            },
+            false,
+        );
+
+        assert_eq!(
+            prompt_retraction(
+                &zoom_prompt,
+                NOW,
+                &zoom_running,
+                MicSignal::Active,
+                false,
+                true
+            ),
+            None
+        );
+    }
+
+    /// The withdrawal has to reach the operator, not just the decision table.
+    /// Without the wake the loop learns about the release on its next
+    /// scheduled tick, up to `TICK` away.
+    #[test]
+    fn releasing_the_self_mic_lease_wakes_the_loop_inside_a_second() {
+        let wakeup = Arc::new(Wakeup::default());
+        let lease = SelfInputDeviceLease::default();
+        lease.attach_wakeup(Arc::clone(&wakeup));
+        lease.acquire();
+
+        let started = Instant::now();
+        lease.release();
+        wakeup.wait(Some(Duration::from_secs(3)));
+
+        assert!(
+            started.elapsed() < Duration::from_secs(1),
+            "the wait returned on the release, not on its own deadline"
+        );
+    }
+
     fn prep_card(start_utc_ms: i64) -> MeetingPrepCard {
         MeetingPrepCard {
             event_key: "event-1".to_string(),

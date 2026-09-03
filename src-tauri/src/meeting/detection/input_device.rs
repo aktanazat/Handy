@@ -31,7 +31,7 @@
 //! the level means.
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, OnceLock};
 
 use super::machine::{MicSignal, OutputSignal};
 
@@ -398,54 +398,54 @@ mod macos {
 /// Tracks whether Sona itself is the process holding the input device, which the
 /// decision table needs in order to discount its own microphone.
 ///
-/// A counter rather than a flag, because it has two independent raisers: a
-/// dictation run ending while a meeting capture is still recording must not
-/// clear it.
+/// One writer, by contract: whatever opens the microphone stream raises this
+/// and whatever closes it drops it. That is `AudioRecordingManager`'s
+/// `set_stream_open`, the one place `is_open` is written, and there is one
+/// stream behind it — a dictation run and the microphone lane of a meeting
+/// capture are the same stream, taken in turn. Nothing derives the lease from
+/// the recording state, which is what left the gap this replaces: an
+/// on-demand stream outlives the dictation that opened it, and for that whole
+/// window the device read as in use with the lease down.
 #[derive(Debug, Default)]
 pub struct SelfInputDeviceLease {
-    holders: Mutex<usize>,
     held: AtomicBool,
+    wakeup: OnceLock<Arc<super::Wakeup>>,
 }
 
 impl SelfInputDeviceLease {
     pub fn acquire(&self) {
-        let mut holders = self.lock();
-        *holders = holders.saturating_add(1);
         self.held.store(true, Ordering::Release);
     }
 
+    /// Drops the lease and wakes the decision loop.
+    ///
+    /// The wake is the point. A pending ad-hoc prompt is only justified while
+    /// nothing explains the device, and this release is exactly the moment
+    /// that stops being true in Sona's favor; leaving it to the next
+    /// scheduled tick keeps a prompt on screen for a microphone the operator
+    /// can see is no longer Sona's.
     pub fn release(&self) {
-        let mut holders = self.lock();
-        *holders = holders.saturating_sub(1);
-        self.held.store(*holders > 0, Ordering::Release);
+        if !self.held.swap(false, Ordering::AcqRel) {
+            return;
+        }
+        if let Some(wakeup) = self.wakeup.get() {
+            wakeup.wake();
+        }
     }
 
     pub fn is_held(&self) -> bool {
         self.held.load(Ordering::Acquire)
     }
 
-    fn lock(&self) -> std::sync::MutexGuard<'_, usize> {
-        self.holders
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-}
-
-/// A lease held for as long as this guard lives.
-pub struct SelfInputDeviceGuard {
-    lease: Arc<SelfInputDeviceLease>,
-}
-
-impl SelfInputDeviceGuard {
-    pub fn new(lease: Arc<SelfInputDeviceLease>) -> Self {
-        lease.acquire();
-        Self { lease }
-    }
-}
-
-impl Drop for SelfInputDeviceGuard {
-    fn drop(&mut self) {
-        self.lease.release();
+    /// Registers the decision loop's wakeup.
+    ///
+    /// Installed after construction rather than passed in, because the audio
+    /// manager creates this lease and can open an always-on stream while it is
+    /// still being built — long before the detection thread exists. A release
+    /// before the install has no loop to wake and no prompt on screen to
+    /// withdraw, so nothing is missed.
+    pub(super) fn attach_wakeup(&self, wakeup: Arc<super::Wakeup>) {
+        let _ = self.wakeup.set(wakeup);
     }
 }
 
@@ -460,20 +460,21 @@ mod tests {
         assert!(!lease.is_held());
     }
 
+    /// The stream is the one holder, and `set_stream_open` only calls these on
+    /// a real transition. An unbalanced release from anywhere else must not be
+    /// able to drop a lease that was never taken.
     #[test]
-    fn overlapping_holders_keep_the_lease_raised() {
-        let lease = Arc::new(SelfInputDeviceLease::default());
-        let dictation = SelfInputDeviceGuard::new(Arc::clone(&lease));
-        let capture = SelfInputDeviceGuard::new(Arc::clone(&lease));
+    fn a_release_with_no_holder_is_inert() {
+        let lease = SelfInputDeviceLease::default();
 
-        assert!(lease.is_held());
-        drop(dictation);
-        assert!(
-            lease.is_held(),
-            "a meeting capture still holds the microphone"
-        );
-        drop(capture);
+        lease.release();
         assert!(!lease.is_held());
+
+        lease.acquire();
+        lease.acquire();
+        assert!(lease.is_held(), "a repeated open is still one stream");
+        lease.release();
+        assert!(!lease.is_held(), "one close ends it");
     }
 
     #[test]
