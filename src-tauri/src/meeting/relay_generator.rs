@@ -51,33 +51,83 @@ const RELAY_MODEL_VERSION: &str = "v1";
 /// refused; see `processing::fit_model_input` for which end is cut and why.
 const RELAY_MAX_INPUT_BYTES: usize = 124 * 1024;
 
-/// How long one remote turn may take before it is cancelled on the relay.
+/// How long this side waits for one remote turn. It does not bound the work.
 ///
-/// A model writing notes for an hour-long meeting is not fast, and the operator
-/// is not watching this happen: the stop path runs on its own job thread and
-/// review is where the answer appears. Ninety seconds is generous for the work
-/// and short enough that a relay which has quietly stopped answering becomes a
-/// stated failure inside one meeting rather than a wait with no end.
-const RELAY_TURN_DEADLINE: Duration = Duration::from_secs(90);
+/// This must exceed one worker attempt, or an ordinary run is recorded here as
+/// a failure while the box is still finishing it. An attempt is bounded and
+/// nothing renews mid-run: the VPS worker's `job_timeout_seconds` of 180s,
+/// plus the 30s margin on the lease it takes once before the model runs, is
+/// 210s. 240 leaves half a minute of headroom. That 180 is a default in
+/// `omp_bridge/worker/vps_sona.py` that `/etc/akyl-omp-vps-sona.json` does not
+/// override, so raising it on the box without raising this breaks the
+/// invariant.
+///
+/// About one attempt, and deliberately not about the job: a job whose lease
+/// expires is re-leased with no cap on attempts, so its total lifetime is
+/// unbounded and no local number could cover it. A re-leased turn reported as
+/// a failure is honest — nothing delivered an answer inside the budget.
+///
+/// It has to be this way round because no deadline rides the wire. The
+/// submission envelope is closed, so a field the relay does not expect is
+/// refused rather than ignored, and the worker runs to its own ceiling
+/// whatever this says. The cancel this budget issues marks the job without
+/// stopping it, and the worker's answer is still recorded against the
+/// cancelled row — so a number below the worker's ceiling turns an answer that
+/// exists on the relay into a refusal here, which is the failure this number
+/// exists to prevent.
+const RELAY_TURN_DEADLINE: Duration = Duration::from_secs(240);
+
+/// One poll interval plus two relay HTTP timeouts, recorded here because they
+/// live in `agent_panel` and this file cannot see them.
+///
+/// `run_chat_turn` checks its elapsed budget, sleeps `POLL_INTERVAL`
+/// (`agent_panel/mod.rs`), then calls `get_job` on a client built with a
+/// 15-second request timeout (`agent_panel/relay.rs`). So a turn can pass its
+/// own deadline check with a moment to spare and still spend a full poll and a
+/// full request before it returns, and the cancel path spends a second request
+/// on top. Keeping these numbers current is a manual act: nothing here can
+/// observe that file, and the check below is only as true as what is written
+/// on this line.
+const RELAY_TRANSPORT_TAIL: Duration = Duration::from_millis(750 + 15_000 + 15_000);
 
 /// How long the calling thread waits for the turn it handed to the runtime.
 ///
-/// Longer than the turn's own deadline, so the turn reports its own outcome —
-/// including its own cancellation — instead of being abandoned by a caller that
-/// gave up first. Reaching this timeout means the runtime never ran the turn at
-/// all, which is an unreachable engine, not a failed answer.
-const RELAY_JOIN_TIMEOUT: Duration = Duration::from_secs(105);
+/// Longer than the turn's own deadline *and* the transport tail behind it, so
+/// the turn reports its own outcome — including its own cancellation — instead
+/// of being abandoned by a caller that gave up first. Reaching this timeout
+/// means the runtime never ran the turn at all, which is an unreachable engine
+/// rather than a failed answer.
+///
+/// The tail is the part that was missed the first time. At 255s this sat only
+/// 15s above the deadline, which the transport cannot honour: a turn returning
+/// a successful job at about 255.75s — or about 270.75s once it has cancelled —
+/// arrived after this thread had already given up and become the same
+/// false failure the deadline above exists to prevent, one layer down.
+const RELAY_JOIN_TIMEOUT: Duration = Duration::from_secs(275);
 
 /// The one instruction this engine adds to a caller's prompt.
 ///
 /// Every caller already asks for strict JSON, because the on-device engine is a
 /// structured-output model that answers in it. The engine on the far side of
-/// the relay is a chat model, and a chat model's habit is to introduce its JSON
-/// and wrap it in a fence. Saying so is cheaper than teaching every parser in
-/// this file to tolerate prose, and it keeps the tolerance out of the code: an
-/// answer that arrives fenced is a failed answer, and stays one.
-const RELAY_OUTPUT_RULE: &str =
-    "\n\nReply with the JSON object only. No prose before or after it, and no code fence.";
+/// the relay is a chat model, and a chat model's habit is to introduce its JSON,
+/// wrap it in a fence, or add a closing remark once it is done. Saying so is
+/// the cheapest way to stop all three.
+///
+/// This is the belt and not the fix. Nothing on the wire makes a message JSON —
+/// the relay bounds its size and checks nothing else — so this rule is a
+/// request, and the next model will have its own habits. The parser is what
+/// holds: `processing::first_json_value` reads the first value and ignores what
+/// trails it.
+///
+/// This comment used to argue the opposite, that tolerance belonged in the
+/// prompt so that "an answer that arrives fenced is a failed answer, and stays
+/// one". That reasoning survives for a fence, which is a formatting failure
+/// with nothing recoverable inside it. It did not survive contact with a turn
+/// that returned the whole artifact schema, correctly cited, and then added one
+/// true sentence about the transcript: refusing that cost the operator a
+/// generation that had worked. A fenced answer is still a failed answer; a
+/// complete answer with a postscript is not.
+const RELAY_OUTPUT_RULE: &str = "\n\nReply with the JSON object only. No prose before or after it, no code fence, and no closing note once the object is complete.";
 
 pub(crate) struct RelayTextGenerator {
     /// `None` in a build with no Tauri app — a unit test, or the CLI. Without
@@ -235,5 +285,40 @@ mod tests {
     fn the_json_only_rule_is_appended_to_the_callers_prompt() {
         assert!(RELAY_OUTPUT_RULE.contains("JSON object only"));
         assert!(RELAY_OUTPUT_RULE.contains("no code fence"));
+    }
+
+    /// Both budgets against the two ceilings behind them.
+    ///
+    /// What this catches and what it cannot. It compares local constants
+    /// against two numbers *recorded* in this file — the VPS worker's attempt
+    /// ceiling and the relay client's transport tail — so it fails when
+    /// someone changes one local number out of step with the others. It cannot
+    /// see either real source: `omp_bridge/worker/vps_sona.py` is not in this
+    /// repository at all, and `agent_panel`'s poll interval and request
+    /// timeout are private to that module. Keeping the recorded numbers
+    /// current is a manual act, and this check is only as true as they are.
+    ///
+    /// Worth asserting anyway, because both numbers were wrong once and in the
+    /// same direction. At 90s against a 210s worker attempt, a generation the
+    /// box finished normally was recorded here as failed with its notes left
+    /// in a cancelled row nobody read. At a 255s join against a 240s deadline,
+    /// the same failure came back one layer down, in the transport tail.
+    #[test]
+    fn neither_budget_gives_up_before_the_answer_can_arrive() {
+        /// The VPS worker's `job_timeout_seconds` plus the margin on the lease
+        /// it takes once before the model runs. Nothing renews mid-run, so one
+        /// attempt cannot outlast this — though a job whose lease expires is
+        /// re-leased with no cap on attempts, which no local number can cover.
+        const ONE_WORKER_ATTEMPT: Duration = Duration::from_secs(180 + 30);
+
+        assert!(
+            RELAY_TURN_DEADLINE > ONE_WORKER_ATTEMPT,
+            "a turn the box may still be finishing must never be recorded here as failed"
+        );
+        assert!(
+            RELAY_JOIN_TIMEOUT > RELAY_TURN_DEADLINE + RELAY_TRANSPORT_TAIL,
+            "the turn has to be able to report its own outcome, including its own \
+             cancellation, after spending the whole transport tail getting there"
+        );
     }
 }

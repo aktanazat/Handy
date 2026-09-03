@@ -2914,10 +2914,22 @@ impl MeetingSessionManager {
         {
             return self.result_for_receipt(store, receipt, request.session_id);
         }
-        let (artifact, engine) = self
-            .processing
-            .regenerate(&store, request.session_id, request.expected_revision)
-            .map_err(map_processing_error)?;
+        /* Off the runtime. A relayed generation blocks its calling thread for
+         * up to `RELAY_JOIN_TIMEOUT`, and this is an async command, so waiting
+         * here would hold a runtime worker for minutes on a machine that is
+         * also transcribing. */
+        let (artifact, engine) = {
+            let processing = Arc::clone(&self.processing);
+            let store = Arc::clone(&store);
+            let session_id = request.session_id;
+            let expected_revision = request.expected_revision;
+            tauri::async_runtime::spawn_blocking(move || {
+                processing.regenerate(&store, session_id, expected_revision)
+            })
+            .await
+            .map_err(|_| map_processing_error(ProcessingFailure::EngineFailure))?
+            .map_err(map_processing_error)?
+        };
         let receipt = store
             .record_artifact_regeneration(
                 request.operation_id,
@@ -3126,23 +3138,29 @@ impl MeetingSessionManager {
             }
         }
         let live = self.live_transcript(request.session_id);
-        let (receipt, answer) = self
-            .processing
-            .ask_question(
-                &store,
-                QuestionGenerationRequest {
-                    operation_id: request.operation_id,
-                    requested_at_utc_ms: utc_now_ms(),
-                    session_id: request.session_id,
-                    expected_revision: request.expected_revision,
-                    question_id: request.question_id,
-                    question: request.question,
-                    scope: request.scope,
-                    save_history: request.save_history,
-                },
-                live.as_deref(),
-            )
-            .map_err(map_processing_error)?;
+        /* Off the runtime, for the same reason as `artifacts_regenerate`: the
+         * engine may be the relay, and its wait belongs on a blocking thread
+         * rather than on a worker this command shares with everything else. */
+        let (receipt, answer) = {
+            let processing = Arc::clone(&self.processing);
+            let store = Arc::clone(&store);
+            let generation = QuestionGenerationRequest {
+                operation_id: request.operation_id,
+                requested_at_utc_ms: utc_now_ms(),
+                session_id: request.session_id,
+                expected_revision: request.expected_revision,
+                question_id: request.question_id,
+                question: request.question,
+                scope: request.scope,
+                save_history: request.save_history,
+            };
+            tauri::async_runtime::spawn_blocking(move || {
+                processing.ask_question(&store, generation, live.as_deref())
+            })
+            .await
+            .map_err(|_| map_processing_error(ProcessingFailure::EngineFailure))?
+            .map_err(map_processing_error)?
+        };
         let snapshot = store
             .session_snapshot(request.session_id)
             .map_err(map_store_error)?;
