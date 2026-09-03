@@ -268,7 +268,20 @@ fn show_query_link(app: &AppHandle, target: query::QueryLinkTarget) {
 /// what an address means.
 pub(crate) fn dispatch_deep_link(app: &AppHandle, raw: &str) -> bool {
     let Some(action) = deeplink::parse_deep_link(raw) else {
-        return false;
+        // An address of ours that names no route is still ours. Declining it
+        // here hands it to the next reader of the same list: on macOS the audio
+        // importer, which answers a mistyped link with a failed import, and on
+        // the argv path a branch that does nothing at all. Claiming it means
+        // this is the only place that can answer the user, so it raises the
+        // window the way every other unrecognised launch does. The route
+        // keyword goes in the log and the rest of the URL does not: a refused
+        // `sona://search?q=…` carries the question somebody typed.
+        let Some(route) = deeplink::deep_link_route(raw) else {
+            return false;
+        };
+        log::warn!("Ignoring a sona:// deep link with no route named {route:?}");
+        show_main_window(app);
+        return true;
     };
     log::info!("Handling deep link: {action:?}");
     match action {
@@ -1765,9 +1778,19 @@ pub fn run(cli_args: CliArgs) {
     // instance instead.
     if !headless_mode {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
-            let opened_audio_paths = CliArgs::try_parse_from(args.clone())
+            // Windows and Linux deliver a registered protocol URL as argv, and
+            // `opened_audio_files` is the variadic positional, so every
+            // `sona://…` link forwarded here also looks like a file to import.
+            // The route table owns those addresses; the importer never sees one.
+            let opened_audio_paths: Vec<PathBuf> = CliArgs::try_parse_from(args.clone())
                 .map(|parsed| parsed.opened_audio_files)
-                .unwrap_or_default();
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|path| {
+                    path.to_str()
+                        .map_or(true, |raw| deeplink::deep_link_route(raw).is_none())
+                })
+                .collect();
             let opened_audio_queued =
                 enqueue_opened_paths(app, forwarded_opened_audio_paths(&opened_audio_paths, &cwd));
             if args.iter().any(|a| a == "--toggle-transcription") {

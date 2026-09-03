@@ -61,6 +61,27 @@ pub enum DeepLinkAction {
 /// The one scheme this app answers to.
 pub const DEEP_LINK_SCHEME: &str = "sona";
 
+/// The route keyword of a URL addressed to this app, route table or not.
+///
+/// A `sona://` URL nobody can parse is still ours, and every reader of a URL
+/// list has to be told so: on macOS the next reader is the audio importer,
+/// which answers a mistyped link with a failed-import error for a file that
+/// never existed, and on the argv path it is a branch that does nothing at all.
+///
+/// The host comes back rather than the whole URL because an unroutable link
+/// still has to be reported, and an unroutable link can carry private text:
+/// `sona://search?q=` is refused when its `q` is blank, and that `q` is
+/// whatever the person was searching for. A hostless `sona:` URL answers with an
+/// empty name: still ours, and [`parse_deep_link`] refuses it for the same
+/// reason, so both agree on what "ours" means.
+pub fn deep_link_route(raw: &str) -> Option<String> {
+    let url = url::Url::parse(raw.trim()).ok()?;
+    if !url.scheme().eq_ignore_ascii_case(DEEP_LINK_SCHEME) {
+        return None;
+    }
+    Some(url.host_str().unwrap_or_default().to_string())
+}
+
 /// Parses a `sona://` URL into an action, or `None` when it is not a route this
 /// app serves.
 ///
@@ -364,5 +385,31 @@ mod tests {
             parse_deep_link("  sona://record\n"),
             Some(DeepLinkAction::ToggleRecording)
         );
+    }
+
+    /// The scheme claim is deliberately wider than the route table: an address
+    /// of ours that names no route must not fall through to another reader, and
+    /// the name it reports must never carry the query.
+    #[test]
+    fn every_sona_url_is_ours_even_without_a_route() {
+        for (raw, route) in [
+            ("sona://record", "record"),
+            ("sona://meeting/not-a-uuid", "meeting"),
+            ("sona://quit", "quit"),
+            ("SONA://mode/", "mode"),
+            ("  sona://dictation/0\n", "dictation"),
+            ("sona:record", ""),
+        ] {
+            assert_eq!(deep_link_route(raw).as_deref(), Some(route), "{raw}");
+        }
+        // A refused search still names only its route: the question it carries
+        // is the user's, and a diagnostic is not the place for it.
+        assert_eq!(
+            deep_link_route("sona://search?q=my%20private%20question").as_deref(),
+            Some("search")
+        );
+        for raw in ["file:///tmp/audio.wav", "sonata://record", "not a url", ""] {
+            assert_eq!(deep_link_route(raw), None, "{raw} should not be claimed");
+        }
     }
 }
