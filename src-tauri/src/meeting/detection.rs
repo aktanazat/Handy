@@ -1493,6 +1493,27 @@ impl DetectionRuntime {
         call_evidence: bool,
         sona_mic: bool,
     ) {
+        let pending_kinds = self
+            .lock()
+            .panel
+            .iter()
+            .filter_map(|(prompt_id, pending)| match pending {
+                PendingPanel::Prompt(pending) => Some(format!("{prompt_id}={:?}", pending.prompt)),
+                PendingPanel::Ritual(_) => None,
+            })
+            .collect::<Vec<_>>();
+        // A prompt nothing withdraws is invisible in the log otherwise: the
+        // panel window logs nothing, and the operator's only other evidence is
+        // a window that will not go away. This names what is pending and the
+        // three facts that decide whether it should be.
+        if !pending_kinds.is_empty() {
+            log::debug!(
+                "Meeting detection holds {} pending prompt(s) [{}] with mic={mic:?} \
+                 sona_mic={sona_mic} call_evidence={call_evidence}",
+                pending_kinds.len(),
+                pending_kinds.join(", "),
+            );
+        }
         let retract = self
             .lock()
             .panel
@@ -1539,6 +1560,10 @@ impl DetectionRuntime {
 
     fn raise(self: &Arc<Self>, prompt: PromptKind, calendar_event: Option<CalendarEventSummary>) {
         let prompt_id = Uuid::new_v4().to_string();
+        // The panel window logs nothing and sets NSWindowSharingType::None, so
+        // it cannot be screenshotted either. Without this line the only trace a
+        // prompt ever existed is the window itself.
+        log::info!("Meeting detection raised prompt {prompt_id}: {prompt:?}");
         let show_introduction =
             tauri::async_runtime::block_on(self.meetings.consent_panel_introduction_needed());
         let announce_in_chat = calendar_event.as_ref().is_some_and(|event| {

@@ -422,14 +422,20 @@ pub const SELF_MIC_COOLDOWN: Duration = Duration::from_secs(20);
 /// Tracks whether Sona itself is the process holding the input device, which the
 /// decision table needs in order to discount its own microphone.
 ///
-/// One writer, by contract: whatever opens the microphone stream raises this
-/// and whatever closes it drops it. That is `AudioRecordingManager`'s
-/// `set_stream_open`, the one place `is_open` is written, and there is one
-/// stream behind it — a dictation run and the microphone lane of a meeting
-/// capture are the same stream, taken in turn. Nothing derives the lease from
-/// the recording state, which is what left the gap this replaces: an
-/// on-demand stream outlives the dictation that opened it, and for that whole
-/// window the device read as in use with the lease down.
+/// One writer, by contract: `AudioRecordingManager` raises this before it
+/// opens the microphone stream and drops it after it closes, in
+/// `open_holding_lease` and `close_releasing_lease`. There is one stream
+/// behind it — a dictation run and the microphone lane of a meeting capture
+/// are the same stream, taken in turn.
+///
+/// The lease is deliberately wider than "a stream is open" at both ends.
+/// CoreAudio raises its device-in-use property inside the open and lags the
+/// close, and it notifies detection from its own thread, so the instants a
+/// stream reports open and closed are both inside the interval where the
+/// device already reads as Sona's. Nothing derives the lease from the
+/// recording state, which is what left the original gap: a stream outlives
+/// the dictation that opened it, and for that whole window the device read as
+/// in use with the lease down.
 #[derive(Debug, Default)]
 pub struct SelfInputDeviceLease {
     held: AtomicBool,
@@ -441,7 +447,9 @@ pub struct SelfInputDeviceLease {
 
 impl SelfInputDeviceLease {
     pub fn acquire(&self) {
-        self.held.store(true, Ordering::Release);
+        if !self.held.swap(true, Ordering::AcqRel) {
+            log::debug!("Sona took the input device");
+        }
     }
 
     /// Drops the lease and wakes the decision loop.
@@ -456,6 +464,10 @@ impl SelfInputDeviceLease {
             return;
         }
         *self.lock() = Some(Instant::now());
+        log::debug!(
+            "Sona released the input device; suppressing the ad-hoc path for {:?}",
+            SELF_MIC_COOLDOWN
+        );
         if let Some(wakeup) = self.wakeup.get() {
             wakeup.wake();
         }
@@ -519,9 +531,9 @@ mod tests {
         );
     }
 
-    /// The stream is the one holder, and `set_stream_open` only calls these on
-    /// a real transition. An unbalanced release from anywhere else must not be
-    /// able to drop a lease that was never taken.
+    /// The stream is the one holder, and the open and close pair only call
+    /// these on a real transition. An unbalanced release from anywhere else
+    /// must not be able to drop a lease that was never taken.
     #[test]
     fn a_release_with_no_holder_is_inert() {
         let lease = SelfInputDeviceLease::default();

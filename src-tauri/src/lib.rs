@@ -340,7 +340,11 @@ pub(crate) fn dispatch_deep_link(app: &AppHandle, raw: &str) -> bool {
 /// its idle tick touches no database — a settings read, an atomic load, and the
 /// running-application list, which is what keeps the allowlist honest while
 /// nothing is happening.
-fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionManager>) {
+fn start_meeting_detection(
+    app_handle: &AppHandle,
+    meetings: Arc<MeetingSessionManager>,
+    self_lease: Arc<meeting::detection::input_device::SelfInputDeviceLease>,
+) {
     use meeting::detection::input_device::InputDeviceLevel;
     use meeting::detection::{apps, calendar, notify, DetectionRuntime};
 
@@ -411,16 +415,11 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
     // reaches the same calendar detection reads rather than a second one.
     app_handle.manage(Arc::clone(&calendar_source));
 
-    // The lease belongs to whatever opens the microphone stream, which is the
-    // recording manager: it is the only thing in the process that can hold the
-    // input device, and it is already managed by the time this runs. Creating a
-    // second one here would leave detection watching a fact nobody writes. No
-    // recording manager means no Sona stream, so a lease that is never raised
-    // is the honest answer rather than a reason to fail detection.
-    let self_lease = app_handle
-        .try_state::<Arc<managers::audio::AudioRecordingManager>>()
-        .map(|audio| audio.self_input_device_lease())
-        .unwrap_or_default();
+    // The lease arrives from the recording manager rather than being looked up
+    // here. It is the only thing in the process that can hold the input device,
+    // and a lookup that missed would hand detection a lease nobody writes —
+    // which reads exactly like the bug this whole change exists to fix, with no
+    // symptom to distinguish it. A parameter cannot miss.
 
     let runtime = Arc::new(DetectionRuntime::with_parts(
         app_handle.clone(),
@@ -729,7 +728,11 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
             Arc::clone(&meeting_manager_for_removals),
         );
     });
-    start_meeting_detection(app_handle, Arc::clone(&meeting_manager));
+    start_meeting_detection(
+        app_handle,
+        Arc::clone(&meeting_manager),
+        recording_manager.self_input_device_lease(),
+    );
 
     // Note: Shortcuts are NOT initialized here.
     // The frontend is responsible for calling the `initialize_shortcuts` command
