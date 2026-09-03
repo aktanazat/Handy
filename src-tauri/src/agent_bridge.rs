@@ -226,7 +226,15 @@ impl AgentBridgeCore {
         }
 
         if let Ok(existing) = self.paths.read_lease() {
-            if existing.is_valid_at(now_ms) && existing.app_instance_id != self.app_instance_id {
+            // Another instance's lease blocks this one only while that
+            // publisher is still running. An app that was killed leaves an
+            // unexpired record behind, and refusing on it would keep the bridge
+            // dark for the whole session: reconcile runs at startup and on a
+            // settings change, never on a timer.
+            if existing.is_valid_at(now_ms)
+                && existing.app_instance_id != self.app_instance_id
+                && publisher_alive(existing.pid)
+            {
                 self.diagnostic = AgentBridgeDiagnostic::AppLockHeld;
                 return Err(AgentBridgeError::AppLockHeld);
             }
@@ -234,8 +242,28 @@ impl AgentBridgeCore {
         }
 
         let lease = lease(&self.app_instance_id, settings.policy_generation, now_ms);
-        wire::atomic_write_json(&self.paths.app_lock_path(), &lease, WriteMode::CreateNew)
-            .map_err(|_| AgentBridgeError::RuntimeUnavailable)?;
+        if wire::atomic_write_json(&self.paths.app_lock_path(), &lease, WriteMode::CreateNew)
+            .is_err()
+        {
+            // The release above and this create are not one operation, so
+            // another instance can win the gap. When it has, the lock is held —
+            // saying the runtime is unavailable would send a reader looking for
+            // a broken directory instead of a second Sona.
+            let contended = self
+                .paths
+                .read_lease()
+                .is_ok_and(|held| held.is_valid_at(now_ms));
+            self.diagnostic = if contended {
+                AgentBridgeDiagnostic::AppLockHeld
+            } else {
+                AgentBridgeDiagnostic::RuntimeUnavailable
+            };
+            return Err(if contended {
+                AgentBridgeError::AppLockHeld
+            } else {
+                AgentBridgeError::RuntimeUnavailable
+            });
+        }
         self.write_control_state(settings, now_ms)?;
         self.running = true;
         self.diagnostic = AgentBridgeDiagnostic::Active;
@@ -813,6 +841,30 @@ fn lease(app_instance_id: &str, policy_generation: u64, now_ms: u64) -> AppLease
         issued_at_ms: now_ms,
         expires_at_ms: now_ms.saturating_add(APP_LEASE_TTL_MS),
     }
+}
+
+/// Whether the process that published a lease is still running.
+///
+/// Signal 0 performs the permission check and returns without delivering
+/// anything, so it reports liveness without disturbing the holder. Only "no
+/// such process" clears a lease; a live process this app may not signal keeps
+/// it. A recycled pid reads as alive, which only defers the takeover to the
+/// next launch.
+#[cfg(unix)]
+fn publisher_alive(pid: u32) -> bool {
+    let Ok(pid) = i32::try_from(pid) else {
+        return true;
+    };
+    // SAFETY: kill with signal 0 delivers nothing and touches no caller memory.
+    if unsafe { libc::kill(pid, 0) } == 0 {
+        return true;
+    }
+    io::Error::last_os_error().raw_os_error() != Some(libc::ESRCH)
+}
+
+#[cfg(not(unix))]
+fn publisher_alive(_pid: u32) -> bool {
+    true
 }
 
 /// The bridge reads the wall clock only at its own boundaries; every wire
@@ -1531,6 +1583,40 @@ mod tests {
         first.stop();
         second.start(&settings, 1_002)?;
         second.stop();
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    /// A killed app leaves an unexpired lease behind. The next launch has to
+    /// take it over, or its bridge stays dark until someone toggles a setting.
+    #[cfg(unix)]
+    #[test]
+    fn unexpired_lease_from_a_dead_publisher_is_taken_over() -> Result<(), Box<dyn Error>> {
+        let root = test_root("dead-lock")?;
+        let paths = RuntimePaths::from_root(root.clone(), true)?;
+        let settings = enabled_settings(wire::project_hash(&root)?);
+        let mut ghost = std::process::Command::new("true").spawn()?;
+        let ghost_pid = ghost.id();
+        ghost.wait()?;
+        let abandoned = AppLease {
+            schema_version: SCHEMA_VERSION,
+            protocol_generation: PROTOCOL_GENERATION,
+            app_instance_id: opaque_hash(&[b"ghost"]),
+            pid: ghost_pid,
+            policy_generation: settings.policy_generation,
+            issued_at_ms: 1_000,
+            expires_at_ms: 31_000,
+        };
+        wire::atomic_write_json(&paths.app_lock_path(), &abandoned, WriteMode::CreateNew)?;
+
+        let mut core = AgentBridgeCore::new(paths.clone(), opaque_hash(&[b"survivor"]))?;
+        core.start(&settings, 1_001)?;
+        assert_eq!(
+            core.status(&settings).diagnostic,
+            AgentBridgeDiagnostic::Active
+        );
+        assert_eq!(paths.read_lease()?.pid, process::id());
+        core.stop();
         fs::remove_dir_all(root)?;
         Ok(())
     }
