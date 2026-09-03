@@ -123,27 +123,27 @@
 
 /* Where it comes from. `:not([data-mounted="true"])` is what keeps this off
  * the settled toast, so sonner's own mounted rule still lands it at rest. */
-.toast-surface[data-sonner-toast]:not([data-mounted="true"])[data-x-position="right"] {
-  --y: translate3d(
-    var(--popup-enter-travel),
-    var(--popup-enter-travel),
-    0
-  )
+.toast-surface[data-sonner-toast]:not(
+    [data-mounted="true"]
+  )[data-x-position="right"] {
+  --y: translate3d(var(--popup-enter-travel), var(--popup-enter-travel), 0)
     scale(var(--popup-enter-scale));
 }
 
-.toast-surface[data-sonner-toast]:not([data-mounted="true"])[data-x-position="left"] {
+.toast-surface[data-sonner-toast]:not(
+    [data-mounted="true"]
+  )[data-x-position="left"] {
   --y: translate3d(
-    calc(-1 * var(--popup-enter-travel)),
-    var(--popup-enter-travel),
-    0
-  )
+      calc(-1 * var(--popup-enter-travel)),
+      var(--popup-enter-travel),
+      0
+    )
     scale(var(--popup-enter-scale));
 }
 
-.toast-surface[data-sonner-toast][data-removed="true"]:not([data-swipe-out="true"]):not(
-    [data-swiping="true"]
-  ) {
+.toast-surface[data-sonner-toast][data-removed="true"]:not(
+    [data-swipe-out="true"]
+  ):not([data-swiping="true"]) {
   --y: translate3d(0, 0, 0);
   opacity: 0;
   transition:
