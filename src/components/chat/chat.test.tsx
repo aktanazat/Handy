@@ -298,6 +298,14 @@ describe("the column's shape", () => {
     expect(markup).toContain(`aria-label="${en.chat.send}"`);
     expect(markup).not.toContain('data-slot="chat-stop"');
   });
+
+  /* One sentence for both scopes. The empty state is keyed on an absent
+   * conversation and nothing else, so a sentence that is only true of Ask is
+   * a sentence that lies to whoever has Settings selected. */
+  test("empty: the same invitation under either scope", () => {
+    for (const workspace of ["sona_chat", "sona_config"] as const)
+      expect(sheet({ workspace })).toContain(en.chat.empty);
+  });
 });
 
 describe("a turn on screen", () => {
@@ -775,6 +783,29 @@ describe("the states where nothing would answer", () => {
     for (const phase of ["disabled", "offline", "error"] as const) {
       const markup = sheet({ phase });
       expect(occurrences(markup, escaped(en.chat.status[phase]))).toBe(1);
+    }
+  });
+
+  /* All four are repaired on one screen — the switch, the pairing, the address
+   * and the pinned key — so all four have to be able to reach it. A retry is
+   * offered beside it only where a re-read could plausibly change the answer.
+   *
+   * Read out of the notice rather than the whole sheet, because "Settings" is
+   * also the name of the composer's second scope: the same word, twice on one
+   * surface, meaning two different things. */
+  test("every broken phase offers Settings, and only two offer a retry", () => {
+    const notice = (markup: string): string => {
+      const start = markup.indexOf('data-slot="chat-notice"');
+      expect(start).toBeGreaterThan(-1);
+      return markup.slice(start, markup.indexOf("</p>", start));
+    };
+
+    for (const phase of ["disabled", "unpaired", "offline", "error"] as const) {
+      const line = notice(sheet({ phase }));
+      expect(occurrences(line, en.chat.openSettings)).toBe(1);
+      expect(occurrences(line, en.chat.retry)).toBe(
+        phase === "offline" || phase === "error" ? 1 : 0,
+      );
     }
   });
 

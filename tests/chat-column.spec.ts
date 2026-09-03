@@ -773,7 +773,7 @@ test.describe("the chat at 340", () => {
 
     const chat = column(page);
     await expect(chat).toContainText(
-      "Ask about your meetings, notes and settings.",
+      "Ask what you said or agreed, or what to change.",
     );
     await expect(
       chat.getByRole("button", { name: "Recent chats" }),

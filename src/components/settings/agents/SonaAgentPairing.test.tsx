@@ -35,7 +35,7 @@ void i18n.init({
               pairing: "Pairing",
               paired: "Paired",
               unpaired: "Not paired",
-              lastReached: "Last reached",
+              lastTested: "Last tested",
               never: "Never",
               relayUrl: "Server address",
               relayUrlHint: "Only a Tailscale address or this Mac itself.",

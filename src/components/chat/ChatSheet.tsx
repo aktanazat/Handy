@@ -136,6 +136,13 @@ interface ChatNoticeProps {
  * a relay that went away does not unsay what was already said — and the reader
  * who scrolls back to an answer while the network is down is doing the one
  * thing this surface can still do for them.
+ *
+ * Every one of the four ends in Settings, because that is where all four are
+ * fixed: the switch, the pairing, the address and the pinned key all live on
+ * one screen. Only `offline` and `error` also offer a retry, and it is the
+ * lesser of the two actions — a re-read cannot repair an invalid pairing, a
+ * missing secret or a reply that failed verification, which is most of what
+ * `error` covers.
  */
 const ChatNotice: React.FC<ChatNoticeProps> = ({
   phase,
@@ -153,16 +160,14 @@ const ChatNotice: React.FC<ChatNoticeProps> = ({
       className="flex flex-none flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-gray-alpha-400 px-3 py-2 text-[12px] leading-4 text-gray-900"
     >
       {t(`chat.status.${phase}`)}
-      {phase === "unpaired" && (
-        <Button variant="link" size="xs" onClick={onOpenSettings}>
-          {t("chat.openSettings")}
-        </Button>
-      )}
       {(phase === "offline" || phase === "error") && (
         <Button variant="link" size="xs" onClick={onRetry}>
           {t("chat.retry")}
         </Button>
       )}
+      <Button variant="link" size="xs" onClick={onOpenSettings}>
+        {t("chat.openSettings")}
+      </Button>
     </p>
   );
 };

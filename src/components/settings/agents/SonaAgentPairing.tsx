@@ -34,7 +34,12 @@ export const SonaAgentPairing: React.FC = () => {
   const savedKeyId = getSetting("agent_panel_relay_key_id") ?? "";
   const savedPublicKey = getSetting("agent_panel_relay_public_key") ?? "";
   const paired = getSetting("agent_panel_paired") ?? false;
-  const lastConnected =
+  /* The stored timestamp is written in exactly one place — the Test button's
+   * command — so it is the last successful *test*, not the last turn. Turns do
+   * not stamp it on purpose: `update_settings` bumps `settings_revision`, and
+   * a bump on the turn that produced a settings proposal would make that
+   * proposal stale before its Apply. */
+  const lastTested =
     getSetting("agent_panel_last_successful_connection_at") ?? null;
 
   const [relayUrl, setRelayUrl] = useState(savedUrl);
@@ -174,10 +179,10 @@ export const SonaAgentPairing: React.FC = () => {
       </SettingsRow>
 
       <SettingsRow
-        label={t("settings.agents.sonaAgent.lastReached")}
+        label={t("settings.agents.sonaAgent.lastTested")}
         fact={
-          lastConnected !== null
-            ? new Date(lastConnected).toLocaleString(i18n.language)
+          lastTested !== null
+            ? new Date(lastTested).toLocaleString(i18n.language)
             : t("settings.agents.sonaAgent.never")
         }
       />

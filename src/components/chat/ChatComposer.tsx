@@ -82,10 +82,16 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               aria-checked={workspace === scope}
               disabled={inert}
               onClick={() => onWorkspaceChange(scope)}
+              /* The chosen scope is filled, not merely outlined a step darker.
+                 One alpha step between the two states is the difference
+                 between "Ask" and "Settings" on a control that decides which
+                 sandbox a private question is sent to, and at 12px that step
+                 is not a difference a reader can see. `aria-checked` already
+                 says it out loud; this says it on screen. */
               className={cn(
                 "rounded-full border px-2.5 py-1 text-[12px] leading-4 transition-colors disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none",
                 workspace === scope
-                  ? "border-gray-alpha-600 text-gray-1000"
+                  ? "border-gray-alpha-600 bg-gray-alpha-200 font-medium text-gray-1000"
                   : "border-gray-alpha-400 text-gray-900 hover:text-gray-1000",
               )}
             >
