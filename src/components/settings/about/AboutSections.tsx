@@ -16,7 +16,7 @@ import { MaterialSelector } from "../MaterialSelector";
 import { LogDirectory } from "../debug/LogDirectory";
 import { UpdateRows, type VersionState } from "./UpdateRows";
 
-const REPOSITORY_URL = "https://github.com/aktanazat/Handy";
+const REPOSITORY_URL = "https://github.com/aktanazat/sona";
 
 const openLicenseNotices = async () => {
   const result = await commands.openLicenseNotices();

@@ -6,7 +6,7 @@ use specta::Type;
 use std::time::Duration;
 use tauri::AppHandle;
 
-const RELEASES_URL: &str = "https://api.github.com/repos/aktanazat/Handy/releases/latest";
+const RELEASES_URL: &str = "https://api.github.com/repos/aktanazat/sona/releases/latest";
 const RELEASES_URL_ENV: &str = "SONA_UPDATE_CHECK_URL";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 const UPDATE_USER_AGENT: &str = concat!("Sona/", env!("CARGO_PKG_VERSION"));

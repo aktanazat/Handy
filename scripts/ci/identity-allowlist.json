@@ -30,6 +30,8 @@
     "Handy\\.plist",
     "handy\\.exe",
     "name\\.trim\\(\\) == \\\"handy\\\"",
+    "\\\"handy",
+    "ship(ped)? (the )?handy",
     "Handy #",
     "`handy` =",
     "aktanazat/sona",

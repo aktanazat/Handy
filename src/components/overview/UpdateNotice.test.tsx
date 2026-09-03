@@ -38,7 +38,7 @@ const available: UpdateCheckResult = {
   current_version: "1.0.0",
   latest_version: "1.1.0",
   update_available: true,
-  url: "https://github.com/aktanazat/Handy/releases/tag/v1.1.0",
+  url: "https://github.com/aktanazat/sona/releases/tag/v1.1.0",
   notes_excerpt: "Faster model loading.",
   published_at_utc_ms: 1_756_000_000_000,
   status: "update_available",
