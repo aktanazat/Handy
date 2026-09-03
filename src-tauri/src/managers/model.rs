@@ -1,6 +1,7 @@
 use super::model_capabilities::{
     CapabilityProbe, CapabilityProber, Compatibility, GgufHeaderProber,
 };
+use crate::modes::ModeDefinition;
 use crate::settings::{get_settings, update_settings};
 use anyhow::Result;
 use flate2::read::GzDecoder;
@@ -1877,6 +1878,27 @@ impl ModelManager {
         available.into_iter().find(|model| model.is_downloaded)
     }
 
+    /// Clears per-mode model ids naming a model that is not installed, and
+    /// reports what it cleared.
+    ///
+    /// An empty per-mode id means "inherit the global selection"
+    /// ([`crate::modes::AsrPlan::from_mode`]), and the selection is the field
+    /// [`Self::auto_select_model_if_needed`] keeps runnable, so clearing a
+    /// stale id returns that mode to a model that exists. Nothing else covers
+    /// this: the selection heal above reads a different field, and deleting a
+    /// catalog model leaves its registry entry in place as not-downloaded, so
+    /// the mode would otherwise fail every dictation with `Model not found`.
+    fn clear_uninstalled_mode_models(
+        modes: &mut [ModeDefinition],
+        installed: &HashSet<String>,
+    ) -> Vec<(String, String)> {
+        modes
+            .iter_mut()
+            .filter(|mode| !mode.asr.model_id.is_empty() && !installed.contains(&mode.asr.model_id))
+            .map(|mode| (mode.id.clone(), std::mem::take(&mut mode.asr.model_id)))
+            .collect()
+    }
+
     fn auto_select_model_if_needed(&self) -> Result<()> {
         let settings = get_settings(&self.app_handle);
         let mut selected_model = settings.selected_model.clone();
@@ -1898,6 +1920,31 @@ impl ModelManager {
                     }
                     settings.selected_model.clone()
                 });
+            }
+        }
+
+        let installed: HashSet<String> = self
+            .get_available_models()
+            .into_iter()
+            .filter(|model| model.is_downloaded)
+            .map(|model| model.id)
+            .collect();
+        if settings
+            .modes
+            .iter()
+            .any(|mode| !mode.asr.model_id.is_empty() && !installed.contains(&mode.asr.model_id))
+        {
+            // The revision moves with the change so an open mode editor learns
+            // its cached copy is stale instead of saving the dead id back.
+            let cleared = update_settings(&self.app_handle, |settings| {
+                let cleared = Self::clear_uninstalled_mode_models(&mut settings.modes, &installed);
+                settings.modes_revision = settings.modes_revision.saturating_add(1);
+                cleared
+            });
+            for (mode_id, model_id) in cleared {
+                info!(
+                    "Mode '{mode_id}' named uninstalled model '{model_id}'; inheriting the selected model"
+                );
             }
         }
 
@@ -2052,6 +2099,16 @@ impl ModelManager {
             } else {
                 CapabilityProbe::default()
             };
+            // A loadable arch is not automatically a dictation model: a
+            // diarizer loads and returns an empty transcript, so offering one
+            // costs the user a silent dictation.
+            if !probe.transcribes() {
+                debug!(
+                    "Skipping non-transcribing model file {} (architecture {:?})",
+                    filename, probe.architecture
+                );
+                continue;
+            }
             let caps = local_caps(&probe);
             let display_name = probed_display_name(&probe).unwrap_or(fallback_display_name);
 
@@ -2187,8 +2244,11 @@ impl ModelManager {
 
                 let path = snapshot.join(&fname);
                 let probe = prober.probe_file(&path);
-                // Only surface models transcribe-cpp recognises.
-                if probe.verdict != Compatibility::Compatible {
+                // Only surface models transcribe-cpp recognises *and* that
+                // produce transcription text — meeting diarization downloads a
+                // sortformer GGUF into this same cache, and it transcribes to
+                // nothing at all.
+                if probe.verdict != Compatibility::Compatible || !probe.transcribes() {
                     continue;
                 }
                 let caps = local_caps(&probe);
@@ -3025,6 +3085,37 @@ mod tests {
         assert_eq!(progress_percentage(u64::MAX, u64::MAX), 100.0);
     }
 
+    /// Deleting a model a mode names leaves that mode pointing at a model that
+    /// is gone, and nothing else repairs it: the global selection is a
+    /// different field, and a deleted catalog model keeps its registry entry
+    /// as not-downloaded. Every dictation in that mode would fail with `Model
+    /// not found` until the user noticed.
+    #[test]
+    fn a_mode_naming_a_deleted_model_falls_back_to_the_selected_one() {
+        let mut settings = crate::settings::get_default_settings();
+        crate::modes::ensure_mode_settings(&mut settings);
+        settings.selected_model = "installed-model".to_string();
+        settings.modes[0].asr.model_id.clear();
+        settings.modes[1].asr.model_id = "installed-model".to_string();
+        settings.modes[2].asr.model_id = "deleted-model".to_string();
+        let installed = HashSet::from(["installed-model".to_string()]);
+
+        let cleared = ModelManager::clear_uninstalled_mode_models(&mut settings.modes, &installed);
+
+        assert_eq!(
+            cleared,
+            vec![(settings.modes[2].id.clone(), "deleted-model".to_string())]
+        );
+        assert!(settings.modes[0].asr.model_id.is_empty());
+        assert_eq!(settings.modes[1].asr.model_id, "installed-model");
+        // Empty means "inherit the global selection", so the repaired mode
+        // runs the model the selection heal keeps installed.
+        assert_eq!(
+            crate::modes::AsrPlan::from_mode(&settings, &settings.modes[2].asr).model_id,
+            "installed-model"
+        );
+    }
+
     fn write_cache_file(temp_dir: &TempDir, bytes: &[u8]) -> Result<PathBuf> {
         let path = temp_dir.path().join("model.gguf");
         fs::write(&path, bytes)?;
@@ -3708,6 +3799,52 @@ mod tests {
         assert!(
             !models.contains_key("someone/llama-7b/llama-q8.gguf"),
             "non-ASR gguf must be ignored"
+        );
+    }
+
+    /// Meeting diarization downloads `diar_streaming_sortformer_4spk-v2.1` into
+    /// the shared HF cache, and `sortformer` is an arch transcribe-cpp loads, so
+    /// both on-disk scans used to offer the diarizer as a dictation model. It
+    /// loads without error and transcribes 21.3 s of speech to the empty string,
+    /// which reaches the user as a dictation that produced nothing.
+    #[test]
+    fn a_diarizer_is_never_offered_as_a_transcription_model() {
+        let tmp = TempDir::new().unwrap();
+        let cache = tmp.path().join("cache");
+        let repo = cache.join("models--handy-computer--diar-test");
+        fs::create_dir_all(repo.join("snapshots").join("abc123")).unwrap();
+        fs::create_dir_all(repo.join("refs")).unwrap();
+        fs::write(repo.join("refs").join("main"), "abc123").unwrap();
+        write_synthetic_gguf(
+            &repo
+                .join("snapshots")
+                .join("abc123")
+                .join("diar_streaming_sortformer_4spk-v2.1-Q8_0.gguf"),
+            "sortformer",
+            &["en"],
+        );
+
+        let mut models = HashMap::new();
+        ModelManager::discover_hf_cache_models_in(&cache, &mut models);
+        assert!(
+            models.is_empty(),
+            "a sortformer gguf in the HF cache must not be offered: {:?}",
+            models.keys().collect::<Vec<_>>()
+        );
+
+        // Same file dropped into the models directory by hand.
+        let models_dir = tmp.path().join("models");
+        fs::create_dir_all(&models_dir).unwrap();
+        write_synthetic_gguf(
+            &models_dir.join("diar_streaming_sortformer_4spk-v2.1-Q8_0.gguf"),
+            "sortformer",
+            &["en"],
+        );
+        ModelManager::discover_custom_transcribe_models(&models_dir, &mut models).unwrap();
+        assert!(
+            models.is_empty(),
+            "a sortformer gguf in the models dir must not be offered: {:?}",
+            models.keys().collect::<Vec<_>>()
         );
     }
 }

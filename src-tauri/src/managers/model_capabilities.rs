@@ -50,6 +50,20 @@ pub const KNOWN_ARCHES: &[&str] = &[
     "sortformer",
 ];
 
+/// Architectures in [`KNOWN_ARCHES`] that transcribe-cpp loads happily but that
+/// emit something other than transcription text, so they must never be offered
+/// as a dictation model.
+///
+/// Sortformer emits per-speaker activity segments. Measured on the file Sona
+/// downloads for itself: `diar_streaming_sortformer_4spk-v2.1-Q8_0.gguf` loads
+/// in 49 ms, runs 21.3 s of speech in 144 ms, and returns the empty string with
+/// exit code 0 — a dictation that silently produces nothing. The catalog is
+/// already forbidden from listing one (`catalog::tests`), but the on-disk scans
+/// re-admit it, and meeting diarization puts that exact file in the shared
+/// Hugging Face cache those scans read
+/// (`resources/models/meeting-diarization-sortformer.json`).
+pub const NON_TRANSCRIBING_ARCHES: &[&str] = &["sortformer"];
+
 // GGUF metadata keys transcribe-cpp writes for ASR models.
 const KEY_ARCH: &str = "general.architecture";
 const KEY_NAME: &str = "general.name";
@@ -138,6 +152,18 @@ impl CapabilityProbe {
             supports_streaming: meta.get_bool(KEY_CAP_STREAMING),
             supports_translation: meta.get_bool(KEY_CAP_TRANSLATE),
             supports_language_detect: meta.get_bool(KEY_CAP_LANG_DETECT),
+        }
+    }
+
+    /// Whether this file can serve as a transcription model at all.
+    ///
+    /// A missing architecture stays eligible: legacy `.bin` files carry no GGUF
+    /// header, and an unread arch is unknown rather than known-not-to-transcribe.
+    /// Only the explicit [`NON_TRANSCRIBING_ARCHES`] are refused.
+    pub fn transcribes(&self) -> bool {
+        match self.architecture.as_deref() {
+            Some(arch) => !NON_TRANSCRIBING_ARCHES.contains(&arch),
+            None => true,
         }
     }
 }
