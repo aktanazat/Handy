@@ -67,7 +67,7 @@ export const PersonDocuments: React.FC<PersonDocumentsProps> = ({
                * imported context reads as a catalogue, and the one control
                * that can destroy an entry waits inside the entry you opened. */}
               <details className="group min-w-0">
-                <summary className="flex cursor-pointer list-none items-start gap-2 rounded-md focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-start gap-2 rounded-md focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
                   <FileText
                     aria-hidden="true"
                     className="mt-0.5 size-4 flex-none text-gray-700"

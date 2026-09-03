@@ -182,7 +182,7 @@ export const OverviewWorkflowCardsView: React.FC<
                         data-testid="overview-workflow-receipt"
                         data-meeting-id={meetingId}
                         onClick={() => onOpenMeeting(meetingId)}
-                        className="hover-fast w-full px-4 py-3 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                        className="hover-fast w-full px-4 py-3 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
                       >
                         {line}
                       </button>
@@ -221,7 +221,7 @@ export const OverviewWorkflowCardsView: React.FC<
                       title: openLoop.title,
                     })}
                     onClick={() => onOpenMeeting(openLoop.meeting_id)}
-                    className="hover-fast w-full px-4 py-3 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                    className="hover-fast w-full px-4 py-3 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
                   >
                     <span className="block text-[13px] leading-5 text-gray-1000">
                       {openLoop.text}

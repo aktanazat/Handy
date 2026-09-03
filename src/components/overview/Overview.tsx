@@ -107,7 +107,7 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
            * 40px/700; 24px/500 is the intended restraint, not a demotion. */
           className={cn(
             "text-[24px] leading-[30px] font-medium tracking-tight",
-            isRecording ? "text-blue-900" : "text-gray-1000",
+            isRecording ? "text-accent-strong" : "text-gray-1000",
           )}
         >
           {t(isRecording ? "overview.hero.recording" : "overview.hero.ready")}
@@ -144,7 +144,7 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
                 "Change dictation shortcut",
               )}
               data-testid="overview-shortcut"
-              className="-mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+              className="-mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
             >
               {keys.map((key, index) => (
                 <Kbd key={`${key}-${index}`}>{key}</Kbd>

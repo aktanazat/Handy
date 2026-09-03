@@ -184,7 +184,7 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
         type="button"
         onClick={onOpen}
         title={openTitle}
-        className="hover-fast flex min-w-0 flex-1 items-center gap-3 px-4 py-2.5 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+        className="hover-fast flex min-w-0 flex-1 items-center gap-3 px-4 py-2.5 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
       >
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="truncate text-[13px] leading-[19px] text-gray-1000">

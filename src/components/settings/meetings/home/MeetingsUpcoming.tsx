@@ -109,7 +109,7 @@ const AttendeeChips: React.FC<AttendeeChipsProps> = ({
             onClick={() => onOpenPerson(attendee.person_id ?? "")}
             className={cn(
               chip,
-              "text-blue-900 transition-colors hover:border-gray-alpha-500 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none",
+              "text-accent-strong transition-colors hover:border-gray-alpha-500 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none",
             )}
           >
             {attendee.name}

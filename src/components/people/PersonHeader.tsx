@@ -147,7 +147,7 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
                 setEditing(true);
               }}
               title={t("people.detail.rename")}
-              className="-mx-2 min-w-0 rounded-md px-2 py-0.5 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+              className="-mx-2 min-w-0 rounded-md px-2 py-0.5 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
             >
               <PageTitle className="truncate">{person.display_name}</PageTitle>
             </button>
@@ -168,7 +168,7 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
                   type="button"
                   data-slot="person-organization"
                   onClick={() => onOpenOrganization(organization)}
-                  className="-mx-1 rounded px-1 underline decoration-gray-alpha-400 underline-offset-2 hover:text-gray-1000 hover:decoration-gray-700 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                  className="-mx-1 rounded px-1 underline decoration-gray-alpha-400 underline-offset-2 hover:text-gray-1000 hover:decoration-gray-700 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
                 >
                   {organization}
                 </button>

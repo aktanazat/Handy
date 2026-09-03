@@ -153,12 +153,12 @@ export function ActivitySparkline({
         >
           <stop
             offset="0%"
-            stopColor="var(--color-blue-900)"
+            stopColor="var(--color-accent-strong)"
             stopOpacity="0.12"
           />
           <stop
             offset="100%"
-            stopColor="var(--color-blue-900)"
+            stopColor="var(--color-accent-strong)"
             stopOpacity="0"
           />
         </linearGradient>
@@ -178,7 +178,7 @@ export function ActivitySparkline({
           d={linePath}
           fill="none"
           vectorEffect="non-scaling-stroke"
-          className="stroke-blue-900"
+          className="stroke-accent-strong"
           strokeWidth={1.5}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -189,7 +189,7 @@ export function ActivitySparkline({
           cx={round(last.x)}
           cy={round(last.y)}
           r={3.5}
-          className="fill-blue-900"
+          className="fill-accent-strong"
         />
       )}
     </svg>
@@ -235,10 +235,10 @@ export function ActivityBars({
           y2={BASELINE}
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0%" stopColor="var(--color-blue-900)" />
+          <stop offset="0%" stopColor="var(--color-accent-strong)" />
           <stop
             offset="100%"
-            stopColor="var(--color-blue-900)"
+            stopColor="var(--color-accent-strong)"
             stopOpacity="0.4"
           />
         </linearGradient>
@@ -320,12 +320,12 @@ export function ActivityWeek({ days, ariaLabel }: ActivityWeekProps) {
           <span
             aria-hidden="true"
             className={`size-[10px] rounded-full ${
-              day?.active ? "bg-blue-900" : "bg-gray-alpha-300"
-            }${day?.today ? " outline outline-1 outline-blue-900/50 outline-offset-2" : ""}`}
+              day?.active ? "bg-accent-strong" : "bg-gray-alpha-300"
+            }${day?.today ? " outline outline-1 outline-accent-strong/50 outline-offset-2" : ""}`}
           />
           <span
             aria-hidden="true"
-            className="text-[9px] leading-3 text-[var(--gray-a-700)]"
+            className="text-[9px] leading-3 text-gray-800"
           >
             {day?.label ?? ""}
           </span>

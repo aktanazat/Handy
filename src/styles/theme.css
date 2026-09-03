@@ -21,7 +21,11 @@
   --gray-500: #c9c3ba;
   --gray-600: #a59e94;
   --gray-700: #8e877d;
-  --gray-800: #8e877d;
+  /* Tertiary ink is a step darker than disabled ink. They used to be one
+     value, which made "quiet" and "inert" indistinguishable and left every
+     11px note at 3.3:1 on the page. 4.5:1 on --bg-2, the darkest surface a
+     note sits on. */
+  --gray-800: #736c63;
   --gray-900: #5d574f;
   --gray-1000: #1c1a17;
 
@@ -77,7 +81,9 @@
   --accent-soft: var(--bronze-100);
   --on-accent: #ffffff;
   --focus-ring: var(--bronze-700);
-  --info: var(--blue-900);
+  /* Nothing needs an info hue distinct from the accent, so info is bronze and
+     the blue scale below keeps no consumer at all. */
+  --info: var(--accent);
   --success: var(--green-900);
   --warning: var(--amber-900);
   --error: var(--red-900);
@@ -98,7 +104,7 @@
      a hairline of ink plus a specular line on top, and the lift is one long
      soft shadow. */
   --glass-tint: rgba(247, 245, 242, 0.7);
-  --glass-tint-dense: rgba(247, 245, 242, 0.86);
+  --glass-tint-dense: rgba(247, 245, 242, 0.94);
   --glass-tint-clear: rgba(247, 245, 242, 0.42);
   --glass-border: rgba(28, 26, 23, 0.1);
   --glass-specular-top: rgba(255, 255, 255, 0.7);
@@ -129,7 +135,7 @@
   --gray-500: #3f3a35;
   --gray-600: #66605a;
   --gray-700: #66605a;
-  --gray-800: #66605a;
+  --gray-800: #8a837a;
   --gray-900: #9b948b;
   --gray-1000: #ece7e0;
 
@@ -185,7 +191,7 @@
   --accent-soft: var(--bronze-100);
   --on-accent: #151311;
   --focus-ring: var(--bronze-700);
-  --info: var(--blue-900);
+  --info: var(--accent);
   --success: var(--green-900);
   --warning: var(--amber-900);
   --error: var(--red-900);
@@ -201,7 +207,7 @@
   --chat-edge-shadow: rgb(0 0 0 / 0.38);
 
   --glass-tint: rgba(28, 26, 23, 0.66);
-  --glass-tint-dense: rgba(28, 26, 23, 0.86);
+  --glass-tint-dense: rgba(28, 26, 23, 0.94);
   --glass-tint-clear: rgba(28, 26, 23, 0.4);
   --glass-border: rgba(236, 231, 224, 0.1);
   --glass-specular-top: rgba(255, 255, 255, 0.08);
@@ -455,7 +461,8 @@
   --color-inverse-background: var(--invert-bg);
   --color-inverse-text: var(--invert-fg);
 
-  /* Blue is reserved for focus, selection and live-state accents. */
+  /* The one scarce accent: focus, selection, the primary action, live state.
+     Bronze, and the only saturated thing the chrome is allowed. */
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent);
   --color-accent-hover: var(--accent-hover);

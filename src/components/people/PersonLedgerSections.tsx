@@ -92,7 +92,7 @@ const LedgerSection: React.FC<{
                   <button
                     type="button"
                     onClick={() => onOpenMeeting(row.meetingId)}
-                    className="rounded-md text-[13px] leading-5 text-blue-900 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                    className="rounded-md text-[13px] leading-5 text-accent-strong hover:underline focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
                   >
                     {row.title}
                   </button>

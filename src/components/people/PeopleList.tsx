@@ -78,7 +78,7 @@ const PersonRow: React.FC<{
       <button
         type="button"
         onClick={onOpen}
-        className="hover-fast flex w-full min-w-0 items-center gap-3 px-4 py-2.5 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+        className="hover-fast flex w-full min-w-0 items-center gap-3 px-4 py-2.5 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
       >
         <span className="flex min-w-0 flex-1 items-baseline gap-2">
           <span className="min-w-0 truncate text-[13px] leading-[19px] text-gray-1000">

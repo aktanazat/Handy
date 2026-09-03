@@ -92,9 +92,13 @@
   --color-card-foreground: var(--color-gray-1000);
   --color-popover: var(--color-raised);
   --color-popover-foreground: var(--color-gray-1000);
-  /* The primary button is the high-contrast inverted action. */
-  --color-primary: var(--color-gray-1000);
-  --color-primary-foreground: var(--color-background-100);
+  /* The primary button, the checked switch track and the selection highlight
+     are the one scarce accent, not an inverted ink slab: `bg-primary` reads
+     bronze and `text-primary-foreground` the ink or paper that sits on it.
+     The semantic names are used rather than the --color-* aliases because
+     this @theme block redefines --color-accent as shadcn's hover wash. */
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
   --color-secondary: var(--color-background-100);
   --color-secondary-foreground: var(--color-gray-1000);
   --color-muted: var(--color-gray-100);
@@ -105,7 +109,9 @@
   --color-destructive: var(--color-red-700);
   --color-border: var(--color-gray-alpha-400);
   --color-input: var(--color-gray-alpha-400);
-  --color-ring: var(--color-blue-700);
+  /* Every kit primitive's focus treatment resolves here. Bronze, never blue:
+     the blue scale is still defined and has no consumer left. */
+  --color-ring: var(--focus-ring);
 
   /* ---- App semantic token bridge (styles/theme.css) ---- */
   --color-text: var(--color-text);

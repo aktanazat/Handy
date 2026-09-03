@@ -14,12 +14,15 @@ import { HistoryReceiptTable } from "./HistoryReceiptTable";
  * quiet room (0.0024) into the same printed number. */
 const AMPLITUDE_DIGITS = 4;
 
-/* The four-state semaphore, on the state word and nowhere else. A no-speech
- * capture is deliberately neither red nor amber — it is a real outcome of a
- * real capture, and colouring it as a failure would claim one the app cannot
- * name. The peak/rms rows above it are the evidence. */
+/* The state word carries the only colour, and only when the state is not the
+ * ordinary one. A completed capture is what every capture is meant to be, so
+ * it reads in plain ink; tinting it would spend the reader's attention on the
+ * outcome that needs none. A no-speech capture is deliberately neither red nor
+ * amber — it is a real outcome of a real capture, and colouring it as a
+ * failure would claim one the app cannot name. The peak/rms rows above it are
+ * the evidence. */
 const CAPTURE_STATUS_TONE = {
-  complete: "text-blue-900",
+  complete: "text-gray-1000",
   truncated: "text-amber-900",
   no_speech_detected: "text-gray-800",
 } satisfies Record<CaptureStatus, string>;

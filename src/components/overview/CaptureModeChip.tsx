@@ -61,7 +61,7 @@ export const CaptureModePicker: React.FC<CaptureModePickerProps> = ({
                 onClick={() => onPick(mode.id)}
                 className={cn(
                   "flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px]",
-                  "hover:bg-gray-alpha-100 focus-visible:-outline-offset-2 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none",
+                  "hover:bg-gray-alpha-100 focus-visible:-outline-offset-2 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none",
                   isActive ? "text-gray-1000" : "text-gray-900",
                 )}
               >
@@ -71,7 +71,7 @@ export const CaptureModePicker: React.FC<CaptureModePickerProps> = ({
                   aria-hidden="true"
                   className={cn(
                     "size-3.5 flex-none",
-                    isActive ? "text-blue-900" : "opacity-0",
+                    isActive ? "text-accent-strong" : "opacity-0",
                   )}
                 />
                 <span className="min-w-0 truncate">{mode.name}</span>
@@ -86,7 +86,7 @@ export const CaptureModePicker: React.FC<CaptureModePickerProps> = ({
         <button
           type="button"
           onClick={onOpenModes}
-          className="text-[13px] text-blue-900 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+          className="text-[13px] text-accent-strong hover:underline focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
         >
           {t("modesV2.chip.editLink")}
         </button>
@@ -159,7 +159,7 @@ export const CaptureModeChip: React.FC<CaptureModeChipProps> = ({
         /* Quiet at rest: the hero already has one filled button and one
          * bordered one, and this is a statement of state you may change, not a
          * third call to action. */
-        className="-mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-sm text-gray-900 hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none disabled:opacity-60"
+        className="-mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-sm text-gray-900 hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none disabled:opacity-60"
         aria-label={t("modesV2.chip.action", { mode: active.name })}
         data-testid="overview-mode-chip"
       >

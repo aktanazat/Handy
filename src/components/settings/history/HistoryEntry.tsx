@@ -25,7 +25,7 @@ const ROW_COLLAPSE_MS = 180;
  * which is the point: a quiet log shows text, a count and a time, and grows the
  * controls only for the one row you asked about. */
 const ROW_BUTTON =
-  "flex w-full items-center gap-3 px-4 py-2.5 text-start transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none";
+  "flex w-full items-center gap-3 px-4 py-2.5 text-start transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none";
 
 /* The row's two measured cells. `snap-measured` because a count and a clock
  * time are measurements: tweening either displays a value nothing reported. */

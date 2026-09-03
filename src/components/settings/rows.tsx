@@ -110,7 +110,7 @@ const HintTooltip: React.FC<{ label: string; hint: React.ReactNode }> = ({
     <TooltipTrigger
       type="button"
       aria-label={label}
-      className="text-gray-700 transition-colors hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+      className="text-gray-700 transition-colors hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
     >
       <Info aria-hidden="true" className="size-3.5" />
     </TooltipTrigger>
@@ -357,7 +357,7 @@ export const SettingsDisclosure: React.FC<{
         if (event.currentTarget.open) setOpened(true);
       }}
     >
-      <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between gap-4 px-4 py-2.5 text-[13px] text-gray-1000 transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between gap-4 px-4 py-2.5 text-[13px] text-gray-1000 transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
         {label}
         <span className="flex shrink-0 items-center gap-3">
           {fact ? (
@@ -379,7 +379,7 @@ export const SettingsDisclosure: React.FC<{
 const NOTICE_TONES = {
   muted: "text-gray-800",
   /** Something arrived that the reader did not ask for — a waiting update. */
-  info: "text-blue-900",
+  info: "text-accent-strong",
   warning: "text-amber-900",
   danger: "text-red-900",
 } as const;

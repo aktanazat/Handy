@@ -162,7 +162,8 @@ describe("ActivityBand charts", () => {
     expect(words).toContain('stop-opacity="0"');
     expect(words).toContain('<circle cx="208"');
     expect(words).toContain('r="3.5"');
-    expect(words).toContain("fill-blue-900");
+    expect(words).toContain("fill-accent-strong");
+    expect(words.includes("blue")).toBe(false);
     expect(words.includes("<text")).toBe(false);
     expect(words.includes("transition")).toBe(false);
   });
@@ -184,10 +185,10 @@ describe("ActivityBand charts", () => {
     expect(domain.max).toBeGreaterThan(12);
     expect(single).toContain('d="M 8 58 H 208"');
     expect(single).toContain('<circle cx="108" cy="38" r="3.5"');
-    expect(single.includes("stroke-blue-900")).toBe(false);
+    expect(single.includes("stroke-accent-strong")).toBe(false);
   });
 
-  test("draws seven labeled Dictation slots with flat zero stubs and blue gradients", () => {
+  test("draws seven labeled Dictation slots with flat zero stubs and accent gradients", () => {
     const bars = svgFor(
       render(
         <ActivityBars

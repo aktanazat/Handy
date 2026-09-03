@@ -65,7 +65,7 @@ export const SettingsHub: React.FC<{
             <TabsTrigger
               key={tab}
               value={tab}
-              className="flex-none px-0 text-sm font-normal text-gray-900 hover:text-gray-1000 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none data-[state=active]:text-gray-1000 after:bg-gray-1000"
+              className="flex-none px-0 text-sm font-normal text-gray-900 hover:text-gray-1000 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none data-[state=active]:text-gray-1000 after:bg-gray-1000"
             >
               {t(`settingsV2.tabs.${tab}`)}
             </TabsTrigger>

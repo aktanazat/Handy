@@ -49,7 +49,7 @@ const WORDMARK = "Sona";
 /* One row, in every state it has. The selected border and fill are applied
  * directly from currentSection, while blue remains reserved for focus. */
 const NAV_ROW =
-  "flex items-center rounded-md border border-transparent text-[13px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none";
+  "flex items-center rounded-md border border-transparent text-[13px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none";
 
 /* The two shapes a row takes. The glyph square is the named row with its words
  * clipped off, not a second navigation: same 32pt height, same radius, same
@@ -215,7 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           className={cn(
-            "mb-3 flex flex-none items-center rounded-md text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none",
+            "mb-3 flex flex-none items-center rounded-md text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none",
             collapsed ? NAV_ROW_GLYPH : NAV_ROW_NAMED,
           )}
           aria-label={t("commandPalette.open")}

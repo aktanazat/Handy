@@ -9,11 +9,15 @@ export type MeetingCardStatus =
   | "ready"
   | "needs_attention";
 
+/* The chip is a hairline, never a fill: four filled pills on a list of
+ * meetings is four blocks of colour competing with the titles they annotate.
+ * Colour survives only where the state is exceptional, and the dot survives
+ * only on `live`, which is the one state that is happening right now. */
 const STATUS_CLASSES = {
-  live: "bg-blue-100 text-blue-900",
-  processing: "bg-amber-100 text-amber-900",
-  ready: "bg-[var(--green-100)] text-[var(--green-900)]",
-  needs_attention: "bg-red-100 text-red-900",
+  live: "border-accent-strong text-accent-strong",
+  processing: "border-gray-alpha-400 text-gray-900",
+  ready: "border-gray-alpha-400 text-gray-900",
+  needs_attention: "border-[var(--red-400)] text-red-900",
 } as const satisfies Record<MeetingCardStatus, string>;
 
 /**
@@ -77,11 +81,14 @@ export const MeetingStatusChip: React.FC<MeetingStatusChipProps> = ({
       data-slot="meeting-status"
       data-status={status}
       className={cn(
-        "inline-flex flex-none items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px] leading-4",
+        "inline-flex flex-none items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[11px] leading-4 uppercase",
+        "tracking-[0.08em]",
         STATUS_CLASSES[status],
       )}
     >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+      {status === "live" && (
+        <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+      )}
       {t(`meetings.list.status.${status}`)}
     </span>
   );
