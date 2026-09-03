@@ -210,10 +210,23 @@ mod macos {
             assert!(!plist.exists());
         }
 
+        /// `remove_plugin_launch_agent` runs on every launch and the plist is
+        /// normally already gone, so the absent path is the hot case: the call
+        /// has to leave the directory as it found it. The neighbour is what
+        /// makes "untouched" observable — `remove_legacy_fork_launch_agents`
+        /// feeds the fork agents through this same function, so a call that
+        /// reached past the path it was handed would delete a real one.
         #[test]
         fn missing_launch_agent_is_a_no_op() {
             let dir = tempfile::tempdir().unwrap();
-            remove_launch_agent_file(&dir.path().join("Sona.plist"));
+            let neighbour = dir.path().join("Handy.plist");
+            std::fs::write(&neighbour, "<plist/>").unwrap();
+            let missing = dir.path().join("Sona.plist");
+
+            remove_launch_agent_file(&missing);
+
+            assert!(!missing.exists(), "the absent plist was created");
+            assert!(neighbour.exists(), "a plist it was not handed was removed");
         }
     }
 }
