@@ -207,9 +207,12 @@ impl ExternalError {
 impl From<QueryError> for ExternalError {
     fn from(error: QueryError) -> Self {
         match error {
+            // Named as the corpus, not as one store: both the meeting store
+            // and the dictation store produce this, and a search that reaches
+            // the dictation half has already opened the meeting one.
             QueryError::Unavailable => Self::new(
                 ExternalErrorCode::Unavailable,
-                "Meeting storage is not open. Unlock the login keychain and make sure Sona has run at least once.",
+                "The corpus is not open. Unlock the login keychain and make sure Sona has run at least once.",
             ),
             QueryError::InvalidRequest => Self::invalid("The query plane refused this request."),
             QueryError::UnknownCursor => Self::new(

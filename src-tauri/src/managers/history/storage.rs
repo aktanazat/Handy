@@ -38,9 +38,11 @@ const SQLITE_HEADER: &[u8; 16] = b"SQLite format 3\0";
 const META_TABLE: &str = "history_storage_meta";
 const ENCRYPTED_AT_KEY: &str = "encrypted_at_utc_ms";
 
-/// How long a connection waits for the startup unlock before reporting a locked
-/// database. Waiting only happens while the OS credential store has not
-/// answered yet, which is milliseconds unless it is prompting the user.
+/// How long a connection waits for a key resolution that is already running
+/// before reporting a locked database. Only a [`HistoryStorageReason::Resolving`]
+/// state waits: a resolution nobody started is reported at once, because
+/// waiting for a step that is not running is how a headless corpus read used to
+/// spend five seconds and then fail.
 const UNLOCK_WAIT: Duration = Duration::from_secs(5);
 
 /// How long the query connection waits out a locked file before reporting the
@@ -52,9 +54,15 @@ const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 /// Why the history database is not encrypted at rest right now.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum HistoryStorageReason {
-    /// The key has not been resolved yet. This is the startup state and clears
-    /// within moments of the window appearing.
-    Unlocking,
+    /// Nothing has begun resolving the key. This is the startup state, and in
+    /// a process with a startup unlock it becomes [`Self::Resolving`] within
+    /// moments of the window appearing. In a process without one — the headless
+    /// corpus verbs — it is the read's own signal that nothing else will
+    /// resolve the key and it has to.
+    Unresolved,
+    /// A resolution is running right now and owns the credential-store round
+    /// trip. A read waits for it rather than starting a second one.
+    Resolving,
     /// The OS credential store returned no usable key.
     KeyUnavailable,
     /// This build cannot open a SQLCipher database.
@@ -67,9 +75,15 @@ enum HistoryStorageReason {
 }
 
 impl HistoryStorageReason {
+    /// The wire word for [`HistoryStorageStatus::reason`].
+    ///
+    /// Both pre-key states report `unlocking`, because that is the one the
+    /// settings row reads (`PrivacyHistoryStorage.tsx`) and it is translated in
+    /// 28 locales. Which of the two a process is in is an internal scheduling
+    /// detail, not something a reader can act on differently.
     fn as_str(self) -> &'static str {
         match self {
-            Self::Unlocking => "unlocking",
+            Self::Unresolved | Self::Resolving => "unlocking",
             Self::KeyUnavailable => "key_unavailable",
             Self::EncryptionUnavailable => "encryption_unavailable",
             Self::MigrationFailed => "migration_failed",
@@ -138,10 +152,10 @@ impl HistoryStorage {
             // A database that does not exist yet is created encrypted by the
             // unlock step, so a fresh install never writes plaintext history.
             FileState::Absent | FileState::Encrypted => {
-                State::Locked(HistoryStorageReason::Unlocking)
+                State::Locked(HistoryStorageReason::Unresolved)
             }
             FileState::Plaintext => State::Plaintext {
-                reason: HistoryStorageReason::Unlocking,
+                reason: HistoryStorageReason::Unresolved,
                 connection: None,
             },
         };
@@ -160,6 +174,22 @@ impl HistoryStorage {
     /// only while the file is encrypted and no key has been resolved.
     pub(crate) fn is_ready(&self) -> bool {
         !matches!(&*self.lock_state(), State::Locked(_))
+    }
+
+    /// True when a read has to resolve the key itself, because nothing else
+    /// has begun to.
+    ///
+    /// [`Self::at_startup`] resolves nothing, and in the app a startup unlock
+    /// follows within moments. The headless corpus verbs have no startup step,
+    /// so there the read is the only thing left that can resolve the key. A
+    /// plaintext file is deliberately excluded: it already serves reads and
+    /// writes, so a read needs no key and must not trigger the one time
+    /// encryption migration on its way to a `SELECT`.
+    pub(crate) fn needs_resolution(&self) -> bool {
+        matches!(
+            &*self.lock_state(),
+            State::Locked(HistoryStorageReason::Unresolved)
+        )
     }
 
     /// Run one action on the single history connection.
@@ -213,31 +243,69 @@ impl HistoryStorage {
         status_of(&self.lock_state())
     }
 
-    /// Take the state lock, waiting out the startup unlock when it has not
-    /// published a state yet. Without this, a query issued in the first
-    /// milliseconds after launch would report a locked database.
+    /// Take the state lock, waiting out a resolution that is already running.
+    /// Without this, a query issued in the first milliseconds after launch
+    /// would report a locked database.
+    ///
+    /// Only [`HistoryStorageReason::Resolving`] waits. An `Unresolved` state
+    /// means no resolution is running, so there is nothing to wait for and the
+    /// caller is told at once.
     fn wait_for_unlock(&self) -> MutexGuard<'_, State> {
         let state = self.lock_state();
-        if !matches!(&*state, State::Locked(HistoryStorageReason::Unlocking)) {
+        if !matches!(&*state, State::Locked(HistoryStorageReason::Resolving)) {
             return state;
         }
         let (state, _elapsed) = self
             .unlocked
             .wait_timeout_while(state, UNLOCK_WAIT, |state| {
-                matches!(state, State::Locked(HistoryStorageReason::Unlocking))
+                matches!(state, State::Locked(HistoryStorageReason::Resolving))
             })
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         state
     }
 
+    /// Take ownership of the one key resolution, or report the state that
+    /// makes this call redundant.
+    ///
+    /// The claim happens under the state lock, so two callers arriving together
+    /// cannot both go to the credential store: exactly one moves the state to
+    /// [`HistoryStorageReason::Resolving`] and the other is handed the current
+    /// status. That is what makes a check followed by an unlock safe on a
+    /// multi-threaded runtime — the check is the claim.
+    fn claim_resolution(&self) -> Option<HistoryStorageStatus> {
+        let mut state = self.lock_state();
+        let unresolved = matches!(
+            &*state,
+            State::Locked(HistoryStorageReason::Unresolved)
+                | State::Plaintext {
+                    reason: HistoryStorageReason::Unresolved,
+                    ..
+                }
+        );
+        if !unresolved {
+            return Some(status_of(&state));
+        }
+        if let State::Locked(reason) | State::Plaintext { reason, .. } = &mut *state {
+            *reason = HistoryStorageReason::Resolving;
+        }
+        None
+    }
+
     /// Resolve the key and bring the file to its encrypted state. The
-    /// credential store is awaited before the state lock is taken, so no
+    /// credential store is awaited without the state lock held, so no
     /// connection ever waits on a keychain prompt.
+    ///
+    /// Redundant calls return the current status without touching the
+    /// credential store, so the app's startup unlock and a read that arrives
+    /// beside it cost one round trip between them rather than two.
     pub(crate) async fn unlock(
         &self,
         secrets: &SecretManager,
         now_utc_ms: i64,
     ) -> HistoryStorageStatus {
+        if let Some(status) = self.claim_resolution() {
+            return status;
+        }
         let key = match secrets.history_storage_key().await {
             Ok(key) => Zeroizing::new(*key.as_bytes()),
             Err(error) => {
@@ -698,6 +766,103 @@ mod tests {
         let encrypted = directory.path().join("encrypted.db");
         create_encrypted(&encrypted, &key(), 5).expect("create encrypted");
         assert_eq!(file_state(&encrypted), FileState::Encrypted);
+    }
+
+    /// A read must resolve the key when nothing else has begun to, wait when
+    /// something has, and never wait for a resolution nobody started.
+    ///
+    /// Only a process with a startup callback calls [`HistoryStorage::unlock`].
+    /// The headless corpus verbs mount the history manager and read straight
+    /// away, so there the read resolves the key itself. The bug this replaced
+    /// was one state standing for both cases: a read with no unlock coming
+    /// waited out `UNLOCK_WAIT` for a step that was not running and then
+    /// reported a locked database, which the query plane could only report as
+    /// a failure.
+    #[test]
+    fn an_unresolved_key_is_resolved_by_the_read_and_never_waited_on() {
+        let directory = temp_dir();
+        let path = directory.path().join("history.db");
+        seed_plaintext(&path);
+        HistoryStorage::at_startup(path.clone()).apply_key(key(), 1_700_000_000_000);
+
+        // The state every headless corpus read starts in: an encrypted file,
+        // and nothing in the process that will resolve its key.
+        let storage = HistoryStorage::at_startup(path);
+        assert!(
+            storage.needs_resolution(),
+            "an encrypted file nobody is resolving must send the read after the key"
+        );
+        assert!(!storage.is_ready());
+
+        // The whole point of splitting the state: no resolution is running, so
+        // there is nothing to wait for and the caller hears so immediately.
+        let refused = std::time::Instant::now();
+        assert!(storage.with_connection(|_| Ok(())).is_err());
+        assert!(
+            refused.elapsed() < UNLOCK_WAIT,
+            "an unresolved key must be reported at once, not waited out"
+        );
+
+        let published = std::time::Instant::now();
+        storage.apply_key(key(), 1_700_000_000_000);
+        assert!(
+            !storage.needs_resolution(),
+            "a key that has landed must not be resolved again on the next read"
+        );
+
+        // The read the headless corpus verb actually makes, over the encrypted
+        // store, with no recall model: the lexical half has to answer alone.
+        let found = storage
+            .with_connection(|connection| {
+                super::super::HistoryManager::search_history_entries_with_connection(
+                    connection,
+                    "hello",
+                    None,
+                    Some(5),
+                    None,
+                )
+            })
+            .expect("search the encrypted store");
+        assert_eq!(
+            found
+                .entries
+                .iter()
+                .map(|entry| entry.transcription_text.as_str())
+                .collect::<Vec<_>>(),
+            vec!["hello world"]
+        );
+        assert!(
+            published.elapsed() < UNLOCK_WAIT,
+            "a read behind a published state must not wait on the unlock condvar"
+        );
+
+        // Two callers arriving together must not both go to the credential
+        // store. The claim is the check, so exactly one wins and the loser is
+        // handed the current status to wait on instead of a second prompt.
+        let contended = HistoryStorage::at_startup(directory.path().join("contended.db"));
+        assert!(contended.needs_resolution());
+        assert!(
+            contended.claim_resolution().is_none(),
+            "the first caller must own the resolution"
+        );
+        assert!(
+            !contended.needs_resolution(),
+            "a claimed resolution must not send a second read after the key"
+        );
+        assert!(
+            contended.claim_resolution().is_some(),
+            "a second caller must be turned away rather than prompt again"
+        );
+
+        // A plaintext history file needs no key at all, so a headless read
+        // serves it without going near the credential store or tripping the one
+        // time encryption migration on its way to a SELECT.
+        let plain = directory.path().join("plain.db");
+        seed_plaintext(&plain);
+        assert!(
+            !HistoryStorage::at_startup(plain).needs_resolution(),
+            "a plaintext database must not send the read path after a key"
+        );
     }
 
     #[test]

@@ -50,6 +50,7 @@ use crate::meeting::store::query_plane::QueryEventRow;
 use crate::meeting::store::{MeetingStore, StoreError};
 use crate::meeting::types::{MeetingCommandError, MeetingSessionId, OperationResult};
 use crate::meeting::workflow_types::WorkflowId;
+use log::error;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::cmp::Ordering;
@@ -393,7 +394,14 @@ pub async fn search(
                 Some(limit + 1),
             )
             .await
-            .map_err(|_| QueryError::Failed)?
+            .map_err(|error| {
+                error!("Dictation search failed: {error:#}");
+                if history.storage_is_ready() {
+                    QueryError::Failed
+                } else {
+                    QueryError::Unavailable
+                }
+            })?
             .entries
     } else {
         Vec::new()

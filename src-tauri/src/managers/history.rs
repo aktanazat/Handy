@@ -14,7 +14,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_specta::Event;
 
 pub(crate) mod semantic;
@@ -725,9 +725,16 @@ impl HistoryManager {
     }
 
     /// Resolve the storage key, encrypt the database if it is still plaintext,
-    /// and bring the schema to the latest migration. Called once, after the
-    /// window is up, because reading the OS credential store can block behind a
-    /// system prompt.
+    /// and bring the schema to the latest migration.
+    ///
+    /// The app calls this once from its startup callback, after the window is
+    /// up, because reading the OS credential store can block behind a system
+    /// prompt and a prompt needs a surface to belong to. A process with no
+    /// window reaches it instead through [`Self::ensure_storage_unlocked`] on
+    /// the read itself. Either way the credential-store round trip happens at
+    /// most once, because [`HistoryStorage::unlock`] claims the resolution
+    /// under its own state lock and hands every later caller the current
+    /// status.
     pub async fn unlock_storage(&self, secrets: &crate::secrets::SecretManager) {
         let status = self
             .storage
@@ -741,9 +748,44 @@ impl HistoryManager {
         }
     }
 
+    /// Resolve the storage key on the read path when nothing else will.
+    ///
+    /// [`Self::unlock_storage`] runs from the app's startup callback, where a
+    /// credential-store prompt has a window to belong to. The headless corpus
+    /// verbs have neither that callback nor that window: they mount this
+    /// manager and read immediately, so the read is the only thing left that
+    /// can resolve the key. Without this the state stays unresolved and every
+    /// dictation read reports a locked database.
+    ///
+    /// The guard is a fast path, not the safety: [`HistoryStorage::unlock`]
+    /// claims the resolution under the state lock, so two searches arriving
+    /// together still cost one credential-store round trip. What the guard
+    /// buys is that a search in the app, where startup already resolved the
+    /// key, pays one state lock and no migration check.
+    async fn ensure_storage_unlocked(&self) {
+        if !self.storage.needs_resolution() {
+            return;
+        }
+        let Some(secrets) = self
+            .app_handle
+            .try_state::<Arc<crate::secrets::SecretManager>>()
+        else {
+            error!("Dictation history cannot be unlocked: no secret manager is mounted");
+            return;
+        };
+        self.unlock_storage(&secrets).await;
+    }
+
     /// Whether dictation history is encrypted at rest right now.
     pub fn storage_status(&self) -> HistoryStorageStatus {
         self.storage.status()
+    }
+
+    /// Whether the dictation store can be opened right now. The query plane
+    /// asks after a failed read, to tell a corpus it cannot open apart from a
+    /// read that broke.
+    pub(crate) fn storage_is_ready(&self) -> bool {
+        self.storage.is_ready()
     }
 
     fn init_database(&self) -> Result<()> {
@@ -1887,6 +1929,7 @@ impl HistoryManager {
         cursor: Option<i64>,
         limit: Option<usize>,
     ) -> Result<PaginatedHistory> {
+        self.ensure_storage_unlocked().await;
         let model = self.semantic.model();
         let page = self.storage.with_connection(|conn| {
             Self::search_history_entries_with_connection(
