@@ -893,18 +893,6 @@
         "models": "Modelli:",
         "settings": "Impostazioni:"
       },
-      "pasteDelay": {
-        "title": "Ritardo incolla (prima)",
-        "description": "Ritardo (in millisecondi) dopo aver copiato il testo, prima di inviare il tasto incolla. Aumentare se non viene incollato nulla."
-      },
-      "pasteDelayAfter": {
-        "title": "Ritardo incolla (dopo)",
-        "description": "Ritardo (in millisecondi) dopo il tasto incolla, prima di ripristinare gli appunti precedenti. Aumentare se viene incollato il vecchio contenuto degli appunti invece della trascrizione."
-      },
-      "reliablePaste": {
-        "title": "Incolla affidabile (Beta)",
-        "description": "Ripristina gli appunti solo dopo che l'app di destinazione ha letto la trascrizione, anziché dopo un ritardo fisso. Serve a risolvere l'incollaggio del vecchio contenuto degli appunti quando il sistema è sotto carico. Richiede un metodo di incollaggio tramite appunti; solo macOS e Windows."
-      },
       "recordingBuffer": {
         "title": "Buffer di registrazione extra",
         "description": "Tempo extra (in millisecondi) per continuare a registrare dopo aver rilasciato il tasto, per catturare l'audio finale. Imposta 0 per nessuno."
@@ -1071,7 +1059,9 @@
           "label": "Provider IA",
           "empty": "Nessun provider configurato",
           "noneConfigured": "Nessun provider IA è ancora configurato. Aggiungine uno in Impostazioni prima che questa modalità possa riscrivere.",
-          "unknownSelected": "Questa modalità indica un provider non configurato in questa installazione."
+          "unknownSelected": "Questa modalità indica un provider non configurato in questa installazione.",
+          "inheritGlobal": "Predefinito: il provider globale",
+          "inheritGlobalNamed": "Predefinito: il provider globale ({{name}})"
         },
         "model": {
           "label": "Modello IA"

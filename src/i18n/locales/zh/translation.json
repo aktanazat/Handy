@@ -893,18 +893,6 @@
         "models": "模型:",
         "settings": "设置:"
       },
-      "pasteDelay": {
-        "title": "粘贴延迟（前）",
-        "description": "复制文本后、发送粘贴按键前的延迟（毫秒）。如果没有粘贴任何内容，请增加此值。"
-      },
-      "pasteDelayAfter": {
-        "title": "粘贴延迟（后）",
-        "description": "发送粘贴按键后、恢复先前剪贴板前的延迟（毫秒）。如果粘贴的是旧的剪贴板内容而非转录文本，请增加此值。"
-      },
-      "reliablePaste": {
-        "title": "可靠粘贴（Beta）",
-        "description": "在目标应用程序读取转录文本之后再恢复剪贴板，而不是等待固定延迟。用于解决系统负载较高时粘贴旧剪贴板内容的问题。需要使用剪贴板类的粘贴方式；仅支持 macOS 和 Windows。"
-      },
       "recordingBuffer": {
         "title": "额外录音缓冲",
         "description": "放开按键后继续录音的额外时间（毫秒），用来捕捉尾音。不需要就设为 0。"
@@ -1071,7 +1059,9 @@
           "label": "AI 提供方",
           "empty": "未配置提供方",
           "noneConfigured": "尚未配置 AI 提供方。请先在设置中添加一个，此模式才能改写。",
-          "unknownSelected": "此模式指定的提供方未在此安装中配置。"
+          "unknownSelected": "此模式指定的提供方未在此安装中配置。",
+          "inheritGlobal": "默认：全局提供方",
+          "inheritGlobalNamed": "默认：全局提供方（{{name}}）"
         },
         "model": {
           "label": "AI 模型"

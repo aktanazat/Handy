@@ -893,18 +893,6 @@
         "models": "Modeller:",
         "settings": "Inställningar:"
       },
-      "pasteDelay": {
-        "title": "Fördröjning vid klistra in (före)",
-        "description": "Fördröjning (i millisekunder) efter att text kopierats, innan tangenttryckningen för att klistra in skickas. Öka om ingenting klistras in."
-      },
-      "pasteDelayAfter": {
-        "title": "Fördröjning vid klistra in (efter)",
-        "description": "Fördröjning (i millisekunder) efter tangenttryckningen för att klistra in, innan ditt tidigare urklipp återställs. Öka om det gamla urklippsinnehållet klistras in i stället för transkriptionen."
-      },
-      "reliablePaste": {
-        "title": "Tillförlitlig inklistring (Beta)",
-        "description": "Återställ urklipp först när målappen har läst transkriptionen, i stället för efter en fast fördröjning. Avsett att åtgärda att det gamla urklippsinnehållet klistras in när systemet är belastat. Kräver en klistra-in-metod via urklipp; endast macOS och Windows."
-      },
       "recordingBuffer": {
         "title": "Extra inspelningsbuffert",
         "description": "Extra tid (i millisekunder) för att fortsätta spela in efter att du släppt tangenten, för att fånga upp avslutande ljud. Sätt den till 0 för ingen."
@@ -1071,7 +1059,9 @@
           "label": "AI-leverantör",
           "empty": "Ingen leverantör konfigurerad",
           "noneConfigured": "Ingen AI-leverantör är konfigurerad ännu. Lägg till en i Inställningar innan det här läget kan skriva om.",
-          "unknownSelected": "Det här läget anger en leverantör som inte är konfigurerad på den här installationen."
+          "unknownSelected": "Det här läget anger en leverantör som inte är konfigurerad på den här installationen.",
+          "inheritGlobal": "Standard: den globala leverantören",
+          "inheritGlobalNamed": "Standard: den globala leverantören ({{name}})"
         },
         "model": {
           "label": "AI-modell"

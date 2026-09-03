@@ -893,18 +893,6 @@
         "models": "Models:",
         "settings": "Settings:"
       },
-      "pasteDelay": {
-        "title": "Paste delay before",
-        "description": "Delay (in milliseconds) after copying text, before sending the paste keystroke. Increase if nothing gets pasted."
-      },
-      "pasteDelayAfter": {
-        "title": "Paste delay after",
-        "description": "Delay (in milliseconds) after the paste keystroke, before restoring your previous clipboard. Increase if your old clipboard content is being pasted instead of the transcription."
-      },
-      "reliablePaste": {
-        "title": "Reliable paste (beta)",
-        "description": "Restore the clipboard only after the target app reads the transcript, instead of after a fixed delay. Intended to fix old clipboard content being pasted under system load. Requires a clipboard paste method; macOS and Windows only."
-      },
       "recordingBuffer": {
         "title": "Extra recording buffer",
         "description": "Extra time (in milliseconds) to keep recording after you release the key, to catch trailing audio. Set it to 0 for none."
@@ -1071,7 +1059,9 @@
           "label": "AI provider",
           "empty": "No provider configured",
           "noneConfigured": "No AI provider is configured yet. Add one in Settings before this mode can rewrite.",
-          "unknownSelected": "This mode names a provider that is not configured on this install."
+          "unknownSelected": "This mode names a provider that is not configured on this install.",
+          "inheritGlobal": "Default: the global provider",
+          "inheritGlobalNamed": "Default: the global provider ({{name}})"
         },
         "model": {
           "label": "AI model"

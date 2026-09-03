@@ -893,18 +893,6 @@
         "models": "Modelle:",
         "settings": "Einstellungen:"
       },
-      "pasteDelay": {
-        "title": "Einfügeverzögerung (vorher)",
-        "description": "Verzögerung (in Millisekunden) nach dem Kopieren des Textes, bevor der Einfüge-Tastendruck gesendet wird. Erhöhe den Wert, wenn nichts eingefügt wird."
-      },
-      "pasteDelayAfter": {
-        "title": "Einfügeverzögerung (nachher)",
-        "description": "Verzögerung (in Millisekunden) nach dem Einfüge-Tastendruck, bevor deine vorherige Zwischenablage wiederhergestellt wird. Erhöhe den Wert, wenn der alte Inhalt der Zwischenablage statt der Transkription eingefügt wird."
-      },
-      "reliablePaste": {
-        "title": "Zuverlässiges Einfügen (Beta)",
-        "description": "Die Zwischenablage erst wiederherstellen, wenn die Ziel-App das Transcript gelesen hat, statt nach einer festen Verzögerung. Soll verhindern, dass bei Systemlast der alte Inhalt der Zwischenablage eingefügt wird. Erfordert eine Einfügemethode über die Zwischenablage; nur macOS und Windows."
-      },
       "recordingBuffer": {
         "title": "Zusätzlicher Aufnahmepuffer",
         "description": "Zusätzliche Zeit (in Millisekunden), um nach dem Loslassen der Taste weiter aufzunehmen, um nachlaufendes Audio zu erfassen. Auf 0 setzen für keine."
@@ -1071,7 +1059,9 @@
           "label": "KI-Anbieter",
           "empty": "Kein Anbieter konfiguriert",
           "noneConfigured": "Noch kein KI-Anbieter konfiguriert. Füge einen in den Einstellungen hinzu, damit dieser Modus umschreiben kann.",
-          "unknownSelected": "Dieser Modus nennt einen Anbieter, der auf dieser Installation nicht konfiguriert ist."
+          "unknownSelected": "Dieser Modus nennt einen Anbieter, der auf dieser Installation nicht konfiguriert ist.",
+          "inheritGlobal": "Standard: der globale Anbieter",
+          "inheritGlobalNamed": "Standard: der globale Anbieter ({{name}})"
         },
         "model": {
           "label": "KI-Modell"

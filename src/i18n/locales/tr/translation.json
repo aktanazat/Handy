@@ -893,18 +893,6 @@
         "models": "Modeller:",
         "settings": "Ayarlar:"
       },
-      "pasteDelay": {
-        "title": "Yapıştırma Gecikmesi (Önce)",
-        "description": "Metin kopyalandıktan sonra, yapıştırma tuşu gönderilmeden önceki gecikme (milisaniye cinsinden). Hiçbir şey yapıştırılmıyorsa artırın."
-      },
-      "pasteDelayAfter": {
-        "title": "Yapıştırma Gecikmesi (Sonra)",
-        "description": "Yapıştırma tuşundan sonra, önceki panonuz geri yüklenmeden önceki gecikme (milisaniye cinsinden). Transkripsiyon yerine eski pano içeriği yapıştırılıyorsa artırın."
-      },
-      "reliablePaste": {
-        "title": "Güvenilir Yapıştırma (Beta)",
-        "description": "Panoyu sabit bir gecikmenin ardından değil, hedef uygulama transkripti okuduktan sonra geri yükler. Sistem yükü altında eski pano içeriğinin yapıştırılması sorununu gidermeyi amaçlar. Pano üzerinden çalışan bir yapıştırma yöntemi gerektirir; yalnızca macOS ve Windows."
-      },
       "recordingBuffer": {
         "title": "Ekstra Kayıt Tamponu",
         "description": "Tuşu bıraktıktan sonra son sesi yakalamak için kaydı sürdürme süresi (milisaniye). İstemiyorsanız 0 yapın."
@@ -1071,7 +1059,9 @@
           "label": "AI sağlayıcısı",
           "empty": "Yapılandırılmış sağlayıcı yok",
           "noneConfigured": "Henüz yapılandırılmış bir AI sağlayıcısı yok. Bu modun yeniden yazabilmesi için Settings'te bir tane ekleyin.",
-          "unknownSelected": "Bu mod, bu kurulumda yapılandırılmamış bir sağlayıcı belirtiyor."
+          "unknownSelected": "Bu mod, bu kurulumda yapılandırılmamış bir sağlayıcı belirtiyor.",
+          "inheritGlobal": "Varsayılan: genel sağlayıcı",
+          "inheritGlobalNamed": "Varsayılan: genel sağlayıcı ({{name}})"
         },
         "model": {
           "label": "AI modeli"

@@ -893,18 +893,6 @@
         "models": "Modelos:",
         "settings": "Configurações:"
       },
-      "pasteDelay": {
-        "title": "Atraso de colagem (antes)",
-        "description": "Atraso (em milissegundos) após copiar o texto, antes de enviar a tecla de colar. Aumente se nada for colado."
-      },
-      "pasteDelayAfter": {
-        "title": "Atraso de colagem (depois)",
-        "description": "Atraso (em milissegundos) após a tecla de colar, antes de restaurar a área de transferência anterior. Aumente se o conteúdo antigo da área de transferência estiver sendo colado em vez da transcrição."
-      },
-      "reliablePaste": {
-        "title": "Colagem confiável (Beta)",
-        "description": "Restaura a área de transferência somente depois que o aplicativo de destino lê a transcrição, em vez de após um atraso fixo. Serve para corrigir a colagem do conteúdo antigo da área de transferência quando o sistema está sobrecarregado. Requer um método de colar via área de transferência; apenas macOS e Windows."
-      },
       "recordingBuffer": {
         "title": "Buffer de gravação extra",
         "description": "Tempo extra (em milissegundos) para continuar gravando após soltar a tecla, para capturar o áudio final. Coloque 0 para nenhum."
@@ -1071,7 +1059,9 @@
           "label": "Fornecedor de IA",
           "empty": "Nenhum fornecedor configurado",
           "noneConfigured": "Ainda não há nenhum fornecedor de IA configurado. Adicione um nas Definições antes que este modo possa reescrever.",
-          "unknownSelected": "Este modo indica um fornecedor que não está configurado nesta instalação."
+          "unknownSelected": "Este modo indica um fornecedor que não está configurado nesta instalação.",
+          "inheritGlobal": "Predefinição: o fornecedor global",
+          "inheritGlobalNamed": "Predefinição: o fornecedor global ({{name}})"
         },
         "model": {
           "label": "Modelo de IA"

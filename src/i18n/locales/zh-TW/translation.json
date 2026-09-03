@@ -893,18 +893,6 @@
         "models": "模型:",
         "settings": "設定:"
       },
-      "pasteDelay": {
-        "title": "貼上延遲（前）",
-        "description": "複製文字後、發送貼上按鍵前的延遲（毫秒）。如果沒有貼上任何內容，請增加此值。"
-      },
-      "pasteDelayAfter": {
-        "title": "貼上延遲（後）",
-        "description": "發送貼上按鍵後、還原先前剪貼簿前的延遲（毫秒）。如果貼上的是舊的剪貼簿內容而非轉錄文字，請增加此值。"
-      },
-      "reliablePaste": {
-        "title": "可靠貼上（Beta）",
-        "description": "在目標應用程式讀取轉錄文字之後才還原剪貼簿，而不是等待固定延遲。用於解決系統負載較高時貼上舊剪貼簿內容的問題。需要使用剪貼簿類的貼上方式；僅支援 macOS 與 Windows。"
-      },
       "recordingBuffer": {
         "title": "額外錄音緩衝",
         "description": "放開按鍵後繼續錄音的額外時間（毫秒），用來捕捉尾音。不需要就設為 0。"
@@ -1071,7 +1059,9 @@
           "label": "AI 供應商",
           "empty": "未設定供應商",
           "noneConfigured": "尚未設定 AI 供應商。請先在「設定」中新增一個，此模式才能改寫。",
-          "unknownSelected": "此模式指定的供應商未在此安裝上設定。"
+          "unknownSelected": "此模式指定的供應商未在此安裝上設定。",
+          "inheritGlobal": "預設：全域提供者",
+          "inheritGlobalNamed": "預設：全域提供者（{{name}}）"
         },
         "model": {
           "label": "AI 模型"
