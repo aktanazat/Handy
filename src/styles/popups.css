@@ -94,3 +94,100 @@
     }
   }
 }
+
+/* ----------------------------------------------------------------- toasts */
+
+/* The one popup whose open state is not a Radix `data-state`, so it cannot
+ * wear `.popup-motion`: sonner drives its toasts with a transition on
+ * `transform: var(--y)` plus `data-mounted` / `data-removed`, and it ships
+ * that as injected CSS. These rules put the same shape on that mechanism —
+ * 180ms --ease-out in from a --popup-enter-travel offset toward the trailing
+ * bottom corner the toast lives in, 120ms --ease-in-out out to opacity 0 with
+ * no travel — instead of sonner's 400ms slide from a full toast-height below
+ * and its 100% slide back out.
+ *
+ * Written as selectors rather than as classes on the element because the
+ * resting and removed states are sonner's to set, and the class string can
+ * only reach one of them. Every rule here is exactly one attribute more
+ * specific than the sonner rule it replaces; nothing needs `!important`.
+ *
+ * A swiped or swiping toast is excluded throughout: it follows the finger, so
+ * its transform belongs to sonner. A back toast in a collapsed stack also
+ * keeps sonner's own choreography, which is stack behaviour rather than the
+ * app's popup shape. */
+.toast-surface[data-sonner-toast] {
+  transition:
+    transform var(--duration-standard) var(--ease-out),
+    opacity var(--duration-standard) var(--ease-out);
+}
+
+/* Where it comes from. `:not([data-mounted="true"])` is what keeps this off
+ * the settled toast, so sonner's own mounted rule still lands it at rest. */
+.toast-surface[data-sonner-toast]:not([data-mounted="true"])[data-x-position="right"] {
+  --y: translate3d(
+    var(--popup-enter-travel),
+    var(--popup-enter-travel),
+    0
+  )
+    scale(var(--popup-enter-scale));
+}
+
+.toast-surface[data-sonner-toast]:not([data-mounted="true"])[data-x-position="left"] {
+  --y: translate3d(
+    calc(-1 * var(--popup-enter-travel)),
+    var(--popup-enter-travel),
+    0
+  )
+    scale(var(--popup-enter-scale));
+}
+
+.toast-surface[data-sonner-toast][data-removed="true"]:not([data-swipe-out="true"]):not(
+    [data-swiping="true"]
+  ) {
+  --y: translate3d(0, 0, 0);
+  opacity: 0;
+  transition:
+    transform var(--duration-fast) var(--ease-in-out),
+    opacity var(--duration-fast) var(--ease-in-out);
+}
+
+/* The action and cancel buttons hover on the app's 120ms colour clock. Their
+ * own `transition-colors` utility loses to sonner's `[data-sonner-toast] > *
+ * { transition: opacity 400ms }`, which is one selector less specific but
+ * arrives later in the sheet; one descendant selector settles it without
+ * `!important`. */
+.toast-surface[data-sonner-toast] [data-button] {
+  transition:
+    background-color var(--duration-fast) var(--ease-in-out),
+    color var(--duration-fast) var(--ease-in-out);
+}
+
+/* Sonner's focus ring is a black glow: `0 4px 12px rgba(0,0,0,.1), 0 0 0 2px
+ * rgba(0,0,0,.2)`. It was the last one in the app. The toast keeps its own
+ * elevation and takes the bronze outline every other focusable surface draws.
+ *
+ * Longhands, not `outline: var(--focus-outline)`. That shorthand keeps the
+ * width and the style through substitution and drops the colour, so a focused
+ * element computes `2px solid currentColor` — ink, not bronze. base.css was
+ * caught doing exactly that and now writes longhands too. */
+.toast-surface[data-sonner-toast]:focus-visible {
+  box-shadow: var(--shadow-popover);
+  outline-width: var(--focus-ring-width);
+  outline-style: solid;
+  outline-color: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Sonner clamps its own transitions to none for this device, which leaves
+     the toast appearing and disappearing outright. The fade is restored here
+     for the same reason `popup-enter` keeps one: an element that is present on
+     one frame and gone on the next reads as a flicker rather than as a
+     dismissal. No transform, in either direction. */
+  .toast-surface[data-sonner-toast],
+  .toast-surface[data-sonner-toast][data-removed="true"]:not(
+      [data-swipe-out="true"]
+    ):not([data-swiping="true"]) {
+    --y: translate3d(0, 0, 0);
+  }
+}
