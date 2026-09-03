@@ -12,7 +12,7 @@ use reqwest::Url;
 use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::net::IpAddr;
 use std::sync::{Arc, Mutex, MutexGuard};
 use tauri::{AppHandle, Manager};
@@ -1360,7 +1360,7 @@ fn default_reliable_paste() -> bool {
     true
 }
 
-pub(crate) const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 17;
+pub(crate) const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 18;
 
 fn default_settings_schema_version() -> u32 {
     CURRENT_SETTINGS_SCHEMA_VERSION
@@ -2390,6 +2390,65 @@ fn apply_settings_migrations(
         }
         updated = true;
     }
+    if stored_schema_version < 18 {
+        // A mode's rewrite provider became override-or-inherit, with inherit
+        // the default, so the provider chosen once in Settings reaches every
+        // mode that never named one of its own.
+        //
+        // Unlike schema 17 this cannot claim no stored value was ever chosen:
+        // the mode's own row does collect a provider. So it demotes only the
+        // ids that provably never ran — a remote destination with no consent
+        // record and no configured credential is refused before the
+        // microphone opens, and could not have authenticated even if it were
+        // consented, so no rewrite anyone ever received is being taken away.
+        // A local destination needs neither, so a deliberate loopback or
+        // Apple Intelligence choice is never touched; nor is an id this
+        // install does not carry, which the mode row keeps selectable on
+        // purpose so moving a store between machines loses nothing.
+        //
+        // Running once at this bump rather than on every load is the other
+        // half of the rule: a standing version of it would rewrite a provider
+        // picked in the UI seconds before its key is pasted, and would demote
+        // every remote override at once the next time
+        // POST_PROCESS_CONSENT_VERSION moves.
+        let never_ran: HashSet<String> = settings
+            .post_process_providers
+            .iter()
+            .filter(|provider| {
+                provider
+                    .endpoint()
+                    .is_ok_and(|endpoint| endpoint.is_remote())
+                    && !settings
+                        .post_process_provider_consents
+                        .contains_key(&provider.id)
+                    && !settings
+                        .post_process_secret_states
+                        .get(&provider.id)
+                        .is_some_and(|state| state.configured)
+            })
+            .map(|provider| provider.id.clone())
+            .collect();
+        for mode in &mut settings.modes {
+            if mode
+                .llm
+                .provider_id
+                .as_ref()
+                .is_some_and(|provider_id| never_ran.contains(provider_id))
+            {
+                debug!(
+                    "Mode '{}' inherits the global rewrite provider: '{}' never had a credential or a consent",
+                    mode.id,
+                    mode.llm.provider_id.as_deref().unwrap_or_default()
+                );
+                mode.llm.provider_id = None;
+                // The model belonged to the demoted provider. An inherited
+                // destination reads the global model for the global provider,
+                // so keeping this would leave an unread value behind.
+                mode.llm.model_id = String::new();
+            }
+        }
+        updated = true;
+    }
     if settings.settings_schema_version < CURRENT_SETTINGS_SCHEMA_VERSION {
         settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
         updated = true;
@@ -3066,6 +3125,80 @@ mod tests {
 
         assert!(!apply_settings_migrations(&mut settings, &raw));
         assert!(!settings.reliable_paste);
+    }
+
+    /// One case per branch of the schema-18 rule. Consent and credentials are
+    /// keyed per provider, not per mode, so each case needs its own provider.
+    #[test]
+    fn schema_eighteen_demotes_only_mode_providers_that_never_ran() {
+        let mut settings = get_default_settings();
+        ensure_mode_settings(&mut settings);
+        assert_eq!(settings.modes.len(), 4);
+        let mut portable = settings.modes[0].clone();
+        portable.id = "portable".to_string();
+        settings.modes.push(portable);
+
+        // Never ran: remote, no consent record, no credential.
+        settings.modes[0].llm.provider_id = Some("openai".to_string());
+        settings.modes[0].llm.model_id = "gpt-4o-mini".to_string();
+        // Local: needs neither, so it has always been able to run.
+        settings.modes[1].llm.provider_id = Some("custom".to_string());
+        // Acknowledged: the user consented to this exact destination.
+        settings.modes[2].llm.provider_id = Some("zai".to_string());
+        let zai = settings
+            .post_process_provider("zai")
+            .expect("configured provider")
+            .clone();
+        settings.post_process_provider_consents.insert(
+            "zai".to_string(),
+            PostProcessProviderConsent::for_endpoint(&zai.endpoint().expect("provider endpoint")),
+        );
+        // Credentialed: a key exists for it even without a consent yet.
+        settings.modes[3].llm.provider_id = Some("groq".to_string());
+        settings.post_process_secret_states.insert(
+            "groq".to_string(),
+            SecretState {
+                configured: true,
+                ..SecretState::default()
+            },
+        );
+        // Unknown here: the mode row keeps it selectable so a store can move
+        // between machines, and this migration must not consume it either.
+        settings.modes[4].llm.provider_id = Some("does_not_exist".to_string());
+
+        settings.settings_schema_version = 17;
+        let raw = serde_json::to_value(&settings).expect("seventeen settings serialize");
+        assert!(apply_settings_migrations(&mut settings, &raw));
+
+        assert_eq!(settings.modes[0].llm.provider_id, None);
+        assert!(settings.modes[0].llm.model_id.is_empty());
+        assert_eq!(settings.modes[1].llm.provider_id.as_deref(), Some("custom"));
+        assert_eq!(settings.modes[2].llm.provider_id.as_deref(), Some("zai"));
+        assert_eq!(settings.modes[3].llm.provider_id.as_deref(), Some("groq"));
+        assert_eq!(
+            settings.modes[4].llm.provider_id.as_deref(),
+            Some("does_not_exist")
+        );
+        assert_eq!(
+            settings.settings_schema_version,
+            CURRENT_SETTINGS_SCHEMA_VERSION
+        );
+    }
+
+    /// The rule runs once at the bump, never as a standing reconciliation: a
+    /// provider picked seconds before its key is pasted has to survive the
+    /// next load, and a POST_PROCESS_CONSENT_VERSION bump must not demote
+    /// every remote override at once.
+    #[test]
+    fn a_fresh_unusable_override_survives_at_current_schema() {
+        let mut settings = get_default_settings();
+        ensure_mode_settings(&mut settings);
+        settings.modes[0].llm.provider_id = Some("openai".to_string());
+        settings.settings_schema_version = CURRENT_SETTINGS_SCHEMA_VERSION;
+        let raw = serde_json::to_value(&settings).expect("current settings serialize");
+
+        assert!(!apply_settings_migrations(&mut settings, &raw));
+        assert_eq!(settings.modes[0].llm.provider_id.as_deref(), Some("openai"));
     }
 
     #[test]

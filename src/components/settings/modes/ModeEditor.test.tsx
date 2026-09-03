@@ -8,6 +8,7 @@ import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import { TooltipProvider } from "@/components/vg/tooltip";
 import type {
+  AppSettings,
   ModeDefinition,
   ModeView,
   ModelInfo,
@@ -20,6 +21,7 @@ import {
   modeDefinitionFromView,
   modeDraftIsDirty,
   modeEngineOptions,
+  modeLlmDestination,
 } from "./modeModel";
 
 /* Every mode setting the editor owned before the collapse either survives it
@@ -432,6 +434,8 @@ describe("advanced", () => {
       "Auto-submit",
       "Submit key",
       "Append a trailing space",
+      "Paste delays",
+      "Reliable paste",
       "Mode vocabulary",
     ]);
     // The privacy ceiling still outranks the mode, and still says so.
@@ -471,13 +475,38 @@ describe("advanced", () => {
     expect(noCleanup).toMatch(/disabled=""[^>]*id="mode-spoken-instructions"/);
   });
 
+  /* These three arrived from the debug pane, where they wrote the global
+   * settings root that dictation delivery stopped reading when it moved to
+   * per-mode plans. Presence is not the point: the check is that each row
+   * shows the draft's own value and moves with it. */
+  test("binds the two paste delays and reliable paste to the mode draft", () => {
+    expect(html).toContain("40ms");
+    expect(html).toContain("20ms");
+    expect(html).toMatch(/aria-checked="true"[^>]*id="mode-reliable-paste"/);
+
+    const edited = editor({
+      mode: draft({
+        delivery: {
+          ...draft().delivery,
+          paste_delay_ms: 250,
+          paste_delay_after_ms: 130,
+          reliable_paste: false,
+        },
+      }),
+    });
+    expect(edited).toContain("250ms");
+    expect(edited).toContain("130ms");
+    expect(edited).toMatch(/aria-checked="false"[^>]*id="mode-reliable-paste"/);
+    expect(
+      modeDraftIsDirty(
+        draft({ delivery: { ...draft().delivery, reliable_paste: false } }),
+        MODE_VIEW,
+      ),
+    ).toBe(true);
+  });
+
   test("drops the knobs a default already answers", () => {
-    for (const gone of [
-      "Reliable paste",
-      "Paste delays",
-      "Typing tool",
-      "Word timestamps",
-    ]) {
+    for (const gone of ["Typing tool", "Word timestamps"]) {
       expect(html.includes(gone)).toBe(false);
     }
   });
@@ -651,5 +680,98 @@ describe("mode list", () => {
 
     expect(html).toContain("No modes are configured.");
     expect(html).toContain("Retry");
+  });
+});
+
+/* The row that had both facts and stated neither.
+ *
+ * Every mode in the store that produced this test named `openai` with no key
+ * and no consent, while the app was set to a local provider that worked — and
+ * the provider row rendered the mode's dead copy without ever mentioning the
+ * live one. What follows is the standing proof that a mode which named no
+ * provider says which provider it will actually use.
+ *
+ * The render half runs on the fresh-install store this file already documents:
+ * zustand serves `getInitialState` to React's *server* snapshot, so a seeded
+ * store never reaches `renderToStaticMarkup` and the configured branch cannot
+ * be rendered from here. The two links that branch is made of — resolving the
+ * pair, and naming it — are asserted directly instead. */
+describe("the mode's rewrite provider row", () => {
+  const withProvider = (providerId: string | null): string =>
+    editor({
+      mode: draft({
+        llm: {
+          enabled: true,
+          provider_id: providerId,
+          model_id: "gpt-4o-mini",
+          spoken_instructions: false,
+        },
+      }),
+    });
+
+  test("a mode with no provider of its own states that, not a blank", () => {
+    const html = withProvider(null);
+
+    /* The trigger is a default with a name, never the `empty` string — which
+     * reads "No provider configured" and is the opposite claim. */
+    expect(html).toContain(">Default: the global provider</span>");
+    expect(html.includes(">No provider configured<")).toBe(false);
+    // The model belongs to the inherited provider, so the stale one is gone.
+    expect(html.includes("gpt-4o-mini")).toBe(false);
+  });
+
+  test("a mode that named its own provider still shows that one", () => {
+    const html = withProvider("openai");
+
+    /* No install providers here, so the id is its own label: the row states a
+     * choice it cannot resolve rather than quietly dropping it. The warning
+     * on a store with no providers at all is the `noneConfigured` one. */
+    expect(html).toContain(">openai</span>");
+    expect(html).toContain('value="gpt-4o-mini"');
+    expect(html).toContain(
+      "No AI provider is configured yet. Add one in Settings before this mode can rewrite.",
+    );
+  });
+
+  test("names the provider it inherits once the install has one", () => {
+    expect(
+      i18n.t("settings.modes.writing.provider.inheritGlobalNamed", {
+        name: "Custom",
+      }),
+    ).toBe("Default: the global provider (Custom)");
+  });
+
+  test("resolves the pair a mode inherits, and leaves an override alone", () => {
+    /* SAFETY: modeLlmDestination reads exactly these two fields, so the
+     * fixture carries only them rather than a full AppSettings. Widening the
+     * rule to read a third field makes this assertion a lie, which is why the
+     * cast is here and not on a helper that would hide it. */
+    const global = {
+      post_process_provider_id: "custom",
+      post_process_models: { custom: "gemma4:12b-mlx", openai: "gpt-4o" },
+    } as AppSettings;
+
+    expect(
+      modeLlmDestination({ provider_id: null, model_id: "stale" }, global),
+    ).toEqual({
+      providerId: "custom",
+      modelId: "gemma4:12b-mlx",
+      inherited: true,
+    });
+    /* An override is honoured as written even though the global would run and
+     * this one is a remote route with no key: the rule reads no credential or
+     * consent state, so a decision cannot be undone by its own outage. */
+    expect(
+      modeLlmDestination(
+        { provider_id: "openai", model_id: "gpt-4o-mini" },
+        global,
+      ),
+    ).toEqual({
+      providerId: "openai",
+      modelId: "gpt-4o-mini",
+      inherited: false,
+    });
+    // A store written before the field existed omits it, which is inherit.
+    expect(modeLlmDestination({ model_id: "" }, global).inherited).toBe(true);
   });
 });

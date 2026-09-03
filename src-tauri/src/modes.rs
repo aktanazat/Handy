@@ -133,7 +133,20 @@ impl ModeAsrSettings {
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize, Type)]
 pub struct ModeLlmSettings {
     pub enabled: bool,
-    pub provider_id: String,
+    /// The provider this mode overrides to, or `None` to inherit
+    /// [`AppSettings::post_process_provider_id`].
+    ///
+    /// Inherit is the default and the seeded value, so the provider chosen
+    /// once in Settings reaches every mode that never named one of its own.
+    /// A plain `String` here had no way to say "nobody chose": a new mode
+    /// baked a copy of the global at creation and a later global change never
+    /// reached it, which is how four modes came to name a provider with no
+    /// credential while the one that actually ran was named by nothing.
+    #[serde(default)]
+    pub provider_id: Option<String>,
+    /// The model for an overridden `provider_id`. Inert while the provider is
+    /// inherited: the destination is then the global pair, whose model already
+    /// lives in `AppSettings::post_process_models` and is owned there.
     pub model_id: String,
     /// Whether a trailing `Sona, …` sentence is handed to this mode's rewrite
     /// provider as an edit instruction instead of being typed. Off by default,
@@ -142,6 +155,55 @@ pub struct ModeLlmSettings {
     /// See [`crate::audio_toolkit::split_spoken_instruction`].
     #[serde(default)]
     pub spoken_instructions: bool,
+}
+
+/// The rewrite destination a mode will actually use.
+///
+/// This deliberately has no serde or Specta implementation, for the same
+/// reason [`DeliveryPlan`] has none: it is not another settings owner and
+/// never crosses IPC. It is a view over a mode's own choice joined with the
+/// global one, so [`ModeLlmSettings::destination`] can be the only answer to
+/// "which provider does this mode use" without becoming a fifth place a
+/// provider is stored.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ModeLlmDestination {
+    pub provider_id: String,
+    pub model_id: String,
+    /// True when the mode named no provider of its own and took the global.
+    pub inherited: bool,
+}
+
+impl ModeLlmSettings {
+    /// Resolve the mode's rewrite destination.
+    ///
+    /// The rule is deliberately a single fallback with no predicate in it: an
+    /// override is honoured exactly as written, whether or not it can run
+    /// right now. Falling back on *failure* instead would send a mode's text
+    /// to a destination it never named — and the settings row could only
+    /// display that by re-deriving consent, credential and endpoint state, in
+    /// the other language, from the same store.
+    pub fn destination(&self, settings: &AppSettings) -> ModeLlmDestination {
+        match &self.provider_id {
+            Some(provider_id) => ModeLlmDestination {
+                provider_id: provider_id.clone(),
+                model_id: self.model_id.clone(),
+                inherited: false,
+            },
+            None => {
+                let provider_id = settings.post_process_provider_id.clone();
+                let model_id = settings
+                    .post_process_models
+                    .get(&provider_id)
+                    .cloned()
+                    .unwrap_or_default();
+                ModeLlmDestination {
+                    provider_id,
+                    model_id,
+                    inherited: true,
+                }
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize, Type)]
@@ -278,12 +340,6 @@ impl ModeDefinition {
                     .iter()
                     .find(|prompt| &prompt.id == id)
             });
-        let provider_id = settings.post_process_provider_id.clone();
-        let model_id = settings
-            .post_process_models
-            .get(&provider_id)
-            .cloned()
-            .unwrap_or_default();
 
         Self {
             id: id.to_string(),
@@ -291,10 +347,12 @@ impl ModeDefinition {
             tone: Tone::Balanced,
             context_policy: ContextPolicy::Target,
             asr: ModeAsrSettings::from_legacy(settings),
+            // A new mode inherits rather than copying: a baked copy is what
+            // let the global choice and the mode's row disagree forever.
             llm: ModeLlmSettings {
                 enabled: settings.post_process_enabled,
-                provider_id,
-                model_id,
+                provider_id: None,
+                model_id: String::new(),
                 spoken_instructions: false,
             },
             prompt: ModePromptSettings {
@@ -1136,7 +1194,7 @@ pub struct AsrPlan {
 }
 
 impl AsrPlan {
-    fn from_mode(settings: &AppSettings, mode: &ModeAsrSettings) -> Self {
+    pub(crate) fn from_mode(settings: &AppSettings, mode: &ModeAsrSettings) -> Self {
         // An empty per-mode model means "inherit the globally selected model".
         // The default modes are created before onboarding has picked a model,
         // so they persist an empty id; resolving the inheritance here keeps
@@ -1577,7 +1635,13 @@ impl RunPlan {
             }
         };
         let mode = mode.cloned().ok_or(RunPlanError::NoMatchingMode)?;
-        Self::for_mode(settings, mode, post_process_override, mode_selection_source)
+        Self::for_mode(
+            settings,
+            mode,
+            post_process_override,
+            mode_selection_source,
+            false,
+        )
     }
 
     /// Freeze the active mode for a file import without capturing application
@@ -1625,29 +1689,72 @@ impl RunPlan {
         })
     }
 
+    /// The mode's rewrite destination, or why it cannot be used. Consent is
+    /// checked against the destination the provider resolves to right now, so
+    /// an edited base URL invalidates a consent granted for the old one.
+    ///
+    /// Which provider that is comes from [`ModeLlmSettings::destination`] and
+    /// nowhere else, so the run can never reach a provider the mode's own row
+    /// does not name.
+    fn resolve_rewrite(
+        settings: &AppSettings,
+        llm: &ModeLlmSettings,
+    ) -> Result<ResolvedLlmSettings, RunPlanError> {
+        let destination = llm.destination(settings);
+        let provider = settings
+            .post_process_provider(&destination.provider_id)
+            .cloned()
+            .ok_or(RunPlanError::MissingPostProcessProvider)?;
+        let endpoint = provider
+            .endpoint()
+            .map_err(|_| RunPlanError::InvalidPostProcessDestination)?;
+        if !settings.has_current_post_process_provider_consent(&provider, &endpoint) {
+            return Err(RunPlanError::PostProcessConsentRequired);
+        }
+        Ok(ResolvedLlmSettings {
+            provider,
+            model_id: destination.model_id,
+            endpoint,
+        })
+    }
+
+    /// Freeze a run under one mode.
+    ///
+    /// `rewrite_required` says whether the rewrite is the run's output rather
+    /// than a pass over it. Only a voice command is: it replaces a selection
+    /// with what the provider returns, so an unusable provider leaves nothing
+    /// to deliver and the run must refuse before the microphone opens.
     fn for_mode(
         settings: &AppSettings,
         mode: ModeDefinition,
         post_process_override: Option<bool>,
         mode_selection_source: ModeSelectionSource,
+        rewrite_required: bool,
     ) -> Result<Self, RunPlanError> {
-        let post_process_requested = post_process_override.unwrap_or(mode.llm.enabled);
+        let mut post_process_requested = post_process_override.unwrap_or(mode.llm.enabled);
         let llm = if post_process_requested {
-            let provider = settings
-                .post_process_provider(&mode.llm.provider_id)
-                .cloned()
-                .ok_or(RunPlanError::MissingPostProcessProvider)?;
-            let endpoint = provider
-                .endpoint()
-                .map_err(|_| RunPlanError::InvalidPostProcessDestination)?;
-            if !settings.has_current_post_process_provider_consent(&provider, &endpoint) {
-                return Err(RunPlanError::PostProcessConsentRequired);
+            match Self::resolve_rewrite(settings, &mode.llm) {
+                Ok(llm) => Some(llm),
+                Err(error) if rewrite_required => return Err(error),
+                // Cleanup is a pass over words that already exist, so an
+                // unusable provider costs the cleanup and never the dictation.
+                // Refusing here instead cost the user every word: the caller
+                // returns before it opens the microphone
+                // (`transcription_coordinator::start`) and reports nothing for
+                // a dictation intent (`command_mode::report_refused_run`), so
+                // the chord silently did nothing. Delivering the raw
+                // transcript is what a rewrite that fails mid-run already
+                // does, and it sends nothing to an unconsented destination.
+                Err(error) => {
+                    log::warn!(
+                        "Mode '{}' requested a rewrite that is unavailable ({error}); \
+                         delivering the raw transcript",
+                        mode.id
+                    );
+                    post_process_requested = false;
+                    None
+                }
             }
-            Some(ResolvedLlmSettings {
-                provider,
-                model_id: mode.llm.model_id.clone(),
-                endpoint,
-            })
         } else {
             None
         };
@@ -1767,6 +1874,7 @@ impl RunPlan {
             mode,
             Some(post_process_requested),
             ModeSelectionSource::ActiveMode,
+            false,
         )?;
         run.context.without_live_capture();
         Ok(run)
@@ -1791,7 +1899,13 @@ impl RunPlan {
         let mode = active_mode(settings)
             .cloned()
             .ok_or(RunPlanError::NoMatchingMode)?;
-        let mut run = Self::for_mode(settings, mode, Some(true), ModeSelectionSource::ActiveMode)?;
+        let mut run = Self::for_mode(
+            settings,
+            mode,
+            Some(true),
+            ModeSelectionSource::ActiveMode,
+            true,
+        )?;
         // A rewritten selection is a replacement, not an insertion: a trailing
         // space or a submit key would corrupt the text it replaced.
         run.delivery.append_trailing_space = false;
@@ -1820,6 +1934,7 @@ impl RunPlan {
             mode,
             None,
             ModeSelectionSource::ExplicitModeShortcut,
+            false,
         )?;
         run.context.without_live_capture();
         Ok(run)
@@ -2084,6 +2199,96 @@ mod tests {
         );
     }
 
+    /// Point the global at a keyless loopback provider, the way Aktan's store
+    /// does. A loopback destination needs no consent, so this is a provider
+    /// that genuinely runs.
+    fn global_local_provider(settings: &mut AppSettings) {
+        settings.post_process_provider_id = "custom".to_string();
+        settings
+            .post_process_models
+            .insert("custom".to_string(), "gemma4:12b-mlx".to_string());
+        assert!(
+            settings.post_process_provider_consents.is_empty(),
+            "the case under test has no destination consent at all"
+        );
+    }
+
+    /// The live defect, both halves. A mode that baked a copy of the global at
+    /// creation names `openai`, which has no credential and no consent, so the
+    /// rewrite is dropped and the working local provider is named by nothing.
+    /// A mode that never chose one inherits and reaches it.
+    #[test]
+    fn a_mode_that_never_chose_a_provider_runs_the_global_one() {
+        let mut settings = configured_settings();
+        global_local_provider(&mut settings);
+        settings.modes[0].llm.enabled = true;
+
+        settings.modes[0].llm.provider_id = Some("openai".to_string());
+        let baked = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("an unusable rewrite never costs the dictation");
+        assert!(!baked.post_process_requested());
+        assert!(baked.prompt().llm.is_none());
+
+        settings.modes[0].llm.provider_id = None;
+        let inherited = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("active mode resolves");
+        let llm = inherited
+            .prompt()
+            .llm
+            .as_ref()
+            .expect("the global provider is the mode's destination");
+        assert_eq!(llm.provider.id, "custom");
+        assert_eq!(llm.model_id, "gemma4:12b-mlx");
+        assert!(inherited.post_process_requested());
+    }
+
+    /// The case the inherit default must not eat: a provider named in the
+    /// mode's own row is a decision. It outranks a different global even when
+    /// the global would run and this one needed a consent first, and the
+    /// resolution never reads credential or consent state to decide.
+    #[test]
+    fn a_deliberate_provider_override_outranks_a_different_global() {
+        let mut settings = configured_settings();
+        global_local_provider(&mut settings);
+        settings.modes[0].llm.enabled = true;
+        settings.modes[0].llm.provider_id = Some("openai".to_string());
+        settings.modes[0].llm.model_id = "gpt-4o-mini".to_string();
+        grant_remote_llm_consent(&mut settings, "openai");
+
+        let destination = settings.modes[0].llm.destination(&settings);
+        assert_eq!(destination.provider_id, "openai");
+        assert_eq!(destination.model_id, "gpt-4o-mini");
+        assert!(!destination.inherited);
+
+        let run = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("active mode resolves");
+        let llm = run.prompt().llm.as_ref().expect("the override runs");
+        assert_eq!(llm.provider.id, "openai");
+        assert_eq!(llm.model_id, "gpt-4o-mini");
+    }
+
+    /// The override survives the schema change, and a document that never
+    /// recorded a provider deserializes as inherit rather than as a name.
+    #[test]
+    fn a_stored_mode_provider_survives_the_inherit_schema() {
+        let settings = configured_settings();
+        assert_eq!(settings.modes[0].llm.provider_id, None);
+
+        let mut stored = serde_json::to_value(&settings.modes[0]).expect("mode serializes");
+        stored["llm"]["provider_id"] = serde_json::json!("openai");
+        let restored: ModeDefinition =
+            serde_json::from_value(stored.clone()).expect("stored mode deserializes");
+        assert_eq!(restored.llm.provider_id.as_deref(), Some("openai"));
+
+        stored["llm"]
+            .as_object_mut()
+            .expect("llm object")
+            .remove("provider_id");
+        let inheriting: ModeDefinition =
+            serde_json::from_value(stored).expect("mode without a provider deserializes");
+        assert_eq!(inheriting.llm.provider_id, None);
+    }
+
     /// Reprocessing exists to run stored audio through a *different* mode, so
     /// the plan must come from the named mode rather than the active one, and
     /// must carry that mode's own rewrite decision.
@@ -2300,7 +2505,7 @@ mod tests {
     fn run_plan_freezes_the_mutation_matrix() {
         let mut settings = configured_settings();
         settings.modes[0].llm.enabled = true;
-        settings.modes[0].llm.provider_id = "openai".to_string();
+        settings.modes[0].llm.provider_id = Some("openai".to_string());
         settings.modes[0].llm.model_id = "gpt-4o-mini".to_string();
         grant_remote_llm_consent(&mut settings, "openai");
         let first = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode).unwrap();
@@ -2313,7 +2518,7 @@ mod tests {
             written: "AfterWord".to_string(),
         }];
         mode.asr.filler_word_removal_enabled = false;
-        mode.llm.provider_id = "custom".to_string();
+        mode.llm.provider_id = Some("custom".to_string());
         mode.llm.model_id = "after-provider-model".to_string();
         mode.prompt.custom_prompt = Some("after-prompt".to_string());
         mode.delivery.append_trailing_space = true;
@@ -2576,16 +2781,29 @@ mod tests {
         assert!(TranscriptionIntent::from_binding(LEGACY_POST_PROCESS_BINDING_ID).is_none());
     }
 
+    /// A command run has no output but the rewrite, so an unconsented
+    /// destination still refuses it before capture. Consent is measured
+    /// against the destination the provider resolves to now, so editing the
+    /// base URL invalidates it.
     #[test]
     fn remote_llm_requires_current_destination_consent_without_local_fallback() {
         let mut settings = configured_settings();
         let mode = &mut settings.modes[0];
         mode.llm.enabled = true;
-        mode.llm.provider_id = "openai".to_string();
+        mode.llm.provider_id = Some("openai".to_string());
         mode.llm.model_id = "gpt-4o-mini".to_string();
+        let unconsented_command = |settings: &AppSettings| {
+            RunPlan::for_mode(
+                settings,
+                settings.modes[0].clone(),
+                Some(true),
+                ModeSelectionSource::ActiveMode,
+                true,
+            )
+        };
 
         assert!(matches!(
-            RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode),
+            unconsented_command(&settings),
             Err(RunPlanError::PostProcessConsentRequired)
         ));
 
@@ -2607,9 +2825,38 @@ mod tests {
             .expect("OpenAI provider")
             .base_url = "https://api.example.test/v1".to_string();
         assert!(matches!(
-            RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode),
+            unconsented_command(&settings),
             Err(RunPlanError::PostProcessConsentRequired)
         ));
+    }
+
+    /// The shape three of Aktan's four modes ship with: `llm.enabled` true,
+    /// the default remote provider, no model and no consent. Refusing the plan
+    /// made the chord do nothing at all — `transcription_coordinator::start`
+    /// returns before it opens the microphone, and `report_refused_run` emits
+    /// nothing for a dictation intent — so a mode configured for a rewrite it
+    /// cannot perform has to dictate anyway.
+    #[test]
+    fn a_mode_whose_rewrite_is_unavailable_still_dictates() {
+        let mut settings = configured_settings();
+        let mode = &mut settings.modes[0];
+        mode.llm.enabled = true;
+        mode.llm.provider_id = Some("openai".to_string());
+        mode.llm.model_id.clear();
+        mode.asr.model_id = "mode-chosen-model".to_string();
+
+        let run = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("an unusable rewrite provider never costs the dictation");
+
+        assert!(!run.post_process_requested());
+        assert!(run.prompt().llm.is_none());
+        assert!(!run.prompt().spoken_instructions);
+        assert_eq!(run.asr().model_id, "mode-chosen-model");
+
+        settings.modes[0].llm.provider_id = Some("does_not_exist".to_string());
+        let unknown_provider = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("an unknown provider never costs the dictation either");
+        assert!(!unknown_provider.post_process_requested());
     }
 
     #[test]

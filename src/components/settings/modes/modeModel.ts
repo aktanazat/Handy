@@ -1,4 +1,5 @@
 import type {
+  AppSettings,
   AutoSubmitKey,
   ClipboardHandling,
   CloudSttProvider,
@@ -331,6 +332,51 @@ export const orderWithMove = (
   const next = [...orderedIds];
   [next[from], next[to]] = [next[to], next[from]];
   return next;
+};
+
+/** The resolved answer to "which provider does this mode use". */
+export interface ModeLlmDestinationView {
+  providerId: string;
+  modelId: string;
+  /** The mode named no provider of its own and took the global one. */
+  inherited: boolean;
+}
+
+/* A select item cannot carry an empty value, and `null` is what the draft
+ * stores for "inherit the global provider". The sentinel lives between the
+ * Select and its handler only: `null` is still what reaches `updateLlm`. The
+ * same shape as `ModeEditor`'s `INHERIT_GLOBAL` for the transcription model,
+ * and as `DEFAULT_FALLBACK_MODEL_OPTION` above. */
+export const INHERIT_GLOBAL_PROVIDER = "__mode_inherit_global_provider__";
+
+/**
+ * Which post-processing provider a mode will actually use.
+ *
+ * The mirror of `ModeLlmSettings::destination` in `modes.rs`, and the only
+ * copy of that rule on this side. It exists because the mode editor renders an
+ * unsaved draft: the backend cannot answer for a provider the user picked two
+ * keystrokes ago, and a row that names a provider the run will not use is the
+ * defect this pair was built to close.
+ *
+ * The rule is one fallback and nothing else — no consent, credential or
+ * endpoint state — precisely so the two copies cannot drift apart.
+ */
+export const modeLlmDestination = (
+  llm: Pick<ModeLlmSettings, "provider_id" | "model_id">,
+  global: AppSettings | null,
+): ModeLlmDestinationView => {
+  /* Absent and null are the same claim — this mode named no provider. A store
+   * written before the field existed omits it entirely. */
+  const override = llm.provider_id ?? null;
+  if (override !== null) {
+    return { providerId: override, modelId: llm.model_id, inherited: false };
+  }
+  const providerId = global?.post_process_provider_id ?? "";
+  return {
+    providerId,
+    modelId: global?.post_process_models?.[providerId] ?? "",
+    inherited: true,
+  };
 };
 
 export const modeDefinitionFromView = (mode: ModeView): ModeDefinition => ({

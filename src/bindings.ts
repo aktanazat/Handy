@@ -5087,7 +5087,25 @@ cloud_timestamps?: boolean }
  */
 export type ModeDefinition = { id: string; name: string; tone: Tone; context_policy: ContextPolicy; asr: ModeAsrSettings; llm: ModeLlmSettings; prompt: ModePromptSettings; delivery: ModeDeliverySettings }
 export type ModeDeliverySettings = { paste_method: PasteMethod; clipboard_handling: ClipboardHandling; auto_submit: boolean; auto_submit_key: AutoSubmitKey; append_trailing_space: boolean; paste_delay_ms: number; paste_delay_after_ms: number; reliable_paste: boolean; typing_tool: TypingTool; external_script_path: string | null }
-export type ModeLlmSettings = { enabled: boolean; provider_id: string; model_id: string;
+export type ModeLlmSettings = { enabled: boolean;
+/**
+ * The provider this mode overrides to, or `None` to inherit
+ * [`AppSettings::post_process_provider_id`].
+ *
+ * Inherit is the default and the seeded value, so the provider chosen
+ * once in Settings reaches every mode that never named one of its own.
+ * A plain `String` here had no way to say "nobody chose": a new mode
+ * baked a copy of the global at creation and a later global change never
+ * reached it, which is how four modes came to name a provider with no
+ * credential while the one that actually ran was named by nothing.
+ */
+provider_id?: string | null;
+/**
+ * The model for an overridden `provider_id`. Inert while the provider is
+ * inherited: the destination is then the global pair, whose model already
+ * lives in `AppSettings::post_process_models` and is owned there.
+ */
+model_id: string;
 /**
  * Whether a trailing `Sona, …` sentence is handed to this mode's rewrite
  * provider as an edit instruction instead of being typed. Off by default,

@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/vg/select";
+import { Slider } from "@/components/vg/slider";
 import { Switch } from "@/components/vg/switch";
 import { Textarea } from "@/components/vg/textarea";
 import {
@@ -27,6 +28,7 @@ import {
   SettingsRow,
   SettingsSurface,
 } from "@/components/settings/rows";
+import { useOsType } from "@/hooks/useOsType";
 import { ShortcutInput } from "../ShortcutInput";
 import { SegmentedRadioGroup, type SegmentedOption } from "./ModeControls";
 import {
@@ -34,11 +36,13 @@ import {
   CLIPBOARD_HANDLING,
   CONTEXT_POLICIES,
   DEFAULT_FALLBACK_MODEL_OPTION,
+  INHERIT_GLOBAL_PROVIDER,
   TONES,
   downloadedModelOptions,
   hasHigherPolicy,
   modeBindingId,
   type ModeCloudState,
+  type ModeLlmDestinationView,
   type ModePanelProps,
 } from "./modeModel";
 
@@ -61,6 +65,10 @@ export interface ModeAdvancedProps extends ModePanelProps {
   providers: readonly PostProcessProvider[];
   /** The most revealing context level Privacy currently permits. */
   contextCeiling: ContextPolicy;
+  /** Which provider and model this draft's rewrite will actually use. */
+  llmDestination: ModeLlmDestinationView;
+  /** The inherit option's label, naming the global provider it resolves to. */
+  inheritProviderLabel: string;
 }
 
 /* Shared by the vocabulary column header and every vocabulary row, so the two
@@ -68,6 +76,17 @@ export interface ModeAdvancedProps extends ModePanelProps {
  * horizontal padding: this list sits inside a field that already owns it. */
 const VOCABULARY_GRID =
   "grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 py-2";
+
+/* The two delays bracket the paste keystroke and fail in opposite directions
+ * — one loses the transcript, the other pastes your previous clipboard — so
+ * the field names both sides rather than either symptom. */
+const PASTE_DELAYS = [
+  { key: "paste_delay_ms", side: "settings.modes.delivery.delay.before" },
+  {
+    key: "paste_delay_after_ms",
+    side: "settings.modes.delivery.delay.after",
+  },
+] as const;
 
 /**
  * Everything about a mode that a good default already answers.
@@ -87,8 +106,11 @@ export const ModeAdvanced: React.FC<ModeAdvancedProps> = ({
   missingFallbackModel,
   providers,
   contextCeiling,
+  llmDestination,
+  inheritProviderLabel,
 }) => {
   const { t } = useTranslation();
+  const osType = useOsType();
   const { update, updateAsr, updateDelivery, updateLlm } = updaters;
   const llmEnabled = mode.llm.enabled;
 
@@ -100,22 +122,33 @@ export const ModeAdvanced: React.FC<ModeAdvancedProps> = ({
   const providerOptions: { value: string; label: string }[] = providers.map(
     (provider) => ({ value: provider.id, label: provider.label }),
   );
+  /* The provider the run will use, named the way the reader sees it named
+   * elsewhere. Undefined means this install does not carry it. */
+  const effectiveProviderLabel = providers.find(
+    (provider) => provider.id === llmDestination.providerId,
+  )?.label;
   /* A mode can name a provider this install does not have. Keep it selectable
    * so saving the mode never silently rewrites the choice, and explain it. */
-  const selectedProviderConfigured = providers.some(
-    (provider) => provider.id === mode.llm.provider_id,
-  );
-  if (mode.llm.provider_id && !selectedProviderConfigured) {
+  if (!llmDestination.inherited && !effectiveProviderLabel) {
     providerOptions.unshift({
-      value: mode.llm.provider_id,
-      label: mode.llm.provider_id,
+      value: llmDestination.providerId,
+      label: llmDestination.providerId,
     });
   }
+  /* Inherit leads the list because it is the default, and its label names the
+   * provider it resolves to. That naming is the whole control: four modes on
+   * this machine said `openai` with no key while the app was set to a local
+   * provider that worked, and this row held both facts and stated neither. */
+  providerOptions.unshift({
+    value: INHERIT_GLOBAL_PROVIDER,
+    label: inheritProviderLabel,
+  });
+  const selectedProviderValue = mode.llm.provider_id ?? INHERIT_GLOBAL_PROVIDER;
   /* Radix reads the trigger's text out of the mounted items, which only exist
    * once the list has been opened in a browser. Name the selected label here
    * so the row states its own value in the server pass too. */
   const selectedProviderLabel = providerOptions.find(
-    (option) => option.value === mode.llm.provider_id,
+    (option) => option.value === selectedProviderValue,
   )?.label;
 
   const ceilingLabel = t(
@@ -196,9 +229,12 @@ export const ModeAdvanced: React.FC<ModeAdvancedProps> = ({
           >
             <div className="flex flex-col items-end gap-1">
               <Select
-                value={mode.llm.provider_id}
-                onValueChange={(providerId) =>
-                  updateLlm("provider_id", providerId)
+                value={selectedProviderValue}
+                onValueChange={(value) =>
+                  updateLlm(
+                    "provider_id",
+                    value === INHERIT_GLOBAL_PROVIDER ? null : value,
+                  )
                 }
                 disabled={!llmEnabled || providerOptions.length === 0}
               >
@@ -225,7 +261,7 @@ export const ModeAdvanced: React.FC<ModeAdvancedProps> = ({
                 <Notice tone="warning" live={false}>
                   {t("settings.modes.writing.provider.noneConfigured")}
                 </Notice>
-              ) : selectedProviderConfigured ? null : (
+              ) : effectiveProviderLabel ? null : (
                 <Notice tone="warning" live={false}>
                   {t("settings.modes.writing.provider.unknownSelected")}
                 </Notice>
@@ -238,11 +274,14 @@ export const ModeAdvanced: React.FC<ModeAdvancedProps> = ({
             label={t("settings.modes.writing.model.label")}
             controlId="mode-llm-model"
           >
+            {/* An inherited destination is a pair: the model belongs to the
+             * global provider and lives beside it, so editing it here would
+             * write a value this mode's run never reads. */}
             <Input
               id="mode-llm-model"
-              value={mode.llm.model_id}
+              value={llmDestination.modelId}
               onChange={(event) => updateLlm("model_id", event.target.value)}
-              disabled={!llmEnabled}
+              disabled={!llmEnabled || llmDestination.inherited}
               className="w-full"
             />
           </SettingsField>
@@ -434,6 +473,51 @@ export const ModeAdvanced: React.FC<ModeAdvancedProps> = ({
               }
             />
           </SettingsRow>
+
+          {/* One field, two sliders: the delays bracket the paste keystroke
+           * and are read together, which is what the copy written for them
+           * already assumes. */}
+          <SettingsField
+            label={t("settings.modes.delivery.delay.label")}
+            hint={t("settings.modes.delivery.delay.description")}
+          >
+            {PASTE_DELAYS.map(({ key, side }) => (
+              <div key={key} className="flex items-center gap-3">
+                <Microlabel className="w-12 shrink-0">{t(side)}</Microlabel>
+                <Slider
+                  aria-label={`${t("settings.modes.delivery.delay.label")} ${t(side)}`}
+                  className="w-40"
+                  value={[mode.delivery[key]]}
+                  min={10}
+                  max={500}
+                  step={10}
+                  onValueChange={([next]) => updateDelivery(key, next)}
+                />
+                <Microlabel className="tabular-nums">
+                  {`${mode.delivery[key]}ms`}
+                </Microlabel>
+              </div>
+            ))}
+          </SettingsField>
+
+          {/* The receipt-sequenced path is implemented for macOS and Windows.
+           * The field is still per-mode everywhere; only the control is
+           * platform-gated, exactly as the row it replaces was. */}
+          {osType === "macos" || osType === "windows" ? (
+            <SettingsRow
+              label={t("settings.modes.delivery.reliablePaste.label")}
+              hint={t("settings.modes.delivery.reliablePaste.description")}
+              controlId="mode-reliable-paste"
+            >
+              <Switch
+                id="mode-reliable-paste"
+                checked={mode.delivery.reliable_paste}
+                onCheckedChange={(enabled) =>
+                  updateDelivery("reliable_paste", enabled)
+                }
+              />
+            </SettingsRow>
+          ) : null}
 
           {cloudRoute ? (
             <SettingsRow

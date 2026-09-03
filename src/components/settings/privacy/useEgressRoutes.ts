@@ -5,6 +5,7 @@ import {
   CLOUD_STT_PROVIDERS,
   cloudSttProviderHasCurrentConsent,
 } from "@/lib/cloudStt";
+import { modeLlmDestination } from "@/components/settings/modes/modeModel";
 
 /* Which routes off this Mac are live, read from the credential store rather
  * than inferred from settings: a provider is only a route once a key for it
@@ -16,7 +17,14 @@ export const useEgressRoutes = () => {
   const cloudCandidateProviders = useMemo(() => {
     const enabledProviderIds = new Set<string>();
     for (const mode of settings?.modes ?? []) {
-      if (mode.llm.enabled) enabledProviderIds.add(mode.llm.provider_id);
+      /* A mode with no provider of its own sends to the global one, so the
+       * route it opens is the global provider's. Reading the raw field here
+       * would under-report a live destination on this screen. */
+      if (mode.llm.enabled) {
+        enabledProviderIds.add(
+          modeLlmDestination(mode.llm, settings).providerId,
+        );
+      }
     }
 
     const candidates = [];
@@ -41,7 +49,7 @@ export const useEgressRoutes = () => {
       }
     }
     return candidates;
-  }, [settings?.modes, settings?.post_process_providers]);
+  }, [settings]);
   const [providerSecretStates, setProviderSecretStates] = useState<
     Record<string, boolean | undefined>
   >({});

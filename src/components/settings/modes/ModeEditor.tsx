@@ -49,6 +49,7 @@ import {
   downloadedModelOptions,
   modeDraftIsDirty,
   modeEngineOptions,
+  modeLlmDestination,
 } from "./modeModel";
 import { useCloudSttEngineChoice } from "./useCloudSttEngineChoice";
 import { useVocabularyRows } from "./useVocabularyRows";
@@ -177,6 +178,30 @@ export const ModeEditor: React.FC<ModeEditorProps> = ({
           "Default: the global model",
         );
   }, [globalModelId, models, t]);
+
+  /* The same sentence one field over, for the rewrite provider. A mode with no
+   * provider of its own is not "unset": it uses whatever the app is set to,
+   * which `ModeLlmSettings::destination` resolves when it builds the plan.
+   * Naming that provider is what would have shown, at a glance, that four
+   * modes were pointed at a provider with no key while the app was pointed at
+   * a local one that worked. */
+  const llmDestination = modeLlmDestination(mode.llm, settings);
+  /* The label names the *global* provider, not the current selection: it has
+   * to read the same whether or not this mode has overridden it. */
+  const globalProviderId = settings?.post_process_provider_id;
+  const globalProviderLabel = settings?.post_process_providers?.find(
+    (provider) => provider.id === globalProviderId,
+  )?.label;
+  const inheritProviderLabel = globalProviderLabel
+    ? t(
+        "settings.modes.writing.provider.inheritGlobalNamed",
+        "Default: the global provider ({{name}})",
+        { name: globalProviderLabel },
+      )
+    : t(
+        "settings.modes.writing.provider.inheritGlobal",
+        "Default: the global provider",
+      );
 
   /* The list is a model rather than markup: a provider without a saved key
    * stays in it carrying the reason it cannot be picked, and the menu that
@@ -647,6 +672,8 @@ export const ModeEditor: React.FC<ModeEditorProps> = ({
         missingFallbackModel={missingLocalFallbackModel}
         providers={settings?.post_process_providers ?? NO_PROVIDERS}
         contextCeiling={settings?.context_policy_ceiling ?? "none"}
+        llmDestination={llmDestination}
+        inheritProviderLabel={inheritProviderLabel}
       />
 
       <Dialog
