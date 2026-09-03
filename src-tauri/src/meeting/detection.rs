@@ -22,7 +22,11 @@
 //! * **Per-process microphone use.** CoreAudio's device-in-use property is
 //!   device-global. Sona's own dictation raises it, which is why
 //!   `self_holds_input_device` exists and why an active Sona microphone
-//!   suppresses the ad-hoc path outright.
+//!   suppresses the ad-hoc path outright. The property also lags a close, so
+//!   `self_mic_just_closed` covers the interval after Sona's own stream ends
+//!   — see `input_device::SELF_MIC_COOLDOWN`. Both are written from the
+//!   stream, not from the recording state: the stream is what holds the
+//!   device, and it outlives the dictation that opened it.
 //! * **Bluetooth microphones.** They under-report through that property, so
 //!   AirPods-style headsets are a known false negative on the ad-hoc path.
 //! * **Live voiced audio.** Meeting transcription runs after capture, so nothing

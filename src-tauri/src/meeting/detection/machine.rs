@@ -453,8 +453,8 @@ pub fn evaluate(inputs: &DetectionInputs, policy: &DetectionPolicy) -> Detection
     }
 
     // Invariant 2. A capture in progress legitimately holds the device, so this
-    // only fires for a dictation run or a stale lease — never mistake either for
-    // someone else's meeting.
+    // only fires for a dictation run or a stream Sona is keeping warm — never
+    // mistake either for someone else's meeting.
     if inputs.self_holds_input_device && !inputs.capture_active {
         return DetectionOutcome::Suppress(SuppressReason::SonaHoldsInputDevice);
     }
