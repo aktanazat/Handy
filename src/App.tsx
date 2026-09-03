@@ -16,7 +16,6 @@ import AccessibilityOnboarding from "./components/onboarding/AccessibilityOnboar
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LaunchShell } from "./components/LaunchShell";
 import { Sidebar } from "./components/Sidebar";
-import { ChatPill } from "./components/ChatPill";
 import {
   ChatOpenerProvider,
   ChatSheetHost,
@@ -192,7 +191,7 @@ export interface AppContentProps {
     paired: boolean;
     remoteIntelligence: boolean;
   };
-  /** The chat sheet's fold, owned here so the pill, Esc and ⌘K agree on it. */
+  /** The chat sheet's fold, owned here so the rail, Esc and ⌘K agree on it. */
   chatOpen: boolean;
   onChatOpenChange: (open: boolean) => void;
   onCommandOpenChange: (open: boolean) => void;
@@ -230,8 +229,8 @@ export const AppContent = ({
    * narrows the page instead of covering it: 48 + 512 + 340 of the same fixed
    * 900, and nothing anywhere resizes the window.
    *
-   * The setting is folded in here rather than at each reader, so the rail, the
-   * pill and the column cannot disagree about whether the chat is showing: an
+   * The setting is folded in here rather than at each reader, so the rail's
+   * chat row and the column cannot disagree about whether it is showing: an
    * agent switched off has no column, and a page beside a column that is not
    * there would be a page narrowed for nothing. */
   const chatShowing = chatOpen && agentPanel.enabled;
@@ -252,7 +251,7 @@ export const AppContent = ({
   }
 
   /* Anything that wants the chat from below — a review's follow-up button, the
-   * palette's Ask row — reaches the same fold the pill opens rather than
+   * palette's Ask row — reaches the same fold the rail's row opens rather than
    * opening a second one. */
   return (
     <ChatOpenerProvider value={() => onChatOpenChange(true)}>
@@ -287,6 +286,9 @@ export const AppContent = ({
           currentSection={currentSection}
           onSectionChange={onSectionChange}
           onOpenCommand={onCommandOpen}
+          agentPanel={agentPanel}
+          chatOpen={chatShowing}
+          onOpenChat={() => onChatOpenChange(true)}
         />
         {travel.moving && (
           /* The rail's outgoing form is visual only. It overlays the structural
@@ -298,6 +300,9 @@ export const AppContent = ({
             currentSection={currentSection}
             onSectionChange={onSectionChange}
             onOpenCommand={onCommandOpen}
+            agentPanel={agentPanel}
+            chatOpen={chatShowing}
+            onOpenChat={() => onChatOpenChange(true)}
             dataSlot="sidebar-ghost"
             decorative
             className="pointer-events-none absolute inset-y-0 start-0 z-30"
@@ -305,8 +310,11 @@ export const AppContent = ({
         )}
         {/* `settings-main` is a hook as well: primitives.css still styles bare
          * inputs and selects through it for the surfaces that have not moved to
-         * the component kit yet. `relative` is what the chat pill is positioned
-         * against: the content pane, not the page and not the scroll box. */}
+         * the component kit yet. `relative` is what the drag band below is
+         * positioned against: the content pane, not the page and not the
+         * scroll box. Nothing else floats in this pane — the chat's own door
+         * is a rail row (Sidebar.tsx), because the corner the pane's top band
+         * leaves empty is exactly where every page puts its primary action. */}
         <main className="settings-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-none">
           {/* The window's drag handle, and the reason this app can be moved at
            * all on macOS: the window is TitleBarStyle::Overlay with a hidden
@@ -326,24 +334,13 @@ export const AppContent = ({
            * and nothing else.
            *
            * Bare, not `deep`: Tauri only starts a drag when the mousedown lands
-           * on this element itself, and it has no children. What sits above it
-           * stays live — the pill below is `z-10` against this band's `z-0`, and
-           * a positioned page element with a z-index of its own outranks it the
-           * same way. */}
+           * on this element itself, and it has no children. `z-0` keeps it under
+           * anything a page positions over it, and it holds no interactive
+           * control of its own. */}
           <div
             data-slot="drag-band"
             data-tauri-drag-region
             className="absolute inset-x-0 top-0 z-0 h-12"
-          />
-          {/* Above the scroll owner and outside it, so it holds its corner on
-           * every route and through every scroll. It draws nothing at all when
-           * the agent is off by setting, and nothing while the chat column is
-           * open: the column's own X is what closes it. */}
-          <ChatPill
-            enabled={agentPanel.enabled}
-            paired={agentPanel.paired}
-            open={chatShowing}
-            onOpen={() => onChatOpenChange(true)}
           />
           <div
             data-slot="page-scroll"
@@ -354,8 +351,9 @@ export const AppContent = ({
              * pages, so they borrow the pages' column from the primitive that
              * owns it — and both render nothing on the ordinary path, which is
              * what collapses the wrapper. The top padding matches a page's
-             * `py-12` rather than sitting 14px above it: the pill's band is the
-             * one thing in the pane a banner may not grow into. */}
+             * `py-12` rather than sitting 14px above it: the drag band is the
+             * one thing in the pane a banner may not grow into, because a
+             * banner over it is a window nobody can move. */}
             <div className={cn(PAGE_COLUMN, "pt-12 empty:hidden")}>
               <AccessibilityPermissions />
               <SecureInputWarning />

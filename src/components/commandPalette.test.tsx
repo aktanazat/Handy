@@ -257,6 +257,9 @@ const renderSidebar = (
             currentSection={activeSection}
             onSectionChange={() => undefined}
             onOpenCommand={() => undefined}
+            agentPanel={{ enabled: true, paired: true }}
+            chatOpen={false}
+            onOpenChat={() => undefined}
           />
         </TooltipProvider>
       </I18nextProvider>,
@@ -268,9 +271,14 @@ const renderSidebar = (
 };
 
 describe("Sidebar", () => {
+  /* Destinations are the nav landmark's rows and nothing else. The rail's two
+   * doors — Search and Chat — sit above it: a button that opens a palette or a
+   * column is not a place, and one parked between two destinations reads as a
+   * third. Scoping the match to `<nav>` is what states that. */
   test("every destination is a button, in the fixed order", () => {
     const markup = renderSidebar();
-    const labels = [...markup.matchAll(/>([A-Za-z ]+)<\/button>/g)].map(
+    const nav = markup.slice(markup.indexOf("<nav"), markup.indexOf("</nav>"));
+    const labels = [...nav.matchAll(/>([A-Za-z ]+)<\/button>/g)].map(
       (match) => match[1],
     );
     expect(labels).toEqual([
@@ -280,6 +288,7 @@ describe("Sidebar", () => {
       "People",
       "Settings",
     ]);
+    expect(nav).not.toContain('data-slot="chat-rail-row"');
   });
 
   /* aria-current is the selection; the styling reads the same current route. */
@@ -342,14 +351,14 @@ describe("the rail, collapsed for the chat column", () => {
     expect([...markup.matchAll(/>([A-Za-z ]+)<\/button>/g)]).toHaveLength(0);
     for (const name of ["Capture", "Library", "Meetings", "People", "Settings"])
       expect(markup).toContain(`aria-label="${name}"`);
-    /* Seven glyphs and no words: the mark, the magnifier, and one per
-     * destination. */
-    expect([...markup.matchAll(/<svg/g)]).toHaveLength(7);
+    /* Eight glyphs and no words: the mark, the two doors' glyphs — the
+     * magnifier and the chat row — and one per destination. */
+    expect([...markup.matchAll(/<svg/g)]).toHaveLength(8);
     /* `asChild` puts Radix's trigger on the row itself, so a wrapped row
      * carries the tooltip's own state attribute. The sentence it shows is
-     * portalled, which server rendering has nowhere to put — six rows, five
-     * destinations and the search glyph, is what is checkable here. */
-    expect([...markup.matchAll(/data-state="closed"/g)]).toHaveLength(6);
+     * portalled, which server rendering has nowhere to put — seven rows, five
+     * destinations and the two doors, is what is checkable here. */
+    expect([...markup.matchAll(/data-state="closed"/g)]).toHaveLength(7);
   });
 
   test("the selected route is still the selected route", () => {

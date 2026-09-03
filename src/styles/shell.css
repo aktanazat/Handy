@@ -52,10 +52,9 @@
 
 /* A registered property is the shell's only transition owner. The width boxes
  * change before the next frame, so the page never reflows during travel. The
- * four values share the one root clock: the frame reads the offset; the live
- * and outgoing rails read opposite opacity values; the pill reads its own
- * opacity. `length-percentage` keeps the frame's 100% translate in
- * compositor-friendly transform space. */
+ * three values share the one root clock: the frame reads the offset, and the
+ * live and outgoing rails read opposite opacity values. `length-percentage`
+ * keeps the frame's 100% translate in compositor-friendly transform space. */
 @property --shell-chat-offset {
   syntax: "<length-percentage>";
   inherits: true;
@@ -69,12 +68,6 @@
 }
 
 @property --shell-rail-exit-opacity {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 1;
-}
-
-@property --shell-pill-opacity {
   syntax: "<number>";
   inherits: true;
   initial-value: 1;
@@ -101,12 +94,10 @@
   --shell-chat-offset: 100%;
   --shell-rail-enter-opacity: 0;
   --shell-rail-exit-opacity: 1;
-  --shell-pill-opacity: 1;
   transition:
     --shell-chat-offset 300ms var(--shell-chat-spring),
     --shell-rail-enter-opacity 300ms var(--shell-chat-spring),
-    --shell-rail-exit-opacity 300ms var(--shell-chat-spring),
-    --shell-pill-opacity 300ms var(--shell-chat-spring);
+    --shell-rail-exit-opacity 300ms var(--shell-chat-spring);
 }
 
 .app-shell[dir="rtl"] {
@@ -117,7 +108,6 @@
   --shell-chat-offset: 0%;
   --shell-rail-enter-opacity: 1;
   --shell-rail-exit-opacity: 0;
-  --shell-pill-opacity: 0;
 }
 
 /* The frame and the two fixed-width rail forms are promoted only while the
@@ -125,10 +115,6 @@
  * `transitionend`, so still windows do not retain promotion hints. */
 .app-shell[data-shell-moving="true"] [data-slot="chat-frame"] {
   will-change: transform;
-}
-
-.app-shell[data-shell-moving="true"] [data-slot="chat-pill"] {
-  will-change: opacity;
 }
 
 .app-shell[data-shell-moving="true"] [data-slot="sidebar"],
@@ -166,15 +152,11 @@
   box-shadow: 2px 0 6px -3px var(--chat-edge-shadow);
 }
 
-.app-shell [data-slot="chat-pill"] {
-  opacity: var(--shell-pill-opacity);
-}
-
 /* The chat column under Glass.
  *
  * Rust owns `data-material` and only writes "glass" when native vibrancy
  * actually applied, so CSS only reads it — the same contract primitives.css
- * states. The pill and the two chrome bands take a tint and no blur of their
+ * states. The column's own chrome bands take a tint and no blur of their
  * own: `.app-shell` is transparent in this material, so what is behind them is
  * already the vibrancy view's blurred sample, and a second backdrop-filter
  * over it is the nested-blur the material rules forbid.
@@ -182,16 +164,13 @@
  * Three tiers, which is what makes the column read as one object rather than
  * as a flat strip: the frame is the quiet canvas (--glass-canvas, the same
  * plate `.settings-main` takes), the header and composer are the denser bands
- * at its ends (--glass-tint-dense, because both carry type and controls), and
- * the pill is dense too — it is a 28px control on the window's own title-bar
- * row, where the sample behind it is whatever the desktop happens to be. */
+ * at its ends (--glass-tint-dense, because both carry type and controls). */
 :root[data-material="glass"] .app-shell [data-slot="chat-frame"] {
   background: var(--glass-canvas);
 }
 
 :root[data-material="glass"] .app-shell [data-slot="chat-header"],
-:root[data-material="glass"] .app-shell [data-slot="chat-composer"],
-:root[data-material="glass"] .app-shell [data-slot="chat-pill"] {
+:root[data-material="glass"] .app-shell [data-slot="chat-composer"] {
   background: var(--glass-tint-dense);
 }
 
@@ -205,8 +184,7 @@
   }
 
   :root[data-material="glass"] .app-shell [data-slot="chat-header"],
-  :root[data-material="glass"] .app-shell [data-slot="chat-composer"],
-  :root[data-material="glass"] .app-shell [data-slot="chat-pill"] {
+  :root[data-material="glass"] .app-shell [data-slot="chat-composer"] {
     background: var(--surface-raised);
   }
 }

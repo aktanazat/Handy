@@ -1006,8 +1006,8 @@ describe("the two gestures", () => {
   });
 });
 
-/* The pill and the column are one fold, so the shell is where that is
- * checkable: the pill's press has to move the same boolean the column reads,
+/* The rail's chat row and the column are one fold, so the shell is where that
+ * is checkable: the row's press has to move the same boolean the column reads,
  * and the column's width has to come off the two columns already there. */
 const shell = (chatOpen: boolean): string => {
   const restore = Object.getOwnPropertyDescriptor(globalThis, "window");
@@ -1080,13 +1080,15 @@ describe("the shell's one fold", () => {
     expect(pane).not.toMatch(/\bw-\[/);
   });
 
-  test("the pill is the door and the column's X is the way back", () => {
-    // Closed: one pill, saying the region it opens is not showing.
+  test("the rail's row is the door and the column's X is the way back", () => {
+    // Closed: one row, saying the region it opens is not showing.
     expect(shell(false)).toContain('aria-expanded="false"');
     expect(occurrences(shell(false), 'data-slot="chat-close"')).toBe(1);
-    // Open: the root fades an inert, hidden pill while the same single X owns close.
-    expect(occurrences(shell(true), 'data-slot="chat-pill"')).toBe(1);
-    expect(shell(true)).toContain('aria-hidden="true"');
+    /* Open: the row stays where it is and says so, and the same single X owns
+     * the way back out. A second closer beside the column is the duplication
+     * this fold exists without. */
+    expect(occurrences(shell(true), 'data-slot="chat-rail-row"')).toBe(1);
+    expect(shell(true)).toContain('aria-expanded="true"');
     expect(occurrences(shell(true), 'data-slot="chat-close"')).toBe(1);
   });
 

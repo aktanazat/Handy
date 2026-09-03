@@ -272,11 +272,11 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
 
   /* Where focus goes when the column opens.
    *
-   * It has to go somewhere: the press that opened it came from a pill that is
-   * becoming inert. The field takes that focus, rather than leaving it on a
-   * control the reader can no longer reach or falling back to the body — where
-   * Escape reaches nothing, because Escape is bound on this element rather than
-   * on the window.
+   * It has to go somewhere: the press that opened it came from the rail's chat
+   * row, which stays where it is. The field takes that focus, rather than
+   * leaving it on a control outside the column that Escape cannot reach, or
+   * falling back to the body — where Escape reaches nothing, because Escape is
+   * bound on this element rather than on the window.
    *
    * The field is what the column is for, so the caret belongs in it. On the
    * first paint after a press it cannot take the caret — that is the loading
@@ -291,13 +291,13 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
     }
     if (caretPlaced.current) return;
     const holder = document.activeElement;
-    const openedFromPill =
-      holder instanceof HTMLElement && holder.dataset.slot === "chat-pill";
+    const openedFromRail =
+      holder instanceof HTMLElement && holder.dataset.slot === "chat-rail-row";
     if (
       holder !== null &&
       holder !== document.body &&
       columnRef.current?.contains(holder) !== true &&
-      !openedFromPill
+      !openedFromRail
     )
       return;
     const field = fieldRef.current;

@@ -1,6 +1,6 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search } from "lucide-react";
+import { MessageSquare, Search } from "lucide-react";
 import { Kbd } from "@/components/vg/kbd";
 import {
   Tooltip,
@@ -28,6 +28,20 @@ export interface SidebarProps {
   currentSection: SidebarSection;
   onSectionChange: (section: SidebarSection) => void;
   onOpenCommand: () => void;
+  /**
+   * The agent's two settings. `agent_panel_enabled` off means the chat row
+   * does not exist; `agent_panel_paired` off means no relay would answer a
+   * turn, so the row is inert and says why.
+   */
+  agentPanel: { enabled: boolean; paired: boolean };
+  /**
+   * Whether the chat column is showing. The row reflects it — the column is a
+   * region this button discloses, not a destination — and never claims
+   * `aria-current` for it.
+   */
+  chatOpen: boolean;
+  /** Presses only ever open: closing belongs to the column's X and to Esc. */
+  onOpenChat: () => void;
   /**
    * The short-lived outgoing rail uses the same complete rendering as the
    * active one, but its separate slot keeps geometry readers on the structural
@@ -95,7 +109,8 @@ const useArrowNavigation = () => {
 };
 
 interface RowNameProps {
-  collapsed: boolean;
+  /** Whether the sentence is worth showing at all. */
+  show: boolean;
   /** Radix sides are physical; the rail is not. */
   side: "left" | "right";
   name: string;
@@ -103,8 +118,8 @@ interface RowNameProps {
 }
 
 /**
- * The name of a row whose name is not on screen, and nothing at all when it
- * is.
+ * What a row would say if it could: its name while the rail is glyphs, or the
+ * reason it is inert.
  *
  * Radix opens on focus as well as hover and points the trigger's
  * `aria-describedby` at the sentence while it is open, so a collapsed rail
@@ -112,13 +127,8 @@ interface RowNameProps {
  * `aria-label` either way: the tooltip is how a sighted reader recovers the
  * word, not how the row is named.
  */
-const RowName: React.FC<RowNameProps> = ({
-  collapsed,
-  side,
-  name,
-  children,
-}) =>
-  collapsed ? (
+const RowName: React.FC<RowNameProps> = ({ show, side, name, children }) =>
+  show ? (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent side={side}>{name}</TooltipContent>
@@ -132,6 +142,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentSection,
   onSectionChange,
   onOpenCommand,
+  agentPanel,
+  chatOpen,
+  onOpenChat,
   dataSlot = "sidebar",
   decorative = false,
   className,
@@ -140,6 +153,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const nav = useArrowNavigation();
   const isMac = useOsType() === "macos";
   const side = getLanguageDirection(i18n.language) === "rtl" ? "left" : "right";
+  const chatRowRef = useRef<HTMLButtonElement>(null);
+  const chatWasOpen = useRef(false);
+
+  /* Closing the column takes the element under the reader's focus off screen:
+   * the column's X and Escape are the only ways out, and both live inside it.
+   * Focus comes back to the row the press started from rather than falling to
+   * the body. Only after the column has actually been open, so a fresh window
+   * does not steal focus from whatever the route put it on — and never from
+   * the outgoing visual rail, which is `inert` and is not the real one. */
+  useEffect(() => {
+    if (decorative) return;
+    if (chatWasOpen.current && !chatOpen) chatRowRef.current?.focus();
+    chatWasOpen.current = chatOpen;
+  }, [chatOpen, decorative]);
 
   return (
     /* The rail carries the page's own surface and is closed by a hairline on
@@ -202,54 +229,116 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      {/* A search field that is really a button: it opens the command palette,
-          so it carries the shortcut that does the same thing instead of a
-          caret. It used to keep a plate — a raised fill and a hairline — and
-          the plate was plywood: background-100 is a 4% step off this rail and
-          the hairline is white at 14%, so on this surface neither one was
-          visible. An element that is not doing its job gets subtracted rather
-          than strengthened, so the row is flat like the nav rows under it and
-          the keycaps are what mark it as the chord's affordance. The global
-          Cmd/Ctrl+K binding lives in App.tsx.
+      {/* The rail's two actions, above the gap that separates them from the
+          destinations under it. Neither row is a place: Search opens the
+          command palette and Chat opens the chat column, so both sit outside
+          the `nav` landmark and outside its arrow ring, and neither can ever
+          take `aria-current`. Grouping them is what keeps a door from reading
+          as a page by sitting between two of them.
 
-          Collapsed it keeps the magnifier and loses the keycap: the chord is a
-          thing the row was advertising, and there is no width to advertise it
-          in. The binding itself is unaffected. */}
-      <RowName
-        collapsed={collapsed}
-        side={side}
-        name={t("commandPalette.open")}
-      >
-        <button
-          type="button"
-          className={cn(
-            "mb-3 flex flex-none items-center rounded-md text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none",
-            collapsed ? NAV_ROW_GLYPH : NAV_ROW_NAMED,
-          )}
-          aria-label={t("commandPalette.open")}
-          onClick={onOpenCommand}
-        >
-          {/* Pinned in px, not `size-3.5`. base.css puts the root at 14px, so
-              every rem token in this app renders at 87.5% — `size-3.5` would be
-              12.25px, and a glyph on a fractional box lands on half device
-              pixels and blurs. Padding and gaps stay on the shared rem scale
-              deliberately; only a value that draws a shape needs pinning. */}
-          <Search className="size-[14px] flex-none" aria-hidden="true" />
-          {!collapsed && (
-            <>
-              <span className="min-w-0 flex-1 truncate text-start text-[13px]">
-                {t("commandPalette.open")}
-              </span>
-              {/* One keycap, spelling the whole chord — the reference product
-                  sets its search chord as a single chip, and two boxes with a
-                  seam read fussier than the row they decorate. */}
-              <Kbd className="flex-none" aria-hidden="true">
-                {isMac ? "\u2318 K" : "Ctrl K"}
-              </Kbd>
-            </>
-          )}
-        </button>
-      </RowName>
+          The group owns the 12px gap rather than either row, so the spacing
+          below Search is the same whether the chat row is there or the agent
+          is switched off. */}
+      <div className="mb-3 flex flex-none flex-col gap-0.5">
+        {/* A search field that is really a button: it opens the command
+            palette, so it carries the shortcut that does the same thing
+            instead of a caret. It used to keep a plate — a raised fill and a
+            hairline — and the plate was plywood: background-100 is a 4% step
+            off this rail and the hairline is white at 14%, so on this surface
+            neither one was visible. An element that is not doing its job gets
+            subtracted rather than strengthened, so the row is flat like the
+            nav rows under it and the keycaps are what mark it as the chord's
+            affordance. The global Cmd/Ctrl+K binding lives in App.tsx.
+
+            Collapsed it keeps the magnifier and loses the keycap: the chord is
+            a thing the row was advertising, and there is no width to advertise
+            it in. The binding itself is unaffected. */}
+        <RowName show={collapsed} side={side} name={t("commandPalette.open")}>
+          <button
+            type="button"
+            className={cn(
+              "flex flex-none items-center rounded-md text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none",
+              collapsed ? NAV_ROW_GLYPH : NAV_ROW_NAMED,
+            )}
+            aria-label={t("commandPalette.open")}
+            onClick={onOpenCommand}
+          >
+            {/* Pinned in px, not `size-3.5`. base.css puts the root at 14px,
+                so every rem token in this app renders at 87.5% — `size-3.5`
+                would be 12.25px, and a glyph on a fractional box lands on half
+                device pixels and blurs. Padding and gaps stay on the shared rem
+                scale deliberately; only a value that draws a shape needs
+                pinning. */}
+            <Search className="size-[14px] flex-none" aria-hidden="true" />
+            {!collapsed && (
+              <>
+                <span className="min-w-0 flex-1 truncate text-start text-[13px]">
+                  {t("commandPalette.open")}
+                </span>
+                {/* One keycap, spelling the whole chord — the reference product
+                    sets its search chord as a single chip, and two boxes with a
+                    seam read fussier than the row they decorate. */}
+                <Kbd className="flex-none" aria-hidden="true">
+                  {isMac ? "\u2318 K" : "Ctrl K"}
+                </Kbd>
+              </>
+            )}
+          </button>
+        </RowName>
+
+        {/* The way into the chat column, and the reason there is no longer a
+            floating pill over the pane: every page puts its own primary action
+            at the top right of its title row, so a control the shell parked in
+            that corner covered whichever one the route happened to draw —
+            Library's "Import audio" among them. The rail is the one surface in
+            this window that no page draws into.
+
+            It carries the pill's three states unchanged. Off by setting is
+            nothing at all: a disabled row pointing at a switch the reader
+            turned off themselves is noise, and Settings is where it comes
+            back. Unpaired stays visible and inert with the reason in the
+            tooltip, because hiding it would make the fix undiscoverable.
+
+            `aria-expanded` and the pressed wash, never `aria-current`: the
+            column is a region this button discloses, not a sixth destination.
+            The press only ever opens — the column's X and Escape own the way
+            back out — so pressing it while the column is up is the same
+            request again and changes nothing. */}
+        {agentPanel.enabled && (
+          <RowName
+            show={collapsed || !agentPanel.paired}
+            side={side}
+            name={agentPanel.paired ? t("chat.open") : t("chat.unpaired")}
+          >
+            <button
+              type="button"
+              ref={chatRowRef}
+              data-slot="chat-rail-row"
+              /* The label reads "Chat", which does not say chat with what. The
+                 accessible name does. */
+              aria-label={t("chat.label")}
+              aria-expanded={agentPanel.paired ? chatOpen : undefined}
+              /* `aria-disabled`, not `disabled`: the reason it is inert lives
+                 in the tooltip above, and a `disabled` button takes neither
+                 hover nor focus, so it would be the one state that cannot
+                 reach its own explanation. Dimmed type rather than opacity,
+                 like every disabled settings row. */
+              aria-disabled={agentPanel.paired ? undefined : true}
+              onClick={agentPanel.paired ? onOpenChat : undefined}
+              className={cn(
+                NAV_ROW,
+                collapsed ? NAV_ROW_GLYPH : NAV_ROW_NAMED,
+                chatOpen && "bg-gray-alpha-200 text-gray-1000",
+                !agentPanel.paired &&
+                  "text-gray-800 hover:bg-transparent hover:text-gray-800",
+              )}
+            >
+              <MessageSquare aria-hidden="true" className="size-4 flex-none" />
+              {!collapsed && t("chat.open")}
+            </button>
+          </RowName>
+        )}
+      </div>
 
       <nav
         ref={nav.groupRef}
@@ -262,12 +351,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           const label = t(SECTIONS_CONFIG[section].labelKey);
           const current = section === currentSection;
           return (
-            <RowName
-              key={section}
-              collapsed={collapsed}
-              side={side}
-              name={label}
-            >
+            <RowName key={section} show={collapsed} side={side} name={label}>
               <button
                 type="button"
                 aria-current={current ? "page" : undefined}
