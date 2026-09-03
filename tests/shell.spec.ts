@@ -446,10 +446,13 @@ test.describe("the palette's content", () => {
   });
 });
 
-/* The palette's only animation. Motion is gone from this path, so what is
- * asserted is the CSS the kit's dialog already ships: `animate-in` resolves
- * `enter var(--tw-duration, .15s)`, and Tailwind's `duration-150` is what
- * pins it at 150ms instead of the kit's default 200. */
+/* The palette's only animation, and now the app's only popup animation: the
+ * shared `.popup-motion` shape from styles/primitives.css, which every
+ * floating surface wears so a menu, a modal and a toast all arrive the same
+ * way. What is asserted is that the palette is on it — 180ms of
+ * `--duration-standard` under the `popup-enter` name — rather than on the
+ * kit's own `enter` keyframe at the 150ms this surface used to override it
+ * to. */
 test.describe("the palette's motion", () => {
   const entrance = (page: Page) =>
     palette(page).evaluate((element) => {
@@ -457,13 +460,16 @@ test.describe("the palette's motion", () => {
       return { duration: style.animationDuration, name: style.animationName };
     });
 
-  test("enters on a 150ms fade and scale", async ({ page }) => {
+  test("enters on the shared 180ms popup shape", async ({ page }) => {
     await openApp(page);
 
     await page.keyboard.press("Meta+k");
     await expect(palette(page)).toBeVisible();
 
-    expect(await entrance(page)).toEqual({ duration: "0.15s", name: "enter" });
+    expect(await entrance(page)).toEqual({
+      duration: "0.18s",
+      name: "popup-enter",
+    });
   });
 
   test("a device that asked to reduce motion gets no travel", async ({
@@ -487,16 +493,59 @@ test.describe("the palette's motion", () => {
     await page.keyboard.press("Meta+k");
     await expect(palette(page)).toBeVisible();
 
-    /* App.css collapses every CSS animation to 0.01ms for this device, so the
-       palette is at its resting size on the first frame rather than growing
-       into it — and a resting `zoom-in-95` leaves no transform behind. */
-    const { duration } = await entrance(page);
+    /* Two halves of the one promise. App.css collapses every CSS animation to
+       0.01ms for this device, so the palette is at rest on the first frame and
+       carries no transform; and the shape it collapses is the fade-only
+       redefinition of `popup-enter`, so what is dropped is the movement rather
+       than the arrival. The second half is read off the stylesheet because a
+       0.01ms animation is over before `getAnimations` can be asked. */
+    const { duration, name } = await entrance(page);
+    expect(name).toBe("popup-enter");
     expect(Number.parseFloat(duration)).toBeLessThanOrEqual(0.001);
     await expect
       .poll(async () =>
         palette(page).evaluate((el) => getComputedStyle(el).transform),
       )
       .toBe("none");
+
+    expect(
+      await page.evaluate(() => {
+        /* Every @keyframes popup-enter in the cascade, in order, keeping only
+           the ones whose enclosing @media currently matches. The last of those
+           is the definition in force. */
+        const winning: string[][] = [];
+        const walk = (rules: CSSRuleList, live: boolean): void => {
+          for (const rule of Array.from(rules)) {
+            if (rule instanceof CSSMediaRule) {
+              walk(
+                rule.cssRules,
+                live && window.matchMedia(rule.conditionText).matches,
+              );
+            } else if (
+              live &&
+              rule instanceof CSSKeyframesRule &&
+              rule.name === "popup-enter"
+            ) {
+              winning.push(
+                Array.from(rule.cssRules).flatMap((frame) =>
+                  // SAFETY: every child of a CSSKeyframesRule is a
+                  // CSSKeyframeRule, whose `style` enumerates its properties.
+                  Array.from((frame as CSSKeyframeRule).style),
+                ),
+              );
+            }
+          }
+        };
+        for (const sheet of Array.from(document.styleSheets)) {
+          try {
+            walk(sheet.cssRules, true);
+          } catch {
+            /* A cross-origin sheet cannot be read and holds none of ours. */
+          }
+        }
+        return winning[winning.length - 1] ?? [];
+      }),
+    ).toEqual(["opacity", "opacity"]);
   });
 });
 

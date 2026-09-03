@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/vg/dialog";
 import { Kbd } from "@/components/vg/kbd";
+import { cn } from "@/lib/cn";
 import { formatRelativeTime } from "@/lib/utils/format";
 import {
   groupPaletteActions,
@@ -101,6 +102,27 @@ export interface CommandPaletteProps {
   onAsk: () => void;
 }
 
+/* One row of the list, and one heading over a set of them. Both were spelled
+ * out four and three times respectively; they are one string each now, because
+ * a row that reads differently in the actions section than in the results
+ * section is the shape this surface keeps regressing into.
+ *
+ * The icon is sized to the cap height of the 13px row rather than to the
+ * text's em box: at `size-4` it drew a 14px glyph beside a 9px capital, which
+ * is the "icon larger than the thing it labels" tell. 11px is that cap height,
+ * and lucide's 24-unit viewBox insets its ink, so the drawn mark lands just
+ * under the capitals — a monochrome mark beside the words, the way the
+ * reference panel does it. The muted tier comes from the kit's own
+ * `[&_svg:not([class*='text-'])]` rule, so only the size is stated here. */
+const ROW =
+  "min-h-9 gap-2.5 rounded-md px-2 py-2 text-[13px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300 [&_svg]:size-[11px]";
+
+/* 11px, secondary, sentence case: a heading over rows is the smallest type on
+ * the surface, not a second row. It shipped at the rows' own 13px, which made
+ * every section label compete with the things under it. */
+const GROUP =
+  "p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:leading-4 [&_[cmdk-group-heading]]:text-gray-900";
+
 interface ResultRowProps {
   row: QueryRow;
   icon: LucideIcon;
@@ -125,9 +147,9 @@ const ResultRow: React.FC<ResultRowProps> = ({
   <CommandItem
     value={rowValue(row)}
     onSelect={onSelect}
-    className="min-h-9 items-start gap-2.5 rounded-md px-2 py-2 text-[13px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300"
+    className={cn(ROW, "items-start")}
   >
-    <RowIcon aria-hidden="true" className="mt-0.5 size-4" />
+    <RowIcon aria-hidden="true" className="mt-[3px]" />
     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
       <span className="truncate">{row.title}</span>
       {row.snippet !== "" && (
@@ -136,7 +158,7 @@ const ResultRow: React.FC<ResultRowProps> = ({
         </span>
       )}
     </span>
-    <span className="flex-none pt-0.5 text-[11px] text-gray-800 tabular-nums">
+    <span className="flex-none pt-0.5 text-[11px] text-gray-900 tabular-nums">
       {formatRelativeTime(row.when_utc_ms, now)}
     </span>
   </CommandItem>
@@ -153,7 +175,14 @@ const SearchNotice: React.FC<{ message: string }> = ({ message }) => {
   const count = useCommandState((state) => state.filtered.count);
   if (count === 0) return null;
   return (
-    <p className="px-3.5 pt-1 pb-3 text-[11px] text-gray-800" role="status">
+    /* Its own row, divided off the list above it: a sentence tucked under the
+     * last group read as that group's own footnote, and this one is about the
+     * whole search. gray-900 rather than gray-800 because it is prose — 3.0:1
+     * is not a contrast a sentence somebody has to read may ship at. */
+    <p
+      className="border-t border-gray-alpha-400 px-4 py-2 text-[11px] leading-4 text-gray-900"
+      role="status"
+    >
       {message}
     </p>
   );
@@ -318,10 +347,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         showCloseButton={false}
         /* Sits high rather than centred — a palette is read against the top of
            the window, not its middle — so the kit's vertical centring is
-           replaced outright instead of offset. `glass-surface` is inert until
-           the Material setting is Glass and native vibrancy actually applied;
-           see styles/primitives.css. */
-        className="glass-surface top-[max(12vh,64px)] translate-y-0 gap-0 overflow-hidden border border-gray-alpha-400 bg-background-100 p-0 duration-150 sm:max-w-[560px]"
+           replaced outright instead of offset.
+
+           A floating panel, not a modal sheet: `--radius-panel` and the glass
+           shadow, over the dialog's own 18px and `--shadow-dialog`. Under
+           Glass the material rule in styles/primitives.css replaces the fill
+           with `--glass-tint` and adds the specular line above this same
+           shadow, so the lift is one soft shadow in either material; under
+           Solid the panel is `--surface-raised`, which is the step a floating
+           object takes over the page it floats on. `bg-background-100` was the
+           page's own colour, so the panel read as a hole in the window rather
+           than as a card over it. */
+        className="glass-surface top-[max(12vh,64px)] translate-y-0 gap-0 overflow-hidden rounded-panel border border-gray-alpha-400 bg-surface-raised p-0 shadow-[var(--glass-shadow)] sm:max-w-[560px]"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>{t("commandPalette.open")}</DialogTitle>
@@ -347,7 +384,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               value={query}
               onValueChange={setQuery}
               placeholder={t("commandPalette.placeholder")}
-              className="pe-14 text-[14px] leading-[20px] text-gray-1000 placeholder:text-gray-800 focus-visible:outline-none"
+              className="pe-14 text-[14px] leading-[20px] text-gray-1000 placeholder:text-gray-900 focus-visible:outline-none"
             />
             {/* The one hint the palette carries. The chord that opens it is
                 taught by the sidebar row; repeating it here would be the
@@ -370,7 +407,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               <CommandGroup
                 key={section.group}
                 heading={groupLabels[section.group]}
-                className="p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-[13px] [&_[cmdk-group-heading]]:leading-5 [&_[cmdk-group-heading]]:text-gray-900"
+                className={GROUP}
               >
                 {section.items.map((action) => {
                   const ActionIcon = action.icon;
@@ -395,9 +432,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                          it replaced gave them. gray-900 is for prose; a row you
                          are scanning to pick is not prose. The muted tiers stay
                          where they belong — group headings and the icons. */
-                      className="min-h-9 gap-2.5 rounded-md px-2 py-2 text-[13px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300"
+                      className={ROW}
                     >
-                      <ActionIcon aria-hidden="true" className="size-4" />
+                      <ActionIcon aria-hidden="true" />
                       <span className="min-w-0 truncate">{action.label}</span>
                     </CommandItem>
                   );
@@ -411,7 +448,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             {promptTarget !== null && prompts.length > 0 && (
               <CommandGroup
                 heading={t("commandPalette.runPrompt")}
-                className="p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-[13px] [&_[cmdk-group-heading]]:leading-5 [&_[cmdk-group-heading]]:text-gray-900"
+                className={GROUP}
               >
                 {prompts.map((prompt) => (
                   <CommandItem
@@ -419,9 +456,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     value={`prompt-run:${prompt.prompt_id}`}
                     keywords={[prompt.name]}
                     onSelect={() => run(prompt)}
-                    className="min-h-9 gap-2.5 rounded-md px-2 py-2 text-[13px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300"
+                    className={ROW}
                   >
-                    <Sparkles aria-hidden="true" className="size-4" />
+                    <Sparkles aria-hidden="true" />
                     <span className="min-w-0 truncate">{prompt.name}</span>
                   </CommandItem>
                 ))}
@@ -431,7 +468,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               <CommandGroup
                 key={section.kind}
                 heading={t(resultHeadingKeys[section.kind])}
-                className="p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-[13px] [&_[cmdk-group-heading]]:leading-5 [&_[cmdk-group-heading]]:text-gray-900"
+                className={GROUP}
               >
                 {section.rows.map((row) => (
                   <ResultRow
@@ -447,12 +484,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             {notice !== null && <SearchNotice message={notice} />}
             {asking && (
               <CommandGroup className="p-1.5">
-                <CommandItem
-                  value={ASK_VALUE}
-                  onSelect={ask}
-                  className="min-h-9 gap-2.5 rounded-md px-2 py-2 text-[13px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300"
-                >
-                  <MessageSquare aria-hidden="true" className="size-4" />
+                <CommandItem value={ASK_VALUE} onSelect={ask} className={ROW}>
+                  <MessageSquare aria-hidden="true" />
                   <span className="min-w-0 truncate">
                     {t("chat.ask.row", { query: query.trim() })}
                   </span>

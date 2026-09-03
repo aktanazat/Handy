@@ -13,6 +13,7 @@
 @import "../styles/base.css";
 @import "../styles/shell.css";
 @import "../styles/primitives.css";
+@import "../styles/popups.css";
 @import "../styles/aurora.css";
 
 /* Theme values are owned by styles/theme.css above. */

@@ -37,8 +37,13 @@ function DialogOverlay({
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
+      /* The scrim fades on the same clock as the surface it dims — in on
+       * --duration-standard, out on --duration-fast — so the two never read as
+       * two events. Opacity only: `.popup-motion`'s scale would shrink a fixed
+       * inset-0 layer and show the page's edges through its corners for a
+       * frame. */
       className={cn(
-        "fixed inset-0 z-50 bg-backdrop data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
+        "fixed inset-0 z-50 bg-backdrop ease-[var(--ease-in-out)] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-[var(--duration-fast)] data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:duration-[var(--duration-standard)] data-[state=open]:ease-[var(--ease-out)]",
         className,
       )}
       {...props}
@@ -60,8 +65,15 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        /* `popup-motion` (styles/popups.css) is the one entrance and exit
+         * every floating surface in the app shares: 180ms on --ease-out from
+         * --popup-enter-scale in, 120ms on --ease-in-out to opacity 0 out,
+         * fade-only under reduced motion. It replaces the kit's `animate-in`
+         * stack, whose 0.95 zoom and 200ms were a second dialect of the same
+         * sentence — and whose scale the palette then re-timed to 150ms, so no
+         * two popups in the app moved alike. */
         className={cn(
-          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-dialog border bg-background p-6 shadow-[var(--shadow-dialog)] duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg",
+          "popup-motion fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-dialog border bg-background p-6 shadow-[var(--shadow-dialog)] outline-none sm:max-w-lg",
           className,
         )}
         {...props}
