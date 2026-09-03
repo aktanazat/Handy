@@ -662,7 +662,13 @@ pub fn apply_window_theme(app: &AppHandle, theme: Theme) {
 }
 
 /// Windows whose document follows the Material setting: every window there is.
-const MATERIAL_WINDOWS: [&str; 2] = ["main", "recording_overlay"];
+/// The consent panel is its own NSPanel and its own vibrancy view, so its
+/// truth is tracked separately from the main window's.
+const MATERIAL_WINDOWS: [&str; 3] = [
+    "main",
+    "recording_overlay",
+    crate::meeting::consent_panel::CONSENT_PANEL_LABEL,
+];
 
 /// The material actually in force — intent AND a live vibrancy view. Cached so
 /// a document that loads later (a reload, or the overlay window being created
@@ -670,11 +676,31 @@ const MATERIAL_WINDOWS: [&str; 2] = ["main", "recording_overlay"];
 /// Written only by `apply_window_material`.
 static GLASS_IN_FORCE: AtomicBool = AtomicBool::new(false);
 
+/// The same, for the consent panel: it is created after the material is first
+/// applied, and its vibrancy can fail on its own.
+static CONSENT_GLASS_IN_FORCE: AtomicBool = AtomicBool::new(false);
+
 fn material_in_force() -> AppearanceMaterial {
     if GLASS_IN_FORCE.load(Ordering::Relaxed) {
         AppearanceMaterial::Glass
     } else {
         AppearanceMaterial::Solid
+    }
+}
+
+fn consent_material_in_force() -> AppearanceMaterial {
+    if CONSENT_GLASS_IN_FORCE.load(Ordering::Relaxed) {
+        AppearanceMaterial::Glass
+    } else {
+        AppearanceMaterial::Solid
+    }
+}
+
+fn material_for(label: &str) -> AppearanceMaterial {
+    if label == crate::meeting::consent_panel::CONSENT_PANEL_LABEL {
+        consent_material_in_force()
+    } else {
+        material_in_force()
     }
 }
 
@@ -694,7 +720,7 @@ pub fn reassert_window_material(webview: &tauri::Webview) {
     if !MATERIAL_WINDOWS.contains(&webview.label()) {
         return;
     }
-    if let Err(error) = webview.eval(&material_script(material_in_force())) {
+    if let Err(error) = webview.eval(material_script(material_for(webview.label()))) {
         warn!(
             "Could not restore the {} window material: {error}",
             webview.label()
@@ -710,7 +736,8 @@ pub fn reassert_window_material(webview: &tauri::Webview) {
 /// is written to every relevant webview's `data-material` — which makes this
 /// the single owner of that attribute. The frontend never sets it.
 ///
-/// Vibrancy is applied to the main window only. The recording overlay is a
+/// Vibrancy is applied to the main window and, separately, to the meeting
+/// consent panel, whose window is exactly its card. The recording overlay is a
 /// transparent panel sized larger than the card it draws (256x46 around a
 /// 184x40 pill, and the card animates its own width), so a window-scoped
 /// NSVisualEffectView would paint a frosted rectangle around the pill; its card
@@ -718,15 +745,78 @@ pub fn reassert_window_material(webview: &tauri::Webview) {
 pub fn apply_window_material(app: &AppHandle, material: AppearanceMaterial) -> AppearanceMaterial {
     let effective = resolve_window_material(app, material);
     GLASS_IN_FORCE.store(effective == AppearanceMaterial::Glass, Ordering::Relaxed);
-    let script = material_script(effective);
+    // The panel may not exist yet at startup; `apply_consent_panel_material`
+    // runs again from `consent_panel::create` once it does.
+    apply_consent_panel_material(app);
     for label in MATERIAL_WINDOWS {
         if let Some(window) = app.get_webview_window(label) {
-            if let Err(error) = window.eval(&script) {
+            if let Err(error) = window.eval(material_script(material_for(label))) {
                 warn!("Could not set the {label} window material: {error}");
             }
         }
     }
     effective
+}
+
+/// Puts the material in force on the consent panel, whose window is created
+/// after the first apply. Its card fills the window, so the vibrancy view is
+/// exactly the card and its radius is the card's.
+pub fn apply_consent_panel_material(app: &AppHandle) {
+    let label = crate::meeting::consent_panel::CONSENT_PANEL_LABEL;
+    let effective = resolve_consent_panel_material(app, material_in_force());
+    CONSENT_GLASS_IN_FORCE.store(effective == AppearanceMaterial::Glass, Ordering::Relaxed);
+    if let Some(window) = app.get_webview_window(label) {
+        if let Err(error) = window.eval(material_script(effective)) {
+            warn!("Could not set the {label} window material: {error}");
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn resolve_consent_panel_material(
+    app: &AppHandle,
+    material: AppearanceMaterial,
+) -> AppearanceMaterial {
+    use window_vibrancy::{
+        apply_vibrancy, clear_vibrancy, NSVisualEffectMaterial, NSVisualEffectState,
+    };
+
+    let Some(window) = app.get_webview_window(crate::meeting::consent_panel::CONSENT_PANEL_LABEL)
+    else {
+        return AppearanceMaterial::Solid;
+    };
+    match material {
+        AppearanceMaterial::Solid => {
+            if let Err(error) = clear_vibrancy(&window) {
+                warn!("Could not clear the consent panel's vibrancy: {error}");
+            }
+            AppearanceMaterial::Solid
+        }
+        // Popover rather than UnderWindowBackground: this is a floating panel
+        // over other applications, and Active rather than
+        // FollowsWindowActiveState because a prompt is answered while the app
+        // behind it keeps focus.
+        AppearanceMaterial::Glass => match apply_vibrancy(
+            &window,
+            NSVisualEffectMaterial::Popover,
+            Some(NSVisualEffectState::Active),
+            Some(crate::meeting::consent_panel::PANEL_CORNER_RADIUS),
+        ) {
+            Ok(()) => AppearanceMaterial::Glass,
+            Err(error) => {
+                warn!("Could not frost the consent panel; using the solid material: {error}");
+                AppearanceMaterial::Solid
+            }
+        },
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn resolve_consent_panel_material(
+    _app: &AppHandle,
+    _material: AppearanceMaterial,
+) -> AppearanceMaterial {
+    AppearanceMaterial::Solid
 }
 
 #[cfg(target_os = "macos")]
