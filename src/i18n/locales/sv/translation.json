@@ -527,7 +527,30 @@
           "descriptionCustom": "Ange det modell-ID som din anpassade server förväntar sig.",
           "placeholderWithOptions": "Sök eller välj en modell",
           "placeholderNoOptions": "Ange ett modellnamn",
-          "refreshModels": "Uppdatera modeller"
+          "refreshModels": "Uppdatera modeller",
+          "search": "Sök modeller",
+          "useCustom": "Använd “{{modelId}}”",
+          "source": {
+            "provider": "Leverantör",
+            "cached": "Cachelagrad",
+            "saved": "Sparad",
+            "manual": "Manuell"
+          },
+          "status": {
+            "loading": "Laddar modeller",
+            "savedNotInLatest": "Det sparade valet finns inte i leverantörens senaste lista.",
+            "cachedFallback": "Använder den senaste modellistan som lästes in i det här fönstret.",
+            "requiresConsent": "Tillåt fjärröverföring av text innan modeller läses in.",
+            "requiresCredential": "Lägg till en API-nyckel innan modeller läses in.",
+            "credentialUnavailable": "API-nyckeln är inte tillgänglig.",
+            "credentialLocked": "Lås upp API-nyckeln innan modeller läses in.",
+            "unsupported": "Den här leverantören publicerar ingen kompatibel modellista. Ange ett modell-ID manuellt.",
+            "unauthorized": "Leverantören avvisade API-nyckeln.",
+            "forbidden": "Leverantören tillåter inte den här modellistan.",
+            "rateLimited": "Leverantören begränsar hur ofta modeller kan sökas.",
+            "unreachable": "Sona kunde inte nå den här leverantören.",
+            "invalidResponse": "Leverantören returnerade en ogiltig modellista."
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "Laddar historik…",
       "empty": "Inga inspelningar ännu.",
       "copyToClipboard": "Kopiera transkription till urklipp",
+      "copyFailed": "Det gick inte att kopiera transkriberingen",
       "save": "Spara post",
       "unsave": "Ta bort från sparade",
       "delete": "Ta bort post",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "Levererad",
           "definitely_not_dispatched": "Inte skickat",
-          "dispatched_but_unconfirmed": "Skickat, inte bekräftat"
+          "dispatched_but_unconfirmed": "Skickat, inte bekräftat",
+          "dispatched_under_secure_input": "Skickat med Secure Input på"
         },
         "modeLabel": "Läge",
         "revisionLabel": "Inställningsversion",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "Ingenting kom fram alls. Tryck på några tangenter medan diagnostiken körs.",
         "verdictOk": "Tangenter når Sona.",
         "failed": "Diagnostiken kunde inte köras: {{error}}",
+        "inputMonitoringDenied": "Sona kan inte läsa tangentbordshändelser. Tillåt Inmatningsövervakning och försök igen.",
         "keyDown": "Tangent ned",
         "keyUp": "Tangent upp",
         "flagsChanged": "Modifierare",
@@ -2106,7 +2132,8 @@
       "export_failed": "Exporten misslyckades. Ingen färdig export skapades.",
       "local_model_unavailable": "Ingen lokal modell är tillgänglig för det här mötet.",
       "remote_unavailable": "Den valda fjärrdestinationen är inte tillgänglig.",
-      "import_unreadable": "Sona kunde inte läsa den filen som en inspelning eller en transkriptexport."
+      "import_unreadable": "Sona kunde inte läsa den filen som en inspelning eller en transkriptexport.",
+      "profile_merge_resolution_required": "Sona behöver veta vilken sparad röst som ska behållas innan de här personerna slås samman."
     },
     "discard": {
       "liveTitle": "Stoppa och släng den här sessionen?",
@@ -2144,6 +2171,21 @@
       "speakerName": "Talarnamn",
       "renameSpeaker": "Byt namn på den här talaren",
       "samePersonAs": "Samma person som {{name}}",
+      "unresolvedSpeakers_one": "1 talare att märka",
+      "unresolvedSpeakers_other": "{{count}} talare att märka",
+      "labelSpeaker": "Märk talare",
+      "correctSpeaker": "Korrigera talare",
+      "labelSpeakerNamed": "Märk {{speaker}}",
+      "correctSpeakerNamed": "Korrigera {{speaker}}",
+      "identityPerson": "Välj en person",
+      "identityNewPerson": "Ny person",
+      "identityExistingPerson": "Befintlig person",
+      "identityNewPersonName": "Den nya personens namn",
+      "markUnknown": "Markera som okänd",
+      "markUnknownDescription": "Transkriptionen slutar namnge {{speaker}}, och Sona raderar de röstprover som sparats för den här talaren. Transkriptionstexten och dina anteckningar blir kvar.",
+      "rememberVoice": "Kom ihåg den här rösten på denna Mac",
+      "notNow": "Inte nu",
+      "rememberVoiceFailed": "Etiketten sparades. Sona kunde inte komma ihåg den här rösten från det här mötet. Prova ett annat möte.",
       "manualNotes": "Manuella anteckningar",
       "manualNote": "Manuell anteckning",
       "newNote": "Ny manuell anteckning",
@@ -2184,10 +2226,10 @@
         "manualNote": "Manuell anteckning",
         "title": "Mötestitel"
       },
+      "generationFailedDescription": "Transkriptionen och dina egna anteckningar påverkas inte. Generera om när orsaken är åtgärdad.",
       "noGeneratedNotesDescription": "Genererade anteckningar härleds från transkriptet, så de kan byggas om när som helst.",
       "processingDescription": "Genererade anteckningar och lokala svar visas när transkriptet är klart.",
       "processingTitle": "Sona bearbetar fortfarande detta möte",
-      "remoteProcessingUnavailable": "Fjärrdestinationen blev aldrig tillgänglig, så inget genererades. Omgenerering körs på den här datorn.",
       "tabs": {
         "insights": "Insikter",
         "ledger": "Register",
@@ -2552,7 +2594,7 @@
     "scopeLabel": "Vem svarar",
     "scope": {
       "sona_chat": "Fråga",
-      "sona_config": "Inställningar"
+      "sona_config": "Konfigurera"
     },
     "workedFor": "Arbetade i {{seconds}} s",
     "stepSeconds": "{{seconds}} s",
@@ -2607,7 +2649,7 @@
       "receipt": "Kvitto {{id}}"
     },
     "consent": {
-      "notice": "Sona svarar på frågor om dina inspelningar när du tillåter att matchande citat skickas till din server.",
+      "notice": "Sona svarar på frågor om dina inspelningar när du slår på mötesintelligens. Det skickar matchande citat till din server och skriver även anteckningarna från alla senare möten där.",
       "allow": "Tillåt"
     },
     "tool": {
@@ -2678,7 +2720,7 @@
       "resume": "Återuppta synkronisering"
     },
     "setup": {
-      "title": "Ställ in ett synkroniseringskonto",
+      "title": "Konfigurera synk — distribuera din Worker först",
       "endpoint": "Serveradress",
       "bootstrapSecret": "Konfigurationshemlighet",
       "submit": "Ställ in synkronisering"
@@ -2779,6 +2821,11 @@
       "rename": "Byt namn",
       "personActions": "Personåtgärder",
       "deletePerson": "Ta bort person",
+      "removeVoiceProfile": "Ta bort röstprofil",
+      "removeVoiceProfileTitle": "Ta bort röstprofil?",
+      "removeVoiceProfileDescription": "Sona slutar komma ihåg den här rösten på denna Mac. Personens namn och möteslänkar finns kvar.",
+      "voiceProfileRemoved": "Sona slutade komma ihåg den här rösten på denna Mac.",
+      "voiceProfileRemovalFailed": "Det gick inte att ta bort röstprofilen. Försök igen.",
       "aliases": "Även: {{aliases}}",
       "merge": "Slå ihop",
       "mergeTitle": "Slå ihop den här personen?",
@@ -3102,6 +3149,8 @@
       "waitingOn": "Väntar på ({{count}})",
       "openNotes": "Öppna anteckningar",
       "copyFollowUp": "Kopiera uppföljning",
+      "unresolvedSpeakers_one": "1 talare att märka",
+      "unresolvedSpeakers_other": "{{count}} talare att märka",
       "copied": "Kopierat",
       "done": "Klar"
     }
@@ -3146,6 +3195,62 @@
       "primed": "Förberedde ett återkommande möte",
       "noticed_one": "Lade märke till 1 sak",
       "noticed_other": "Lade märke till {{count}} saker"
+    }
+  },
+  "recorder": {
+    "open": "Spela in skärm",
+    "title": "Spela in skärm",
+    "screen": "Skärm",
+    "required": "Obligatoriskt",
+    "chooseScreen": "Välj skärm",
+    "change": "Ändra",
+    "camera": "Kamera",
+    "microphone": "Mikrofon",
+    "unavailable": "Inte tillgänglig",
+    "screenSelected": "Skärm vald",
+    "elapsed": "Förfluten tid",
+    "start": "Starta inspelning",
+    "resume": "Återuppta",
+    "stopAndSave": "Stoppa och spara",
+    "reveal": "Visa",
+    "done": "Klar",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "Kontrollerar",
+      "permission": "Behörighet krävs",
+      "idle": "Konfigurera",
+      "selectingSource": "Väljer källa",
+      "previewing": "Förhandsvisning klar",
+      "starting": "Startar inspelning",
+      "recording": "Spelar in",
+      "paused": "Pausad",
+      "finalizing": "Sparar inspelning",
+      "saved": "Sparad",
+      "failed": "Kräver åtgärd"
+    },
+    "permission": {
+      "screen": "Tillåt skärminspelning för att välja en källa.",
+      "camera": "Tillåt åtkomst till kameran för att använda den i inspelningen.",
+      "microphone": "Tillåt åtkomst till mikrofonen för att använda den i inspelningen.",
+      "grant": "Ge åtkomst",
+      "recheck": "Kontrollera igen"
+    },
+    "error": {
+      "unsupported": "Skärminspelning kräver macOS 14 eller senare.",
+      "captureBusy": "En annan Sona-inspelning använder mikrofonen.",
+      "screenPermissionDenied": "Åtkomst till skärminspelning nekades.",
+      "cameraPermissionDenied": "Åtkomst till kameran nekades.",
+      "microphonePermissionDenied": "Åtkomst till mikrofonen nekades.",
+      "sourceSelectionCancelled": "Valet av källa avbröts.",
+      "sourceUnavailable": "Den valda skärmen är inte längre tillgänglig.",
+      "cameraUnavailable": "Den valda kameran är inte längre tillgänglig.",
+      "microphoneUnavailable": "Den valda mikrofonen är inte längre tillgänglig.",
+      "streamFailed": "Inspelningsströmmen stoppades oväntat.",
+      "timestampDiscontinuity": "Inspelningens tidslinje blev ogiltig.",
+      "writerFailed": "Inspelningen kunde inte skrivas.",
+      "outputFinalizeFailed": "Inspelningen kunde inte slutföras.",
+      "outputCommitFailed": "Inspelningen kunde inte sparas.",
+      "revealFailed": "Mappen med inspelningar kunde inte öppnas."
     }
   }
 }

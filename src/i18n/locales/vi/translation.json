@@ -527,7 +527,30 @@
           "descriptionCustom": "Nhập ID mô hình mà máy chủ tùy chỉnh của bạn yêu cầu.",
           "placeholderWithOptions": "Tìm kiếm hoặc chọn một mô hình",
           "placeholderNoOptions": "Nhập tên mô hình",
-          "refreshModels": "Làm mới mô hình"
+          "refreshModels": "Làm mới mô hình",
+          "search": "Tìm kiếm mô hình",
+          "useCustom": "Dùng “{{modelId}}”",
+          "source": {
+            "provider": "Nhà cung cấp",
+            "cached": "Đã lưu vào bộ nhớ đệm",
+            "saved": "Đã lưu",
+            "manual": "Thủ công"
+          },
+          "status": {
+            "loading": "Đang tải mô hình",
+            "savedNotInLatest": "Lựa chọn đã lưu không có trong danh sách mới nhất của nhà cung cấp.",
+            "cachedFallback": "Đang dùng danh sách mô hình được tải gần nhất trong cửa sổ này.",
+            "requiresConsent": "Hãy cho phép truyền văn bản từ xa trước khi tải mô hình.",
+            "requiresCredential": "Thêm khóa API trước khi tải mô hình.",
+            "credentialUnavailable": "Khóa API không khả dụng.",
+            "credentialLocked": "Mở khóa khóa API trước khi tải mô hình.",
+            "unsupported": "Nhà cung cấp này không công bố danh sách mô hình tương thích. Hãy nhập ID mô hình thủ công.",
+            "unauthorized": "Nhà cung cấp đã từ chối khóa API.",
+            "forbidden": "Nhà cung cấp không cho phép danh sách mô hình này.",
+            "rateLimited": "Nhà cung cấp đang giới hạn việc tìm mô hình.",
+            "unreachable": "Sona không thể kết nối với nhà cung cấp này.",
+            "invalidResponse": "Nhà cung cấp đã trả về danh sách mô hình không hợp lệ."
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "Đang tải lịch sử…",
       "empty": "Chưa có bản ghi âm nào.",
       "copyToClipboard": "Sao chép bản ghi vào clipboard",
+      "copyFailed": "Không thể sao chép bản chép lời",
       "save": "Lưu mục",
       "unsave": "Xóa khỏi đã lưu",
       "delete": "Xóa mục",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "Đã chèn",
           "definitely_not_dispatched": "Chưa gửi",
-          "dispatched_but_unconfirmed": "Đã gửi, chưa xác nhận"
+          "dispatched_but_unconfirmed": "Đã gửi, chưa xác nhận",
+          "dispatched_under_secure_input": "Đã gửi khi Secure Input đang bật"
         },
         "modeLabel": "Chế độ",
         "revisionLabel": "Phiên bản cài đặt",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "Không có gì đến cả. Hãy nhấn vài phím trong khi chẩn đoán đang chạy.",
         "verdictOk": "Các phím đến được Sona.",
         "failed": "Không thể chạy chẩn đoán: {{error}}",
+        "inputMonitoringDenied": "Sona không thể đọc các sự kiện bàn phím. Hãy cho phép Giám sát đầu vào rồi thử lại.",
         "keyDown": "Nhấn phím",
         "keyUp": "Nhả phím",
         "flagsChanged": "Phím bổ trợ",
@@ -2100,7 +2126,8 @@
       "export_failed": "Việc xuất thất bại. Không có bản xuất hoàn tất nào được tạo.",
       "local_model_unavailable": "Không có mô hình cục bộ nào khả dụng cho cuộc họp này.",
       "remote_unavailable": "Đích từ xa đã chọn không khả dụng.",
-      "import_unreadable": "Sona không thể đọc tệp đó dưới dạng bản ghi âm hay bản chép lời đã xuất."
+      "import_unreadable": "Sona không thể đọc tệp đó dưới dạng bản ghi âm hay bản chép lời đã xuất.",
+      "profile_merge_resolution_required": "Sona cần biết giữ lại giọng nói đã lưu nào trước khi gộp những người này."
     },
     "discard": {
       "liveTitle": "Dừng và loại bỏ phiên này?",
@@ -2138,6 +2165,20 @@
       "speakerName": "Tên người nói",
       "renameSpeaker": "Đổi tên người nói này",
       "samePersonAs": "Cùng một người với {{name}}",
+      "unresolvedSpeakers_other": "{{count}} người nói cần gắn nhãn",
+      "labelSpeaker": "Gắn nhãn người nói",
+      "correctSpeaker": "Sửa người nói",
+      "labelSpeakerNamed": "Gắn nhãn {{speaker}}",
+      "correctSpeakerNamed": "Sửa {{speaker}}",
+      "identityPerson": "Chọn một người",
+      "identityNewPerson": "Người mới",
+      "identityExistingPerson": "Người hiện có",
+      "identityNewPersonName": "Tên người mới",
+      "markUnknown": "Đánh dấu là không xác định",
+      "markUnknownDescription": "Bản chép lời sẽ ngừng gọi tên {{speaker}}, và Sona sẽ xóa các mẫu giọng đã lưu cho người nói này. Nội dung bản chép lời và ghi chú của bạn vẫn được giữ.",
+      "rememberVoice": "Ghi nhớ giọng nói này trên máy Mac này",
+      "notNow": "Để sau",
+      "rememberVoiceFailed": "Nhãn đã được lưu. Sona không thể ghi nhớ giọng nói này từ cuộc họp này. Hãy thử một cuộc họp khác.",
       "manualNotes": "Ghi chú thủ công",
       "manualNote": "Ghi chú thủ công",
       "newNote": "Ghi chú thủ công mới",
@@ -2178,10 +2219,10 @@
         "manualNote": "Ghi chú thủ công",
         "title": "Tiêu đề cuộc họp"
       },
+      "generationFailedDescription": "Bản ghi và ghi chú tay của bạn không bị ảnh hưởng. Hãy tạo lại sau khi nguyên nhân được khắc phục.",
       "noGeneratedNotesDescription": "Ghi chú được tạo bắt nguồn từ bản ghi thoại, nên có thể tạo lại bất cứ lúc nào.",
       "processingDescription": "Ghi chú được tạo và câu trả lời cục bộ sẽ xuất hiện khi bản ghi thoại hoàn tất.",
       "processingTitle": "Sona vẫn đang xử lý cuộc họp này",
-      "remoteProcessingUnavailable": "Đích từ xa không bao giờ khả dụng, nên không có gì được tạo. Việc tạo lại sẽ chạy trên máy Mac này.",
       "tabs": {
         "insights": "Thông tin chuyên sâu",
         "ledger": "Sổ ghi",
@@ -2546,7 +2587,7 @@
     "scopeLabel": "Ai trả lời",
     "scope": {
       "sona_chat": "Hỏi",
-      "sona_config": "Cài đặt"
+      "sona_config": "Cấu hình"
     },
     "workedFor": "Đã chạy {{seconds}} giây",
     "stepSeconds": "{{seconds}} giây",
@@ -2601,7 +2642,7 @@
       "receipt": "Biên nhận {{id}}"
     },
     "consent": {
-      "notice": "Sona sẽ trả lời về các bản ghi của bạn sau khi bạn cho phép gửi các trích dẫn phù hợp đến máy chủ của bạn.",
+      "notice": "Sona sẽ trả lời về các bản ghi của bạn sau khi bạn bật trí tuệ cho cuộc họp. Việc này gửi các trích dẫn phù hợp đến máy chủ của bạn, và ghi chú của mọi cuộc họp sau này cũng được viết trên máy chủ đó.",
       "allow": "Cho phép"
     },
     "tool": {
@@ -2670,7 +2711,7 @@
       "resume": "Tiếp tục đồng bộ"
     },
     "setup": {
-      "title": "Thiết lập tài khoản đồng bộ",
+      "title": "Thiết lập đồng bộ — triển khai Worker đi kèm trước",
       "endpoint": "Địa chỉ máy chủ",
       "bootstrapSecret": "Khóa bí mật thiết lập",
       "submit": "Thiết lập đồng bộ"
@@ -2771,6 +2812,11 @@
       "rename": "Đổi tên",
       "personActions": "Thao tác với người này",
       "deletePerson": "Xóa người",
+      "removeVoiceProfile": "Xóa hồ sơ giọng nói",
+      "removeVoiceProfileTitle": "Xóa hồ sơ giọng nói?",
+      "removeVoiceProfileDescription": "Sona sẽ ngừng ghi nhớ giọng nói này trên máy Mac này. Tên người đó và các liên kết cuộc họp vẫn được giữ lại.",
+      "voiceProfileRemoved": "Sona đã ngừng ghi nhớ giọng nói này trên máy Mac này.",
+      "voiceProfileRemovalFailed": "Không thể xóa hồ sơ giọng nói. Hãy thử lại.",
       "aliases": "Còn gọi là: {{aliases}}",
       "merge": "Hợp nhất",
       "mergeTitle": "Hợp nhất người này?",
@@ -3090,6 +3136,7 @@
       "waitingOn": "Đang chờ ({{count}})",
       "openNotes": "Mở ghi chú",
       "copyFollowUp": "Sao chép nội dung theo dõi",
+      "unresolvedSpeakers_other": "{{count}} người nói cần gắn nhãn",
       "copied": "Đã sao chép",
       "done": "Xong"
     }
@@ -3132,6 +3179,62 @@
     "outcomes": {
       "primed": "Đã chuẩn bị một cuộc họp định kỳ",
       "noticed_other": "Nhận thấy {{count}} điều"
+    }
+  },
+  "recorder": {
+    "open": "Ghi màn hình",
+    "title": "Ghi màn hình",
+    "screen": "Màn hình",
+    "required": "Bắt buộc",
+    "chooseScreen": "Chọn màn hình",
+    "change": "Thay đổi",
+    "camera": "Camera",
+    "microphone": "Micrô",
+    "unavailable": "Không khả dụng",
+    "screenSelected": "Đã chọn màn hình",
+    "elapsed": "Thời gian đã trôi qua",
+    "start": "Bắt đầu ghi",
+    "resume": "Tiếp tục",
+    "stopAndSave": "Dừng và lưu",
+    "reveal": "Hiển thị trong Finder",
+    "done": "Xong",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "Đang kiểm tra",
+      "permission": "Cần cấp quyền",
+      "idle": "Thiết lập",
+      "selectingSource": "Đang chọn nguồn",
+      "previewing": "Bản xem trước đã sẵn sàng",
+      "starting": "Đang bắt đầu ghi",
+      "recording": "Đang ghi",
+      "paused": "Đã tạm dừng",
+      "finalizing": "Đang lưu bản ghi",
+      "saved": "Đã lưu",
+      "failed": "Cần chú ý"
+    },
+    "permission": {
+      "screen": "Cho phép ghi màn hình để chọn nguồn.",
+      "camera": "Cho phép truy cập camera để ghi hình từ camera.",
+      "microphone": "Cho phép truy cập micrô để ghi âm từ micrô.",
+      "grant": "Cấp quyền",
+      "recheck": "Kiểm tra lại"
+    },
+    "error": {
+      "unsupported": "Ghi màn hình yêu cầu macOS 14 trở lên.",
+      "captureBusy": "Một lượt ghi Sona khác đang dùng micrô.",
+      "screenPermissionDenied": "Quyền ghi màn hình đã bị từ chối.",
+      "cameraPermissionDenied": "Quyền truy cập camera đã bị từ chối.",
+      "microphonePermissionDenied": "Quyền truy cập micrô đã bị từ chối.",
+      "sourceSelectionCancelled": "Đã hủy chọn nguồn.",
+      "sourceUnavailable": "Màn hình đã chọn không còn khả dụng.",
+      "cameraUnavailable": "Camera đã chọn không còn khả dụng.",
+      "microphoneUnavailable": "Micrô đã chọn không còn khả dụng.",
+      "streamFailed": "Luồng ghi đã dừng đột ngột.",
+      "timestampDiscontinuity": "Dòng thời gian ghi không còn hợp lệ.",
+      "writerFailed": "Không thể ghi bản ghi.",
+      "outputFinalizeFailed": "Không thể hoàn tất bản ghi.",
+      "outputCommitFailed": "Không thể lưu bản ghi.",
+      "revealFailed": "Không thể mở thư mục bản ghi."
     }
   }
 }

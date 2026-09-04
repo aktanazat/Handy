@@ -527,7 +527,30 @@
           "descriptionCustom": "Introduce el ID del modelo que espera tu servidor personalizado.",
           "placeholderWithOptions": "Buscar o seleccionar un modelo",
           "placeholderNoOptions": "Escribe un nombre de modelo",
-          "refreshModels": "Actualizar modelos"
+          "refreshModels": "Actualizar modelos",
+          "search": "Buscar modelos",
+          "useCustom": "Usar “{{modelId}}”",
+          "source": {
+            "provider": "Proveedor",
+            "cached": "En caché",
+            "saved": "Guardado",
+            "manual": "Manual"
+          },
+          "status": {
+            "loading": "Cargando modelos",
+            "savedNotInLatest": "La selección guardada no está en la lista más reciente del proveedor.",
+            "cachedFallback": "Usando la última lista de modelos cargada en esta ventana.",
+            "requiresConsent": "Permite la transferencia de texto remota antes de cargar modelos.",
+            "requiresCredential": "Añade una clave de API antes de cargar modelos.",
+            "credentialUnavailable": "La clave de API no está disponible.",
+            "credentialLocked": "Desbloquea la clave de API antes de cargar modelos.",
+            "unsupported": "Este proveedor no publica una lista de modelos compatible. Introduce manualmente un ID de modelo.",
+            "unauthorized": "El proveedor rechazó la clave de API.",
+            "forbidden": "El proveedor no permite esta lista de modelos.",
+            "rateLimited": "El proveedor está limitando el descubrimiento de modelos.",
+            "unreachable": "Sona no pudo conectarse a este proveedor.",
+            "invalidResponse": "El proveedor devolvió una lista de modelos no válida."
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "Cargando historial…",
       "empty": "Aún no hay grabaciones.",
       "copyToClipboard": "Copiar transcripción al portapapeles",
+      "copyFailed": "No se pudo copiar la transcripción",
       "save": "Guardar entrada",
       "unsave": "Eliminar de guardados",
       "delete": "Eliminar entrada",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "Entregado",
           "definitely_not_dispatched": "No enviado",
-          "dispatched_but_unconfirmed": "Enviado, sin confirmar"
+          "dispatched_but_unconfirmed": "Enviado, sin confirmar",
+          "dispatched_under_secure_input": "Enviado con Secure Input activo"
         },
         "modeLabel": "Modo",
         "revisionLabel": "Versión de ajustes",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "No llegó nada. Pulsa algunas teclas mientras se ejecuta el diagnóstico.",
         "verdictOk": "Las teclas llegan a Sona.",
         "failed": "No se pudo ejecutar el diagnóstico: {{error}}",
+        "inputMonitoringDenied": "Sona no puede leer los eventos del teclado. Permite la Monitorización de entrada y vuelve a intentarlo.",
         "keyDown": "Tecla pulsada",
         "keyUp": "Tecla soltada",
         "flagsChanged": "Modificadores",
@@ -2112,7 +2138,8 @@
       "export_failed": "La exportación falló. No se creó ninguna exportación completa.",
       "local_model_unavailable": "No hay ningún modelo local disponible para esta reunión.",
       "remote_unavailable": "El destino remoto seleccionado no está disponible.",
-      "import_unreadable": "Sona no pudo leer ese archivo como grabación ni como exportación de transcripción."
+      "import_unreadable": "Sona no pudo leer ese archivo como grabación ni como exportación de transcripción.",
+      "profile_merge_resolution_required": "Sona necesita saber qué voz guardada conservar antes de combinar a estas personas."
     },
     "discard": {
       "liveTitle": "¿Detener y descartar esta sesión?",
@@ -2150,6 +2177,22 @@
       "speakerName": "Nombre del hablante",
       "renameSpeaker": "Cambiar el nombre de este hablante",
       "samePersonAs": "La misma persona que {{name}}",
+      "unresolvedSpeakers_one": "1 hablante por identificar",
+      "unresolvedSpeakers_many": "{{count}} hablantes por identificar",
+      "unresolvedSpeakers_other": "{{count}} hablantes por identificar",
+      "labelSpeaker": "Identificar hablante",
+      "correctSpeaker": "Corregir hablante",
+      "labelSpeakerNamed": "Identificar a {{speaker}}",
+      "correctSpeakerNamed": "Corregir a {{speaker}}",
+      "identityPerson": "Elige una persona",
+      "identityNewPerson": "Nueva persona",
+      "identityExistingPerson": "Persona existente",
+      "identityNewPersonName": "Nombre de la nueva persona",
+      "markUnknown": "Marcar como desconocido",
+      "markUnknownDescription": "La transcripción deja de nombrar a {{speaker}} y Sona elimina las muestras de voz guardadas de este hablante. El texto de la transcripción y tus notas se mantienen.",
+      "rememberVoice": "Recordar esta voz en este Mac",
+      "notNow": "Ahora no",
+      "rememberVoiceFailed": "La etiqueta se guardó. Sona no pudo recordar esta voz de esta reunión. Prueba con otra reunión.",
       "manualNotes": "Notas manuales",
       "manualNote": "Nota manual",
       "newNote": "Nueva nota manual",
@@ -2190,10 +2233,10 @@
         "manualNote": "Nota manual",
         "title": "Título de la reunión"
       },
+      "generationFailedDescription": "La transcripción y tus notas manuales no se ven afectadas. Regenera cuando se haya resuelto la causa.",
       "noGeneratedNotesDescription": "Las notas generadas se derivan de la transcripción, así que pueden reconstruirse en cualquier momento.",
       "processingDescription": "Las notas generadas y las respuestas locales aparecen cuando la transcripción está completa.",
       "processingTitle": "Sona todavía está procesando esta reunión",
-      "remoteProcessingUnavailable": "El destino remoto nunca estuvo disponible, así que no se generó nada. La regeneración se ejecuta en este Mac.",
       "tabs": {
         "insights": "Conclusiones",
         "ledger": "Registro",
@@ -2558,7 +2601,7 @@
     "scopeLabel": "Quién responde",
     "scope": {
       "sona_chat": "Preguntar",
-      "sona_config": "Ajustes"
+      "sona_config": "Configurar"
     },
     "workedFor": "Trabajó {{seconds}} s",
     "stepSeconds": "{{seconds}} s",
@@ -2613,7 +2656,7 @@
       "receipt": "Recibo {{id}}"
     },
     "consent": {
-      "notice": "Sona responde sobre tus grabaciones cuando le permites enviar las citas coincidentes a tu servidor.",
+      "notice": "Sona responde sobre tus grabaciones cuando activas la inteligencia de reuniones. Eso envía las citas coincidentes a tu servidor y también escribe allí las notas de todas las reuniones posteriores.",
       "allow": "Permitir"
     },
     "tool": {
@@ -2686,7 +2729,7 @@
       "resume": "Reanudar la sincronización"
     },
     "setup": {
-      "title": "Configurar una cuenta de sincronización",
+      "title": "Configurar la sincronización: primero despliega tu Worker complementario",
       "endpoint": "Dirección del servidor",
       "bootstrapSecret": "Secreto de configuración",
       "submit": "Configurar la sincronización"
@@ -2788,6 +2831,11 @@
       "rename": "Cambiar nombre",
       "personActions": "Acciones de la persona",
       "deletePerson": "Eliminar persona",
+      "removeVoiceProfile": "Eliminar perfil de voz",
+      "removeVoiceProfileTitle": "¿Eliminar el perfil de voz?",
+      "removeVoiceProfileDescription": "Sona dejará de recordar esta voz en este Mac. El nombre de la persona y los enlaces de reuniones se conservarán.",
+      "voiceProfileRemoved": "Sona dejó de recordar esta voz en este Mac.",
+      "voiceProfileRemovalFailed": "No se pudo eliminar el perfil de voz. Inténtalo de nuevo.",
       "aliases": "También: {{aliases}}",
       "merge": "Combinar",
       "mergeTitle": "¿Combinar esta persona?",
@@ -3118,6 +3166,9 @@
       "waitingOn": "En espera ({{count}})",
       "openNotes": "Abrir notas",
       "copyFollowUp": "Copiar seguimiento",
+      "unresolvedSpeakers_one": "1 hablante por identificar",
+      "unresolvedSpeakers_many": "{{count}} hablantes por identificar",
+      "unresolvedSpeakers_other": "{{count}} hablantes por identificar",
       "copied": "Copiado",
       "done": "Listo"
     }
@@ -3164,6 +3215,62 @@
       "noticed_one": "Notó 1 cosa",
       "noticed_many": "Notó {{count}} cosas",
       "noticed_other": "Notó {{count}} cosas"
+    }
+  },
+  "recorder": {
+    "open": "Grabar pantalla",
+    "title": "Grabar pantalla",
+    "screen": "Pantalla",
+    "required": "Obligatorio",
+    "chooseScreen": "Elegir pantalla",
+    "change": "Cambiar",
+    "camera": "Cámara",
+    "microphone": "Micrófono",
+    "unavailable": "No disponible",
+    "screenSelected": "Pantalla seleccionada",
+    "elapsed": "Tiempo transcurrido",
+    "start": "Iniciar grabación",
+    "resume": "Reanudar",
+    "stopAndSave": "Detener y guardar",
+    "reveal": "Mostrar",
+    "done": "Listo",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "Comprobando",
+      "permission": "Permiso necesario",
+      "idle": "Configurar",
+      "selectingSource": "Seleccionando fuente",
+      "previewing": "Vista previa lista",
+      "starting": "Iniciando grabación",
+      "recording": "Grabando",
+      "paused": "En pausa",
+      "finalizing": "Guardando grabación",
+      "saved": "Guardado",
+      "failed": "Requiere atención"
+    },
+    "permission": {
+      "screen": "Permite la grabación de pantalla para elegir una fuente.",
+      "camera": "Concede acceso a la cámara para incluir tu cámara.",
+      "microphone": "Concede acceso al micrófono para incluir tu micrófono.",
+      "grant": "Conceder acceso",
+      "recheck": "Volver a comprobar"
+    },
+    "error": {
+      "unsupported": "La grabación de pantalla requiere macOS 14 o posterior.",
+      "captureBusy": "Otra captura de Sona está usando el micrófono.",
+      "screenPermissionDenied": "Se denegó el acceso a la grabación de pantalla.",
+      "cameraPermissionDenied": "Se denegó el acceso a la cámara.",
+      "microphonePermissionDenied": "Se denegó el acceso al micrófono.",
+      "sourceSelectionCancelled": "Se canceló la selección de fuente.",
+      "sourceUnavailable": "La pantalla seleccionada ya no está disponible.",
+      "cameraUnavailable": "La cámara seleccionada ya no está disponible.",
+      "microphoneUnavailable": "El micrófono seleccionado ya no está disponible.",
+      "streamFailed": "El flujo de grabación se detuvo inesperadamente.",
+      "timestampDiscontinuity": "La línea de tiempo de la grabación dejó de ser válida.",
+      "writerFailed": "No se pudo escribir la grabación.",
+      "outputFinalizeFailed": "No se pudo finalizar la grabación.",
+      "outputCommitFailed": "No se pudo guardar la grabación.",
+      "revealFailed": "No se pudo abrir la carpeta de grabaciones."
     }
   }
 }

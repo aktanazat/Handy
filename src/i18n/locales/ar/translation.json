@@ -527,7 +527,30 @@
           "descriptionCustom": "أدخل معرف النموذج (model ID) الذي يتوقعه الخادم المخصص.",
           "placeholderWithOptions": "ابحث عن نموذج أو اختره",
           "placeholderNoOptions": "اكتب اسم النموذج",
-          "refreshModels": "تحديث النماذج"
+          "refreshModels": "تحديث النماذج",
+          "search": "البحث عن النماذج",
+          "useCustom": "استخدم “{{modelId}}”",
+          "source": {
+            "provider": "المزوّد",
+            "cached": "مخزّن مؤقتًا",
+            "saved": "محفوظ",
+            "manual": "يدوي"
+          },
+          "status": {
+            "loading": "جارٍ تحميل النماذج",
+            "savedNotInLatest": "الاختيار المحفوظ غير موجود في أحدث قائمة للمزوّد.",
+            "cachedFallback": "يتم استخدام آخر قائمة نماذج تم تحميلها في هذه النافذة.",
+            "requiresConsent": "اسمح بنقل النص عن بُعد قبل تحميل النماذج.",
+            "requiresCredential": "أضف مفتاح API قبل تحميل النماذج.",
+            "credentialUnavailable": "مفتاح API غير متاح.",
+            "credentialLocked": "افتح قفل مفتاح API قبل تحميل النماذج.",
+            "unsupported": "هذا المزوّد لا ينشر قائمة نماذج متوافقة. أدخل معرّف النموذج يدويًا.",
+            "unauthorized": "رفض المزوّد مفتاح API.",
+            "forbidden": "لا يسمح المزوّد بقائمة النماذج هذه.",
+            "rateLimited": "يفرض المزوّد حدًا على معدل اكتشاف النماذج.",
+            "unreachable": "تعذّر على Sona الوصول إلى هذا المزوّد.",
+            "invalidResponse": "أعاد المزوّد قائمة نماذج غير صالحة."
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "...جاري تحميل السجل",
       "empty": "لا توجد تسجيلات بعد.",
       "copyToClipboard": "نسخ التفريغ إلى الحافظة",
+      "copyFailed": "تعذر نسخ النص المفرغ",
       "save": "حفظ الإدخال",
       "unsave": "إزالة من المحفوظات",
       "delete": "حذف الإدخال",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "تم الإدراج",
           "definitely_not_dispatched": "لم يُرسل",
-          "dispatched_but_unconfirmed": "أُرسل، ولم يتم التأكيد"
+          "dispatched_but_unconfirmed": "أُرسل، ولم يتم التأكيد",
+          "dispatched_under_secure_input": "أُرسل أثناء تفعيل Secure Input"
         },
         "modeLabel": "الوضع",
         "revisionLabel": "إصدار الإعدادات",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "لم يصل أي شيء على الإطلاق. اضغط بعض المفاتيح أثناء تشغيل التشخيص.",
         "verdictOk": "المفاتيح تصل إلى Sona.",
         "failed": "تعذر تشغيل التشخيص: {{error}}",
+        "inputMonitoringDenied": "لا يستطيع Sona قراءة أحداث لوحة المفاتيح. اسمح بمراقبة الإدخال، ثم حاول مرة أخرى.",
         "keyDown": "ضغط مفتاح",
         "keyUp": "تحرير مفتاح",
         "flagsChanged": "مفاتيح التعديل",
@@ -2130,7 +2156,8 @@
       "export_failed": "فشل التصدير. لم يُنشأ أي تصدير مكتمل.",
       "local_model_unavailable": "لا يتوفر نموذج محلي لهذا الاجتماع.",
       "remote_unavailable": "الوجهة البعيدة المحددة غير متاحة.",
-      "import_unreadable": "لم يتمكن Sona من قراءة هذا الملف كتسجيل أو كنص مفرّغ مُصدَّر."
+      "import_unreadable": "لم يتمكن Sona من قراءة هذا الملف كتسجيل أو كنص مفرّغ مُصدَّر.",
+      "profile_merge_resolution_required": "يحتاج Sona إلى معرفة الصوت المحفوظ الذي تريد الاحتفاظ به قبل دمج هؤلاء الأشخاص."
     },
     "discard": {
       "liveTitle": "إيقاف هذه الجلسة والتخلص منها؟",
@@ -2168,6 +2195,25 @@
       "speakerName": "اسم المتحدث",
       "renameSpeaker": "إعادة تسمية هذا المتحدث",
       "samePersonAs": "نفس الشخص مثل {{name}}",
+      "unresolvedSpeakers_zero": "لا متحدثين بحاجة إلى تسمية",
+      "unresolvedSpeakers_one": "متحدث واحد يحتاج إلى تسمية",
+      "unresolvedSpeakers_two": "متحدثان يحتاجان إلى تسمية",
+      "unresolvedSpeakers_few": "{{count}} متحدثين يحتاجون إلى تسمية",
+      "unresolvedSpeakers_many": "{{count}} متحدثًا يحتاج إلى تسمية",
+      "unresolvedSpeakers_other": "{{count}} متحدث يحتاج إلى تسمية",
+      "labelSpeaker": "تسمية المتحدث",
+      "correctSpeaker": "تصحيح المتحدث",
+      "labelSpeakerNamed": "تسمية {{speaker}}",
+      "correctSpeakerNamed": "تصحيح {{speaker}}",
+      "identityPerson": "اختر شخصًا",
+      "identityNewPerson": "شخص جديد",
+      "identityExistingPerson": "شخص موجود",
+      "identityNewPersonName": "اسم الشخص الجديد",
+      "markUnknown": "وضع علامة كغير معروف",
+      "markUnknownDescription": "سيتوقف التفريغ عن ذكر {{speaker}}، وسيحذف Sona عينات الصوت المحفوظة لهذا المتحدث. يبقى نص التفريغ وملاحظاتك كما هي.",
+      "rememberVoice": "تذكّر هذا الصوت على جهاز Mac هذا",
+      "notNow": "ليس الآن",
+      "rememberVoiceFailed": "تم حفظ التسمية. تعذر على Sona تذكّر هذا الصوت من هذا الاجتماع. جرّب اجتماعًا آخر.",
       "manualNotes": "الملاحظات اليدوية",
       "manualNote": "ملاحظة يدوية",
       "newNote": "ملاحظة يدوية جديدة",
@@ -2208,10 +2254,10 @@
         "manualNote": "ملاحظة يدوية",
         "title": "عنوان الاجتماع"
       },
+      "generationFailedDescription": "النص وملاحظاتك اليدوية لم تتأثر. أعد التوليد بعد معالجة السبب.",
       "noGeneratedNotesDescription": "الملاحظات المولّدة مشتقة من النص، لذا يمكن إعادة إنشائها في أي وقت.",
       "processingDescription": "تظهر الملاحظات المولّدة والإجابات المحلية بمجرد اكتمال النص.",
       "processingTitle": "لا يزال Sona يعالج هذا الاجتماع",
-      "remoteProcessingUnavailable": "لم تصبح الوجهة البعيدة متاحة قط، لذا لم يُولَّد أي شيء. تتم إعادة التوليد على جهاز Mac هذا.",
       "tabs": {
         "insights": "الرؤى",
         "ledger": "السجل",
@@ -2576,7 +2622,7 @@
     "scopeLabel": "من يجيب",
     "scope": {
       "sona_chat": "اسأل",
-      "sona_config": "الإعدادات"
+      "sona_config": "إعداد"
     },
     "workedFor": "عمل لمدة {{seconds}} ثانية",
     "stepSeconds": "{{seconds}} ثانية",
@@ -2631,7 +2677,7 @@
       "receipt": "إيصال {{id}}"
     },
     "consent": {
-      "notice": "يجيب Sona عن أسئلتك حول تسجيلاتك بعد أن تسمح له بإرسال المقتطفات المطابقة إلى خادمك.",
+      "notice": "يجيب Sona عن أسئلتك حول تسجيلاتك بعد أن تشغّل ذكاء الاجتماعات. هذا يرسل المقتطفات المطابقة إلى خادمك، ويكتب هناك أيضًا ملاحظات كل اجتماع لاحق.",
       "allow": "السماح"
     },
     "tool": {
@@ -2710,7 +2756,7 @@
       "resume": "استئناف المزامنة"
     },
     "setup": {
-      "title": "إعداد حساب مزامنة",
+      "title": "إعداد المزامنة — انشر Worker المرافق أولاً",
       "endpoint": "عنوان الخادم",
       "bootstrapSecret": "سر الإعداد",
       "submit": "إعداد المزامنة"
@@ -2815,6 +2861,11 @@
       "rename": "إعادة التسمية",
       "personActions": "إجراءات الشخص",
       "deletePerson": "حذف الشخص",
+      "removeVoiceProfile": "إزالة ملف تعريف الصوت",
+      "removeVoiceProfileTitle": "إزالة ملف تعريف الصوت؟",
+      "removeVoiceProfileDescription": "سيتوقف Sona عن تذكّر هذا الصوت على جهاز Mac هذا. سيبقى اسم الشخص وروابط الاجتماعات.",
+      "voiceProfileRemoved": "توقف Sona عن تذكّر هذا الصوت على جهاز Mac هذا.",
+      "voiceProfileRemovalFailed": "تعذر إزالة ملف تعريف الصوت. حاول مرة أخرى.",
       "aliases": "أيضًا: {{aliases}}",
       "merge": "دمج",
       "mergeTitle": "دمج هذا الشخص؟",
@@ -3166,6 +3217,12 @@
       "waitingOn": "بانتظار ({{count}})",
       "openNotes": "فتح الملاحظات",
       "copyFollowUp": "نسخ المتابعة",
+      "unresolvedSpeakers_zero": "لا متحدثين بحاجة إلى تسمية",
+      "unresolvedSpeakers_one": "متحدث واحد يحتاج إلى تسمية",
+      "unresolvedSpeakers_two": "متحدثان يحتاجان إلى تسمية",
+      "unresolvedSpeakers_few": "{{count}} متحدثين يحتاجون إلى تسمية",
+      "unresolvedSpeakers_many": "{{count}} متحدثًا يحتاج إلى تسمية",
+      "unresolvedSpeakers_other": "{{count}} متحدث يحتاج إلى تسمية",
       "copied": "تم النسخ",
       "done": "تم"
     }
@@ -3218,6 +3275,62 @@
       "noticed_few": "لاحظنا {{count}} أمور",
       "noticed_many": "لاحظنا {{count}} أمور",
       "noticed_other": "لاحظنا {{count}} أمور"
+    }
+  },
+  "recorder": {
+    "open": "تسجيل الشاشة",
+    "title": "تسجيل الشاشة",
+    "screen": "الشاشة",
+    "required": "مطلوب",
+    "chooseScreen": "اختر الشاشة",
+    "change": "تغيير",
+    "camera": "الكاميرا",
+    "microphone": "الميكروفون",
+    "unavailable": "غير متاح",
+    "screenSelected": "تم اختيار الشاشة",
+    "elapsed": "الوقت المنقضي",
+    "start": "بدء التسجيل",
+    "resume": "استئناف",
+    "stopAndSave": "إيقاف وحفظ",
+    "reveal": "إظهار",
+    "done": "تم",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "جارٍ التحقق",
+      "permission": "الإذن مطلوب",
+      "idle": "إعداد",
+      "selectingSource": "جارٍ اختيار المصدر",
+      "previewing": "المعاينة جاهزة",
+      "starting": "جارٍ بدء التسجيل",
+      "recording": "جارٍ التسجيل",
+      "paused": "متوقف مؤقتًا",
+      "finalizing": "جارٍ حفظ التسجيل",
+      "saved": "تم الحفظ",
+      "failed": "يحتاج إلى انتباه"
+    },
+    "permission": {
+      "screen": "اسمح بتسجيل الشاشة لاختيار مصدر.",
+      "camera": "اسمح بالوصول إلى الكاميرا لتضمين كاميرتك.",
+      "microphone": "اسمح بالوصول إلى الميكروفون لتضمين ميكروفونك.",
+      "grant": "منح الوصول",
+      "recheck": "إعادة التحقق"
+    },
+    "error": {
+      "unsupported": "يتطلب تسجيل الشاشة macOS 14 أو أحدث.",
+      "captureBusy": "تستخدم عملية التقاط أخرى في Sona الميكروفون.",
+      "screenPermissionDenied": "تم رفض الوصول إلى تسجيل الشاشة.",
+      "cameraPermissionDenied": "تم رفض الوصول إلى الكاميرا.",
+      "microphonePermissionDenied": "تم رفض الوصول إلى الميكروفون.",
+      "sourceSelectionCancelled": "أُلغي اختيار المصدر.",
+      "sourceUnavailable": "لم تعد الشاشة المحددة متاحة.",
+      "cameraUnavailable": "لم تعد الكاميرا المحددة متاحة.",
+      "microphoneUnavailable": "لم يعد الميكروفون المحدد متاحًا.",
+      "streamFailed": "توقف تدفق التسجيل بشكل غير متوقع.",
+      "timestampDiscontinuity": "أصبح المخطط الزمني للتسجيل غير صالح.",
+      "writerFailed": "تعذّرت كتابة ملف التسجيل.",
+      "outputFinalizeFailed": "تعذّر إنهاء التسجيل.",
+      "outputCommitFailed": "تعذّر حفظ التسجيل.",
+      "revealFailed": "تعذّر فتح مجلد التسجيلات."
     }
   }
 }

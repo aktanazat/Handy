@@ -527,7 +527,30 @@
           "descriptionCustom": "Indtast det model-ID, som din tilpassede server forventer.",
           "placeholderWithOptions": "Søg eller vælg en model",
           "placeholderNoOptions": "Skriv et modelnavn",
-          "refreshModels": "Opdater modeller"
+          "refreshModels": "Opdater modeller",
+          "search": "Søg modeller",
+          "useCustom": "Brug “{{modelId}}”",
+          "source": {
+            "provider": "Udbyder",
+            "cached": "Cachelagret",
+            "saved": "Gemt",
+            "manual": "Manuel"
+          },
+          "status": {
+            "loading": "Indlæser modeller",
+            "savedNotInLatest": "Det gemte valg findes ikke på udbyderens seneste liste.",
+            "cachedFallback": "Bruger den seneste modelliste, der blev indlæst i dette vindue.",
+            "requiresConsent": "Tillad fjernoverførsel af tekst, før modeller indlæses.",
+            "requiresCredential": "Tilføj en API-nøgle, før modeller indlæses.",
+            "credentialUnavailable": "API-nøglen er ikke tilgængelig.",
+            "credentialLocked": "Lås API-nøglen op, før modeller indlæses.",
+            "unsupported": "Denne udbyder offentliggør ikke en kompatibel modelliste. Indtast et model-ID manuelt.",
+            "unauthorized": "Udbyderen afviste API-nøglen.",
+            "forbidden": "Udbyderen tillader ikke denne modelliste.",
+            "rateLimited": "Udbyderen begrænser, hvor ofte der kan søges efter modeller.",
+            "unreachable": "Sona kunne ikke nå denne udbyder.",
+            "invalidResponse": "Udbyderen returnerede en ugyldig modelliste."
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "Indlæser historik…",
       "empty": "Ingen optagelser endnu.",
       "copyToClipboard": "Kopiér transskription til udklipsholder",
+      "copyFailed": "Transskriptionen kunne ikke kopieres",
       "save": "Gem post",
       "unsave": "Fjern fra gemte",
       "delete": "Slet post",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "Leveret",
           "definitely_not_dispatched": "Ikke sendt",
-          "dispatched_but_unconfirmed": "Sendt, ikke bekræftet"
+          "dispatched_but_unconfirmed": "Sendt, ikke bekræftet",
+          "dispatched_under_secure_input": "Sendt med Secure Input aktivt"
         },
         "modeLabel": "Tilstand",
         "revisionLabel": "Indstillingsversion",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "Intet kom frem overhovedet. Tryk på nogle taster, mens diagnosticeringen kører.",
         "verdictOk": "Taster når frem til Sona.",
         "failed": "Diagnosticeringen kunne ikke køre: {{error}}",
+        "inputMonitoringDenied": "Sona kan ikke læse tastaturhændelser. Tillad Overvågning af input, og prøv igen.",
         "keyDown": "Tast ned",
         "keyUp": "Tast op",
         "flagsChanged": "Modifikationstaster",
@@ -2106,7 +2132,8 @@
       "export_failed": "Eksporten mislykkedes. Der blev ikke oprettet en færdig eksport.",
       "local_model_unavailable": "Der er ingen lokal model tilgængelig for dette møde.",
       "remote_unavailable": "Den valgte fjerndestination er utilgængelig.",
-      "import_unreadable": "Sona kunne ikke læse filen som en optagelse eller en transskripteksport."
+      "import_unreadable": "Sona kunne ikke læse filen som en optagelse eller en transskripteksport.",
+      "profile_merge_resolution_required": "Sona skal vide, hvilken gemt stemme der skal beholdes, før disse personer flettes."
     },
     "discard": {
       "liveTitle": "Stop og kassér denne session?",
@@ -2144,6 +2171,21 @@
       "speakerName": "Talernavn",
       "renameSpeaker": "Omdøb denne taler",
       "samePersonAs": "Samme person som {{name}}",
+      "unresolvedSpeakers_one": "1 taler skal navngives",
+      "unresolvedSpeakers_other": "{{count}} talere skal navngives",
+      "labelSpeaker": "Navngiv taler",
+      "correctSpeaker": "Ret taler",
+      "labelSpeakerNamed": "Navngiv {{speaker}}",
+      "correctSpeakerNamed": "Ret {{speaker}}",
+      "identityPerson": "Vælg en person",
+      "identityNewPerson": "Ny person",
+      "identityExistingPerson": "Eksisterende person",
+      "identityNewPersonName": "Den nye persons navn",
+      "markUnknown": "Markér som ukendt",
+      "markUnknownDescription": "Transskriptionen holder op med at navngive {{speaker}}, og Sona sletter de stemmeprøver, der er gemt for denne taler. Transskriptionsteksten og dine noter bliver.",
+      "rememberVoice": "Husk denne stemme på denne Mac",
+      "notNow": "Ikke nu",
+      "rememberVoiceFailed": "Navnet blev gemt. Sona kunne ikke huske denne stemme fra dette møde. Prøv et andet møde.",
       "manualNotes": "Manuelle noter",
       "manualNote": "Manuel note",
       "newNote": "Ny manuel note",
@@ -2184,10 +2226,10 @@
         "manualNote": "Manuel note",
         "title": "Mødetitel"
       },
+      "generationFailedDescription": "Transskriptionen og dine manuelle noter er uberørte. Regenerér, når årsagen er løst.",
       "noGeneratedNotesDescription": "Genererede noter er afledt af transskriptionen, så de kan gendannes når som helst.",
       "processingDescription": "Genererede noter og lokale svar vises, når transskriptionen er færdig.",
       "processingTitle": "Sona behandler stadig dette møde",
-      "remoteProcessingUnavailable": "Fjerndestinationen blev aldrig tilgængelig, så intet blev genereret. Regenerering kører på denne Mac.",
       "tabs": {
         "insights": "Indsigter",
         "ledger": "Register",
@@ -2552,7 +2594,7 @@
     "scopeLabel": "Hvem svarer",
     "scope": {
       "sona_chat": "Spørg",
-      "sona_config": "Indstillinger"
+      "sona_config": "Indstil"
     },
     "workedFor": "Arbejdede i {{seconds}} s",
     "stepSeconds": "{{seconds}} s",
@@ -2607,7 +2649,7 @@
       "receipt": "Kvittering {{id}}"
     },
     "consent": {
-      "notice": "Sona svarer på spørgsmål om dine optagelser, når du tillader, at matchende citater sendes til din server.",
+      "notice": "Sona svarer på spørgsmål om dine optagelser, når du slår mødeintelligens til. Det sender matchende citater til din server og skriver også noterne fra alle senere møder der.",
       "allow": "Tillad"
     },
     "tool": {
@@ -2678,7 +2720,7 @@
       "resume": "Genoptag synkronisering"
     },
     "setup": {
-      "title": "Opsæt en synkroniseringskonto",
+      "title": "Konfigurer synkronisering — udrul din Worker først",
       "endpoint": "Serveradresse",
       "bootstrapSecret": "Opsætningshemmelighed",
       "submit": "Opsæt synkronisering"
@@ -2779,6 +2821,11 @@
       "rename": "Omdøb",
       "personActions": "Personhandlinger",
       "deletePerson": "Slet person",
+      "removeVoiceProfile": "Fjern stemmeprofil",
+      "removeVoiceProfileTitle": "Fjern stemmeprofil?",
+      "removeVoiceProfileDescription": "Sona holder op med at huske denne stemme på denne Mac. Personens navn og mødelinks bliver.",
+      "voiceProfileRemoved": "Sona holder op med at huske denne stemme på denne Mac.",
+      "voiceProfileRemovalFailed": "Stemmeprofilen kunne ikke fjernes. Prøv igen.",
       "aliases": "Også: {{aliases}}",
       "merge": "Flet",
       "mergeTitle": "Flet denne person?",
@@ -3102,6 +3149,8 @@
       "waitingOn": "Afventer ({{count}})",
       "openNotes": "Åbn noter",
       "copyFollowUp": "Kopiér opfølgning",
+      "unresolvedSpeakers_one": "1 taler skal navngives",
+      "unresolvedSpeakers_other": "{{count}} talere skal navngives",
       "copied": "Kopieret",
       "done": "Færdig"
     }
@@ -3146,6 +3195,62 @@
       "primed": "Forberedte et gentaget møde",
       "noticed_one": "Bemærkede 1 ting",
       "noticed_other": "Bemærkede {{count}} ting"
+    }
+  },
+  "recorder": {
+    "open": "Optag skærm",
+    "title": "Optag skærm",
+    "screen": "Skærm",
+    "required": "Påkrævet",
+    "chooseScreen": "Vælg skærm",
+    "change": "Skift",
+    "camera": "Kamera",
+    "microphone": "Mikrofon",
+    "unavailable": "Ikke tilgængelig",
+    "screenSelected": "Skærm valgt",
+    "elapsed": "Forløbet tid",
+    "start": "Start optagelse",
+    "resume": "Genoptag",
+    "stopAndSave": "Stop og gem",
+    "reveal": "Vis",
+    "done": "Færdig",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "Kontrollerer",
+      "permission": "Tilladelse kræves",
+      "idle": "Konfigurer",
+      "selectingSource": "Vælger kilde",
+      "previewing": "Forhåndsvisning klar",
+      "starting": "Starter optagelse",
+      "recording": "Optager",
+      "paused": "På pause",
+      "finalizing": "Gemmer optagelse",
+      "saved": "Gemt",
+      "failed": "Kræver handling"
+    },
+    "permission": {
+      "screen": "Tillad skærmoptagelse for at vælge en kilde.",
+      "camera": "Tillad adgang til kameraet for at bruge det i optagelsen.",
+      "microphone": "Tillad adgang til mikrofonen for at bruge den i optagelsen.",
+      "grant": "Giv adgang",
+      "recheck": "Kontrollér igen"
+    },
+    "error": {
+      "unsupported": "Skærmoptagelse kræver macOS 14 eller nyere.",
+      "captureBusy": "En anden Sona-optagelse bruger mikrofonen.",
+      "screenPermissionDenied": "Adgang til skærmoptagelse blev afvist.",
+      "cameraPermissionDenied": "Adgang til kameraet blev afvist.",
+      "microphonePermissionDenied": "Adgang til mikrofonen blev afvist.",
+      "sourceSelectionCancelled": "Valg af kilde blev annulleret.",
+      "sourceUnavailable": "Den valgte skærm er ikke længere tilgængelig.",
+      "cameraUnavailable": "Det valgte kamera er ikke længere tilgængeligt.",
+      "microphoneUnavailable": "Den valgte mikrofon er ikke længere tilgængelig.",
+      "streamFailed": "Optagelsesstrømmen stoppede uventet.",
+      "timestampDiscontinuity": "Optagelsens tidslinje blev ugyldig.",
+      "writerFailed": "Optagelsen kunne ikke skrives til fil.",
+      "outputFinalizeFailed": "Optagelsen kunne ikke færdiggøres.",
+      "outputCommitFailed": "Optagelsen kunne ikke gemmes.",
+      "revealFailed": "Mappen med optagelser kunne ikke åbnes."
     }
   }
 }

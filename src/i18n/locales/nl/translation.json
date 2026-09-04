@@ -527,7 +527,30 @@
           "descriptionCustom": "Voer het model-ID in dat je eigen server verwacht.",
           "placeholderWithOptions": "Zoek of selecteer een model",
           "placeholderNoOptions": "Typ een modelnaam",
-          "refreshModels": "Modellen verversen"
+          "refreshModels": "Modellen verversen",
+          "search": "Modellen zoeken",
+          "useCustom": "“{{modelId}}” gebruiken",
+          "source": {
+            "provider": "Provider",
+            "cached": "In cache",
+            "saved": "Opgeslagen",
+            "manual": "Handmatig"
+          },
+          "status": {
+            "loading": "Modellen laden",
+            "savedNotInLatest": "De opgeslagen selectie staat niet in de meest recente providerlijst.",
+            "cachedFallback": "De laatst in dit venster geladen modellijst wordt gebruikt.",
+            "requiresConsent": "Sta externe tekstoverdracht toe voordat modellen worden geladen.",
+            "requiresCredential": "Voeg een API-sleutel toe voordat modellen worden geladen.",
+            "credentialUnavailable": "De API-sleutel is niet beschikbaar.",
+            "credentialLocked": "Ontgrendel de API-sleutel voordat modellen worden geladen.",
+            "unsupported": "Deze provider publiceert geen compatibele modellijst. Voer handmatig een model-ID in.",
+            "unauthorized": "De provider heeft de API-sleutel geweigerd.",
+            "forbidden": "De provider staat deze modellijst niet toe.",
+            "rateLimited": "De provider beperkt het ophalen van modellen.",
+            "unreachable": "Sona kon deze provider niet bereiken.",
+            "invalidResponse": "De provider heeft een ongeldige modellijst geretourneerd."
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "Geschiedenis laden…",
       "empty": "Nog geen opnames.",
       "copyToClipboard": "Transcriptie naar klembord kopiëren",
+      "copyFailed": "Kon transcript niet kopiëren",
       "save": "Item opslaan",
       "unsave": "Verwijderen uit opgeslagen",
       "delete": "Item verwijderen",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "Ingevoegd",
           "definitely_not_dispatched": "Niet verzonden",
-          "dispatched_but_unconfirmed": "Verzonden, niet bevestigd"
+          "dispatched_but_unconfirmed": "Verzonden, niet bevestigd",
+          "dispatched_under_secure_input": "Verzonden terwijl Secure Input aan stond"
         },
         "modeLabel": "Modus",
         "revisionLabel": "Instellingenversie",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "Er is helemaal niets aangekomen. Druk op een paar toetsen terwijl de diagnose loopt.",
         "verdictOk": "Toetsen bereiken Sona.",
         "failed": "De diagnose kon niet worden uitgevoerd: {{error}}",
+        "inputMonitoringDenied": "Sona kan toetsenbordgebeurtenissen niet lezen. Sta Invoercontrole toe en probeer het opnieuw.",
         "keyDown": "Toets ingedrukt",
         "keyUp": "Toets losgelaten",
         "flagsChanged": "Modificatietoetsen",
@@ -2106,7 +2132,8 @@
       "export_failed": "De export is mislukt. Er is geen voltooide export gemaakt.",
       "local_model_unavailable": "Er is geen lokaal model beschikbaar voor deze vergadering.",
       "remote_unavailable": "De geselecteerde externe bestemming is niet beschikbaar.",
-      "import_unreadable": "Sona kon dat bestand niet lezen als opname of als transcriptexport."
+      "import_unreadable": "Sona kon dat bestand niet lezen als opname of als transcriptexport.",
+      "profile_merge_resolution_required": "Sona moet weten welke opgeslagen stem behouden blijft voordat deze personen worden samengevoegd."
     },
     "discard": {
       "liveTitle": "Deze sessie stoppen en weggooien?",
@@ -2144,6 +2171,21 @@
       "speakerName": "Sprekersnaam",
       "renameSpeaker": "Naam van deze spreker wijzigen",
       "samePersonAs": "Dezelfde persoon als {{name}}",
+      "unresolvedSpeakers_one": "1 spreker labelen",
+      "unresolvedSpeakers_other": "{{count}} sprekers labelen",
+      "labelSpeaker": "Spreker labelen",
+      "correctSpeaker": "Spreker corrigeren",
+      "labelSpeakerNamed": "{{speaker}} labelen",
+      "correctSpeakerNamed": "{{speaker}} corrigeren",
+      "identityPerson": "Kies een persoon",
+      "identityNewPerson": "Nieuwe persoon",
+      "identityExistingPerson": "Bestaande persoon",
+      "identityNewPersonName": "Naam van nieuwe persoon",
+      "markUnknown": "Markeren als onbekend",
+      "markUnknownDescription": "Dit transcript noemt {{speaker}} niet meer, en Sona verwijdert de spraakvoorbeelden die voor deze spreker zijn bewaard. De transcripttekst en je notities blijven staan.",
+      "rememberVoice": "Deze stem op deze Mac onthouden",
+      "notNow": "Niet nu",
+      "rememberVoiceFailed": "Het label is opgeslagen. Sona kon deze stem niet onthouden uit deze vergadering. Probeer een andere vergadering.",
       "manualNotes": "Handmatige notities",
       "manualNote": "Handmatige notitie",
       "newNote": "Nieuwe handmatige notitie",
@@ -2184,10 +2226,10 @@
         "manualNote": "Handmatige notitie",
         "title": "Vergadertitel"
       },
+      "generationFailedDescription": "De transcriptie en je eigen notities blijven ongewijzigd. Genereer opnieuw zodra de oorzaak is verholpen.",
       "noGeneratedNotesDescription": "Gegenereerde notities zijn afgeleid van het transcript en kunnen dus altijd opnieuw worden opgebouwd.",
       "processingDescription": "Gegenereerde notities en lokale antwoorden verschijnen zodra het transcript voltooid is.",
       "processingTitle": "Sona verwerkt deze vergadering nog",
-      "remoteProcessingUnavailable": "De externe bestemming werd nooit beschikbaar, dus er is niets gegenereerd. Opnieuw genereren gebeurt op deze Mac.",
       "tabs": {
         "insights": "Inzichten",
         "ledger": "Register",
@@ -2552,7 +2594,7 @@
     "scopeLabel": "Wie antwoordt",
     "scope": {
       "sona_chat": "Vragen",
-      "sona_config": "Instellingen"
+      "sona_config": "Configureren"
     },
     "workedFor": "{{seconds}} s gewerkt",
     "stepSeconds": "{{seconds}} s",
@@ -2607,7 +2649,7 @@
       "receipt": "Bewijs {{id}}"
     },
     "consent": {
-      "notice": "Sona beantwoordt vragen over je opnames zodra je toestaat dat overeenkomende citaten naar je server worden gestuurd.",
+      "notice": "Sona beantwoordt vragen over je opnames zodra je vergaderintelligentie aanzet. Dat stuurt overeenkomende citaten naar je server en schrijft daar ook de notities van alle latere vergaderingen.",
       "allow": "Toestaan"
     },
     "tool": {
@@ -2678,7 +2720,7 @@
       "resume": "Synchronisatie hervatten"
     },
     "setup": {
-      "title": "Een synchronisatieaccount instellen",
+      "title": "Sync instellen — implementeer eerst je bijbehorende Worker",
       "endpoint": "Serveradres",
       "bootstrapSecret": "Instelgeheim",
       "submit": "Synchronisatie instellen"
@@ -2779,6 +2821,11 @@
       "rename": "Naam wijzigen",
       "personActions": "Persoonsacties",
       "deletePerson": "Persoon verwijderen",
+      "removeVoiceProfile": "Spraakprofiel verwijderen",
+      "removeVoiceProfileTitle": "Spraakprofiel verwijderen?",
+      "removeVoiceProfileDescription": "Sona onthoudt deze stem niet meer op deze Mac. De naam van de persoon en vergaderlinks blijven behouden.",
+      "voiceProfileRemoved": "Sona onthoudt deze stem niet meer op deze Mac.",
+      "voiceProfileRemovalFailed": "Het spraakprofiel kon niet worden verwijderd. Probeer het opnieuw.",
       "aliases": "Ook: {{aliases}}",
       "merge": "Samenvoegen",
       "mergeTitle": "Deze persoon samenvoegen?",
@@ -3102,6 +3149,8 @@
       "waitingOn": "Wachten op ({{count}})",
       "openNotes": "Notities openen",
       "copyFollowUp": "Vervolgbericht kopiëren",
+      "unresolvedSpeakers_one": "1 spreker labelen",
+      "unresolvedSpeakers_other": "{{count}} sprekers labelen",
       "copied": "Gekopieerd",
       "done": "Klaar"
     }
@@ -3146,6 +3195,62 @@
       "primed": "Terugkerende vergadering voorbereid",
       "noticed_one": "1 ding opgemerkt",
       "noticed_other": "{{count}} dingen opgemerkt"
+    }
+  },
+  "recorder": {
+    "open": "Scherm opnemen",
+    "title": "Scherm opnemen",
+    "screen": "Scherm",
+    "required": "Vereist",
+    "chooseScreen": "Scherm kiezen",
+    "change": "Wijzigen",
+    "camera": "Camera",
+    "microphone": "Microfoon",
+    "unavailable": "Niet beschikbaar",
+    "screenSelected": "Scherm geselecteerd",
+    "elapsed": "Verstreken tijd",
+    "start": "Opname starten",
+    "resume": "Hervatten",
+    "stopAndSave": "Stoppen en opslaan",
+    "reveal": "Tonen",
+    "done": "Klaar",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "Wordt gecontroleerd",
+      "permission": "Toestemming nodig",
+      "idle": "Instellen",
+      "selectingSource": "Bron selecteren",
+      "previewing": "Voorvertoning gereed",
+      "starting": "Opname starten",
+      "recording": "Opnemen",
+      "paused": "Gepauzeerd",
+      "finalizing": "Opname opslaan",
+      "saved": "Opgeslagen",
+      "failed": "Vereist aandacht"
+    },
+    "permission": {
+      "screen": "Verleen toestemming voor schermopname om een bron te kiezen.",
+      "camera": "Verleen cameratoegang om je camera toe te voegen.",
+      "microphone": "Verleen microfoontoegang om je microfoon toe te voegen.",
+      "grant": "Toegang verlenen",
+      "recheck": "Opnieuw controleren"
+    },
+    "error": {
+      "unsupported": "Schermopname vereist macOS 14 of nieuwer.",
+      "captureBusy": "Een andere Sona-opname gebruikt de microfoon.",
+      "screenPermissionDenied": "Toegang tot schermopname is geweigerd.",
+      "cameraPermissionDenied": "Cameratoegang is geweigerd.",
+      "microphonePermissionDenied": "Microfoontoegang is geweigerd.",
+      "sourceSelectionCancelled": "Bronselectie is geannuleerd.",
+      "sourceUnavailable": "Het geselecteerde scherm is niet meer beschikbaar.",
+      "cameraUnavailable": "De geselecteerde camera is niet meer beschikbaar.",
+      "microphoneUnavailable": "De geselecteerde microfoon is niet meer beschikbaar.",
+      "streamFailed": "De opnamestream is onverwacht gestopt.",
+      "timestampDiscontinuity": "De opnametijdlijn is ongeldig geworden.",
+      "writerFailed": "De opname kon niet worden geschreven.",
+      "outputFinalizeFailed": "De opname kon niet worden voltooid.",
+      "outputCommitFailed": "De opname kon niet worden opgeslagen.",
+      "revealFailed": "De opnamemap kon niet worden geopend."
     }
   }
 }

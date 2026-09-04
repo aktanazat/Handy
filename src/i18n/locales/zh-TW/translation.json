@@ -527,7 +527,30 @@
           "descriptionCustom": "輸入您的自定義伺服器要求的模型 ID。",
           "placeholderWithOptions": "搜尋或選擇模型",
           "placeholderNoOptions": "輸入模型名稱",
-          "refreshModels": "重新整理模型"
+          "refreshModels": "重新整理模型",
+          "search": "搜尋模型",
+          "useCustom": "使用「{{modelId}}」",
+          "source": {
+            "provider": "供應商",
+            "cached": "已快取",
+            "saved": "已儲存",
+            "manual": "手動"
+          },
+          "status": {
+            "loading": "正在載入模型",
+            "savedNotInLatest": "儲存的選取項目不在最新的供應商清單中。",
+            "cachedFallback": "正在使用此視窗中上次載入的模型清單。",
+            "requiresConsent": "載入模型前，請允許遠端文字傳輸。",
+            "requiresCredential": "載入模型前，請新增 API 金鑰。",
+            "credentialUnavailable": "API 金鑰無法使用。",
+            "credentialLocked": "載入模型前，請解鎖 API 金鑰。",
+            "unsupported": "此供應商未發布相容的模型清單。請手動輸入模型 ID。",
+            "unauthorized": "供應商拒絕了 API 金鑰。",
+            "forbidden": "供應商不允許此模型清單。",
+            "rateLimited": "供應商正在限制模型搜尋。",
+            "unreachable": "Sona 無法連線至此供應商。",
+            "invalidResponse": "供應商傳回了無效的模型清單。"
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "載入歷史紀錄中…",
       "empty": "還沒有錄音。",
       "copyToClipboard": "複製轉錄到剪貼簿",
+      "copyFailed": "無法複製轉錄內容",
       "save": "儲存項目",
       "unsave": "從已儲存中移除",
       "delete": "刪除條目",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "已送達",
           "definitely_not_dispatched": "未傳送",
-          "dispatched_but_unconfirmed": "已傳送，未確認"
+          "dispatched_but_unconfirmed": "已傳送，未確認",
+          "dispatched_under_secure_input": "在 Secure Input 開啟時傳送"
         },
         "modeLabel": "模式",
         "revisionLabel": "設定版本",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "完全沒有收到任何事件。請在診斷執行時按幾個鍵。",
         "verdictOk": "按鍵可以傳到 Sona。",
         "failed": "診斷無法執行：{{error}}",
+        "inputMonitoringDenied": "Sona 無法讀取鍵盤事件。請允許「輸入監控」，然後再試一次。",
         "keyDown": "按下按鍵",
         "keyUp": "放開按鍵",
         "flagsChanged": "修飾鍵",
@@ -2100,7 +2126,8 @@
       "export_failed": "匯出失敗。沒有產生完整的匯出檔案。",
       "local_model_unavailable": "這場會議沒有可用的本機模型。",
       "remote_unavailable": "所選的遠端目的地無法使用。",
-      "import_unreadable": "Sona 無法將該檔案讀取為錄音或逐字稿匯出檔。"
+      "import_unreadable": "Sona 無法將該檔案讀取為錄音或逐字稿匯出檔。",
+      "profile_merge_resolution_required": "合併這些人物之前，Sona 需要知道要保留哪一份已儲存的聲音。"
     },
     "discard": {
       "liveTitle": "停止並丟棄這個工作階段？",
@@ -2138,6 +2165,20 @@
       "speakerName": "說話者名稱",
       "renameSpeaker": "重新命名這個說話者",
       "samePersonAs": "與 {{name}} 是同一人",
+      "unresolvedSpeakers_other": "{{count}} 位說話者待標記",
+      "labelSpeaker": "標記說話者",
+      "correctSpeaker": "更正說話者",
+      "labelSpeakerNamed": "標記 {{speaker}}",
+      "correctSpeakerNamed": "更正 {{speaker}}",
+      "identityPerson": "選擇人物",
+      "identityNewPerson": "新人物",
+      "identityExistingPerson": "現有人物",
+      "identityNewPersonName": "新人物姓名",
+      "markUnknown": "標記為未知",
+      "markUnknownDescription": "此逐字稿將不再顯示 {{speaker}} 的名字，Sona 也會刪除為該說話者儲存的聲音樣本。逐字稿內容和你的筆記會保留。",
+      "rememberVoice": "在此 Mac 上記住此聲音",
+      "notNow": "暫不",
+      "rememberVoiceFailed": "標記已儲存。Sona 無法從這場會議記住此聲音。請在另一場會議中再試。",
       "manualNotes": "手動筆記",
       "manualNote": "手動筆記",
       "newNote": "新增手動筆記",
@@ -2178,10 +2219,10 @@
         "manualNote": "手動筆記",
         "title": "會議標題"
       },
+      "generationFailedDescription": "轉錄和你自己寫的筆記不受影響。原因解決後可重新產生。",
       "noGeneratedNotesDescription": "生成的筆記衍生自逐字稿，因此隨時可以重新建立。",
       "processingDescription": "逐字稿完成後，生成的筆記和本機回答就會出現。",
       "processingTitle": "Sona 仍在處理這場會議",
-      "remoteProcessingUnavailable": "遠端目的地一直無法使用，因此未生成任何內容。重新生成會在這台 Mac 上執行。",
       "tabs": {
         "insights": "洞察",
         "ledger": "紀錄簿",
@@ -2546,7 +2587,7 @@
     "scopeLabel": "由誰回答",
     "scope": {
       "sona_chat": "提問",
-      "sona_config": "設定"
+      "sona_config": "調整設定"
     },
     "workedFor": "已處理 {{seconds}} 秒",
     "stepSeconds": "{{seconds}} 秒",
@@ -2601,7 +2642,7 @@
       "receipt": "回條 {{id}}"
     },
     "consent": {
-      "notice": "允許 Sona 將相符的引文傳送至您的伺服器後，即可回答關於錄音的問題。",
+      "notice": "開啟會議智慧後，Sona 即可回答關於錄音的問題。這會把相符的引文傳送至您的伺服器，之後每場會議的筆記也都在那裡撰寫。",
       "allow": "允許"
     },
     "tool": {
@@ -2670,7 +2711,7 @@
       "resume": "繼續同步"
     },
     "setup": {
-      "title": "設定同步帳戶",
+      "title": "設定同步：請先部署搭配的 Worker",
       "endpoint": "伺服器位址",
       "bootstrapSecret": "設定密鑰",
       "submit": "設定同步"
@@ -2771,6 +2812,11 @@
       "rename": "重新命名",
       "personActions": "聯絡人操作",
       "deletePerson": "刪除人物",
+      "removeVoiceProfile": "移除聲音檔案",
+      "removeVoiceProfileTitle": "移除聲音檔案？",
+      "removeVoiceProfileDescription": "Sona 將不再在此 Mac 上記住此聲音。此人的姓名和會議連結會保留。",
+      "voiceProfileRemoved": "Sona 已不再在此 Mac 上記住此聲音。",
+      "voiceProfileRemovalFailed": "無法移除聲音檔案。請再試一次。",
       "aliases": "其他名稱：{{aliases}}",
       "merge": "合併",
       "mergeTitle": "合併此人物？",
@@ -3090,6 +3136,7 @@
       "waitingOn": "等待中 ({{count}})",
       "openNotes": "開啟筆記",
       "copyFollowUp": "複製跟進內容",
+      "unresolvedSpeakers_other": "{{count}} 位說話者待標記",
       "copied": "已複製",
       "done": "完成"
     }
@@ -3132,6 +3179,62 @@
     "outcomes": {
       "primed": "已為週期性會議做準備",
       "noticed_other": "注意到 {{count}} 項"
+    }
+  },
+  "recorder": {
+    "open": "錄製螢幕",
+    "title": "錄製螢幕",
+    "screen": "螢幕",
+    "required": "必填",
+    "chooseScreen": "選取螢幕",
+    "change": "變更",
+    "camera": "相機",
+    "microphone": "麥克風",
+    "unavailable": "無法使用",
+    "screenSelected": "已選取螢幕",
+    "elapsed": "經過時間",
+    "start": "開始錄製",
+    "resume": "繼續",
+    "stopAndSave": "停止並儲存",
+    "reveal": "在 Finder 中顯示",
+    "done": "完成",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "正在檢查",
+      "permission": "需要權限",
+      "idle": "設定",
+      "selectingSource": "正在選取來源",
+      "previewing": "預覽已準備就緒",
+      "starting": "正在啟動錄製",
+      "recording": "正在錄製",
+      "paused": "已暫停",
+      "finalizing": "正在儲存錄製內容",
+      "saved": "已儲存",
+      "failed": "需要注意"
+    },
+    "permission": {
+      "screen": "請允許螢幕錄製以選取來源。",
+      "camera": "請允許存取相機以錄入相機畫面。",
+      "microphone": "請允許存取麥克風以錄入麥克風音訊。",
+      "grant": "授予權限",
+      "recheck": "重新檢查"
+    },
+    "error": {
+      "unsupported": "螢幕錄製需要 macOS 14 或以上版本。",
+      "captureBusy": "另一項 Sona 擷取作業正在使用麥克風。",
+      "screenPermissionDenied": "螢幕錄製存取被拒絕。",
+      "cameraPermissionDenied": "相機存取被拒絕。",
+      "microphonePermissionDenied": "麥克風存取被拒絕。",
+      "sourceSelectionCancelled": "已取消選取來源。",
+      "sourceUnavailable": "所選螢幕已無法使用。",
+      "cameraUnavailable": "所選相機已無法使用。",
+      "microphoneUnavailable": "所選麥克風已無法使用。",
+      "streamFailed": "錄製串流意外停止。",
+      "timestampDiscontinuity": "錄製時間軸已失效。",
+      "writerFailed": "無法寫入錄製內容。",
+      "outputFinalizeFailed": "無法完成錄製。",
+      "outputCommitFailed": "無法儲存錄製內容。",
+      "revealFailed": "無法開啟錄製資料夾。"
     }
   }
 }

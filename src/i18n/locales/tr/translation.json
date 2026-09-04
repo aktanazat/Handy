@@ -527,7 +527,30 @@
           "descriptionCustom": "Özel sunucunuzun beklediği model ID'sini girin.",
           "placeholderWithOptions": "Model ara veya seç",
           "placeholderNoOptions": "Model adı yazın",
-          "refreshModels": "Modelleri Yenile"
+          "refreshModels": "Modelleri Yenile",
+          "search": "Modelleri ara",
+          "useCustom": "“{{modelId}}” kullan",
+          "source": {
+            "provider": "Sağlayıcı",
+            "cached": "Önbelleğe alınmış",
+            "saved": "Kaydedilmiş",
+            "manual": "Manuel"
+          },
+          "status": {
+            "loading": "Modeller yükleniyor",
+            "savedNotInLatest": "Kaydedilen seçim, en güncel sağlayıcı listesinde yok.",
+            "cachedFallback": "Bu pencerede yüklenen son model listesi kullanılıyor.",
+            "requiresConsent": "Modelleri yüklemeden önce uzak metin aktarımına izin verin.",
+            "requiresCredential": "Modelleri yüklemeden önce bir API anahtarı ekleyin.",
+            "credentialUnavailable": "API anahtarı kullanılamıyor.",
+            "credentialLocked": "Modelleri yüklemeden önce API anahtarının kilidini açın.",
+            "unsupported": "Bu sağlayıcı uyumlu bir model listesi yayımlamıyor. Model ID'sini manuel olarak girin.",
+            "unauthorized": "Sağlayıcı API anahtarını reddetti.",
+            "forbidden": "Sağlayıcı bu model listesine izin vermiyor.",
+            "rateLimited": "Sağlayıcı model keşfini hız sınırlıyor.",
+            "unreachable": "Sona bu sağlayıcıya ulaşamadı.",
+            "invalidResponse": "Sağlayıcı geçersiz bir model listesi döndürdü."
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "Geçmiş yükleniyor…",
       "empty": "Henüz kayıt yok.",
       "copyToClipboard": "Transkripti panoya kopyala",
+      "copyFailed": "Transkript kopyalanamadı",
       "save": "Girişi kaydet",
       "unsave": "Kaydedilenlerden kaldır",
       "delete": "Kaydı sil",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "İletildi",
           "definitely_not_dispatched": "Gönderilmedi",
-          "dispatched_but_unconfirmed": "Gönderildi, doğrulanmadı"
+          "dispatched_but_unconfirmed": "Gönderildi, doğrulanmadı",
+          "dispatched_under_secure_input": "Secure Input açıkken gönderildi"
         },
         "modeLabel": "Kip",
         "revisionLabel": "Ayar sürümü",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "Hiçbir şey ulaşmadı. Tanılama çalışırken birkaç tuşa basın.",
         "verdictOk": "Tuşlar Sona'ya ulaşıyor.",
         "failed": "Tanılama çalıştırılamadı: {{error}}",
+        "inputMonitoringDenied": "Sona klavye etkinliklerini okuyamıyor. Giriş İzleme’ye izin verin ve tekrar deneyin.",
         "keyDown": "Tuş basıldı",
         "keyUp": "Tuş bırakıldı",
         "flagsChanged": "Değiştiriciler",
@@ -2106,7 +2132,8 @@
       "export_failed": "Dışa aktarma başarısız oldu. Tamamlanmış bir dışa aktarma oluşturulmadı.",
       "local_model_unavailable": "Bu toplantı için yerel bir model kullanılamıyor.",
       "remote_unavailable": "Seçilen uzak hedef kullanılamıyor.",
-      "import_unreadable": "Sona bu dosyayı kayıt ya da transkript dışa aktarımı olarak okuyamadı."
+      "import_unreadable": "Sona bu dosyayı kayıt ya da transkript dışa aktarımı olarak okuyamadı.",
+      "profile_merge_resolution_required": "Sona, bu kişileri birleştirmeden önce kayıtlı seslerden hangisinin tutulacağını bilmelidir."
     },
     "discard": {
       "liveTitle": "Bu oturum durdurulup atılsın mı?",
@@ -2144,6 +2171,21 @@
       "speakerName": "Konuşmacı adı",
       "renameSpeaker": "Bu konuşmacıyı yeniden adlandır",
       "samePersonAs": "{{name}} ile aynı kişi",
+      "unresolvedSpeakers_one": "Etiketlenecek 1 konuşmacı",
+      "unresolvedSpeakers_other": "Etiketlenecek {{count}} konuşmacı",
+      "labelSpeaker": "Konuşmacıyı etiketle",
+      "correctSpeaker": "Konuşmacıyı düzelt",
+      "labelSpeakerNamed": "Etiketle: {{speaker}}",
+      "correctSpeakerNamed": "Düzelt: {{speaker}}",
+      "identityPerson": "Kişi seçin",
+      "identityNewPerson": "Yeni kişi",
+      "identityExistingPerson": "Mevcut kişi",
+      "identityNewPersonName": "Yeni kişinin adı",
+      "markUnknown": "Bilinmiyor olarak işaretle",
+      "markUnknownDescription": "Bu döküm artık {{speaker}} adını göstermez ve Sona bu konuşmacı için kaydedilen ses örneklerini siler. Döküm metni ve notlarınız kalır.",
+      "rememberVoice": "Bu sesi bu Mac'te hatırla",
+      "notNow": "Şimdi değil",
+      "rememberVoiceFailed": "Etiket kaydedildi. Sona bu toplantıdan bu sesi hatırlayamadı. Başka bir toplantıyı deneyin.",
       "manualNotes": "Elle alınan notlar",
       "manualNote": "Elle alınan not",
       "newNote": "Yeni elle alınan not",
@@ -2184,10 +2226,10 @@
         "manualNote": "Elle alınan not",
         "title": "Toplantı başlığı"
       },
+      "generationFailedDescription": "Transkript ve kendi notlarınız etkilenmez. Neden giderildikten sonra yeniden üretin.",
       "noGeneratedNotesDescription": "Oluşturulan notlar transkriptten türetilir, bu yüzden istenildiğinde yeniden oluşturulabilir.",
       "processingDescription": "Oluşturulan notlar ve yerel yanıtlar transkript tamamlanınca görünür.",
       "processingTitle": "Sona bu toplantıyı hâlâ işliyor",
-      "remoteProcessingUnavailable": "Uzak hedef hiç kullanılabilir olmadı, bu yüzden hiçbir şey oluşturulmadı. Yeniden oluşturma bu Mac üzerinde çalışır.",
       "tabs": {
         "insights": "İçgörüler",
         "ledger": "Kayıt defteri",
@@ -2552,7 +2594,7 @@
     "scopeLabel": "Kim yanıtlıyor",
     "scope": {
       "sona_chat": "Sor",
-      "sona_config": "Ayarlar"
+      "sona_config": "Yapılandır"
     },
     "workedFor": "{{seconds}} sn çalıştı",
     "stepSeconds": "{{seconds}} sn",
@@ -2607,7 +2649,7 @@
       "receipt": "Makbuz {{id}}"
     },
     "consent": {
-      "notice": "Sona, eşleşen alıntıları sunucunuza göndermesine izin verdiğinizde kayıtlarınız hakkındaki soruları yanıtlar.",
+      "notice": "Sona, toplantı zekâsını açtığınızda kayıtlarınız hakkındaki soruları yanıtlar. Bu, eşleşen alıntıları sunucunuza gönderir ve sonraki tüm toplantıların notlarını da orada yazar.",
       "allow": "İzin ver"
     },
     "tool": {
@@ -2678,7 +2720,7 @@
       "resume": "Eşitlemeyi sürdür"
     },
     "setup": {
-      "title": "Bir eşitleme hesabı ayarla",
+      "title": "Eşitlemeyi kur — önce eşlik eden Worker'ı dağıtın",
       "endpoint": "Sunucu adresi",
       "bootstrapSecret": "Kurulum gizli anahtarı",
       "submit": "Eşitlemeyi ayarla"
@@ -2779,6 +2821,11 @@
       "rename": "Yeniden adlandır",
       "personActions": "Kişi işlemleri",
       "deletePerson": "Kişiyi sil",
+      "removeVoiceProfile": "Ses profilini kaldır",
+      "removeVoiceProfileTitle": "Ses profili kaldırılsın mı?",
+      "removeVoiceProfileDescription": "Sona bu sesi bu Mac'te hatırlamayı bırakacak. Kişinin adı ve toplantı bağlantıları kalacak.",
+      "voiceProfileRemoved": "Sona bu sesi bu Mac'te hatırlamayı bıraktı.",
+      "voiceProfileRemovalFailed": "Ses profili kaldırılamadı. Tekrar deneyin.",
       "aliases": "Diğer adlar: {{aliases}}",
       "merge": "Birleştir",
       "mergeTitle": "Bu kişi birleştirilsin mi?",
@@ -3102,6 +3149,8 @@
       "waitingOn": "Beklenen ({{count}})",
       "openNotes": "Notları aç",
       "copyFollowUp": "Takip mesajını kopyala",
+      "unresolvedSpeakers_one": "Etiketlenecek 1 konuşmacı",
+      "unresolvedSpeakers_other": "Etiketlenecek {{count}} konuşmacı",
       "copied": "Kopyalandı",
       "done": "Bitti"
     }
@@ -3146,6 +3195,62 @@
       "primed": "Yinelenen bir toplantı hazırladı",
       "noticed_one": "1 şey fark etti",
       "noticed_other": "{{count}} şey fark etti"
+    }
+  },
+  "recorder": {
+    "open": "Ekranı kaydet",
+    "title": "Ekran kaydı",
+    "screen": "Ekran",
+    "required": "Gerekli",
+    "chooseScreen": "Ekran seç",
+    "change": "Değiştir",
+    "camera": "Kamera",
+    "microphone": "Mikrofon",
+    "unavailable": "Kullanılamıyor",
+    "screenSelected": "Ekran seçildi",
+    "elapsed": "Geçen süre",
+    "start": "Kaydı başlat",
+    "resume": "Devam et",
+    "stopAndSave": "Durdur ve kaydet",
+    "reveal": "Göster",
+    "done": "Bitti",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "Kontrol ediliyor",
+      "permission": "İzin gerekli",
+      "idle": "Kurulum",
+      "selectingSource": "Kaynak seçiliyor",
+      "previewing": "Önizleme hazır",
+      "starting": "Kayıt başlatılıyor",
+      "recording": "Kayıt yapılıyor",
+      "paused": "Duraklatıldı",
+      "finalizing": "Kayıt kaydediliyor",
+      "saved": "Kaydedildi",
+      "failed": "İlgi gerekiyor"
+    },
+    "permission": {
+      "screen": "Kaynak seçmek için ekran kaydına izin verin.",
+      "camera": "Kameranızı dahil etmek için kamera erişimine izin verin.",
+      "microphone": "Mikrofonunuzu dahil etmek için mikrofon erişimine izin verin.",
+      "grant": "Erişim izni ver",
+      "recheck": "Tekrar kontrol et"
+    },
+    "error": {
+      "unsupported": "Ekran kaydı için macOS 14 veya sonrası gerekir.",
+      "captureBusy": "Başka bir Sona kaydı mikrofonu kullanıyor.",
+      "screenPermissionDenied": "Ekran kaydı erişimi reddedildi.",
+      "cameraPermissionDenied": "Kamera erişimi reddedildi.",
+      "microphonePermissionDenied": "Mikrofon erişimi reddedildi.",
+      "sourceSelectionCancelled": "Kaynak seçimi iptal edildi.",
+      "sourceUnavailable": "Seçilen ekran artık kullanılamıyor.",
+      "cameraUnavailable": "Seçilen kamera artık kullanılamıyor.",
+      "microphoneUnavailable": "Seçilen mikrofon artık kullanılamıyor.",
+      "streamFailed": "Kayıt akışı beklenmedik şekilde durdu.",
+      "timestampDiscontinuity": "Kayıt zaman çizelgesi geçersiz hâle geldi.",
+      "writerFailed": "Kayıt dosyaya yazılamadı.",
+      "outputFinalizeFailed": "Kayıt sonlandırılamadı.",
+      "outputCommitFailed": "Kayıt kaydedilemedi.",
+      "revealFailed": "Kayıtlar klasörü açılamadı."
     }
   }
 }

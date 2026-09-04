@@ -527,7 +527,30 @@
           "descriptionCustom": "カスタムサーバーが要求するモデルIDを入力してください。",
           "placeholderWithOptions": "モデルを検索または選択",
           "placeholderNoOptions": "モデル名を入力",
-          "refreshModels": "モデルを更新"
+          "refreshModels": "モデルを更新",
+          "search": "モデルを検索",
+          "useCustom": "「{{modelId}}」を使用",
+          "source": {
+            "provider": "プロバイダー",
+            "cached": "キャッシュ済み",
+            "saved": "保存済み",
+            "manual": "手動"
+          },
+          "status": {
+            "loading": "モデルを読み込み中",
+            "savedNotInLatest": "保存した選択は最新のプロバイダー一覧にありません。",
+            "cachedFallback": "このウィンドウで最後に読み込んだモデル一覧を使用しています。",
+            "requiresConsent": "モデルを読み込む前に、リモートへのテキスト送信を許可してください。",
+            "requiresCredential": "モデルを読み込む前に API キーを追加してください。",
+            "credentialUnavailable": "API キーを利用できません。",
+            "credentialLocked": "モデルを読み込む前に API キーのロックを解除してください。",
+            "unsupported": "このプロバイダーは互換性のあるモデル一覧を公開していません。モデルIDを手動で入力してください。",
+            "unauthorized": "プロバイダーが API キーを拒否しました。",
+            "forbidden": "プロバイダーはこのモデル一覧を許可していません。",
+            "rateLimited": "プロバイダーがモデルの検索をレート制限しています。",
+            "unreachable": "Sona はこのプロバイダーに接続できませんでした。",
+            "invalidResponse": "プロバイダーから無効なモデル一覧が返されました。"
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "履歴を読み込み中…",
       "empty": "録音はまだありません。",
       "copyToClipboard": "書き起こしをクリップボードにコピー",
+      "copyFailed": "文字起こしをコピーできませんでした",
       "save": "項目を保存",
       "unsave": "保存から削除",
       "delete": "エントリーを削除",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "挿入済み",
           "definitely_not_dispatched": "未送信",
-          "dispatched_but_unconfirmed": "送信済み、未確認"
+          "dispatched_but_unconfirmed": "送信済み、未確認",
+          "dispatched_under_secure_input": "Secure Input 有効時に送信"
         },
         "modeLabel": "モード",
         "revisionLabel": "設定のバージョン",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "何も届きませんでした。診断の実行中にいくつかキーを押してください。",
         "verdictOk": "キー入力は Sona に届いています。",
         "failed": "診断を実行できませんでした: {{error}}",
+        "inputMonitoringDenied": "Sonaはキーボードイベントを読み取れません。「入力監視」を許可してから、もう一度お試しください。",
         "keyDown": "キーダウン",
         "keyUp": "キーアップ",
         "flagsChanged": "修飾キー",
@@ -2100,7 +2126,8 @@
       "export_failed": "書き出しに失敗しました。完了した書き出しは作成されていません。",
       "local_model_unavailable": "このミーティングで使えるローカルモデルがありません。",
       "remote_unavailable": "選択したリモートの送信先を利用できません。",
-      "import_unreadable": "Sonaはそのファイルを録音または文字起こしの書き出しとして読み取れませんでした。"
+      "import_unreadable": "Sonaはそのファイルを録音または文字起こしの書き出しとして読み取れませんでした。",
+      "profile_merge_resolution_required": "これらの人物を統合する前に、保存されたどの声を残すかを Sona に指定してください。"
     },
     "discard": {
       "liveTitle": "このセッションを停止して破棄しますか？",
@@ -2138,6 +2165,20 @@
       "speakerName": "話者名",
       "renameSpeaker": "この話者の名前を変更",
       "samePersonAs": "{{name}}と同じ人物",
+      "unresolvedSpeakers_other": "名前を付ける話者が{{count}}人",
+      "labelSpeaker": "話者に名前を付ける",
+      "correctSpeaker": "話者を修正",
+      "labelSpeakerNamed": "{{speaker}} に名前を付ける",
+      "correctSpeakerNamed": "{{speaker}} を修正",
+      "identityPerson": "人物を選択",
+      "identityNewPerson": "新しい人物",
+      "identityExistingPerson": "既存の人物",
+      "identityNewPersonName": "新しい人物の名前",
+      "markUnknown": "不明としてマーク",
+      "markUnknownDescription": "この文字起こしは {{speaker}} の名前を表示しなくなり、Sona はこの話者から保存した音声サンプルを削除します。文字起こしの本文とメモは残ります。",
+      "rememberVoice": "このMacでこの声を記憶する",
+      "notNow": "今はしない",
+      "rememberVoiceFailed": "名前を保存しました。この会議からこの声を記憶できませんでした。別の会議で試してください。",
       "manualNotes": "手動メモ",
       "manualNote": "手動メモ",
       "newNote": "新しい手動メモ",
@@ -2178,10 +2219,10 @@
         "manualNote": "手動メモ",
         "title": "ミーティングタイトル"
       },
+      "generationFailedDescription": "文字起こしと手動メモには影響しません。原因が解決したら再生成してください。",
       "noGeneratedNotesDescription": "生成ノートは文字起こしから作られるため、いつでも再生成できます。",
       "processingDescription": "文字起こしが完了すると、生成ノートとローカルの回答が表示されます。",
       "processingTitle": "Sona はまだこのミーティングを処理中です",
-      "remoteProcessingUnavailable": "リモートの送信先が利用可能にならなかったため、何も生成されませんでした。再生成はこの Mac 上で実行されます。",
       "tabs": {
         "insights": "インサイト",
         "ledger": "台帳",
@@ -2546,7 +2587,7 @@
     "scopeLabel": "回答する相手",
     "scope": {
       "sona_chat": "質問",
-      "sona_config": "設定"
+      "sona_config": "設定を変更"
     },
     "workedFor": "{{seconds}} 秒動作しました",
     "stepSeconds": "{{seconds}} 秒",
@@ -2601,7 +2642,7 @@
       "receipt": "受領記録 {{id}}"
     },
     "consent": {
-      "notice": "一致する引用をサーバーに送信することを許可すると、Sona が録音について回答します。",
+      "notice": "会議インテリジェンスをオンにすると、Sona が録音について回答します。これにより一致する引用がサーバーに送信され、以降のすべての会議のノートもそのサーバー上で書かれます。",
       "allow": "許可"
     },
     "tool": {
@@ -2670,7 +2711,7 @@
       "resume": "同期を再開"
     },
     "setup": {
-      "title": "同期アカウントを設定",
+      "title": "同期を設定：先に連携用 Worker をデプロイ",
       "endpoint": "サーバーのアドレス",
       "bootstrapSecret": "セットアップシークレット",
       "submit": "同期を設定"
@@ -2771,6 +2812,11 @@
       "rename": "名前を変更",
       "personActions": "人物の操作",
       "deletePerson": "人物を削除",
+      "removeVoiceProfile": "声のプロフィールを削除",
+      "removeVoiceProfileTitle": "声のプロフィールを削除しますか？",
+      "removeVoiceProfileDescription": "SonaはこのMacでこの声を記憶しなくなります。人の名前と会議へのリンクは残ります。",
+      "voiceProfileRemoved": "SonaはこのMacでこの声を記憶しなくなりました。",
+      "voiceProfileRemovalFailed": "声のプロフィールを削除できませんでした。もう一度試してください。",
       "aliases": "別名: {{aliases}}",
       "merge": "統合",
       "mergeTitle": "この人物を統合しますか？",
@@ -3090,6 +3136,7 @@
       "waitingOn": "待機中 ({{count}})",
       "openNotes": "ノートを開く",
       "copyFollowUp": "フォローアップをコピー",
+      "unresolvedSpeakers_other": "名前を付ける話者が{{count}}人",
       "copied": "コピー済み",
       "done": "完了"
     }
@@ -3132,6 +3179,62 @@
     "outcomes": {
       "primed": "定例会議を下準備しました",
       "noticed_other": "{{count}} 件気づきました"
+    }
+  },
+  "recorder": {
+    "open": "画面を録画",
+    "title": "画面を録画",
+    "screen": "画面",
+    "required": "必須",
+    "chooseScreen": "画面を選択",
+    "change": "変更",
+    "camera": "カメラ",
+    "microphone": "マイク",
+    "unavailable": "利用不可",
+    "screenSelected": "画面を選択しました",
+    "elapsed": "経過時間",
+    "start": "録画を開始",
+    "resume": "再開",
+    "stopAndSave": "停止して保存",
+    "reveal": "Finderで表示",
+    "done": "完了",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "確認中",
+      "permission": "権限が必要です",
+      "idle": "設定",
+      "selectingSource": "ソースを選択中",
+      "previewing": "プレビューの準備完了",
+      "starting": "録画を開始中",
+      "recording": "録画中",
+      "paused": "一時停止中",
+      "finalizing": "録画を保存中",
+      "saved": "保存済み",
+      "failed": "対応が必要"
+    },
+    "permission": {
+      "screen": "ソースを選択するには画面録画を許可してください。",
+      "camera": "カメラを含めるにはカメラへのアクセスを許可してください。",
+      "microphone": "マイクを含めるにはマイクへのアクセスを許可してください。",
+      "grant": "権限を許可",
+      "recheck": "再確認"
+    },
+    "error": {
+      "unsupported": "画面録画には macOS 14 以降が必要です。",
+      "captureBusy": "別の Sona の録画がマイクを使用しています。",
+      "screenPermissionDenied": "画面録画へのアクセスが拒否されました。",
+      "cameraPermissionDenied": "カメラへのアクセスが拒否されました。",
+      "microphonePermissionDenied": "マイクへのアクセスが拒否されました。",
+      "sourceSelectionCancelled": "ソースの選択がキャンセルされました。",
+      "sourceUnavailable": "選択した画面は利用できなくなりました。",
+      "cameraUnavailable": "選択したカメラは利用できなくなりました。",
+      "microphoneUnavailable": "選択したマイクは利用できなくなりました。",
+      "streamFailed": "録画ストリームが予期せず停止しました。",
+      "timestampDiscontinuity": "録画のタイムラインが無効になりました。",
+      "writerFailed": "録画データを書き込めませんでした。",
+      "outputFinalizeFailed": "録画を完了できませんでした。",
+      "outputCommitFailed": "録画を保存できませんでした。",
+      "revealFailed": "録画フォルダを開けませんでした。"
     }
   }
 }

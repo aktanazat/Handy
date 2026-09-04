@@ -527,7 +527,30 @@
           "descriptionCustom": "הזן את ה-ID של המודל שהשרת האישי שלך מצפה לו.",
           "placeholderWithOptions": "חפש או בחר מודל",
           "placeholderNoOptions": "הקלד שם מודל",
-          "refreshModels": "רענן מודלים"
+          "refreshModels": "רענן מודלים",
+          "search": "חפש מודלים",
+          "useCustom": "השתמש ב־“{{modelId}}”",
+          "source": {
+            "provider": "ספק",
+            "cached": "במטמון",
+            "saved": "נשמר",
+            "manual": "ידני"
+          },
+          "status": {
+            "loading": "טוען מודלים",
+            "savedNotInLatest": "הבחירה השמורה אינה מופיעה ברשימת הספק העדכנית.",
+            "cachedFallback": "נעשה שימוש ברשימת המודלים האחרונה שנטענה בחלון זה.",
+            "requiresConsent": "אפשר העברת טקסט מרחוק לפני טעינת מודלים.",
+            "requiresCredential": "הוסף מפתח API לפני טעינת מודלים.",
+            "credentialUnavailable": "מפתח API אינו זמין.",
+            "credentialLocked": "בטל את נעילת מפתח API לפני טעינת מודלים.",
+            "unsupported": "הספק הזה אינו מפרסם רשימת מודלים תואמת. הזן מזהה מודל באופן ידני.",
+            "unauthorized": "הספק דחה את מפתח ה-API.",
+            "forbidden": "הספק אינו מאפשר את רשימת המודלים הזו.",
+            "rateLimited": "הספק מגביל את קצב גילוי המודלים.",
+            "unreachable": "Sona לא הצליחה להגיע לספק הזה.",
+            "invalidResponse": "הספק החזיר רשימת מודלים לא תקינה."
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "טוען היסטוריה…",
       "empty": "עדיין אין הקלטות.",
       "copyToClipboard": "העתק תמלול ללוח",
+      "copyFailed": "לא ניתן להעתיק את התמלול",
       "save": "שמור רשומה",
       "unsave": "הסר משמורים",
       "delete": "מחק רשומה",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "נמסר",
           "definitely_not_dispatched": "לא נשלח",
-          "dispatched_but_unconfirmed": "נשלח, לא אושר"
+          "dispatched_but_unconfirmed": "נשלח, לא אושר",
+          "dispatched_under_secure_input": "נשלח כש-Secure Input פעיל"
         },
         "modeLabel": "מצב",
         "revisionLabel": "גרסת ההגדרות",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "לא הגיע דבר. לחצו על כמה מקשים בזמן שהאבחון פועל.",
         "verdictOk": "המקשים מגיעים אל Sona.",
         "failed": "לא ניתן היה להריץ את האבחון: {{error}}",
+        "inputMonitoringDenied": "ל-Sona אין אפשרות לקרוא אירועי מקלדת. יש לאפשר ניטור קלט ולנסות שוב.",
         "keyDown": "לחיצת מקש",
         "keyUp": "שחרור מקש",
         "flagsChanged": "מקשי שינוי",
@@ -2112,7 +2138,8 @@
       "export_failed": "הייצוא נכשל. לא נוצר ייצוא שהושלם.",
       "local_model_unavailable": "אין מודל מקומי זמין לפגישה הזאת.",
       "remote_unavailable": "היעד המרוחק שנבחר אינו זמין.",
-      "import_unreadable": "Sona לא הצליחה לקרוא את הקובץ הזה כהקלטה או כייצוא תמלול."
+      "import_unreadable": "Sona לא הצליחה לקרוא את הקובץ הזה כהקלטה או כייצוא תמלול.",
+      "profile_merge_resolution_required": "Sona צריך לדעת איזה קול שמור להשאיר לפני מיזוג האנשים האלה."
     },
     "discard": {
       "liveTitle": "לעצור ולזרוק את ההפעלה הזאת?",
@@ -2150,6 +2177,22 @@
       "speakerName": "שם הדובר",
       "renameSpeaker": "שינוי שם הדובר",
       "samePersonAs": "אותו אדם כמו {{name}}",
+      "unresolvedSpeakers_one": "דובר אחד לזיהוי",
+      "unresolvedSpeakers_two": "שני דוברים לזיהוי",
+      "unresolvedSpeakers_other": "{{count}} דוברים לזיהוי",
+      "labelSpeaker": "זיהוי דובר",
+      "correctSpeaker": "תיקון דובר",
+      "labelSpeakerNamed": "זיהוי {{speaker}}",
+      "correctSpeakerNamed": "תיקון {{speaker}}",
+      "identityPerson": "בחירת אדם",
+      "identityNewPerson": "אדם חדש",
+      "identityExistingPerson": "אדם קיים",
+      "identityNewPersonName": "שם האדם החדש",
+      "markUnknown": "סימון כלא ידוע",
+      "markUnknownDescription": "התמלול יפסיק לציין את {{speaker}}, ו-Sona ימחק את דגימות הקול שנשמרו עבור הדובר הזה. טקסט התמלול וההערות שלך יישארו.",
+      "rememberVoice": "זכור את הקול הזה ב‑Mac הזה",
+      "notNow": "לא עכשיו",
+      "rememberVoiceFailed": "התווית נשמרה. Sona לא הצליחה לזכור את הקול הזה מהפגישה הזו. נסו פגישה אחרת.",
       "manualNotes": "הערות ידניות",
       "manualNote": "הערה ידנית",
       "newNote": "הערה ידנית חדשה",
@@ -2190,10 +2233,10 @@
         "manualNote": "הערה ידנית",
         "title": "כותרת הפגישה"
       },
+      "generationFailedDescription": "התמלול וההערות הידניות שלך לא נפגעים. צור מחדש לאחר שהסיבה תטופל.",
       "noGeneratedNotesDescription": "הערות שנוצרו נגזרות מהתמלול, ולכן ניתן לבנות אותן מחדש בכל עת.",
       "processingDescription": "הערות שנוצרו ותשובות מקומיות יופיעו לאחר שהתמלול יושלם.",
       "processingTitle": "Sona עדיין מעבד את הפגישה הזו",
-      "remoteProcessingUnavailable": "היעד המרוחק לא הפך לזמין, ולכן לא נוצר דבר. יצירה מחדש מתבצעת במחשב Mac זה.",
       "tabs": {
         "insights": "תובנות",
         "ledger": "רישום",
@@ -2558,7 +2601,7 @@
     "scopeLabel": "מי עונה",
     "scope": {
       "sona_chat": "שאלה",
-      "sona_config": "הגדרות"
+      "sona_config": "הגדרה"
     },
     "workedFor": "עבד {{seconds}} שנ'",
     "stepSeconds": "{{seconds}} שנ'",
@@ -2613,7 +2656,7 @@
       "receipt": "קבלה {{id}}"
     },
     "consent": {
-      "notice": "Sona תענה על שאלות לגבי ההקלטות שלך לאחר שתאשרו לה לשלוח ציטוטים תואמים לשרת שלך.",
+      "notice": "Sona תענה על שאלות לגבי ההקלטות שלך לאחר שתפעיל את בינת הפגישות. זה שולח ציטוטים תואמים לשרת שלך, וגם כותב שם את סיכומי כל הפגישות הבאות.",
       "allow": "אישור"
     },
     "tool": {
@@ -2686,7 +2729,7 @@
       "resume": "המשך סנכרון"
     },
     "setup": {
-      "title": "הגדרת חשבון סנכרון",
+      "title": "הגדרת סנכרון — קודם פרסו את ה-Worker הנלווה",
       "endpoint": "כתובת השרת",
       "bootstrapSecret": "סוד ההגדרה",
       "submit": "הגדר סנכרון"
@@ -2788,6 +2831,11 @@
       "rename": "שינוי שם",
       "personActions": "פעולות עבור האדם",
       "deletePerson": "מחיקת אדם",
+      "removeVoiceProfile": "הסרת פרופיל קול",
+      "removeVoiceProfileTitle": "להסיר את פרופיל הקול?",
+      "removeVoiceProfileDescription": "Sona תפסיק לזכור את הקול הזה ב‑Mac הזה. שם האדם וקישורי הפגישות יישארו.",
+      "voiceProfileRemoved": "Sona הפסיקה לזכור את הקול הזה ב‑Mac הזה.",
+      "voiceProfileRemovalFailed": "לא ניתן להסיר את פרופיל הקול. נסו שוב.",
       "aliases": "גם: {{aliases}}",
       "merge": "מיזוג",
       "mergeTitle": "למזג את האדם הזה?",
@@ -3118,6 +3166,9 @@
       "waitingOn": "בהמתנה ({{count}})",
       "openNotes": "פתיחת ההערות",
       "copyFollowUp": "העתקת הודעת המשך",
+      "unresolvedSpeakers_one": "דובר אחד לזיהוי",
+      "unresolvedSpeakers_two": "שני דוברים לזיהוי",
+      "unresolvedSpeakers_other": "{{count}} דוברים לזיהוי",
       "copied": "הועתק",
       "done": "סיום"
     }
@@ -3164,6 +3215,62 @@
       "noticed_one": "שמה לב לדבר אחד",
       "noticed_two": "שמה לב ל־{{count}} דברים",
       "noticed_other": "שמה לב ל־{{count}} דברים"
+    }
+  },
+  "recorder": {
+    "open": "הקלט מסך",
+    "title": "הקלטת מסך",
+    "screen": "מסך",
+    "required": "נדרש",
+    "chooseScreen": "בחר מסך",
+    "change": "שנה",
+    "camera": "מצלמה",
+    "microphone": "מיקרופון",
+    "unavailable": "לא זמין",
+    "screenSelected": "המסך נבחר",
+    "elapsed": "זמן שחלף",
+    "start": "התחל הקלטה",
+    "resume": "המשך",
+    "stopAndSave": "עצור ושמור",
+    "reveal": "הצג",
+    "done": "סיום",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "בודק",
+      "permission": "נדרשת הרשאה",
+      "idle": "הגדרה",
+      "selectingSource": "בחירת מקור",
+      "previewing": "תצוגה מקדימה מוכנה",
+      "starting": "מתחיל הקלטה",
+      "recording": "מקליט",
+      "paused": "מושהה",
+      "finalizing": "שומר הקלטה",
+      "saved": "נשמר",
+      "failed": "דורש טיפול"
+    },
+    "permission": {
+      "screen": "אפשר הקלטת מסך כדי לבחור מקור.",
+      "camera": "אפשר גישה למצלמה כדי לכלול את המצלמה שלך.",
+      "microphone": "אפשר גישה למיקרופון כדי לכלול את המיקרופון שלך.",
+      "grant": "הענק גישה",
+      "recheck": "בדוק שוב"
+    },
+    "error": {
+      "unsupported": "הקלטת מסך דורשת macOS 14 ומעלה.",
+      "captureBusy": "הקלטה אחרת של Sona משתמשת במיקרופון.",
+      "screenPermissionDenied": "הגישה להקלטת מסך נדחתה.",
+      "cameraPermissionDenied": "הגישה למצלמה נדחתה.",
+      "microphonePermissionDenied": "הגישה למיקרופון נדחתה.",
+      "sourceSelectionCancelled": "בחירת המקור בוטלה.",
+      "sourceUnavailable": "המסך שנבחר אינו זמין עוד.",
+      "cameraUnavailable": "המצלמה שנבחרה אינה זמינה עוד.",
+      "microphoneUnavailable": "המיקרופון שנבחר אינו זמין עוד.",
+      "streamFailed": "זרם ההקלטה נעצר באופן בלתי צפוי.",
+      "timestampDiscontinuity": "ציר הזמן של ההקלטה הפך ללא תקין.",
+      "writerFailed": "לא ניתן היה לכתוב את ההקלטה.",
+      "outputFinalizeFailed": "לא ניתן היה לסיים את ההקלטה.",
+      "outputCommitFailed": "לא ניתן היה לשמור את ההקלטה.",
+      "revealFailed": "לא ניתן היה לפתוח את תיקיית ההקלטות."
     }
   }
 }

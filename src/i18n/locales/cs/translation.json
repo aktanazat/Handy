@@ -527,7 +527,30 @@
           "descriptionCustom": "Zadejte ID modelu, které očekává váš vlastní server.",
           "placeholderWithOptions": "Vyhledejte nebo vyberte model",
           "placeholderNoOptions": "Zadejte název modelu",
-          "refreshModels": "Obnovit modely"
+          "refreshModels": "Obnovit modely",
+          "search": "Hledat modely",
+          "useCustom": "Použít „{{modelId}}”",
+          "source": {
+            "provider": "Poskytovatel",
+            "cached": "V mezipaměti",
+            "saved": "Uloženo",
+            "manual": "Ručně"
+          },
+          "status": {
+            "loading": "Načítání modelů",
+            "savedNotInLatest": "Uložený výběr není v nejnovějším seznamu poskytovatele.",
+            "cachedFallback": "Používá se poslední seznam modelů načtený v tomto okně.",
+            "requiresConsent": "Před načtením modelů povolte vzdálený přenos textu.",
+            "requiresCredential": "Před načtením modelů přidejte API klíč.",
+            "credentialUnavailable": "API klíč není k dispozici.",
+            "credentialLocked": "Před načtením modelů odemkněte API klíč.",
+            "unsupported": "Tento poskytovatel nezveřejňuje kompatibilní seznam modelů. Zadejte ID modelu ručně.",
+            "unauthorized": "Poskytovatel odmítl API klíč.",
+            "forbidden": "Poskytovatel tento seznam modelů nepovoluje.",
+            "rateLimited": "Poskytovatel omezuje četnost vyhledávání modelů.",
+            "unreachable": "Sona se k tomuto poskytovateli nemohla připojit.",
+            "invalidResponse": "Poskytovatel vrátil neplatný seznam modelů."
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "Načítám historii…",
       "empty": "Zatím žádné nahrávky.",
       "copyToClipboard": "Kopírovat přepis do schránky",
+      "copyFailed": "Přepis se nepodařilo zkopírovat",
       "save": "Uložit záznam",
       "unsave": "Odebrat z uložených",
       "delete": "Smazat záznam",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "Doručeno",
           "definitely_not_dispatched": "Neodesláno",
-          "dispatched_but_unconfirmed": "Odesláno, ale nepotvrzeno"
+          "dispatched_but_unconfirmed": "Odesláno, ale nepotvrzeno",
+          "dispatched_under_secure_input": "Odesláno při zapnutém Secure Input"
         },
         "modeLabel": "Režim",
         "revisionLabel": "Verze nastavení",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "Nedorazilo vůbec nic. Během diagnostiky stiskněte několik kláves.",
         "verdictOk": "Klávesy do Sona dorazí.",
         "failed": "Diagnostiku nebylo možné spustit: {{error}}",
+        "inputMonitoringDenied": "Sona nemůže číst události klávesnice. Povolte Monitorování vstupu a zkuste to znovu.",
         "keyDown": "Stisk klávesy",
         "keyUp": "Uvolnění klávesy",
         "flagsChanged": "Modifikátory",
@@ -2118,7 +2144,8 @@
       "export_failed": "Export selhal. Žádný dokončený export nevznikl.",
       "local_model_unavailable": "Pro tuto schůzku není dostupný žádný místní model.",
       "remote_unavailable": "Vybraný vzdálený cíl není dostupný.",
-      "import_unreadable": "Sona nedokázala tento soubor přečíst jako nahrávku ani jako export přepisu."
+      "import_unreadable": "Sona nedokázala tento soubor přečíst jako nahrávku ani jako export přepisu.",
+      "profile_merge_resolution_required": "Sona potřebuje vědět, který uložený hlas zachovat, než tyto osoby sloučí."
     },
     "discard": {
       "liveTitle": "Zastavit a zahodit toto sezení?",
@@ -2156,6 +2183,23 @@
       "speakerName": "Jméno mluvčího",
       "renameSpeaker": "Přejmenovat tohoto mluvčího",
       "samePersonAs": "Stejná osoba jako {{name}}",
+      "unresolvedSpeakers_one": "1 mluvčí k označení",
+      "unresolvedSpeakers_few": "{{count}} mluvčí k označení",
+      "unresolvedSpeakers_many": "{{count}} mluvčího k označení",
+      "unresolvedSpeakers_other": "{{count}} mluvčích k označení",
+      "labelSpeaker": "Označit mluvčího",
+      "correctSpeaker": "Opravit mluvčího",
+      "labelSpeakerNamed": "Označit {{speaker}}",
+      "correctSpeakerNamed": "Opravit {{speaker}}",
+      "identityPerson": "Vyberte osobu",
+      "identityNewPerson": "Nová osoba",
+      "identityExistingPerson": "Existující osoba",
+      "identityNewPersonName": "Jméno nové osoby",
+      "markUnknown": "Označit jako neznámého",
+      "markUnknownDescription": "Přepis přestane uvádět {{speaker}} a Sona smaže vzorky hlasu uložené pro tohoto mluvčího. Text přepisu a vaše poznámky zůstanou.",
+      "rememberVoice": "Zapamatovat si tento hlas na tomto Macu",
+      "notNow": "Teď ne",
+      "rememberVoiceFailed": "Označení bylo uloženo. Sona si z této schůzky tento hlas nemohla zapamatovat. Zkuste jinou schůzku.",
       "manualNotes": "Ruční poznámky",
       "manualNote": "Ruční poznámka",
       "newNote": "Nová ruční poznámka",
@@ -2196,10 +2240,10 @@
         "manualNote": "Ruční poznámka",
         "title": "Název schůzky"
       },
+      "generationFailedDescription": "Přepis i vaše ruční poznámky zůstávají nedotčené. Až bude příčina vyřešena, vygenerujte je znovu.",
       "noGeneratedNotesDescription": "Generované poznámky vycházejí z přepisu, takže je lze kdykoli znovu vytvořit.",
       "processingDescription": "Generované poznámky a místní odpovědi se zobrazí po dokončení přepisu.",
       "processingTitle": "Sona tuto schůzku stále zpracovává",
-      "remoteProcessingUnavailable": "Vzdálený cíl nebyl nikdy dostupný, takže se nic nevygenerovalo. Opětovné generování proběhne na tomto Macu.",
       "tabs": {
         "insights": "Postřehy",
         "ledger": "Registr",
@@ -2564,7 +2608,7 @@
     "scopeLabel": "Kdo odpovídá",
     "scope": {
       "sona_chat": "Dotaz",
-      "sona_config": "Nastavení"
+      "sona_config": "Nastavit"
     },
     "workedFor": "Pracoval {{seconds}} s",
     "stepSeconds": "{{seconds}} s",
@@ -2619,7 +2663,7 @@
       "receipt": "Potvrzení {{id}}"
     },
     "consent": {
-      "notice": "Sona odpovídá na otázky k vašim nahrávkám, jakmile jí povolíte odesílat odpovídající citace na váš server.",
+      "notice": "Sona odpovídá na otázky k vašim nahrávkám, jakmile zapnete inteligenci schůzek. Tím se odpovídající citace odešlou na váš server a budou se tam psát i poznámky ze všech dalších schůzek.",
       "allow": "Povolit"
     },
     "tool": {
@@ -2694,7 +2738,7 @@
       "resume": "Pokračovat v synchronizaci"
     },
     "setup": {
-      "title": "Nastavit synchronizační účet",
+      "title": "Nastavení synchronizace — nejdřív nasaďte doprovodný Worker",
       "endpoint": "Adresa serveru",
       "bootstrapSecret": "Tajný klíč nastavení",
       "submit": "Nastavit synchronizaci"
@@ -2797,6 +2841,11 @@
       "rename": "Přejmenovat",
       "personActions": "Akce osoby",
       "deletePerson": "Smazat osobu",
+      "removeVoiceProfile": "Odstranit hlasový profil",
+      "removeVoiceProfileTitle": "Odstranit hlasový profil?",
+      "removeVoiceProfileDescription": "Sona si tento hlas přestane pamatovat na tomto Macu. Jméno osoby a odkazy na schůzky zůstanou.",
+      "voiceProfileRemoved": "Sona si tento hlas na tomto Macu přestala pamatovat.",
+      "voiceProfileRemovalFailed": "Hlasový profil se nepodařilo odstranit. Zkuste to znovu.",
       "aliases": "Také: {{aliases}}",
       "merge": "Sloučit",
       "mergeTitle": "Sloučit tuto osobu?",
@@ -3134,6 +3183,10 @@
       "waitingOn": "Čeká se na ({{count}})",
       "openNotes": "Otevřít poznámky",
       "copyFollowUp": "Kopírovat zprávu",
+      "unresolvedSpeakers_one": "1 mluvčí k označení",
+      "unresolvedSpeakers_few": "{{count}} mluvčí k označení",
+      "unresolvedSpeakers_many": "{{count}} mluvčího k označení",
+      "unresolvedSpeakers_other": "{{count}} mluvčích k označení",
       "copied": "Zkopírováno",
       "done": "Hotovo"
     }
@@ -3182,6 +3235,62 @@
       "noticed_few": "Všimla si {{count}} věcí",
       "noticed_many": "Všimla si {{count}} věcí",
       "noticed_other": "Všimla si {{count}} věcí"
+    }
+  },
+  "recorder": {
+    "open": "Nahrát obrazovku",
+    "title": "Nahrát obrazovku",
+    "screen": "Obrazovka",
+    "required": "Povinné",
+    "chooseScreen": "Vybrat obrazovku",
+    "change": "Změnit",
+    "camera": "Kamera",
+    "microphone": "Mikrofon",
+    "unavailable": "Nedostupné",
+    "screenSelected": "Obrazovka vybrána",
+    "elapsed": "Uplynulý čas",
+    "start": "Spustit nahrávání",
+    "resume": "Pokračovat",
+    "stopAndSave": "Zastavit a uložit",
+    "reveal": "Zobrazit",
+    "done": "Hotovo",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "Kontrola",
+      "permission": "Vyžadováno oprávnění",
+      "idle": "Nastavit",
+      "selectingSource": "Výběr zdroje",
+      "previewing": "Náhled je připraven",
+      "starting": "Spouštění nahrávání",
+      "recording": "Nahrávání",
+      "paused": "Pozastaveno",
+      "finalizing": "Ukládání nahrávky",
+      "saved": "Uloženo",
+      "failed": "Vyžaduje pozornost"
+    },
+    "permission": {
+      "screen": "Povolte nahrávání obrazovky, abyste mohli vybrat zdroj.",
+      "camera": "Povolte přístup ke kameře, chcete-li ji zahrnout do nahrávky.",
+      "microphone": "Povolte přístup k mikrofonu, chcete-li jej zahrnout do nahrávky.",
+      "grant": "Udělit přístup",
+      "recheck": "Zkontrolovat znovu"
+    },
+    "error": {
+      "unsupported": "Nahrávání obrazovky vyžaduje macOS 14 nebo novější.",
+      "captureBusy": "Jiný záznam v Soně používá mikrofon.",
+      "screenPermissionDenied": "Přístup k nahrávání obrazovky byl odepřen.",
+      "cameraPermissionDenied": "Přístup ke kameře byl odepřen.",
+      "microphonePermissionDenied": "Přístup k mikrofonu byl odepřen.",
+      "sourceSelectionCancelled": "Výběr zdroje byl zrušen.",
+      "sourceUnavailable": "Vybraná obrazovka už není k dispozici.",
+      "cameraUnavailable": "Vybraná kamera už není k dispozici.",
+      "microphoneUnavailable": "Vybraný mikrofon už není k dispozici.",
+      "streamFailed": "Datový proud nahrávání se neočekávaně zastavil.",
+      "timestampDiscontinuity": "Časová osa nahrávky se stala neplatnou.",
+      "writerFailed": "Nahrávku se nepodařilo zapsat.",
+      "outputFinalizeFailed": "Nahrávku se nepodařilo dokončit.",
+      "outputCommitFailed": "Nahrávku se nepodařilo uložit.",
+      "revealFailed": "Složku s nahrávkami se nepodařilo otevřít."
     }
   }
 }
