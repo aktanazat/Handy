@@ -10,10 +10,10 @@ Sona builds as a Tauri 2 desktop app with a Rust backend and a Bun-managed React
 
 ```bash
 bun install
-bun run prepare:agent-hook
+bun run prepare:agent-hook -- aarch64-apple-darwin
 ```
 
-`prepare:agent-hook` builds the packaged `sona-agent-hook` sidecar for the current target and stages it under `src-tauri/binaries/` using Tauri's target-suffixed naming convention.
+Use your own Cargo target triple in place of `aarch64-apple-darwin`. Only `bun run tauri build` supplies the triple and stages the sidecar on its own, through `beforeBuildCommand`. Every Rust build reads `bundle.externalBin` from `tauri.conf.json` through `src-tauri/build.rs`, so on a fresh clone `bun run tauri dev`, `cargo check` and `cargo test` all fail in the build script until the sidecar has been staged once.
 
 ## Development
 
@@ -49,7 +49,7 @@ cd src-tauri && cargo test --lib
 cd src-tauri && cargo test --bin sona-agent-hook
 ```
 
-Run `bun run prepare:agent-hook` before a Tauri build or package build. The package audit expects one executable `sona-agent-hook` sidecar and a `sona` main executable.
+The package audit expects one executable `sona-agent-hook` sidecar and a `sona` main executable.
 
 ## Version bump
 
@@ -81,7 +81,7 @@ macOS builds sign with the Apple Development identity named in `tauri.conf.json`
 
 Sona supports macOS 10.15 and later. Local Apple Intelligence support uses the FoundationModels framework when the active toolchain provides it; otherwise the build uses the stub bridge. Set `SONA_FORCE_AI_STUB=1` to force that bridge.
 
-Sona is a new TCC subject. Grant Microphone and Accessibility access again after installing it. Reset a development Accessibility grant with:
+Sona is a new TCC subject. Grant Microphone and Accessibility access again after installing it. The screen recorder also needs Screen Recording, which macOS grants in System Settings, plus Camera when the camera is enabled; camera use is declared in `Info.plist` and `Entitlements.plist`. Reset a development Accessibility grant with:
 
 ```bash
 tccutil reset Accessibility com.aktanazat.sona

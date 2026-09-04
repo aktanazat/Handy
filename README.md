@@ -10,18 +10,24 @@ Sona is a local-first desktop app for spoken words: dictation delivered into any
 - Per-mode recognition, context, prompt, delivery, and shortcut settings.
 - Spoken edits ("scratch that", "make that a list", "quote that") and a "Sona," cue that turns the end of a dictation into an instruction for the mode's AI cleanup.
 - Optional cloud transcription with a user-provided provider key and explicit consent.
+- AI cleanup on Apple Intelligence or a provider you configure: OpenAI, OpenRouter, Anthropic, Groq, Cerebras, or any OpenAI-compatible server. Sona lists the provider's models and keeps a saved or typed model ID when a refresh fails.
 - Searchable local history with delivery receipts and retained recordings.
 - Audio-file transcription, vocabulary corrections, CSV vocabulary tools, and optional emoji replacements.
-- Context capture from the focused field on macOS, Windows, and Linux.
+- Context capture from the focused field on macOS, Windows, and Linux, under a global ceiling. At Off, Sona reads nothing from other apps except the text you select for a command.
 
 ### Meetings
 
 - Records the microphone and system audio of a meeting after a consent step, with no bot joining the call. Detects meetings from the calendar, from the meeting app you are in, from a call tab in Safari, Chrome, Edge, Firefox, or Arc, and from FaceTime and Phone calls. Presence is not participation: an open but untouched meeting app never prompts, and the status line says why. Calls in apps you grant can record automatically.
 - Transcribes after the meeting, with diarization, notes, a ledger of every thread with its verbatim receipt, people, and series memory; catch-up and questions also work while the meeting is still running. A finished meeting opens on its ledger.
+- Speaker labels: label an unresolved voice as an existing or new person, or correct a wrong one. Remembering a voice for later meetings is a separate opt-in that stays on this Mac, and a person's page can forget it.
 - Imports a recording or a Granola, Otter, or Circleback transcript export as a meeting.
 - Saved prompts with optional JSON-schema output, run by hand or after every meeting in a series.
 - Follow-up drafts that open in Mail, Reminders with due dates, an announce-in-chat line, and a thirty-day undo bin for deleted meetings.
 - Meeting intelligence runs on Apple Intelligence, or on your own server through the paired relay.
+
+### Screen recording
+
+- Records a screen you pick in the macOS picker, with an optional camera picture-in-picture and microphone, to an H.264/AAC MP4 in `recordings/`. Pause, resume, stop and save, or cancel. Needs macOS 14 or later and Screen Recording access; Camera and Microphone access only when you turn those on. It does not capture system audio, and it refuses to start while a dictation or meeting holds the microphone.
 
 ### Agents
 
@@ -143,7 +149,7 @@ This uses a regular always-on-top window for the recording overlay.
 
 ### macOS permissions
 
-Sona is a new macOS application identity. Grant Microphone and Accessibility access again after installation. To reset a stale Accessibility grant during development:
+Sona is a new macOS application identity. Grant Microphone and Accessibility access again after installation. Screen recording asks for Screen Recording access, and for Camera access when you turn the camera on; the recorder's permission step opens the matching System Settings pane. To reset a stale Accessibility grant during development:
 
 ```bash
 tccutil reset Accessibility com.aktanazat.sona

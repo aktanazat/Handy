@@ -203,24 +203,24 @@ Sona supports command-line parameters on all platforms for integration with scri
 | `--debug`                | Enable debug mode with verbose (Trace) logging             |
 
 **Headless corpus verbs (D15):** one JSON value on stdout, one JSON refusal on
-stderr, and nothing else on either. The reads require
-`Settings > Agents > External access`, which is off on install; while it is off
-every one refuses with `{"error":"consent_required","settings_path":…}`. The one
-verb that writes needs `Settings > Agents > External mutations` as well — a
-second row, also off on install, because reading the corpus and changing it are
-different grants.
+stderr, and nothing else on either. Every verb requires
+`Settings > Agents > External access`, which is off on install; eight only
+read, and `--loop-resolve` reads its loop revision before writing. That one
+write also needs `Settings > Agents > External mutations`, a second row also
+off on install. With either needed grant off, it refuses with
+`{"error":"consent_required","settings_path":…}`.
 
-| Flag                                                | Description                                                       |
-| --------------------------------------------------- | ----------------------------------------------------------------- |
-| `--query <TEXT> [--scope S] [--limit N]`            | Search the corpus. `S` ∈ all\|meetings\|dictations\|people\|loops |
-| `--meetings [--last N \| --from D --to D]`          | Retained meetings, newest first. Dates are local `YYYY-MM-DD`     |
-| `--meeting <ID>`                                    | One meeting: summary, headline, notes, ledger rows                |
-| `--transcript <ID>`                                 | One meeting's speaker-labeled transcript                          |
-| `--loops [--status open\|done] [--mine\|--waiting]` | Loops and commitments across the corpus                           |
-| `--people <NAME>`                                   | Look a person up by name, alias or calendar address               |
-| `--events [--after <ID>]`                           | Receipts and workflow runs, newest first                          |
-| `--upcoming [--limit N]`                            | Today plus the next seven local days of calendar                  |
-| `--loop-resolve <LOOP_ID>`                          | **Writes.** Marks one loop done, prints the `OperationReceipt`    |
+| Flag                                                                  | Description                                                       |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `--query <TEXT> [--scope S] [--limit N]`                              | Search the corpus. `S` ∈ all\|meetings\|dictations\|people\|loops |
+| `--meetings [--last N \| --from D --to D]`                            | Retained meetings, newest first. Dates are local `YYYY-MM-DD`     |
+| `--meeting <ID>`                                                      | One meeting: summary, headline, notes, ledger rows                |
+| `--transcript <ID>`                                                   | One meeting's speaker-labeled transcript                          |
+| `--loops [--status open\|done] [--mine\|--waiting] [--after LOOP_ID]` | Loops and commitments across the corpus                           |
+| `--people <NAME>`                                                     | Look a person up by name, alias or calendar address               |
+| `--events [--after <ID>]`                                             | Receipts and workflow runs, newest first                          |
+| `--upcoming [--limit N]`                                              | Today plus the next seven local days of calendar                  |
+| `--loop-resolve <LOOP_ID>`                                            | **Writes.** Marks one loop done, prints the `OperationReceipt`    |
 
 Exit codes: 0 answered, 2 bad input (`invalid_request`), 1 everything else
 (`consent_required`, `unavailable`, `not_found`, `failed`). The plane lives in

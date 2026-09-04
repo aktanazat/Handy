@@ -5,12 +5,11 @@ state: each call spawns the installed Sona binary with one of its headless
 flags and hands the JSON back.
 
 Everything it can reach is behind consent rows that are off on install.
-**Settings > Agents > External access** gates the seven reads; while it is off
-they refuse with `consent_required` and say where the switch is. The one tool
-that writes — `sona_loop_resolve` — needs **Settings > Agents > External
-mutations** as well, which is a separate row: letting a script read your
-meetings is not agreeing to let it close your loops. Nothing else on this
-surface writes.
+**Settings > Agents > External access** gates every request: seven are
+read-only, and `sona_loop_resolve` reads its loop revision before it writes.
+That one writing tool also needs **Settings > Agents > External mutations**.
+With either row off it returns `consent_required` naming the missing setting.
+Nothing else on this surface writes.
 
 ## Install
 
@@ -39,21 +38,21 @@ claude mcp add sona --env SONA_BIN=/path/to/sona/src-tauri/target/debug/sona \
 
 ## Tools
 
-| Tool                | Arguments                    | Runs                                            |
-| ------------------- | ---------------------------- | ----------------------------------------------- |
-| `sona_search`       | `query`, `scope?`, `limit?`  | `sona --query … [--scope …] [--limit …]`        |
-| `sona_meetings`     | `last?` \| (`from` + `to`)   | `sona --meetings [--last …] [--from … --to …]`  |
-| `sona_meeting`      | `meeting_id`                 | `sona --meeting <id>`                           |
-| `sona_transcript`   | `meeting_id`                 | `sona --transcript <id>`                        |
-| `sona_action_items` | `status?`, `side?`, `limit?` | `sona --loops [--status …] [--mine\|--waiting]` |
-| `sona_people`       | `name`, `limit?`             | `sona --people <name> [--limit …]`              |
-| `sona_upcoming`     | `limit?`                     | `sona --upcoming [--limit …]`                   |
-| `sona_loop_resolve` | `loop_id`                    | `sona --loop-resolve <loop_id>` — **writes**    |
+| Tool                | Arguments                              | Runs                                                                    |
+| ------------------- | -------------------------------------- | ----------------------------------------------------------------------- |
+| `sona_search`       | `query`, `scope?`, `limit?`            | `sona --query … [--scope …] [--limit …]`                                |
+| `sona_meetings`     | `last?` \| (`from` + `to`)             | `sona --meetings [--last …] [--from … --to …]`                          |
+| `sona_meeting`      | `meeting_id`                           | `sona --meeting <id>`                                                   |
+| `sona_transcript`   | `meeting_id`                           | `sona --transcript <id>`                                                |
+| `sona_action_items` | `status?`, `side?`, `after?`, `limit?` | `sona --loops [--status …] [--mine\|--waiting] [--after …] [--limit …]` |
+| `sona_people`       | `name`, `limit?`                       | `sona --people <name> [--limit …]`                                      |
+| `sona_upcoming`     | `limit?`                               | `sona --upcoming [--limit …]`                                           |
+| `sona_loop_resolve` | `loop_id`                              | `sona --loop-resolve <loop_id>` — **writes**                            |
 
 `scope` is one of `all`, `meetings`, `dictations`, `people`, `loops`. `status`
 is `open` or `done`. `side` is `mine` (what you owe) or `waiting` (what
-somebody else owes you). Every schema documents these enums, so a client
-picking from the schema cannot compose a command Sona refuses.
+somebody else owes you). Pass an action-items `next_cursor` as `after` with
+the same filters; `has_more` is true only when that cursor is present.
 
 Sona's `--events` flag — the receipt and workflow-run stream — is deliberately
 CLI-only. It pages by receipt id, which is a cursor an agent has no use for
@@ -62,8 +61,9 @@ between calls on a server that keeps no state.
 ## What comes back
 
 One JSON object per call, as one text block. Every payload carries a
-`schema_version`, and every row carries a `sona://` address the app can open:
-`sona://meeting/<uuid>`, `sona://loop/<id>`, `sona://person/<uuid>`,
+`schema_version`. Rows from `sona_upcoming` are the exception: calendar
+occurrences have no `sona://` address. Other rows carry an address the app can
+open: `sona://meeting/<uuid>`, `sona://loop/<id>`, `sona://person/<uuid>`,
 `sona://dictation/<id>`.
 
 ## Refusals
