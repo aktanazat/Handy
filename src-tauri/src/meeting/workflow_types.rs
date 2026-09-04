@@ -380,5 +380,6 @@ pub(crate) struct NewWorkflowEvent {
 pub(crate) struct WorkflowDispatchResult {
     pub inserted: bool,
     pub event_id: WorkflowEventId,
+    #[cfg(test)]
     pub receipts: Vec<WorkflowRunReceipt>,
 }

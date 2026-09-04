@@ -15,7 +15,11 @@ import type {
 } from "@/bindings";
 import { startOfLocalDay } from "@/lib/utils/localDay";
 import { HistoryEntryComponent } from "./HistoryEntry";
-import { HistoryFeed } from "./HistoryFeed";
+import {
+  HistoryFeed,
+  planDeepLinkStep,
+  type DeepLinkProgress,
+} from "./HistoryFeed";
 import { HistoryRowControls } from "./HistoryRowControls";
 import { historyRowActions } from "./historyRowActions";
 import { HistorySettings } from "./HistorySettings";
@@ -566,7 +570,10 @@ describe("library feed", () => {
     return date.getTime();
   })();
 
-  const feed = (state: Partial<ListState> = {}) =>
+  const feed = (
+    state: Partial<ListState> = {},
+    focusRequest: { historyId: number; nonce: number } | null = null,
+  ) =>
     render(
       <HistoryFeed
         state={{
@@ -581,6 +588,7 @@ describe("library feed", () => {
         setQuery={() => undefined}
         view="processed"
         activeQuery=""
+        focusRequest={focusRequest}
         sentinelRef={{ current: null }}
         receiptsByHistoryId={{}}
         startingAudioImport={false}
@@ -607,6 +615,14 @@ describe("library feed", () => {
     expect(markup).toContain('aria-label="Today"');
   });
 
+  test("marks the deep-linked dictation row for focus", () => {
+    const markup = feed({}, { historyId: 3, nonce: 1 });
+    expect(markup).toMatch(
+      /data-history-id="3"[^>]*data-deeplink-target="true"/,
+    );
+    expect(occurrences(markup, 'data-deeplink-target="true"')).toBe(1);
+  });
+
   test("no row is open until one is asked for", () => {
     const markup = feed();
     expect(occurrences(markup, 'aria-expanded="false"')).toBe(2);
@@ -629,6 +645,118 @@ describe("library feed", () => {
     expect(markup).toContain("No recordings yet.");
     expect(markup).toContain('data-testid="history-empty-import"');
     expect(markup).not.toContain('data-testid="history-day"');
+  });
+});
+
+/* The dictation deep link, asserted as the decision it is rather than as a
+ * sequence of renders.
+ *
+ * `App.tsx` sets the request in its `queryLinkRequested` listener and never
+ * clears it, and reading it more than once shipped three defects: the History
+ * search box cleared itself 200 ms after the user typed into it, the expand
+ * replayed on every return to the section, and a link naming a row retention
+ * had swept walked every page of the log. Static rendering runs no effects,
+ * so what is pinned here is the planner the effect applies. */
+describe("library feed, dictation deep link", () => {
+  const LINK = { historyId: 42, nonce: 3 };
+
+  const plan = (
+    overrides: Partial<Parameters<typeof planDeepLinkStep>[0]> = {},
+  ) =>
+    planDeepLinkStep({
+      focusRequest: LINK,
+      progress: null,
+      activeQuery: "",
+      entries: [{ id: 42 }, { id: 41 }],
+      phase: "ready",
+      hasMore: false,
+      ...overrides,
+    });
+
+  test("a link that has been served never clears the search again", () => {
+    const served = plan({
+      progress: { nonce: 3, satisfied: true, pagesLoaded: 0 },
+      activeQuery: "budget",
+    });
+    expect(served.step).toEqual({ kind: "none" });
+    // A keystroke in the search box is what re-ran this decision, so the
+    // query the user is looking at has to survive it.
+    expect(served.progress).toEqual({
+      nonce: 3,
+      satisfied: true,
+      pagesLoaded: 0,
+    });
+  });
+
+  test("a link not yet served clears the search, then expands its row", () => {
+    const searching = plan({ activeQuery: "budget" });
+    expect(searching.step).toEqual({ kind: "clear-search" });
+    expect(searching.progress?.satisfied).toBe(false);
+
+    const reloaded = plan({ progress: searching.progress });
+    expect(reloaded.step).toEqual({ kind: "expand", historyId: 42 });
+    expect(reloaded.progress?.satisfied).toBe(true);
+  });
+
+  test("a newer link starts over where the previous one stopped", () => {
+    const relinked = plan({
+      focusRequest: { historyId: 42, nonce: 4 },
+      progress: { nonce: 3, satisfied: true, pagesLoaded: 6 },
+      entries: [{ id: 9 }, { id: 8 }],
+      hasMore: true,
+    });
+    expect(relinked.step).toEqual({ kind: "load-page", cursor: 8 });
+    expect(relinked.progress).toEqual({
+      nonce: 4,
+      satisfied: false,
+      pagesLoaded: 1,
+    });
+  });
+
+  test("the walk stops after six pages instead of mounting the log", () => {
+    // Driven the way the effect drives it: its own progress back in, one more
+    // row loaded per page, and the named row nowhere in the log.
+    let progress: DeepLinkProgress | null = null;
+    let oldest = 100;
+    let entries = [{ id: oldest }];
+    const cursors: number[] = [];
+
+    for (let tick = 0; tick < 40; tick += 1) {
+      const walked = planDeepLinkStep({
+        focusRequest: LINK,
+        progress,
+        activeQuery: "",
+        entries,
+        phase: "ready",
+        hasMore: true,
+      });
+      progress = walked.progress;
+      if (walked.step.kind !== "load-page") break;
+      cursors.push(walked.step.cursor);
+      oldest -= 1;
+      entries = [...entries, { id: oldest }];
+    }
+
+    // Six pages, each cursored on the oldest row loaded so far.
+    expect(cursors).toEqual([100, 99, 98, 97, 96, 95]);
+    // Spent, so the next history event does not start the walk over.
+    expect(progress?.satisfied).toBe(true);
+  });
+
+  test("a row the log no longer holds is given up on, not waited for", () => {
+    const missing = plan({ entries: [{ id: 9 }], hasMore: false });
+    expect(missing.step).toEqual({ kind: "none" });
+    expect(missing.progress?.satisfied).toBe(true);
+  });
+
+  test("a page in flight is waited out with the link still armed", () => {
+    const paging = plan({
+      entries: [{ id: 9 }],
+      hasMore: true,
+      phase: "paging",
+    });
+    expect(paging.step).toEqual({ kind: "none" });
+    expect(paging.progress?.satisfied).toBe(false);
   });
 });
 

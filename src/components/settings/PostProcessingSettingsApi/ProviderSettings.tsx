@@ -1,16 +1,14 @@
 import React, { useEffect, useId, useState } from "react";
-import { RefreshCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Notice, SettingsField } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
 import { useSettings } from "@/hooks/useSettings";
-import { cn } from "@/lib/cn";
 import { ApiKeyField } from "./ApiKeyField";
 import { BaseUrlField } from "./BaseUrlField";
-import { ModelSelect } from "./ModelSelect";
+import { ModelField } from "./ModelField";
 import { ProviderSelect } from "./ProviderSelect";
-import { usePostProcessProviderState } from "./usePostProcessProviderState";
 import { RemoteProviderConsent } from "./RemoteProviderConsent";
+import { usePostProcessProviderState } from "./usePostProcessProviderState";
 
 const PostProcessingSettingsApiComponent: React.FC = () => {
   const { t } = useTranslation();
@@ -24,17 +22,12 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
   }, [state.selectedProviderId]);
 
   const handleBaseUrlChange = (value: string) => {
-    if (value.trim() !== state.baseUrl.trim()) {
-      setEndpointChanged(true);
-    }
+    if (value.trim() !== state.baseUrl.trim()) setEndpointChanged(true);
     state.handleBaseUrlChange(value);
   };
+
   return (
-    /* A bare row group, not a section: Advanced puts this behind a disclosure
-     * whose summary already names it. Every control here is a field rather
-     * than a row — a provider name, an endpoint URL, a key and a model id are
-     * all long enough that a control sized to a settings column's right half
-     * would cut them. */
+    /* Advanced owns the disclosure; this is the flat provider form inside it. */
     <>
       <SettingsField
         label={t("settings.postProcessing.api.provider.title")}
@@ -58,7 +51,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
         ) : null
       ) : (
         <>
-          {state.selectedProvider?.id === "custom" && (
+          {state.isCustomProvider ? (
             <SettingsField
               label={t("settings.postProcessing.api.baseUrl.title")}
               controlId={`${fieldId}-base-url`}
@@ -73,7 +66,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
                 disabled={state.isBaseUrlUpdating}
               />
             </SettingsField>
-          )}
+          ) : null}
 
           <SettingsField
             label={t("settings.postProcessing.api.apiKey.title")}
@@ -102,12 +95,6 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
               ) : null}
             </div>
           </SettingsField>
-
-          {state.secretState?.lastErrorKind ? (
-            <div className="px-4 py-3">
-              <Notice tone="danger">{state.secretState.lastErrorKind}</Notice>
-            </div>
-          ) : null}
         </>
       )}
 
@@ -120,12 +107,15 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
         />
       ) : null}
 
-      {!state.isAppleProvider && (
+      {state.isAppleProvider ? (
+        <SettingsField label={t("settings.postProcessing.api.model.title")}>
+          <span className="text-sm text-gray-900">
+            {state.model || state.selectedProvider?.label}
+          </span>
+        </SettingsField>
+      ) : (
         <SettingsField
           label={t("settings.postProcessing.api.model.title")}
-          /* On a named provider the list says everything. On a custom endpoint
-           * it is the caller who decides what identifier is valid, which no
-           * label or list can convey. */
           hint={
             state.isCustomProvider
               ? t("settings.postProcessing.api.model.descriptionCustom")
@@ -133,43 +123,18 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
           }
           controlId={`${fieldId}-model`}
         >
-          <div className="flex items-center gap-2">
-            <ModelSelect
-              id={`${fieldId}-model`}
-              value={state.model}
-              options={state.modelOptions}
-              disabled={state.isModelUpdating}
-              isLoading={state.isFetchingModels}
-              placeholder={
-                state.modelOptions.length > 0
-                  ? t(
-                      "settings.postProcessing.api.model.placeholderWithOptions",
-                    )
-                  : t("settings.postProcessing.api.model.placeholderNoOptions")
-              }
-              onSelect={state.handleModelSelect}
-              onCreate={state.handleModelCreate}
-              className="min-w-0 flex-1"
-            />
-            {/* Icon-only, beside an already-bordered trigger: the one place a
-             * ghost button cannot be mistaken for a caption. */}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("settings.postProcessing.api.model.refreshModels")}
-              onClick={state.handleRefreshModels}
-              disabled={
-                state.isFetchingModels ||
-                (!state.isCustomProvider && !state.secretState?.configured)
-              }
-            >
-              <RefreshCcw
-                aria-hidden="true"
-                className={cn(state.isFetchingModels && "animate-spin")}
-              />
-            </Button>
-          </div>
+          <ModelField
+            id={`${fieldId}-model`}
+            value={state.model}
+            options={state.modelOptions}
+            allowCustom={state.allowsManualModelId}
+            disabled={state.isModelUpdating}
+            isLoading={state.isFetchingModels}
+            statusKeys={state.modelStatusKeys}
+            onSelect={state.handleModelSelect}
+            onCreate={state.handleModelCreate}
+            onRefresh={state.handleRefreshModels}
+          />
         </SettingsField>
       )}
     </>

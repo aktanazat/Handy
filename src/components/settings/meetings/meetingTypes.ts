@@ -24,11 +24,10 @@ export interface MeetingsSettingsProps {
   navigationRequest?: MeetingNavigationPayload | null;
   startRequest?: number;
   /**
-   * The shell's route setter, narrowed to the one destination this surface
-   * links to: retention is stated on the start card and changed in Settings,
-   * so the fact and the control never drift apart.
+   * The shell's Settings route. Retention and generated-note recovery both
+   * state a setting where it matters, then send the reader to change it.
    */
-  onOpenSettings?: () => void;
+  onOpenSettings: () => void;
 }
 
 /** Everything one press of Start needs. There is no setup screen: these are

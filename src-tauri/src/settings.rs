@@ -241,9 +241,70 @@ pub struct PostProcessProvider {
     #[serde(default)]
     pub allow_base_url_edit: bool,
     #[serde(default)]
-    pub models_endpoint: Option<String>,
-    #[serde(default)]
     pub supports_structured_output: bool,
+}
+
+/// Where one catalog entry came from. Only the provider can report an entry:
+/// a saved selection lives in settings and is merged by the caller for its own
+/// scope, so a failed refresh can never claim the provider still advertises it.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum PostProcessModelProvenance {
+    ProviderReported,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Type)]
+pub struct PostProcessModelOption {
+    pub id: String,
+    pub provenance: PostProcessModelProvenance,
+}
+
+/// A safe, content-free outcome for a post-processing model refresh.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum PostProcessModelDiscovery {
+    Ready,
+    RequiresConsent,
+    MissingCredential,
+    CredentialUnavailable,
+    CredentialLocked,
+    CredentialCorrupt,
+    CredentialBusy,
+    InvalidDestination,
+    Unsupported,
+    Unauthorized,
+    Forbidden,
+    RateLimited,
+    Unreachable,
+    InvalidResponse,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Type)]
+pub struct PostProcessModelCatalog {
+    pub provider_id: String,
+    pub models: Vec<PostProcessModelOption>,
+    pub discovery: PostProcessModelDiscovery,
+    pub allows_manual_model_id: bool,
+}
+
+/// Closed provider catalog protocols. A persisted provider URL can select only
+/// the endpoint; it cannot choose a catalog route or receive credentials on an
+/// arbitrary path.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum PostProcessCatalogSource {
+    OpenAi,
+    OpenRouter,
+    Anthropic,
+    Groq,
+    Cerebras,
+    CustomOpenAiCompatible,
+    Unsupported,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum PostProcessExecutionProtocol {
+    OpenAiChatCompletions,
+    AnthropicMessages,
 }
 
 /// A validated, immutable LLM endpoint. Remote routes use HTTPS; custom
@@ -307,6 +368,39 @@ pub(crate) fn is_loopback_host(host: &str) -> bool {
 }
 
 impl PostProcessProvider {
+    pub(crate) fn catalog_source(&self) -> PostProcessCatalogSource {
+        match self.id.as_str() {
+            "openai" => PostProcessCatalogSource::OpenAi,
+            "openrouter" => PostProcessCatalogSource::OpenRouter,
+            "anthropic" => PostProcessCatalogSource::Anthropic,
+            "groq" => PostProcessCatalogSource::Groq,
+            "cerebras" => PostProcessCatalogSource::Cerebras,
+            "custom" => PostProcessCatalogSource::CustomOpenAiCompatible,
+            // These three ship without a listable catalog: Z.AI and Bedrock
+            // Mantle publish no models endpoint, and Apple Intelligence runs
+            // on-device with a fixed model.
+            "zai" | "bedrock_mantle" | APPLE_INTELLIGENCE_PROVIDER_ID => {
+                PostProcessCatalogSource::Unsupported
+            }
+            other => {
+                warn!("Post-processing provider {other} has no catalog decision");
+                PostProcessCatalogSource::Unsupported
+            }
+        }
+    }
+
+    pub(crate) fn execution_protocol(&self) -> PostProcessExecutionProtocol {
+        if self.id == "anthropic" {
+            PostProcessExecutionProtocol::AnthropicMessages
+        } else {
+            PostProcessExecutionProtocol::OpenAiChatCompletions
+        }
+    }
+
+    pub(crate) fn allows_manual_model_id(&self) -> bool {
+        self.id != APPLE_INTELLIGENCE_PROVIDER_ID
+    }
+
     pub(crate) fn endpoint(&self) -> Result<PostProcessEndpoint, PostProcessEndpointError> {
         let mut url =
             Url::parse(self.base_url.trim()).map_err(|_| PostProcessEndpointError::InvalidUrl)?;
@@ -607,8 +701,14 @@ pub enum AutoSubmitKey {
 pub enum RecordingRetentionPeriod {
     Never,
     PreserveLimit,
+    /// serde's `snake_case` keeps the digit attached (`days3`) while specta
+    /// splits it off, so the bindings and the settings UI say `days_3`. The
+    /// aliases keep reading settings files written under the older spelling.
+    #[serde(rename = "days_3", alias = "days3")]
     Days3,
+    #[serde(rename = "weeks_2", alias = "weeks2")]
     Weeks2,
+    #[serde(rename = "months_3", alias = "months3")]
     Months3,
 }
 
@@ -1243,10 +1343,6 @@ pub struct AppSettings {
     /// Off by default; a new install prompts for everything.
     #[serde(default)]
     pub detection_auto_start_on_open_pane: bool,
-    /// Minutes without transcript-worthy audio before a detected capture stops
-    /// itself. Zero leaves manual stop as the only timer.
-    #[serde(default = "default_detection_silence_stop_minutes")]
-    pub detection_silence_stop_minutes: u32,
     /// Bundle IDs treated as meeting applications. Seeded from the known set and
     /// editable, because vendors rename these: Microsoft has already renamed
     /// Teams's bundle ID once. An entry only becomes a signal when a process
@@ -1321,10 +1417,6 @@ fn default_hud_pill_position() -> OverlayPosition {
 
 fn default_detection_enabled() -> bool {
     true
-}
-
-fn default_detection_silence_stop_minutes() -> u32 {
-    15
 }
 
 /// What a store that predates the field is read with: the meeting apps, and
@@ -1508,7 +1600,6 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             label: "OpenAI".to_string(),
             base_url: "https://api.openai.com/v1".to_string(),
             allow_base_url_edit: false,
-            models_endpoint: Some("/models".to_string()),
             supports_structured_output: true,
         },
         PostProcessProvider {
@@ -1516,7 +1607,6 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             label: "Z.AI".to_string(),
             base_url: "https://api.z.ai/api/paas/v4".to_string(),
             allow_base_url_edit: false,
-            models_endpoint: Some("/models".to_string()),
             supports_structured_output: true,
         },
         PostProcessProvider {
@@ -1524,7 +1614,6 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             label: "OpenRouter".to_string(),
             base_url: "https://openrouter.ai/api/v1".to_string(),
             allow_base_url_edit: false,
-            models_endpoint: Some("/models".to_string()),
             supports_structured_output: true,
         },
         PostProcessProvider {
@@ -1532,7 +1621,6 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             label: "Anthropic".to_string(),
             base_url: "https://api.anthropic.com/v1".to_string(),
             allow_base_url_edit: false,
-            models_endpoint: Some("/models".to_string()),
             supports_structured_output: false,
         },
         PostProcessProvider {
@@ -1540,7 +1628,6 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             label: "Groq".to_string(),
             base_url: "https://api.groq.com/openai/v1".to_string(),
             allow_base_url_edit: false,
-            models_endpoint: Some("/models".to_string()),
             supports_structured_output: false,
         },
         PostProcessProvider {
@@ -1548,7 +1635,6 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             label: "Cerebras".to_string(),
             base_url: "https://api.cerebras.ai/v1".to_string(),
             allow_base_url_edit: false,
-            models_endpoint: Some("/models".to_string()),
             supports_structured_output: true,
         },
     ];
@@ -1564,7 +1650,6 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             label: "Apple Intelligence".to_string(),
             base_url: "apple-intelligence://local".to_string(),
             allow_base_url_edit: false,
-            models_endpoint: None,
             supports_structured_output: true,
         });
     }
@@ -1575,7 +1660,6 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
         label: "AWS Bedrock (Mantle)".to_string(),
         base_url: "https://bedrock-mantle.us-east-1.api.aws/v1".to_string(),
         allow_base_url_edit: false,
-        models_endpoint: Some("/models".to_string()),
         supports_structured_output: true,
     });
 
@@ -1585,7 +1669,6 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
         label: "Custom".to_string(),
         base_url: "http://localhost:11434/v1".to_string(),
         allow_base_url_edit: true,
-        models_endpoint: Some("/models".to_string()),
         supports_structured_output: false,
     });
 
@@ -1889,7 +1972,6 @@ pub fn get_default_settings() -> AppSettings {
         detection_calendar_enabled: false,
         detection_any_mic_activity: false,
         detection_auto_start_on_open_pane: false,
-        detection_silence_stop_minutes: default_detection_silence_stop_minutes(),
         detection_meeting_apps: crate::meeting::detection::apps::default_meeting_app_bundle_ids(),
         detection_auto_record_apps: Vec::new(),
         meeting_digest_enabled: false,
@@ -2022,19 +2104,25 @@ fn serialize_settings_preserving_legacy_secrets(
     Ok(serialized)
 }
 
-pub fn get_settings(app: &AppHandle) -> AppSettings {
+pub fn get_settings<R: tauri::Runtime>(app: &AppHandle<R>) -> AppSettings {
     let _settings_lock = lock_settings_store();
     get_settings_locked(app)
 }
 
-fn get_settings_locked(app: &AppHandle) -> AppSettings {
+fn get_settings_locked<R: tauri::Runtime>(app: &AppHandle<R>) -> AppSettings {
     let store = match app.store(crate::portable::store_path(SETTINGS_STORE_PATH)) {
         Ok(store) => store,
         Err(error) => {
             panic!("Settings store must be available after its plugin is registered: {error}");
         }
     };
+    read_settings_from_store(&store)
+}
 
+fn read_settings_from_store<R: tauri::Runtime>(
+    store: &tauri_plugin_store::Store<R>,
+) -> AppSettings {
+    let mut wrote_settings = false;
     // Settings reads also persist one-time migrations. Migration helpers are
     // idempotent, so this converges after the first read of an older store.
     let mut settings = if let Some(settings_value) = store.get("settings") {
@@ -2070,6 +2158,7 @@ fn get_settings_locked(app: &AppHandle) -> AppSettings {
                 Some(LegacySettings(&settings_value)),
             ) {
                 store.set("settings", serialized.0);
+                wrote_settings = true;
             }
         }
 
@@ -2077,7 +2166,10 @@ fn get_settings_locked(app: &AppHandle) -> AppSettings {
     } else {
         let default_settings = get_default_settings();
         match serialize_settings_preserving_legacy_secrets(&default_settings, None) {
-            Ok(serialized) => store.set("settings", serialized.0),
+            Ok(serialized) => {
+                store.set("settings", serialized.0);
+                wrote_settings = true;
+            }
             Err(error) => warn!("Default settings could not be serialized: {error}"),
         };
         default_settings
@@ -2090,6 +2182,13 @@ fn get_settings_locked(app: &AppHandle) -> AppSettings {
             raw_settings.as_ref().map(LegacySettings),
         ) {
             store.set("settings", serialized.0);
+            wrote_settings = true;
+        }
+    }
+
+    if wrote_settings {
+        if let Err(error) = store.save() {
+            warn!("Failed to persist settings: {}", error);
         }
     }
 
@@ -2822,6 +2921,24 @@ mod tests {
         }
     }
 
+    fn temporary_settings_store(
+        path: &std::path::Path,
+    ) -> (
+        tauri::App<tauri::test::MockRuntime>,
+        Arc<tauri_plugin_store::Store<tauri::test::MockRuntime>>,
+    ) {
+        let app = tauri::test::mock_builder()
+            .plugin(tauri_plugin_store::Builder::default().build())
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .expect("test app with a store plugin");
+        let store = app
+            .store_builder(path)
+            .disable_auto_save()
+            .build()
+            .expect("temporary settings store");
+        (app, store)
+    }
+
     /// Every field must survive a partial store: a missing key must never fail
     /// the whole-settings parse (#1619). `json!({})` is the extreme case.
     #[test]
@@ -2871,7 +2988,6 @@ mod tests {
             label: "Custom".to_string(),
             base_url: "https://api.example.test/v1/".to_string(),
             allow_base_url_edit: true,
-            models_endpoint: None,
             supports_structured_output: false,
         }
         .endpoint()
@@ -2884,7 +3000,6 @@ mod tests {
             label: "Custom".to_string(),
             base_url: "http://127.0.0.1:11434/v1".to_string(),
             allow_base_url_edit: true,
-            models_endpoint: None,
             supports_structured_output: false,
         }
         .endpoint()
@@ -2901,7 +3016,6 @@ mod tests {
                 label: "Custom".to_string(),
                 base_url: base_url.to_string(),
                 allow_base_url_edit: true,
-                models_endpoint: None,
                 supports_structured_output: false,
             };
             assert!(provider.endpoint().is_err(), "{base_url}");
@@ -3201,6 +3315,141 @@ mod tests {
         assert_eq!(settings.modes[0].llm.provider_id.as_deref(), Some("openai"));
     }
 
+    /// Migrations are a mechanism, not eighteen independent rules, and the
+    /// mechanism is what an upgrader's data rides on. `get_settings_locked`
+    /// re-runs every branch on every read, so three properties have to hold
+    /// for each version this app has ever stamped:
+    ///
+    /// - it lands on the current schema, or the next read migrates again;
+    /// - what the first read persists asks for nothing further, or every read
+    ///   rewrites the store for the rest of that install's life;
+    /// - it survives a store that carries *only* the version marker, which is
+    ///   the shape a real upgrade has — every key added after that version is
+    ///   simply absent, so a branch that reaches for one gets a serde default
+    ///   or panics.
+    ///
+    /// `0` stands for a store written before the marker existed. The single
+    /// -version tests above pin what each branch decides; this pins that the
+    /// chain runs at all, from anywhere.
+    #[test]
+    fn every_stored_schema_version_lands_on_the_current_schema_and_converges() {
+        let default_binding_ids: Vec<String> =
+            get_default_settings().bindings.into_keys().collect();
+
+        for stored in 0..=CURRENT_SETTINGS_SCHEMA_VERSION {
+            let mut full = serde_json::Value::Object(default_settings_document().0);
+            let mut bare = serde_json::json!({});
+            if stored == 0 {
+                full.as_object_mut()
+                    .expect("settings object")
+                    .remove("settings_schema_version");
+            } else {
+                full["settings_schema_version"] = serde_json::json!(stored);
+                bare["settings_schema_version"] = serde_json::json!(stored);
+            }
+
+            for (shape, raw) in [("full", full), ("bare", bare)] {
+                let mut settings: AppSettings =
+                    serde_json::from_value(raw.clone()).unwrap_or_else(|error| {
+                        panic!("schema {stored} {shape} store must deserialize: {error}")
+                    });
+                apply_settings_migrations(&mut settings, &raw);
+
+                assert_eq!(
+                    settings.settings_schema_version, CURRENT_SETTINGS_SCHEMA_VERSION,
+                    "schema {stored} {shape} did not land on the current schema"
+                );
+                assert!(
+                    !settings.modes.is_empty(),
+                    "schema {stored} {shape} landed with no modes"
+                );
+                assert!(
+                    settings
+                        .modes
+                        .iter()
+                        .any(|mode| mode.id == settings.active_mode_id),
+                    "schema {stored} {shape} landed with an active mode id no mode carries"
+                );
+                if shape == "full" {
+                    // The static bindings only reach a store through the load
+                    // path's merge, so a bare document cannot be asked for
+                    // them; a full one carried them in and must still have
+                    // them. `get_stored_binding` panics on a missing id.
+                    for id in &default_binding_ids {
+                        assert!(
+                            settings.bindings.contains_key(id),
+                            "schema {stored} {shape} lost the '{id}' binding"
+                        );
+                    }
+                }
+
+                let persisted =
+                    SettingsDocument::from_settings(&settings).unwrap_or_else(|error| {
+                        panic!("schema {stored} {shape} must serialize: {error}")
+                    });
+                let persisted = serde_json::Value::Object(persisted.0);
+                let mut reloaded: AppSettings = serde_json::from_value(persisted.clone())
+                    .unwrap_or_else(|error| {
+                        panic!("schema {stored} {shape} must reload what it wrote: {error}")
+                    });
+                assert!(
+                    !apply_settings_migrations(&mut reloaded, &persisted),
+                    "schema {stored} {shape} never converges: every settings read rewrites the store"
+                );
+            }
+        }
+    }
+
+    /// A headless read can finish before the store plugin's debounce. Disable
+    /// that debounce here and require the settings read to reach disk itself.
+    #[test]
+    fn settings_read_persists_migrations_before_a_short_lived_process_exits() {
+        let directory = tempfile::tempdir().expect("temporary settings directory");
+        let path = directory.path().join(SETTINGS_STORE_PATH);
+        let mut raw = serde_json::Value::Object(default_settings_document().0);
+        raw["settings_schema_version"] = serde_json::json!(0);
+        std::fs::write(
+            &path,
+            serde_json::to_vec(&serde_json::json!({ "settings": raw }))
+                .expect("old settings store serializes"),
+        )
+        .expect("old settings store writes");
+
+        let (app, store) = temporary_settings_store(&path);
+        let migrated = read_settings_from_store(&store);
+        assert_eq!(
+            migrated.settings_schema_version, CURRENT_SETTINGS_SCHEMA_VERSION,
+            "the in-memory read migrates the old store"
+        );
+
+        let persisted_after_first_read =
+            std::fs::read(&path).expect("settings read writes before the process can exit");
+        let persisted: serde_json::Value = serde_json::from_slice(&persisted_after_first_read)
+            .expect("persisted settings are valid JSON");
+        assert_eq!(
+            persisted["settings"]["settings_schema_version"],
+            serde_json::json!(CURRENT_SETTINGS_SCHEMA_VERSION),
+            "the migration marker survives the first short-lived read"
+        );
+
+        drop(store);
+        drop(app);
+
+        let (next_app, next_store) = temporary_settings_store(&path);
+        let reloaded = read_settings_from_store(&next_store);
+        assert_eq!(
+            reloaded.settings_schema_version, CURRENT_SETTINGS_SCHEMA_VERSION,
+            "the next process reads the migrated store"
+        );
+        assert_eq!(
+            std::fs::read(&path).expect("reloaded settings remain readable"),
+            persisted_after_first_read,
+            "the second read does not need another migration write"
+        );
+        drop(next_store);
+        drop(next_app);
+    }
+
     #[test]
     fn whisper_prompt_contains_only_written_vocabulary_forms() {
         let entries = vec![
@@ -3471,7 +3720,6 @@ mod tests {
                     "label": "OpenAI",
                     "base_url": "https://api.openai.com/v1",
                     "allow_base_url_edit": false,
-                    "models_endpoint": null,
                     "supports_structured_output": true
                 }
             ],
@@ -3831,5 +4079,31 @@ mod tests {
         let stored = serde_json::to_value(migrated).expect("serialize schema ten settings");
         assert_eq!(stored["english_spelling"], "as_spoken");
         assert_eq!(stored["modes"][0]["asr"]["literal_punctuation"], false);
+    }
+
+    /// The bindings and the Essentials retention control both say `days_3`,
+    /// while serde's own `snake_case` writes `days3`. The enum has to answer
+    /// to the UI spelling and keep reading settings files written under the
+    /// older one, which is also what `update_recording_retention_period`
+    /// relies on now that it parses its argument through serde.
+    #[test]
+    fn retention_wire_values_match_the_ui_and_still_read_the_legacy_spelling() {
+        for (period, ui_spelling, legacy_spelling) in [
+            (RecordingRetentionPeriod::Days3, "days_3", "days3"),
+            (RecordingRetentionPeriod::Weeks2, "weeks_2", "weeks2"),
+            (RecordingRetentionPeriod::Months3, "months_3", "months3"),
+        ] {
+            assert_eq!(
+                serde_json::to_value(period).expect("retention period serializes"),
+                serde_json::json!(ui_spelling)
+            );
+            for spelling in [ui_spelling, legacy_spelling] {
+                assert_eq!(
+                    serde_json::from_value::<RecordingRetentionPeriod>(serde_json::json!(spelling))
+                        .unwrap_or_else(|error| panic!("retention reads {spelling}: {error}")),
+                    period
+                );
+            }
+        }
     }
 }

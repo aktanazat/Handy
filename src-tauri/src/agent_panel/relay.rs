@@ -918,7 +918,291 @@ fn is_event_type(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::agent_panel::protocol::{
+        AgentPanelWorkspaceV1, DeviceNames, PanelTurnV1, SonaAgentResponseV1, SonaAgentTurnV1,
+        SonaAllowedValuesV1, SonaChatActionV1, SonaChatTurnV2, SonaConfigProposalV1,
+        SonaSettingChangeV1, SONA_AGENT_TURN_VERSION, SONA_CHAT_TURN_VERSION,
+        SONA_CONFIG_PROPOSAL_VERSION,
+    };
+    use crate::agent_panel::{
+        accept_job_in_state, config, ActiveTurn, AgentPanelActionStateV1,
+        AgentPanelProposalStateV1, AgentPanelRelayStatusV1, AgentPanelTurnStateV1, PanelState,
+        Reversal, StoredActionState,
+    };
+    use crate::meeting::loop_types::{MeetingLoopRow, MeetingLoopStatus};
+    use crate::meeting::session::{MeetingSessionManager, NoCaptureSources};
+    use crate::meeting::store::{workflow_core_tests, MeetingStore};
+    use crate::meeting::types::{
+        MeetingCommandKind, MeetingOperationId, MeetingSessionId, OperationResult,
+    };
+    use crate::secrets::{MemorySecretBackend, SecretManager};
+    use crate::settings::Theme;
+    use std::{collections::BTreeMap, net::SocketAddr, sync::Arc};
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::{TcpListener, TcpStream},
+        task::JoinHandle,
+    };
+    use uuid::Uuid;
 
+    #[derive(Debug)]
+    struct TestRequest {
+        line: String,
+        headers: BTreeMap<String, String>,
+        body: Vec<u8>,
+    }
+
+    fn memory_secrets() -> Arc<SecretManager> {
+        Arc::new(SecretManager::with_backend(Arc::new(
+            MemorySecretBackend::new(),
+        )))
+    }
+
+    async fn relay_client(
+        secrets: &SecretManager,
+        endpoint: &str,
+        relay_key: &SigningKey,
+    ) -> (RelayClient, AgentPanelPublicIdentityV1) {
+        let seed = secrets
+            .agent_panel_signing_seed()
+            .await
+            .expect("create in-memory signing seed");
+        let signing_key = SigningKey::from_bytes(seed.as_bytes());
+        let identity = public_identity_for_key(&signing_key);
+        let client = RelayClient {
+            base_url: validate_relay_url(endpoint).expect("loopback relay URL"),
+            client_key_id: identity.key_id.clone(),
+            signing_key,
+            relay_key_id: "relay-test".to_string(),
+            relay_verifying_key: relay_key.verifying_key(),
+            nonce_cache: Arc::new(ResponseNonceCache::default()),
+            http: reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .timeout(Duration::from_secs(15))
+                .build()
+                .expect("relay HTTP client"),
+        };
+        (client, identity)
+    }
+
+    fn active_panel_state(
+        turn: PanelTurnV1,
+        allowed: SonaAllowedValuesV1,
+        idempotency_key: &str,
+    ) -> PanelState {
+        let turn_id = turn.turn_id().to_string();
+        let workspace = turn.workspace();
+        let base_pack = turn.context_pack().map(str::to_string);
+        let mut state = PanelState::default();
+        state.relay_status = AgentPanelRelayStatusV1::Ready;
+        state.turn = Some(ActiveTurn {
+            turn_id,
+            workspace,
+            idempotency_key: idempotency_key.to_string(),
+            request: turn,
+            allowed,
+            job_id: None,
+            state: AgentPanelTurnStateV1::Submitting,
+            event_cursor: 0,
+            submitting: true,
+            cancel_requested: false,
+            last_progress: Instant::now(),
+            started_at_utc_ms: chrono::Utc::now().timestamp_millis(),
+            completed_at_utc_ms: None,
+            failure: None,
+            steps: Vec::new(),
+            actions: Vec::new(),
+            tool_rounds: 0,
+            pending_calls: Vec::new(),
+            base_pack,
+        });
+        state
+    }
+
+    async fn read_request(stream: &mut TcpStream) -> TestRequest {
+        let mut received = Vec::new();
+        let mut buffer = [0_u8; 1024];
+        let headers_end = loop {
+            let count = stream.read(&mut buffer).await.expect("read request");
+            assert_ne!(count, 0, "request closed before headers");
+            received.extend_from_slice(&buffer[..count]);
+            if let Some(position) = received.windows(4).position(|window| window == b"\r\n\r\n") {
+                break position + 4;
+            }
+        };
+        let text = std::str::from_utf8(&received[..headers_end]).expect("request headers");
+        let mut lines = text.split("\r\n");
+        let line = lines.next().expect("request line").to_string();
+        let mut headers = BTreeMap::new();
+        for header in lines.take_while(|line| !line.is_empty()) {
+            let (name, value) = header.split_once(':').expect("header separator");
+            headers.insert(name.to_ascii_lowercase(), value.trim().to_string());
+        }
+        let body_len = headers
+            .get("content-length")
+            .expect("content length")
+            .parse::<usize>()
+            .expect("numeric content length");
+        while received.len() < headers_end + body_len {
+            let count = stream.read(&mut buffer).await.expect("read request body");
+            assert_ne!(count, 0, "request closed before body");
+            received.extend_from_slice(&buffer[..count]);
+        }
+        TestRequest {
+            line,
+            headers,
+            body: received[headers_end..headers_end + body_len].to_vec(),
+        }
+    }
+
+    fn request_header<'a>(request: &'a TestRequest, name: &str) -> &'a str {
+        request
+            .headers
+            .get(&name.to_ascii_lowercase())
+            .map(String::as_str)
+            .expect("signed request header")
+    }
+
+    fn assert_request_signature(request: &TestRequest, client: &AgentPanelPublicIdentityV1) {
+        assert_eq!(request.line, "POST /v1/jobs/submit HTTP/1.1");
+        assert_eq!(request_header(request, HEADER_KEY), client.key_id);
+        assert_eq!(request_header(request, HEADER_DIRECTION), "request");
+        let timestamp = request_header(request, HEADER_TIMESTAMP)
+            .parse::<i64>()
+            .expect("request timestamp");
+        let nonce = request_header(request, HEADER_NONCE);
+        let signature = base64::engine::general_purpose::STANDARD
+            .decode(request_header(request, HEADER_SIGNATURE))
+            .expect("request signature encoding");
+        let signature = Signature::from_slice(&signature).expect("request signature");
+        let client_key = verifying_key_from_base64(&client.public_key).expect("client public key");
+        let context =
+            SignatureContext::request("POST", "/v1/jobs/submit", &request.body, timestamp, nonce);
+        client_key
+            .verify_strict(
+                &canonical_bytes(&context).expect("canonical request"),
+                &signature,
+            )
+            .expect("valid request signature");
+    }
+
+    fn endpoint(listener: &TcpListener) -> String {
+        let address: SocketAddr = listener.local_addr().expect("listener address");
+        format!("http://{address}")
+    }
+
+    fn signed_submission_server(
+        listener: TcpListener,
+        signing_key: SigningKey,
+        client: AgentPanelPublicIdentityV1,
+        response: SonaAgentResponseV1,
+    ) -> JoinHandle<()> {
+        tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.expect("accept relay request");
+            let request = read_request(&mut stream).await;
+            assert_request_signature(&request, &client);
+            let submission: serde_json::Value =
+                serde_json::from_slice(&request.body).expect("submission JSON");
+            let workspace = submission["workspace_id"]
+                .as_str()
+                .expect("submission workspace");
+            let capability = submission["capability"]
+                .as_str()
+                .expect("submission capability");
+            let idempotency_key = submission["idempotency_key"]
+                .as_str()
+                .expect("submission idempotency key");
+            let body = serde_json::to_vec(&serde_json::json!({
+                "job": {
+                    "id": "job-e2e",
+                    "state": "SUCCEEDED",
+                    "kind": capability,
+                    "workspace_id": workspace,
+                    "model_alias": SONA_MODEL_ALIAS,
+                    "capabilities": [capability],
+                    "tools": [],
+                    "submitter_key_id": client.key_id,
+                    "external_ref": idempotency_key,
+                    "result": response,
+                },
+                "created": true,
+            }))
+            .expect("relay response JSON");
+            let request_nonce = request_header(&request, HEADER_NONCE);
+            let response_nonce = format!("relay-{}", Uuid::new_v4());
+            let context = SignatureContext::response(
+                "POST",
+                "/v1/jobs/submit",
+                &body,
+                chrono::Utc::now().timestamp(),
+                &response_nonce,
+                StatusCode::OK,
+                request_nonce,
+            );
+            let headers =
+                sign_headers(&signing_key, "relay-test", &context).expect("relay response headers");
+            let mut head = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n",
+                body.len()
+            );
+            for (name, value) in headers {
+                head.push_str(name.as_str());
+                head.push_str(": ");
+                head.push_str(value.to_str().expect("response header value"));
+                head.push_str("\r\n");
+            }
+            head.push_str("\r\n");
+            stream
+                .write_all(head.as_bytes())
+                .await
+                .expect("write relay headers");
+            stream.write_all(&body).await.expect("write relay body");
+        })
+    }
+
+    async fn seed_open_loop(
+        manager: &MeetingSessionManager,
+    ) -> (Arc<MeetingStore>, MeetingSessionId, MeetingLoopRow) {
+        let store = manager.store().await.expect("open encrypted meeting store");
+        let session_id = workflow_core_tests::reviewable_meeting(
+            &store,
+            "Agent panel loop",
+            1_700_000_000_000_i64,
+        );
+        let artifacts = serde_json::json!({
+            "summary": {"text": "The deck still needs an owner.", "citations": []},
+            "summary_trace": [],
+            "outline": [],
+            "decisions": [],
+            "action_items": [],
+            "key_questions": [],
+            "risks": [],
+            "follow_up_draft": {"text": "", "citations": []},
+            "ledger": {
+                "headline": "The deck owner is still open.",
+                "threads": [],
+                "open_loops": [{
+                    "question": "Who will send the deck?",
+                    "instead": "The meeting moved on without an owner.",
+                    "at_ms": 12_000,
+                    "citations": []
+                }],
+                "commitments": [],
+                "stances": [],
+                "caveats": [],
+                "receipts": {"status": "verified"}
+            }
+        });
+        workflow_core_tests::current_artifact(&store, session_id, &artifacts, 1);
+        let loops = manager
+            .loops_list(session_id)
+            .await
+            .expect("list seeded loops");
+        assert_eq!(loops.rows.len(), 1, "one actual open loop");
+        let row = loops.rows.into_iter().next().expect("seeded loop row");
+        assert_eq!(row.status, MeetingLoopStatus::Open);
+        (store, session_id, row)
+    }
     fn signing_key() -> SigningKey {
         SigningKey::from_bytes(&[7_u8; 32])
     }
@@ -1160,5 +1444,308 @@ mod tests {
             failure(serde_json::json!({ "error": "worker task canceled" })),
             Some(RelayJobFailure::Failed)
         );
+    }
+    #[test]
+    fn signed_config_proposal_is_pending_and_settings_replay_is_fenced() {
+        tauri::async_runtime::block_on(async {
+            let secrets = memory_secrets();
+            let relay_key = signing_key();
+            let listener = TcpListener::bind("127.0.0.1:0")
+                .await
+                .expect("bind relay listener");
+            let (client, identity) = relay_client(&secrets, &endpoint(&listener), &relay_key).await;
+            let mut settings = crate::settings::get_default_settings();
+            let original_theme = settings.theme;
+            let target_theme = if original_theme == Theme::Dark {
+                Theme::Light
+            } else {
+                Theme::Dark
+            };
+            let device_names = DeviceNames::default();
+            let snapshot = config::snapshot_from_parts(&settings, &[], &device_names);
+            let allowed = snapshot.allowed_values(&device_names);
+            let turn = PanelTurnV1::Config(SonaAgentTurnV1 {
+                protocol_version: SONA_AGENT_TURN_VERSION.to_string(),
+                conversation_id: "conversation-config-e2e".to_string(),
+                turn_id: "config-e2e".to_string(),
+                user_message: "Use the requested appearance.".to_string(),
+                recent_turns: Vec::new(),
+                config_snapshot: snapshot,
+                proposal_schema: SonaAgentTurnV1::proposal_schema()
+                    .expect("static proposal schema"),
+                locale: "en".to_string(),
+                app_version: env!("CARGO_PKG_VERSION").to_string(),
+            });
+            turn.validate().expect("valid config turn");
+            let idempotency_key = "config-e2e-key";
+            let mut state = active_panel_state(turn.clone(), allowed, idempotency_key);
+            let server = signed_submission_server(
+                listener,
+                relay_key,
+                identity,
+                SonaAgentResponseV1::Proposal {
+                    proposal: SonaConfigProposalV1 {
+                        version: SONA_CONFIG_PROPOSAL_VERSION.to_string(),
+                        summary: "Use the selected appearance.".to_string(),
+                        rationale: "It is the requested local setting.".to_string(),
+                        actions: vec![SonaSettingChangeV1::Theme(target_theme)],
+                        follow_up_question: None,
+                        source_settings_revision: settings.settings_revision,
+                    },
+                    steps: Vec::new(),
+                },
+            );
+
+            let job = client
+                .submit_turn(idempotency_key, &turn)
+                .await
+                .expect("accept signed relay response");
+            let accepted = accept_job_in_state(&mut state, "config-e2e", job, false)
+                .expect("accept valid proposal into panel state");
+            server.await.expect("relay server task");
+            assert_eq!(accepted.turn_state, AgentPanelTurnStateV1::Succeeded);
+            assert_eq!(
+                accepted.proposal_event,
+                Some((
+                    "proposal-config-e2e".to_string(),
+                    AgentPanelProposalStateV1::Pending,
+                ))
+            );
+            let offered = state.status().proposal.expect("visible config proposal");
+            assert_eq!(offered.state, AgentPanelProposalStateV1::Pending);
+            assert!(offered.receipt_id.is_none());
+            assert_eq!(settings.theme, original_theme, "an offer is not a write");
+
+            let proposal = state.proposal.as_ref().expect("stored proposal");
+            let changes = proposal.proposal.actions.clone();
+            let allowed = proposal.allowed.clone();
+            let original_revision = settings.settings_revision;
+            let undo = config::apply_changes_to_settings(
+                &mut settings,
+                original_revision,
+                &changes,
+                &allowed,
+            )
+            .expect("apply offered appearance");
+            settings.settings_revision = original_revision + 1;
+            assert_eq!(settings.theme, target_theme);
+            assert_eq!(
+                config::apply_changes_to_settings(
+                    &mut settings,
+                    original_revision,
+                    &changes,
+                    &allowed,
+                ),
+                Err(config::ConfigError::StaleRevision),
+                "the persistent wrapper's revision advance fences replay"
+            );
+            assert_eq!(settings.theme, target_theme);
+            let stale_undo_revision = settings.settings_revision + 1;
+            assert_eq!(
+                config::undo_changes_to_settings(&mut settings, stale_undo_revision, &undo),
+                Err(config::ConfigError::StaleRevision)
+            );
+            let applied_revision = settings.settings_revision;
+            config::undo_changes_to_settings(&mut settings, applied_revision, &undo)
+                .expect("undo applied appearance");
+            settings.settings_revision = applied_revision + 1;
+            assert_eq!(settings.theme, original_theme);
+            assert_eq!(
+                config::undo_changes_to_settings(&mut settings, applied_revision, &undo),
+                Err(config::ConfigError::StaleRevision),
+                "undo replay is fenced by the next revision"
+            );
+        });
+    }
+
+    #[test]
+    fn signed_resolve_loop_card_applies_once_and_reopens_once() {
+        tauri::async_runtime::block_on(async {
+            let root = tempfile::tempdir().expect("temporary agent panel root");
+            let secrets = memory_secrets();
+            let meetings = MeetingSessionManager::with_parts(
+                None,
+                Some(root.path().join("meetings")),
+                Arc::clone(&secrets),
+                Arc::new(NoCaptureSources),
+            );
+            let (store, session_id, original) = seed_open_loop(&meetings).await;
+            let relay_key = signing_key();
+            let listener = TcpListener::bind("127.0.0.1:0")
+                .await
+                .expect("bind relay listener");
+            let (client, identity) = relay_client(&secrets, &endpoint(&listener), &relay_key).await;
+            let context_pack = format!(
+                "Evidence: sona://loop/{}
+The deck was sent.",
+                original.loop_id.as_str()
+            );
+            let turn = PanelTurnV1::Chat(SonaChatTurnV2 {
+                protocol_version: SONA_CHAT_TURN_VERSION.to_string(),
+                conversation_id: "conversation-action-e2e".to_string(),
+                turn_id: "action-e2e".to_string(),
+                user_message: "Close the deck loop.".to_string(),
+                recent_turns: Vec::new(),
+                context_pack: Some(context_pack),
+                tools_allowed: false,
+                locale: "en".to_string(),
+                app_version: env!("CARGO_PKG_VERSION").to_string(),
+                reply_is_json: false,
+            });
+            turn.validate().expect("valid chat turn");
+            let idempotency_key = "action-e2e-key";
+            let mut state = active_panel_state(
+                turn.clone(),
+                SonaAllowedValuesV1::default(),
+                idempotency_key,
+            );
+            let server = signed_submission_server(
+                listener,
+                relay_key,
+                identity,
+                SonaAgentResponseV1::Text {
+                    message: "I marked the loop done.".to_string(),
+                    actions: vec![SonaChatActionV1::ResolveLoop {
+                        reason: "The meeting confirmed the deck was sent.".to_string(),
+                        loop_id: original.loop_id.clone(),
+                    }],
+                    steps: Vec::new(),
+                },
+            );
+
+            let job = client
+                .submit_turn(idempotency_key, &turn)
+                .await
+                .expect("accept signed relay response");
+            let accepted = accept_job_in_state(&mut state, "action-e2e", job, false)
+                .expect("accept valid action into panel state");
+            server.await.expect("relay server task");
+            assert_eq!(accepted.turn_state, AgentPanelTurnStateV1::Succeeded);
+            let offered = state.status().turn.expect("completed action turn");
+            assert_eq!(offered.actions[0].state, AgentPanelActionStateV1::Pending);
+            assert!(offered.actions[0].operation_id.is_none());
+
+            let loop_id = match &state.turn.as_ref().expect("stored action turn").actions[0].action
+            {
+                SonaChatActionV1::ResolveLoop { loop_id, .. } => loop_id.clone(),
+                _ => panic!("relay returned the wrong action"),
+            };
+            let applied = crate::agent_panel::actions::resolve_loop(&meetings, &loop_id)
+                .await
+                .expect("apply loop action");
+            let operation_id = applied
+                .operation_id
+                .clone()
+                .expect("loop resolve receipt id");
+            state.turn.as_mut().expect("stored action turn").actions[0].state =
+                StoredActionState::Applied(applied);
+            let applied_card = &state.turn.as_ref().expect("stored action turn").actions[0];
+            assert!(
+                applied_card.to_run().is_none(),
+                "an applied card cannot reach the mutation again"
+            );
+            assert!(matches!(applied_card.reversal(), Reversal::Undo(_)));
+            let applied_status = state.status().turn.expect("applied action turn");
+            assert_eq!(
+                applied_status.actions[0].state,
+                AgentPanelActionStateV1::Applied
+            );
+            assert_eq!(
+                applied_status.actions[0].operation_id.as_deref(),
+                Some(operation_id.as_str())
+            );
+            let receipt = store
+                .operation_receipt(MeetingOperationId::from_uuid(
+                    Uuid::parse_str(&operation_id).expect("operation id UUID"),
+                ))
+                .expect("read loop receipt")
+                .expect("stored loop receipt");
+            assert_eq!(receipt.command, MeetingCommandKind::LoopResolve);
+            assert_eq!(receipt.result, OperationResult::Committed);
+            assert!(receipt.new_revision.is_some());
+            assert_eq!(
+                meetings
+                    .loops_list(session_id)
+                    .await
+                    .expect("list closed loop")
+                    .rows[0]
+                    .status,
+                MeetingLoopStatus::Done
+            );
+            assert_eq!(
+                workflow_core_tests::committed_receipt_count(
+                    &store,
+                    MeetingCommandKind::LoopResolve,
+                ),
+                1
+            );
+
+            let replay = state.status().turn.expect("replayed action state");
+            assert_eq!(replay.actions[0].state, AgentPanelActionStateV1::Applied);
+            assert_eq!(
+                replay.actions[0].operation_id.as_deref(),
+                Some(operation_id.as_str())
+            );
+            assert_eq!(
+                workflow_core_tests::committed_receipt_count(
+                    &store,
+                    MeetingCommandKind::LoopResolve,
+                ),
+                1,
+                "reading an applied card cannot run its mutation again"
+            );
+
+            crate::agent_panel::actions::reopen_loop(&meetings, &loop_id)
+                .await
+                .expect("undo loop action");
+            state.turn.as_mut().expect("stored action turn").actions[0].state =
+                StoredActionState::Dismissed;
+            let dismissed_card = &state.turn.as_ref().expect("stored action turn").actions[0];
+            assert!(dismissed_card.to_run().is_none());
+            assert!(matches!(dismissed_card.reversal(), Reversal::Settled));
+            let dismissed = state.status().turn.expect("dismissed action turn");
+            assert_eq!(
+                dismissed.actions[0].state,
+                AgentPanelActionStateV1::Dismissed
+            );
+            assert!(dismissed.actions[0].operation_id.is_none());
+            assert_eq!(
+                workflow_core_tests::committed_receipt_count(
+                    &store,
+                    MeetingCommandKind::LoopReopen,
+                ),
+                1
+            );
+            let restored = meetings
+                .loops_list(session_id)
+                .await
+                .expect("list reopened loop")
+                .rows
+                .into_iter()
+                .find(|row| row.loop_id == original.loop_id)
+                .expect("original loop after reopen");
+            assert_eq!(restored.status, MeetingLoopStatus::Open);
+            assert_eq!(restored.owner_person_id, original.owner_person_id);
+            assert_eq!(restored.resolved_at_utc_ms, original.resolved_at_utc_ms);
+            assert_eq!(
+                restored.resolving_operation_id,
+                original.resolving_operation_id
+            );
+            assert_eq!(restored.text, original.text);
+            assert_eq!(restored.instead, original.instead);
+            let replay_dismissal = state.status().turn.expect("replayed dismissal state");
+            assert_eq!(
+                replay_dismissal.actions[0].state,
+                AgentPanelActionStateV1::Dismissed
+            );
+            assert_eq!(
+                workflow_core_tests::committed_receipt_count(
+                    &store,
+                    MeetingCommandKind::LoopReopen,
+                ),
+                1,
+                "reading a dismissed card cannot run its inverse again"
+            );
+        });
     }
 }

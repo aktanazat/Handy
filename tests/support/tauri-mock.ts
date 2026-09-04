@@ -63,6 +63,17 @@ type MockPayload = {
  * payload side is JSON by the same serialization contract as `JsonValue`. */
 type MockEventEnvelope = { event: string; id: number; payload: JsonValue };
 
+type RecorderMockState = {
+  phase: string;
+  elapsedMs: number;
+  screenSelected: boolean;
+  droppedVideoFrames: number;
+  outputPath: string | null;
+  width: number | null;
+  height: number | null;
+  failure: string | null;
+};
+
 /**
  * Runs in the browser, so it may not close over anything outside its argument:
  * Playwright serializes the function and passes `payload` as JSON.
@@ -90,6 +101,65 @@ export function installMockedRuntime(payload: MockPayload): void {
     value instanceof Object && !Array.isArray(value) ? value : null;
   const isJsonString = (value: JsonValue | undefined): value is string =>
     value === String(value ?? "");
+
+  const recorder: RecorderMockState = {
+    phase: "idle",
+    elapsedMs: 0,
+    screenSelected: false,
+    droppedVideoFrames: 0,
+    outputPath: null,
+    width: null,
+    height: null,
+    failure: null,
+  };
+  const resetRecorder = () => {
+    recorder.phase = "idle";
+    recorder.elapsedMs = 0;
+    recorder.screenSelected = false;
+    recorder.droppedVideoFrames = 0;
+    recorder.outputPath = null;
+    recorder.width = null;
+    recorder.height = null;
+    recorder.failure = null;
+  };
+
+  const recorderSnapshot = () => ({ ...recorder });
+  const recorderPreflight = () => ({
+    availability: "supported",
+    startAvailability: "ready",
+    cameraDevices: [{ id: "camera-default", name: "Built-in Camera" }],
+    microphoneDevices: [
+      { id: "microphone-default", name: "MacBook Pro Microphone" },
+    ],
+  });
+  const validateRecorderPreviewRequest = (value: JsonValue | undefined) => {
+    const request = jsonObject(value);
+    if (
+      request === null ||
+      (request.cameraEnabled !== true && request.cameraEnabled !== false) ||
+      (request.microphoneEnabled !== true &&
+        request.microphoneEnabled !== false) ||
+      (request.cameraDeviceId !== null &&
+        !isJsonString(request.cameraDeviceId)) ||
+      (request.microphoneDeviceId !== null &&
+        !isJsonString(request.microphoneDeviceId)) ||
+      (request.cameraEnabled !== true && request.cameraDeviceId !== null) ||
+      (request.microphoneEnabled !== true &&
+        request.microphoneDeviceId !== null)
+    ) {
+      throw new Error("recorder_preview_start received an invalid request");
+    }
+    for (const key of Object.keys(request)) {
+      if (
+        key !== "cameraEnabled" &&
+        key !== "cameraDeviceId" &&
+        key !== "microphoneEnabled" &&
+        key !== "microphoneDeviceId"
+      ) {
+        throw new Error("recorder_preview_start received an unknown option");
+      }
+    }
+  };
 
   const sources = [
     {
@@ -162,7 +232,6 @@ export function installMockedRuntime(payload: MockPayload): void {
       calendarEnabled: false,
       anyMicActivity: false,
       autoStartOnOpenPane: false,
-      silenceStopMinutes: 15,
       meetingApps: [
         "us.zoom.xos",
         "com.microsoft.teams2",
@@ -239,6 +308,15 @@ export function installMockedRuntime(payload: MockPayload): void {
     ["get_default_settings", payload.settings],
     ["get_modes", payload.modes],
     ["plugin:os|platform", "macos"],
+    [
+      "discover_post_process_model_catalog",
+      {
+        provider_id: "openai",
+        models: [{ id: "gpt-4o-mini", provenance: "provider_reported" }],
+        discovery: "ready",
+        allows_manual_model_id: true,
+      },
+    ],
     /* getVersion() feeds the What's New gate and the About page. Unanswered it
        resolves to null, and the gate then logs "Failed to load release notes"
        from a version parse that never sees a string. Kept in step with
@@ -250,6 +328,10 @@ export function installMockedRuntime(payload: MockPayload): void {
     ["get_available_output_devices", []],
     ["get_available_models", []],
     ["get_current_model", ""],
+    /* The store keeps this object non-optional and SoundPicker reads its two
+       flags on every render, so the mock answers with the wire shape rather
+       than the null an unmocked command falls through to. */
+    ["check_custom_sounds", { start: false, stop: false }],
     ["get_transcription_model_status", null],
     ["is_model_loading", false],
     ["is_recording", false],
@@ -541,6 +623,76 @@ export function installMockedRuntime(payload: MockPayload): void {
     }
     if (Object.prototype.hasOwnProperty.call(payload.responses, command)) {
       return payload.responses[command];
+    }
+    if (command === "recorder_preflight") return recorderPreflight();
+    if (command === "recorder_preview_start") {
+      validateRecorderPreviewRequest(args?.request);
+      recorder.phase = "previewing";
+      recorder.elapsedMs = 0;
+      recorder.screenSelected = true;
+      recorder.droppedVideoFrames = 0;
+      recorder.outputPath = null;
+      recorder.width = null;
+      recorder.height = null;
+      recorder.failure = null;
+      return recorderSnapshot();
+    }
+    if (command === "recorder_preview_stop") {
+      if (recorder.phase !== "previewing") {
+        throw new Error("recorder_preview_stop requires a native preview");
+      }
+      resetRecorder();
+      return recorderSnapshot();
+    }
+    /* Cancel is legal from previewing, recording and paused
+     * (recorder.rs:528-536); only preview_stop is previewing-only
+     * (recorder.rs:327-333). Folding the two into one branch taught the mock
+     * a phase rule the backend does not have. */
+    if (command === "recorder_cancel") {
+      if (
+        recorder.phase !== "previewing" &&
+        recorder.phase !== "recording" &&
+        recorder.phase !== "paused"
+      ) {
+        throw new Error("recorder_cancel requires an active capture");
+      }
+      resetRecorder();
+      return recorderSnapshot();
+    }
+    if (command === "recorder_start") {
+      if (recorder.phase !== "previewing") {
+        throw new Error("recorder_start requires a native preview");
+      }
+      recorder.phase = "recording";
+      return recorderSnapshot();
+    }
+    if (command === "recorder_pause") {
+      if (recorder.phase !== "recording") {
+        throw new Error("recorder_pause requires an active recording");
+      }
+      recorder.phase = "paused";
+      recorder.elapsedMs = 12_000;
+      return recorderSnapshot();
+    }
+    if (command === "recorder_resume") {
+      if (recorder.phase !== "paused") {
+        throw new Error("recorder_resume requires a paused recording");
+      }
+      recorder.phase = "recording";
+      return recorderSnapshot();
+    }
+    if (command === "recorder_stop") {
+      if (recorder.phase !== "recording" && recorder.phase !== "paused") {
+        throw new Error("recorder_stop requires an active recording");
+      }
+      recorder.phase = "saved";
+      /* The published name the recorder writes: sona-screen-<UTC>-<uuid>.mp4
+       * (recorder.rs:713-745). A fixed timestamp and id keep it assertable. */
+      recorder.outputPath =
+        "/recordings/sona-screen-20260904T101500Z-6f1c9b2e-77d3-4a8f-9a1c-2b7e4d5f6a80.mp4";
+      recorder.width = 1920;
+      recorder.height = 1080;
+      return recorderSnapshot();
     }
     if (
       command === "meeting_preflight_create" ||

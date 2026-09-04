@@ -1,6 +1,9 @@
+export type ModelOptionSource = "provider" | "cached" | "saved" | "manual";
+
 export type ModelOption = {
-  value: string;
+  id: string;
   label: string;
+  source: ModelOptionSource;
 };
 
 /** One provider this block can be pointed at: the id stored, the name shown. */

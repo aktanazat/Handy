@@ -17,39 +17,48 @@ import {
 import { cn } from "@/lib/cn";
 import type { ModelOption } from "./types";
 
-type ModelSelectProps = {
+const SOURCE_KEYS = {
+  provider: "settings.postProcessing.api.model.source.provider",
+  cached: "settings.postProcessing.api.model.source.cached",
+  saved: "settings.postProcessing.api.model.source.saved",
+  manual: "settings.postProcessing.api.model.source.manual",
+} as const satisfies Record<ModelOption["source"], string>;
+
+export type ModelSelectProps = {
   value: string;
   options: ModelOption[];
+  allowCustom?: boolean;
   disabled?: boolean;
   placeholder?: string;
   isLoading?: boolean;
   onSelect: (value: string) => void;
   onCreate: (value: string) => void;
+  /** Requests a catalog only when this selector is intentionally opened. */
+  onOpen?: () => void;
   /** Ties the trigger to the field label that names it. */
   id?: string;
+  /** The polite discovery state announced with this control. */
+  statusId?: string;
   className?: string;
 };
 
 /**
- * The post-processing model, as a searchable list that also accepts a name the
- * list does not have.
- *
- * A Command inside a Popover rather than a Select, because naming a model the
- * endpoint was never asked to enumerate is the whole custom-provider flow: a
- * local llama.cpp or vLLM server, or a provider whose key is not saved yet,
- * returns no options at all, and a plain Select would leave that install with
- * no way to say which model to call.
+ * The one searchable post-processing model chooser. A catalog can suggest
+ * IDs, but a provider may still require an intentional manual ID.
  */
 export const ModelSelect: React.FC<ModelSelectProps> = React.memo(
   ({
     value,
     options,
+    allowCustom = false,
     disabled,
     placeholder,
     isLoading,
     onSelect,
     onCreate,
+    onOpen,
     id,
+    statusId,
     className,
   }) => {
     const { t } = useTranslation();
@@ -57,25 +66,25 @@ export const ModelSelect: React.FC<ModelSelectProps> = React.memo(
     const [search, setSearch] = useState("");
 
     const typed = search.trim();
-    /* Offered only for a name no option already carries, so the list never
-     * shows the same model twice. */
     const creatable =
-      typed.length > 0 && !options.some((option) => option.value === typed);
+      allowCustom &&
+      typed.length > 0 &&
+      !options.some((option) => option.id === typed);
+    const selectedLabel =
+      options.find((option) => option.id === value)?.label || value;
 
     const close = () => {
       setOpen(false);
       setSearch("");
     };
 
-    const selectedLabel =
-      options.find((option) => option.value === value)?.label || value;
-
     return (
       <Popover
         open={open}
         onOpenChange={(next) => {
           setOpen(next);
-          if (!next) setSearch("");
+          if (next) onOpen?.();
+          else setSearch("");
         }}
       >
         <PopoverTrigger asChild>
@@ -86,6 +95,8 @@ export const ModelSelect: React.FC<ModelSelectProps> = React.memo(
             size="sm"
             role="combobox"
             aria-expanded={open}
+            aria-busy={isLoading || undefined}
+            aria-describedby={statusId}
             disabled={disabled}
             className={cn("w-full justify-between font-normal", className)}
           >
@@ -104,9 +115,9 @@ export const ModelSelect: React.FC<ModelSelectProps> = React.memo(
           className="w-(--radix-popover-trigger-width) p-0"
         >
           <Command>
-            {/* cmdk filters on each item's `value`, and a model's id is also
-                the name a reader types, so the two are the same string. */}
             <CommandInput
+              autoFocus
+              aria-label={t("settings.postProcessing.api.model.search")}
               value={search}
               onValueChange={setSearch}
               placeholder={placeholder}
@@ -115,20 +126,30 @@ export const ModelSelect: React.FC<ModelSelectProps> = React.memo(
               <CommandEmpty>{t("common.noOptionsFound")}</CommandEmpty>
               {options.map((option) => (
                 <CommandItem
-                  key={option.value}
-                  value={option.label}
+                  key={option.id}
+                  value={option.id}
+                  keywords={
+                    option.label === option.id ? undefined : [option.label]
+                  }
                   onSelect={() => {
                     close();
-                    onSelect(option.value);
+                    onSelect(option.id);
                   }}
                 >
                   <Check
                     aria-hidden="true"
                     className={
-                      value === option.value ? "opacity-100" : "opacity-0"
+                      value === option.id ? "opacity-100" : "opacity-0"
                     }
                   />
-                  <span className="truncate">{option.label}</span>
+                  <span className="flex min-w-0 flex-1 items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate">
+                      {option.label}
+                    </span>
+                    <span className="shrink-0 text-xs text-gray-800">
+                      {t(SOURCE_KEYS[option.source])}
+                    </span>
+                  </span>
                 </CommandItem>
               ))}
               {creatable ? (
@@ -140,7 +161,16 @@ export const ModelSelect: React.FC<ModelSelectProps> = React.memo(
                   }}
                 >
                   <Plus aria-hidden="true" />
-                  <span className="truncate">{`Use "${typed}"`}</span>
+                  <span className="flex min-w-0 flex-1 items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate">
+                      {t("settings.postProcessing.api.model.useCustom", {
+                        modelId: typed,
+                      })}
+                    </span>
+                    <span className="shrink-0 text-xs text-gray-800">
+                      {t(SOURCE_KEYS.manual)}
+                    </span>
+                  </span>
                 </CommandItem>
               ) : null}
             </CommandList>

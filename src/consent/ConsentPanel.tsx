@@ -286,11 +286,20 @@ export function WrapCard({ card, copied, onAction, onCopy, t }: WrapCardProps) {
             name: card.waitingOnNames[0],
           })
         : t("consentPanel.wrap.waitingOn", { count: card.waitingOnCount });
+  const unresolvedSpeakers =
+    card.unresolvedSpeakerCount !== null && card.unresolvedSpeakerCount > 0
+      ? t("consentPanel.wrap.unresolvedSpeakers", {
+          count: card.unresolvedSpeakerCount,
+        })
+      : null;
+  /* Every count this card carries reads on one line, so a third count has
+   * one home rather than a second one beside the title. */
   const delta = [
     card.followUpCount > 0
       ? t("consentPanel.wrap.followUps", { count: card.followUpCount })
       : null,
     waiting,
+    unresolvedSpeakers,
   ]
     .filter(Boolean)
     .join(" · ");

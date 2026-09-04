@@ -12,6 +12,7 @@ import { commands } from "@/bindings";
 import type {
   AgentChatConversationSummaryV1,
   AgentPanelActionV1,
+  AgentPanelCommandErrorV1,
   AgentPanelProposalPreviewV1,
   AgentPanelStatusV1,
   AgentPanelTurnStatusV1,
@@ -20,7 +21,7 @@ import type {
 } from "@/bindings";
 import { askSona } from "@/components/commandPaletteSearch";
 import { ChatHistoryList } from "./ChatHistoryMenu";
-import { ChatSheet } from "./ChatSheet";
+import { CHAT_ERROR_KEYS, ChatSheet } from "./ChatSheet";
 import { sendSheetTurn } from "./ChatSheetHost";
 import type { ChatPhase } from "./chatModel";
 import {
@@ -59,6 +60,21 @@ const localeFile = path.join(
 // SAFETY: the en bundle is repo-owned and the catalogue tests pin these keys;
 // the narrow states the shape this test reads, not a guess about foreign data.
 const en = JSON.parse(fs.readFileSync(localeFile, "utf8")) as {
+  common: {
+    open: string;
+  };
+  settings: {
+    agents: {
+      sonaAgent: {
+        reason: Record<"offline", string>;
+      };
+    };
+  };
+  meetings: {
+    preview: {
+      linkFailed: string;
+    };
+  };
   chat: {
     empty: string;
     title: string;
@@ -72,6 +88,7 @@ const en = JSON.parse(fs.readFileSync(localeFile, "utf8")) as {
     stop: string;
     retry: string;
     openSettings: string;
+    scope: Record<"sona_chat" | "sona_config", string>;
     workedFor: string;
     error: Record<
       "unreachable" | "refused" | "failed" | "too_many_lookups",
@@ -128,6 +145,14 @@ const escaped = (text: string): string =>
 
 const noop = () => undefined;
 
+/* The sentence a dotted key names in the en bundle. i18next answers a key it
+ * cannot find with the key itself, so a lookup that fails here is what would
+ * have reached the screen. */
+const sentence = (key: string): string => {
+  if (!i18n.exists(key)) throw new Error(`no en copy for ${key}`);
+  return i18n.t(key);
+};
+
 const TURN: AgentPanelTurnStatusV1 = {
   turn_id: "t1",
   workspace: "sona_chat",
@@ -174,6 +199,7 @@ interface SheetCase {
   searchedCorpus?: boolean;
   consentNeeded?: boolean;
   workspace?: AgentPanelWorkspaceV1;
+  error?: AgentPanelCommandErrorV1 | "link_failed" | null;
 }
 const sheet = ({
   open = true,
@@ -187,6 +213,7 @@ const sheet = ({
   searchedCorpus = false,
   consentNeeded = false,
   workspace = "sona_chat",
+  error = null,
 }: SheetCase = {}): string =>
   paint(
     <ChatSheet
@@ -204,7 +231,7 @@ const sheet = ({
       workspace={workspace}
       consentNeeded={consentNeeded}
       busy={false}
-      error={null}
+      error={error}
       onClose={noop}
       onHistoryOpenChange={noop}
       onSelectConversation={noop}
@@ -291,7 +318,7 @@ describe("the column's shape", () => {
   test("empty: one invitation, a named scope row and a composer", () => {
     const markup = sheet();
 
-    expect(markup).toContain(en.chat.empty);
+    expect(markup).toContain(escaped(en.chat.empty));
     expect(markup).toContain(en.chat.scopeLabel);
     expect(occurrences(markup, 'role="radio"')).toBe(2);
     expect(markup).toContain(`placeholder="${en.chat.placeholder}"`);
@@ -299,12 +326,20 @@ describe("the column's shape", () => {
     expect(markup).not.toContain('data-slot="chat-stop"');
   });
 
+  test("the Configure workspace is distinct from the Settings destination", () => {
+    const markup = sheet({ phase: "unpaired", workspace: "sona_config" });
+
+    expect(en.chat.scope.sona_config).not.toBe(en.chat.openSettings);
+    expect(markup).toContain(en.chat.scope.sona_config);
+    expect(markup).toContain(en.chat.openSettings);
+  });
+
   /* One sentence for both scopes. The empty state is keyed on an absent
    * conversation and nothing else, so a sentence that is only true of Ask is
    * a sentence that lies to whoever has Settings selected. */
   test("empty: the same invitation under either scope", () => {
     for (const workspace of ["sona_chat", "sona_config"] as const)
-      expect(sheet({ workspace })).toContain(en.chat.empty);
+      expect(sheet({ workspace })).toContain(escaped(en.chat.empty));
   });
 });
 
@@ -386,7 +421,7 @@ describe("a turn on screen", () => {
     });
 
     expect(sourced).toContain('data-slot="chat-searched-corpus"');
-    expect(sourced).toContain(en.chat.working.searchedCorpus);
+    expect(sourced).toContain(escaped(en.chat.working.searchedCorpus));
     expect(packless).not.toContain('data-slot="chat-searched-corpus"');
   });
 
@@ -486,20 +521,31 @@ describe("a turn on screen", () => {
     expect(occurrences(markup, 'data-slot="chat-tool"')).toBe(1);
   });
 
-  test("answered: the reply is prose on the surface, its links pressable", () => {
+  test("answered: the reply is prose with a labeled source link and elapsed time", () => {
     const markup = sheet({
       conversation: [
         user("Where did we say that?"),
-        assistant("In sona://meeting/42, before the break."),
+        assistant("In sona://dictation/75, before the break."),
       ],
       turn: { ...TURN, state: "succeeded", completed_at_utc_ms: 4_000 },
     });
 
-    expect(markup).toContain("sona://meeting/42");
-    expect(markup).toContain("<button");
+    expect(markup).toContain('data-slot="chat-citation"');
+    expect(markup).toContain('aria-label="sona://dictation/75"');
+    expect(markup).toContain(">sona://dictation/75</button>");
+    expect(markup).toContain(
+      escaped(en.chat.workedFor.replace("{{seconds}}", "3")),
+    );
     expect(markup).not.toContain('data-slot="chat-stop"');
-    /* A turn that reported no steps leaves no line behind: the answer is the
-     * whole record, and "Worked for 3s" over it would be furniture. */
+    expect(markup).toContain('data-slot="chat-work"');
+  });
+
+  test("completed without a recorded finish does not invent elapsed time", () => {
+    const markup = sheet({
+      conversation: [user("q"), assistant("a")],
+      turn: { ...TURN, state: "succeeded", completed_at_utc_ms: null },
+    });
+
     expect(markup).not.toContain('data-slot="chat-work"');
   });
 
@@ -678,7 +724,7 @@ describe("the consent notice", () => {
     const markup = sheet({ consentNeeded: true });
 
     expect(markup).toContain('data-slot="chat-consent"');
-    expect(markup).toContain(en.chat.consent.notice);
+    expect(markup).toContain(escaped(en.chat.consent.notice));
     expect(markup).toContain(en.chat.consent.allow);
   });
 
@@ -762,7 +808,45 @@ describe("a lookup the Mac ran for the model", () => {
       },
     });
 
-    expect(markup).toContain(en.chat.error.too_many_lookups);
+    expect(markup).toContain(escaped(en.chat.error.too_many_lookups));
+  });
+});
+
+describe("command feedback", () => {
+  test("an unroutable citation says it could not open instead of exposing its route", () => {
+    const markup = sheet({ error: "link_failed" });
+
+    expect(markup).toContain(escaped(en.meetings.preview.linkFailed));
+    expect(markup).not.toContain(">link_failed<");
+  });
+
+  test("typed command reasons are localized without rendering their codes", () => {
+    const relay = sheet({ error: "offline" });
+    const local = sheet({ error: "unknown_action" });
+
+    expect(relay).toContain(
+      escaped(en.settings.agents.sonaAgent.reason.offline),
+    );
+    expect(relay).not.toContain(">offline<");
+    expect(local).toContain(escaped(en.chat.error.failed));
+    expect(local).not.toContain(">unknown_action<");
+  });
+
+  /* The two above are refusals with copy of their own. This is the rest of
+   * the table: every refusal the backend can raise reaches the reader as a
+   * sentence, and none arrives as the key that was meant to name one. */
+  test("every command refusal renders catalogue copy, not a key or a code", () => {
+    for (const [error, key] of Object.entries(CHAT_ERROR_KEYS)) {
+      // SAFETY: CHAT_ERROR_KEYS satisfies Record over exactly this union, so
+      // every key Object.entries yields is one of its members.
+      const markup = sheet({
+        error: error as AgentPanelCommandErrorV1 | "link_failed",
+      });
+
+      expect(markup).toContain(escaped(sentence(key)));
+      expect(markup).not.toContain(key);
+      expect(markup).not.toContain(`>${error}<`);
+    }
   });
 });
 
@@ -790,9 +874,8 @@ describe("the states where nothing would answer", () => {
    * and the pinned key — so all four have to be able to reach it. A retry is
    * offered beside it only where a re-read could plausibly change the answer.
    *
-   * Read out of the notice rather than the whole sheet, because "Settings" is
-   * also the name of the composer's second scope: the same word, twice on one
-   * surface, meaning two different things. */
+   * Read the notice rather than the whole sheet so this assertion only covers
+   * the recovery action. */
   test("every broken phase offers Settings, and only two offer a retry", () => {
     const notice = (markup: string): string => {
       const start = markup.indexOf('data-slot="chat-notice"');
@@ -905,6 +988,7 @@ describe("the model behind the sheet", () => {
     const finished = {
       ...TURN,
       state: "succeeded" as const,
+      completed_at_utc_ms: 4_000,
       steps: [
         {
           id: "s1",
@@ -919,7 +1003,13 @@ describe("the model behind the sheet", () => {
 
     expect(workRowIndex([user("q"), assistant("a")], finished)).toBe(1);
     expect(workRowIndex([user("q")], TURN)).toBe(1);
-    // A finished turn that reported nothing has no row: the answer is the record.
+    expect(
+      workRowIndex([user("q"), assistant("a")], {
+        ...TURN,
+        state: "succeeded",
+        completed_at_utc_ms: 4_000,
+      }),
+    ).toBe(1);
     expect(
       workRowIndex([user("q"), assistant("a")], {
         ...TURN,
@@ -1056,12 +1146,14 @@ const shell = (chatOpen: boolean): string => {
         currentSection="overview"
         onSectionChange={noop}
         onOpenMeeting={noop}
+        onOpenRecorder={noop}
         loadingLabel="Loading"
         meetingInvalidation={0}
         meetingNavigationRequest={null}
         meetingStartRequest={0}
         personRequest={null}
         organizationRequest={null}
+        dictationRequest={null}
         commandOpen={false}
         commandActions={[]}
         commandSeed={null}

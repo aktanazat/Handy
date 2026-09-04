@@ -25,6 +25,7 @@ import { DetectionListeners } from "./components/settings/meetings/DetectionList
 import { PAGE_COLUMN } from "./components/settings/rows";
 import { RouteSkeleton } from "./components/RouteSkeleton";
 import { Toaster } from "./components/Toaster";
+import { RecorderDialog } from "./components/recorder/RecorderDialog";
 import {
   commandActionIcons,
   isCommandPaletteChord,
@@ -36,6 +37,7 @@ import {
   type SidebarSection,
 } from "./components/sidebarSections";
 import { usePromptShellStore } from "./components/settings/meetings/promptTargets";
+import type { DictationRequest } from "./components/settings/history/HistorySettings";
 import { WhatsNewGate } from "./components/whats-new";
 import { useAudioImport } from "./hooks/useAudioImport";
 import { useMeetingImport } from "./hooks/useMeetingImport";
@@ -80,8 +82,10 @@ interface SettingsContentProps {
   meetingStartRequest: number;
   personRequest: PersonRequest | null;
   organizationRequest: OrganizationRequest | null;
+  dictationRequest: DictationRequest | null;
   onSectionChange: (section: SidebarSection) => void;
   onOpenMeeting: (meetingId: string) => void;
+  onOpenRecorder: () => void;
 }
 
 const renderSettingsContent = ({
@@ -91,8 +95,10 @@ const renderSettingsContent = ({
   meetingStartRequest,
   personRequest,
   organizationRequest,
+  dictationRequest,
   onSectionChange,
   onOpenMeeting,
+  onOpenRecorder,
 }: SettingsContentProps) => {
   if (section === "overview") {
     const OverviewComponent = SECTIONS_CONFIG.overview.component;
@@ -100,8 +106,14 @@ const renderSettingsContent = ({
       <OverviewComponent
         onOpenSection={onSectionChange}
         onOpenMeeting={onOpenMeeting}
+        onOpenRecorder={onOpenRecorder}
       />
     );
+  }
+
+  if (section === "history") {
+    const HistoryComponent = SECTIONS_CONFIG.history.component;
+    return <HistoryComponent dictationRequest={dictationRequest} />;
   }
 
   if (section === "meetings") {
@@ -177,12 +189,14 @@ export interface AppContentProps {
   currentSection: SidebarSection;
   onSectionChange: (section: SidebarSection) => void;
   onOpenMeeting: (meetingId: string) => void;
+  onOpenRecorder: () => void;
   loadingLabel: string;
   meetingInvalidation: number;
   meetingNavigationRequest: MeetingNavigationPayload | null;
   meetingStartRequest: number;
   personRequest: PersonRequest | null;
   organizationRequest: OrganizationRequest | null;
+  dictationRequest: DictationRequest | null;
   commandOpen: boolean;
   commandActions: CommandPaletteAction[];
   commandSeed: SearchRequest | null;
@@ -209,12 +223,14 @@ export const AppContent = ({
   currentSection,
   onSectionChange,
   onOpenMeeting,
+  onOpenRecorder,
   loadingLabel,
   meetingInvalidation,
   meetingNavigationRequest,
   meetingStartRequest,
   personRequest,
   organizationRequest,
+  dictationRequest,
   commandOpen,
   commandActions,
   commandSeed,
@@ -344,7 +360,7 @@ export const AppContent = ({
           />
           <div
             data-slot="page-scroll"
-            className="flex-1 overflow-x-hidden overflow-y-auto transition-none"
+            className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto transition-none"
           >
             {/* Every page owns its own column now, so the scroll region is full
              * width and unpadded. These two are shell banners rather than
@@ -376,8 +392,10 @@ export const AppContent = ({
                   meetingStartRequest,
                   personRequest,
                   organizationRequest,
+                  dictationRequest,
                   onSectionChange,
                   onOpenMeeting,
+                  onOpenRecorder,
                 })}
               </Suspense>
             </ErrorBoundary>
@@ -409,6 +427,7 @@ export const AppContent = ({
 
 interface CommandActionDeps {
   t: (key: string) => string;
+  isMacos: boolean;
   agentEnabled: boolean;
   onNavigate: (section: SidebarSection) => void;
   onNewMeeting: () => void;
@@ -416,17 +435,20 @@ interface CommandActionDeps {
   onImportMeeting: () => void;
   onOpenRecordings: () => void;
   onOpenAgent: () => void;
+  onOpenRecorder: () => void;
 }
 
 const buildCommandActions = ({
   t,
   agentEnabled,
+  isMacos,
   onNavigate,
   onNewMeeting,
   onImportAudio,
   onImportMeeting,
   onOpenRecordings,
   onOpenAgent,
+  onOpenRecorder,
 }: CommandActionDeps): CommandPaletteAction[] => [
   /* The destinations come from the section registry, in the one order it lists
    * them: the rail takes the same list, so neither surface can rename or
@@ -447,6 +469,17 @@ const buildCommandActions = ({
     icon: commandActionIcons.importAudio,
     run: onImportAudio,
   },
+  ...(isMacos
+    ? [
+        {
+          id: "action-screen-recording",
+          group: "actions" as const,
+          label: t("recorder.open"),
+          icon: commandActionIcons.recordScreen,
+          run: onOpenRecorder,
+        },
+      ]
+    : []),
   {
     id: "action-import-meeting",
     group: "actions",
@@ -564,6 +597,23 @@ const AppEventListeners: React.FC = () => {
     };
   }, [t]);
 
+  useEffect(() => {
+    let disposed = false;
+    let unsubscribe: (() => void) | null = null;
+    void events.trayCopyFailed
+      .listen(() => {
+        if (!disposed) toast.error(t("settings.history.copyFailed"));
+      })
+      .then((cleanup) => {
+        if (disposed) cleanup();
+        else unsubscribe = cleanup;
+      });
+    return () => {
+      disposed = true;
+      unsubscribe?.();
+    };
+  }, [t]);
+
   // Listen for transcription failures and show a toast.
   // The payload is the backend error message (also logged to sona.log).
   useEffect(() => {
@@ -634,7 +684,20 @@ function App() {
   const [meetingNavigationRequest, setMeetingNavigationRequest] =
     useState<MeetingNavigationPayload | null>(null);
   const [meetingStartRequest, setMeetingStartRequest] = useState(0);
-  const [commandOpen, setCommandOpen] = useState(false);
+  /* One modal at a time. The palette and the recorder cannot both be up, so
+   * which one is up is a single value rather than two booleans that five
+   * guards kept in agreement. `setPalette` is then the only place that says
+   * the recorder outranks the palette. */
+  const [modal, setModal] = useState<"none" | "palette" | "recorder">("none");
+  const commandOpen = modal === "palette";
+  const recorderOpen = modal === "recorder";
+  const setPalette = useCallback((next: boolean | "toggle") => {
+    setModal((current) => {
+      if (current === "recorder") return current;
+      const open = next === "toggle" ? current !== "palette" : next;
+      return open ? "palette" : "none";
+    });
+  }, []);
   /* Not persisted. The sheet is a thing you opened during this sitting, and a
    * chat that reopens itself on the next launch is a chat that reopens a
    * question you already stopped asking. */
@@ -645,6 +708,8 @@ function App() {
   );
   const [organizationRequest, setOrganizationRequest] =
     useState<OrganizationRequest | null>(null);
+  const [dictationRequest, setDictationRequest] =
+    useState<DictationRequest | null>(null);
   const { settings, updateSetting } = useSettings();
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
@@ -730,16 +795,32 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    let disposed = false;
+    let unsubscribe: (() => void) | null = null;
+    void events.traySettingsRequested
+      .listen(() => {
+        if (!disposed) setCurrentSection("settings");
+      })
+      .then((cleanup) => {
+        if (disposed) cleanup();
+        else unsubscribe = cleanup;
+      });
+    return () => {
+      disposed = true;
+      unsubscribe?.();
+    };
+  }, []);
+
   /* The other half of `sona://`. Meetings and loops arrive on the meeting
    * navigation event above, because a meeting has a lifecycle to navigate; the
    * nouns that had no destination of their own arrive here. One listener, three
    * targets, and the same routing whether the address came from the OS, from a
    * ⌘K row, or from a link an agent cited in the panel.
    *
-   * A dictation opens Library and stops there. The feed pages by time and has
-   * no way to address one row, so scrolling to it would mean inventing a second
-   * answer to "where is a dictation" inside a listener — the row's own surface
-   * is where that belongs, if it is ever worth it. */
+   * A dictation link carries its stable history id to History. History clears
+   * a stale search, pages if needed, expands, scrolls, and focuses that row;
+   * this listener only delivers the request. */
   useEffect(() => {
     let disposed = false;
     let unsubscribe: (() => void) | null = null;
@@ -764,6 +845,10 @@ function App() {
           return;
         }
         if (target.kind === "dictation") {
+          setDictationRequest((current) => ({
+            historyId: target.history_id,
+            nonce: (current?.nonce ?? 0) + 1,
+          }));
           runViewTransition(() => setCurrentSection("history"));
           return;
         }
@@ -771,7 +856,7 @@ function App() {
           query: target.query,
           nonce: (current?.nonce ?? 0) + 1,
         }));
-        setCommandOpen(true);
+        setPalette(true);
       })
       .then((cleanup) => {
         if (disposed) cleanup();
@@ -781,7 +866,7 @@ function App() {
       disposed = true;
       unsubscribe?.();
     };
-  }, []);
+  }, [setPalette]);
 
   useEffect(() => {
     checkOnboardingStatus();
@@ -816,11 +901,11 @@ function App() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isCommandPaletteChord(event)) return;
       event.preventDefault();
-      setCommandOpen((open) => !open);
+      setPalette("toggle");
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [setPalette]);
 
   // Handle keyboard shortcuts for debug mode toggle
   useEffect(() => {
@@ -936,10 +1021,11 @@ function App() {
   }, []);
 
   const openChat = useCallback(() => setChatOpen(true), []);
+  const openRecorder = useCallback(() => setModal("recorder"), []);
 
   const agentEnabled = settings?.agent_panel_enabled === true;
 
-  const openCommandPalette = useCallback(() => setCommandOpen(true), []);
+  const openCommandPalette = useCallback(() => setPalette(true), [setPalette]);
 
   /* Route changes go through `navigateToSection` here for the same reason the
    * sidebar rows do — the palette and the rail reach the same destinations, so
@@ -947,6 +1033,7 @@ function App() {
   const commandActions = buildCommandActions({
     t,
     agentEnabled,
+    isMacos: platform() === "macos",
     onNavigate: navigateToSection,
     onNewMeeting: () =>
       runViewTransition(() => {
@@ -956,6 +1043,7 @@ function App() {
     onImportAudio: () => void startAudioImport(),
     onImportMeeting: () => void startMeetingImport(),
     onOpenRecordings: () => void openRecordingsFolder(),
+    onOpenRecorder: openRecorder,
     onOpenAgent: openChat,
   });
 
@@ -972,12 +1060,14 @@ function App() {
         currentSection={currentSection}
         onSectionChange={navigateToSection}
         onOpenMeeting={openMeeting}
+        onOpenRecorder={openRecorder}
         loadingLabel={t("common.loading")}
         meetingInvalidation={meetingInvalidation}
         meetingNavigationRequest={meetingNavigationRequest}
         meetingStartRequest={meetingStartRequest}
         personRequest={personRequest}
         organizationRequest={organizationRequest}
+        dictationRequest={dictationRequest}
         chatOpen={chatOpen}
         onChatOpenChange={setChatOpen}
         commandOpen={commandOpen}
@@ -994,8 +1084,12 @@ function App() {
           remoteIntelligence:
             settings?.meeting_remote_intelligence_enabled === true,
         }}
-        onCommandOpenChange={setCommandOpen}
+        onCommandOpenChange={setPalette}
         onCommandOpen={openCommandPalette}
+      />
+      <RecorderDialog
+        open={recorderOpen}
+        onOpenChange={(nextOpen) => setModal(nextOpen ? "recorder" : "none")}
       />
     </MotionProvider>
   );

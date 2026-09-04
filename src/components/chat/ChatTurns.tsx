@@ -34,26 +34,30 @@ interface AssistantTextProps {
 const AssistantText: React.FC<AssistantTextProps> = ({
   message,
   onOpenLink,
-}) => (
-  <p className="text-[13px] leading-[19px] whitespace-pre-wrap text-gray-1000 [overflow-wrap:anywhere]">
-    {linkifySona(message).map((segment, index) =>
-      "link" in segment ? (
-        <button
-          // SAFETY: segments come from one immutable message string, so
-          // position is a stable identity here.
-          key={`${index}:${segment.link}`}
-          type="button"
-          onClick={() => onOpenLink(segment.link)}
-          className="underline decoration-gray-alpha-600 underline-offset-2 hover:decoration-gray-1000"
-        >
-          {segment.link}
-        </button>
-      ) : (
-        <React.Fragment key={`${index}:text`}>{segment.text}</React.Fragment>
-      ),
-    )}
-  </p>
-);
+}) => {
+  return (
+    <p className="text-[13px] leading-[19px] whitespace-pre-wrap text-gray-1000 [overflow-wrap:anywhere]">
+      {linkifySona(message).map((segment, index) =>
+        "link" in segment ? (
+          <button
+            // SAFETY: segments come from one immutable message string, so
+            // position is a stable identity here.
+            key={`${index}:${segment.link}`}
+            type="button"
+            data-slot="chat-citation"
+            aria-label={segment.link}
+            onClick={() => onOpenLink(segment.link)}
+            className="underline decoration-gray-alpha-600 underline-offset-2 hover:decoration-gray-1000"
+          >
+            {segment.link}
+          </button>
+        ) : (
+          <React.Fragment key={`${index}:text`}>{segment.text}</React.Fragment>
+        ),
+      )}
+    </p>
+  );
+};
 
 interface TurnWorkProps {
   turn: AgentPanelTurnStatusV1;
@@ -70,10 +74,9 @@ const WORK_LINE =
 /**
  * The activity that belongs below a turn's question.
  *
- * A live turn always gets a timing line. A completed turn gets it only when
- * the relay reported steps, leaving a plain answer as prose. Failure and the
- * corpus marker share this row because neither has an assistant answer of its
- * own to introduce them.
+ * A live turn always gets a timing line. A completed turn gets one when the
+ * backend recorded its finish. Failure and the corpus marker share this row
+ * because neither has an assistant answer of its own to introduce them.
  */
 const TurnWork: React.FC<TurnWorkProps> = ({
   turn,
@@ -102,7 +105,7 @@ const TurnWork: React.FC<TurnWorkProps> = ({
   const stepsId = React.useId();
   const running = isTurnRunning(turn);
   const failure = turnFailure(turn);
-  const showTiming = running || turn.steps.length > 0;
+  const showTiming = running || turn.completed_at_utc_ms !== null;
   const label = running
     ? `${t(`chat.turnState.${turn.state}`)} · ${t("chat.stepSeconds", {
         seconds: Math.round(workedMs(turn, now) / 1000),

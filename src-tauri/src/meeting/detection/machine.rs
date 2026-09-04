@@ -34,14 +34,6 @@ pub const ATTENDEE_FLOOR: usize = 2;
 /// of spawning a second note (§5.3 case 8).
 pub const CROSS_LINK_WINDOW_MS: i64 = 15 * 60 * 1000;
 
-/// How close two captures of the same app must be before Sona offers to merge
-/// them. Outside this window a microphone gap is a meeting boundary, full stop —
-/// the deliberate inversion of Granola's auto-merge default (§5.5).
-pub const MERGE_PROMPT_WINDOW_MS: i64 = 2 * 60 * 1000;
-
-/// Default silence window before auto-stop, in minutes (§5.5 condition 2).
-pub const DEFAULT_SILENCE_STOP_MINUTES: u32 = 15;
-
 /// How one participant answered the invitation, as EventKit reports it.
 ///
 /// `EKParticipantStatus` also carries `Delegated`, `Completed` and
@@ -216,13 +208,10 @@ pub enum BrowserTitleEvidence {
     Unreadable,
 }
 
-/// A capture Sona started recently. Feeds §5.3 case 8 cross-linking and §5.5
-/// boundary classification.
+/// A capture Sona started recently. Feeds §5.3 case 8 cross-linking.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RecentCapture {
     pub session_id: String,
-    /// Bundle ID of the app that triggered it, absent for a manual start.
-    pub trigger_bundle_id: Option<String>,
     pub started_utc_ms: i64,
 }
 
@@ -805,17 +794,6 @@ pub struct StopInputs {
     pub now_utc_ms: i64,
     /// Scheduled end of the calendar event this capture is linked to.
     pub linked_event_end_utc_ms: Option<i64>,
-    /// Last instant transcript-worthy audio was observed, or `None` when no
-    /// voiced-activity clock is available.
-    ///
-    /// This is `Option` rather than a defaulted timestamp on purpose. Meeting
-    /// transcription in this codebase runs after capture ends, so during a
-    /// capture nothing publishes "someone spoke just now". Substituting a proxy
-    /// that only looks like voice — packet flow, elapsed time, an app becoming
-    /// frontmost — would auto-stop a live meeting at minute N, which is a far
-    /// worse failure than never auto-stopping. `None` makes the silence rule
-    /// inapplicable instead of wrong, and the operator's status says so.
-    pub last_voiced_utc_ms: Option<i64>,
     /// True while Sona's own capture holds the default input device. When it is
     /// true, the device-in-use property says nothing about the meeting app: Sona
     /// is the process keeping it raised.
@@ -885,44 +863,21 @@ impl CallOutputWatch {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct StopPolicy {
-    /// Zero disables the silence stop, leaving manual stop as the only timer.
-    /// Only consulted when a voiced-activity clock exists.
-    pub silence_stop_minutes: u32,
-}
-
-impl Default for StopPolicy {
-    fn default() -> Self {
-        Self {
-            silence_stop_minutes: DEFAULT_SILENCE_STOP_MINUTES,
-        }
-    }
-}
-
 /// Why a capture ended by itself. Manual stop is not in this list: it stays the
 /// primary path and does not go through the heuristic at all.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum StopTrigger {
-    /// §5.5 condition 4.
+    /// The host crossed a sleep boundary.
     SleepBoundary,
-    /// §5.5 condition 1.
+    /// The linked calendar event ended.
     EventEnd,
-    /// §5.5 condition 3, observable variant: the triggering app quit.
+    /// The application that triggered this capture quit.
     TriggerAppExited,
-    /// §5.5 condition 3 proper: the input device went idle. Only meaningful when
-    /// Sona is not itself the process holding the device.
+    /// The default input device became idle while Sona was not holding it.
     InputDeviceIdle,
-    /// The call this capture was started for ended: its app stopped playing
-    /// through the default output device and stayed silent past
-    /// `CALL_HANGUP_GRACE_MS`. `InputDeviceIdle` cannot express this — Sona's
-    /// own capture keeps the input device raised for the whole meeting — and a
-    /// call app stays open long after a call hangs up, so `TriggerAppExited`
-    /// cannot either.
+    /// A call capture's default output stayed idle after it had played.
     CallEnded,
-    /// §5.5 condition 2.
-    Silence,
 }
 
 impl StopTrigger {
@@ -933,14 +888,12 @@ impl StopTrigger {
             Self::TriggerAppExited => "trigger_app_exited",
             Self::InputDeviceIdle => "input_device_idle",
             Self::CallEnded => "call_ended",
-            Self::Silence => "silence",
         }
     }
 }
 
-/// Definitive causes first, the silence timer last. A sleep boundary or a
-/// scheduled end is a fact; silence is an inference that a long pause is over.
-pub fn evaluate_stop(inputs: &StopInputs, policy: &StopPolicy) -> Option<StopTrigger> {
+/// Observable auto-stop causes, in precedence order.
+pub fn evaluate_stop(inputs: &StopInputs) -> Option<StopTrigger> {
     if inputs.slept_since_start {
         return Some(StopTrigger::SleepBoundary);
     }
@@ -970,47 +923,7 @@ pub fn evaluate_stop(inputs: &StopInputs, policy: &StopPolicy) -> Option<StopTri
     {
         return Some(StopTrigger::InputDeviceIdle);
     }
-    if let (true, Some(last_voiced_utc_ms)) =
-        (policy.silence_stop_minutes > 0, inputs.last_voiced_utc_ms)
-    {
-        let window_ms = i64::from(policy.silence_stop_minutes) * 60_000;
-        if inputs.now_utc_ms.saturating_sub(last_voiced_utc_ms) >= window_ms {
-            return Some(StopTrigger::Silence);
-        }
-    }
     None
-}
-
-/// What a microphone gap means for the next capture (§5.5's inversion of
-/// Granola's auto-merge default).
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ReactivationBoundary {
-    /// The default. A gap ends the previous meeting.
-    NewMeeting,
-    /// Close in time and the same app: offer a merge, never perform one.
-    MergePrompt { previous_session_id: String },
-}
-
-/// Auto-merge is never an outcome here. Granola's own docs call its auto-merge a
-/// bug users work around by splitting notes afterwards; splitting a transcript
-/// after the fact is strictly harder than joining two, so the cheap error is the
-/// one to make.
-pub fn classify_reactivation(
-    previous: &RecentCapture,
-    now_utc_ms: i64,
-    trigger_bundle_id: Option<&str>,
-) -> ReactivationBoundary {
-    let gap = now_utc_ms.saturating_sub(previous.started_utc_ms);
-    let same_app = match (&previous.trigger_bundle_id, trigger_bundle_id) {
-        (Some(previous_id), Some(current_id)) => previous_id.eq_ignore_ascii_case(current_id),
-        _ => false,
-    };
-    if same_app && (0..=MERGE_PROMPT_WINDOW_MS).contains(&gap) {
-        return ReactivationBoundary::MergePrompt {
-            previous_session_id: previous.session_id.clone(),
-        };
-    }
-    ReactivationBoundary::NewMeeting
 }
 
 #[cfg(test)]
@@ -1638,7 +1551,6 @@ mod tests {
                 self_holds_input_device: true,
                 recent_capture: Some(RecentCapture {
                     session_id: "session-1".to_string(),
-                    trigger_bundle_id: Some("us.zoom.xos".to_string()),
                     started_utc_ms: NOW - 5 * 60_000,
                 }),
                 ..inputs()
@@ -1662,7 +1574,6 @@ mod tests {
                 capture_active: true,
                 recent_capture: Some(RecentCapture {
                     session_id: "session-1".to_string(),
-                    trigger_bundle_id: Some("us.zoom.xos".to_string()),
                     started_utc_ms: NOW - CROSS_LINK_WINDOW_MS - 1,
                 }),
                 ..inputs()
@@ -1830,7 +1741,6 @@ mod tests {
         StopInputs {
             now_utc_ms: NOW,
             linked_event_end_utc_ms: None,
-            last_voiced_utc_ms: Some(NOW),
             self_holds_input_device: true,
             device_running_somewhere: true,
             microphone_lane: true,
@@ -1842,213 +1752,73 @@ mod tests {
 
     #[test]
     fn a_healthy_capture_has_no_stop_trigger() {
-        assert_eq!(evaluate_stop(&stop_inputs(), &StopPolicy::default()), None);
+        assert_eq!(evaluate_stop(&stop_inputs()), None);
     }
 
     #[test]
     fn scheduled_event_end_stops_a_linked_capture() {
-        let trigger = evaluate_stop(
-            &StopInputs {
-                linked_event_end_utc_ms: Some(NOW),
-                ..stop_inputs()
-            },
-            &StopPolicy::default(),
-        );
+        let trigger = evaluate_stop(&StopInputs {
+            linked_event_end_utc_ms: Some(NOW),
+            ..stop_inputs()
+        });
 
         assert_eq!(trigger, Some(StopTrigger::EventEnd));
     }
 
     #[test]
-    fn silence_stops_at_the_configured_window() {
-        let policy = StopPolicy {
-            silence_stop_minutes: 15,
-        };
-
-        assert_eq!(
-            evaluate_stop(
-                &StopInputs {
-                    last_voiced_utc_ms: Some(NOW - 15 * 60_000),
-                    ..stop_inputs()
-                },
-                &policy
-            ),
-            Some(StopTrigger::Silence)
-        );
-        assert_eq!(
-            evaluate_stop(
-                &StopInputs {
-                    last_voiced_utc_ms: Some(NOW - 15 * 60_000 + 1),
-                    ..stop_inputs()
-                },
-                &policy
-            ),
-            None
-        );
-    }
-
-    #[test]
-    fn zero_silence_minutes_leaves_manual_stop_in_charge() {
-        let trigger = evaluate_stop(
-            &StopInputs {
-                last_voiced_utc_ms: Some(NOW - 24 * 60 * 60_000),
-                ..stop_inputs()
-            },
-            &StopPolicy {
-                silence_stop_minutes: 0,
-            },
-        );
-
-        assert_eq!(trigger, None);
-    }
-
-    #[test]
-    fn without_a_voiced_clock_the_silence_rule_cannot_stop_a_live_meeting() {
-        let trigger = evaluate_stop(
-            &StopInputs {
-                last_voiced_utc_ms: None,
-                ..stop_inputs()
-            },
-            &StopPolicy::default(),
-        );
-
-        assert_eq!(
-            trigger, None,
-            "an absent voiced clock must make the rule inapplicable, not fire it"
-        );
-    }
-
-    #[test]
     fn the_device_going_idle_only_counts_when_sona_is_not_holding_it() {
-        // Sona's own microphone lane keeps the device raised, so a false reading
-        // here would mean Sona's capture had already stopped. Ignoring it is the
-        // only correct answer.
         assert_eq!(
-            evaluate_stop(
-                &StopInputs {
-                    self_holds_input_device: true,
-                    device_running_somewhere: false,
-                    ..stop_inputs()
-                },
-                &StopPolicy::default()
-            ),
+            evaluate_stop(&StopInputs {
+                self_holds_input_device: true,
+                device_running_somewhere: false,
+                ..stop_inputs()
+            }),
             None
         );
-        // A microphone-lane capture with nothing holding the device means that
-        // lane is gone, and the capture with it.
         assert_eq!(
-            evaluate_stop(
-                &StopInputs {
-                    self_holds_input_device: false,
-                    device_running_somewhere: false,
-                    ..stop_inputs()
-                },
-                &StopPolicy::default()
-            ),
+            evaluate_stop(&StopInputs {
+                self_holds_input_device: false,
+                device_running_somewhere: false,
+                ..stop_inputs()
+            }),
             Some(StopTrigger::InputDeviceIdle)
         );
     }
 
-    /* FS5 in the detection map: a capture whose microphone lane was toggled off
-     * on the countdown card is not listening to the input device. Nothing
-     * holding it — a browser call on a Bluetooth microphone the property never
-     * reports — is not evidence about that capture's inputs. */
     #[test]
     fn a_system_audio_only_capture_survives_an_idle_input_device() {
         assert_eq!(
-            evaluate_stop(
-                &StopInputs {
-                    microphone_lane: false,
-                    self_holds_input_device: false,
-                    device_running_somewhere: false,
-                    ..stop_inputs()
-                },
-                &StopPolicy::default()
-            ),
+            evaluate_stop(&StopInputs {
+                microphone_lane: false,
+                self_holds_input_device: false,
+                device_running_somewhere: false,
+                ..stop_inputs()
+            }),
             None
         );
     }
 
     #[test]
     fn the_triggering_app_quitting_stops_the_capture() {
-        let trigger = evaluate_stop(
-            &StopInputs {
-                trigger_app_running: false,
-                ..stop_inputs()
-            },
-            &StopPolicy::default(),
-        );
+        let trigger = evaluate_stop(&StopInputs {
+            trigger_app_running: false,
+            ..stop_inputs()
+        });
 
         assert_eq!(trigger, Some(StopTrigger::TriggerAppExited));
     }
 
     #[test]
     fn a_sleep_boundary_outranks_every_other_trigger() {
-        let trigger = evaluate_stop(
-            &StopInputs {
-                slept_since_start: true,
-                linked_event_end_utc_ms: Some(NOW),
-                trigger_app_running: false,
-                ..stop_inputs()
-            },
-            &StopPolicy::default(),
-        );
+        let trigger = evaluate_stop(&StopInputs {
+            slept_since_start: true,
+            linked_event_end_utc_ms: Some(NOW),
+            trigger_app_running: false,
+            ..stop_inputs()
+        });
 
         assert_eq!(trigger, Some(StopTrigger::SleepBoundary));
     }
-
-    /* §5.5 boundary inversion. */
-    fn previous_capture() -> RecentCapture {
-        RecentCapture {
-            session_id: "session-1".to_string(),
-            trigger_bundle_id: Some("us.zoom.xos".to_string()),
-            started_utc_ms: NOW,
-        }
-    }
-
-    #[test]
-    fn a_mic_gap_defaults_to_a_new_meeting() {
-        let boundary = classify_reactivation(
-            &previous_capture(),
-            NOW + MERGE_PROMPT_WINDOW_MS + 1,
-            Some("us.zoom.xos"),
-        );
-
-        assert_eq!(boundary, ReactivationBoundary::NewMeeting);
-    }
-
-    #[test]
-    fn a_close_same_app_gap_offers_a_merge_and_never_performs_one() {
-        let boundary = classify_reactivation(
-            &previous_capture(),
-            NOW + MERGE_PROMPT_WINDOW_MS,
-            Some("US.ZOOM.XOS"),
-        );
-
-        assert_eq!(
-            boundary,
-            ReactivationBoundary::MergePrompt {
-                previous_session_id: "session-1".to_string(),
-            }
-        );
-    }
-
-    #[test]
-    fn a_different_app_is_always_a_new_meeting() {
-        let boundary =
-            classify_reactivation(&previous_capture(), NOW + 1_000, Some(SLACK_BUNDLE_ID));
-
-        assert_eq!(boundary, ReactivationBoundary::NewMeeting);
-    }
-
-    #[test]
-    fn an_unattributed_capture_is_always_a_new_meeting() {
-        let boundary = classify_reactivation(&previous_capture(), NOW + 1_000, None);
-
-        assert_eq!(boundary, ReactivationBoundary::NewMeeting);
-    }
-
-    /* The case the second signal exists for: an AirPods call, where the
-     * device-in-use property on the input side never rises at all. */
     #[test]
     fn a_call_is_live_on_the_output_signal_alone() {
         let outcome = evaluate(&granted_call_on_output_only(), &DetectionPolicy::default());
@@ -2334,7 +2104,6 @@ mod tests {
         StopInputs {
             now_utc_ms: NOW,
             linked_event_end_utc_ms: None,
-            last_voiced_utc_ms: None,
             self_holds_input_device: false,
             device_running_somewhere: true,
             microphone_lane: true,
@@ -2346,7 +2115,6 @@ mod tests {
 
     #[test]
     fn a_call_capture_ends_when_the_output_device_goes_quiet() {
-        let policy = StopPolicy::default();
         let mut output = CallOutputWatch::default();
         output.observe(OutputSignal::Active, NOW);
         let playing = StopInputs {
@@ -2354,7 +2122,7 @@ mod tests {
             ..call_recording()
         };
 
-        assert_eq!(evaluate_stop(&playing, &policy), None);
+        assert_eq!(evaluate_stop(&playing), None);
 
         output.observe(OutputSignal::Idle, NOW + 1_000);
         let hung_up = StopInputs {
@@ -2363,18 +2131,11 @@ mod tests {
             ..call_recording()
         };
 
-        assert_eq!(
-            evaluate_stop(&hung_up, &policy),
-            Some(StopTrigger::CallEnded)
-        );
+        assert_eq!(evaluate_stop(&hung_up), Some(StopTrigger::CallEnded));
     }
 
-    /* AirPods connecting mid-call: the default output changes, the monitor
-     * re-registers and seeds the level before the call's stream has moved, and
-     * one tick reads idle. That is a gap, not a hangup. */
     #[test]
     fn an_output_gap_shorter_than_the_grace_is_not_a_hangup() {
-        let policy = StopPolicy::default();
         let mut output = CallOutputWatch::default();
         output.observe(OutputSignal::Active, NOW);
         output.observe(OutputSignal::Idle, NOW + 1_000);
@@ -2384,9 +2145,8 @@ mod tests {
             ..call_recording()
         };
 
-        assert_eq!(evaluate_stop(&gap, &policy), None);
+        assert_eq!(evaluate_stop(&gap), None);
 
-        // The stream reaches the new device; the clock starts over.
         output.observe(OutputSignal::Active, NOW + 3_000);
         let moved = StopInputs {
             now_utc_ms: NOW + 60_000,
@@ -2394,13 +2154,9 @@ mod tests {
             ..call_recording()
         };
 
-        assert_eq!(evaluate_stop(&moved, &policy), None);
+        assert_eq!(evaluate_stop(&moved), None);
     }
 
-    /* The start rule admits a call on the microphone clause with the output
-     * idle: a call routed to a non-default speaker, or an output listener
-     * that never registered. The stop rule must degrade the same way, or the
-     * capture it admits ends on the next tick. */
     #[test]
     fn a_call_that_never_played_through_the_default_output_is_not_ended_by_it() {
         assert!(call_is_live(
@@ -2418,7 +2174,7 @@ mod tests {
             ..call_recording()
         };
 
-        assert_eq!(evaluate_stop(&silent, &StopPolicy::default()), None);
+        assert_eq!(evaluate_stop(&silent), None);
     }
 
     #[test]
@@ -2428,9 +2184,8 @@ mod tests {
             ..call_recording()
         };
 
-        assert_eq!(evaluate_stop(&meeting, &StopPolicy::default()), None);
+        assert_eq!(evaluate_stop(&meeting), None);
     }
-
     #[test]
     fn a_call_is_titled_with_the_app_and_the_time_it_started() {
         let started = Local

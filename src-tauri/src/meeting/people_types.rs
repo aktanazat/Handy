@@ -14,8 +14,18 @@ impl PersonId {
         Self(Uuid::new_v4())
     }
 
+    pub const fn from_uuid(value: Uuid) -> Self {
+        Self(value)
+    }
+
     pub const fn uuid(self) -> Uuid {
         self.0
+    }
+}
+
+impl From<PersonId> for Uuid {
+    fn from(value: PersonId) -> Self {
+        value.uuid()
     }
 }
 
@@ -293,11 +303,21 @@ pub struct PersonRenameRequest {
     pub expected_revision: u64,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum VoiceProfileMergeResolution {
+    DiscardSource,
+    ReplaceTargetWithSource,
+    CombineCompatible,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct PersonMergeRequest {
     pub source_person_id: PersonId,
     pub target_person_id: PersonId,
     pub expected_revision: u64,
+    #[serde(default)]
+    pub voice_profile_resolution: Option<VoiceProfileMergeResolution>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]

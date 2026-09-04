@@ -238,8 +238,9 @@ export const MeetingDetectionAdvanced: React.FC = () => {
 };
 
 /* Silent detection is indistinguishable from broken detection, so every
- * degraded path names itself here. With nothing degraded there is nothing to
- * say, and an empty bordered box saying it would be worse than silence. */
+ * degraded path names itself here, under the one line that always applies:
+ * what actually stops a recording. That standing line is why this section
+ * always renders. */
 export const MeetingDetectionState: React.FC = () => {
   const { t } = useTranslation();
   const { status, settings } = useDetectionEditor();
@@ -287,19 +288,15 @@ export const MeetingDetectionState: React.FC = () => {
       text: suppressReasonLine(t, status.suppressReason),
     });
   }
-  if (!status.availableStopTriggers.includes("silence")) {
-    stateLines.push({
-      id: "stopTriggers",
-      tone: "muted",
-      live: false,
-      text: t(
-        "meetings.detection.state.noSilenceStop",
-        "Recording stops when the event ends, the app quits, your Mac sleeps, or you stop it yourself. Nothing stops it for silence: that would need live transcription, which only runs after a meeting ends.",
-      ),
-    });
-  }
-
-  if (stateLines.length === 0) return null;
+  stateLines.push({
+    id: "stopTriggers",
+    tone: "muted",
+    live: false,
+    text: t(
+      "meetings.detection.state.noSilenceStop",
+      "Recording stops when the event ends, the app quits, your Mac sleeps, or you stop it yourself. Nothing stops it for silence: that would need live transcription, which only runs after a meeting ends.",
+    ),
+  });
 
   return (
     <SettingsSection

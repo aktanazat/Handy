@@ -10,7 +10,6 @@ import {
   type MeetingReviewSnapshot,
   type MeetingSearchHit,
   type OperationReceipt,
-  type PersonListEntry,
   type SpeakerId,
 } from "@/bindings";
 import {
@@ -34,6 +33,8 @@ import type { SegmentJump } from "./review/Citations";
 import { InsightsTab } from "./review/InsightsTab";
 import { TalkTimeRow } from "./review/TalkTimeRow";
 import { TranscriptTab } from "./review/TranscriptTab";
+import { SpeakerIdentityDialog } from "./review/SpeakerIdentityDialog";
+import { useVoiceIdentity } from "./review/useVoiceIdentity";
 import { MeetingLedgerSection } from "./MeetingLedgerSection";
 import { currentLedger } from "./meetingLedger";
 import { MeetingPhaseText } from "./MeetingStatus";
@@ -133,6 +134,7 @@ interface MeetingReviewProps {
   onRemoteCancel: () => void;
   onDelete: () => void;
   onRefresh: () => Promise<void>;
+  onOpenSettings: () => void;
 }
 
 export const MeetingReview: React.FC<MeetingReviewProps> = ({
@@ -152,6 +154,7 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
   onRemoteCancel,
   onDelete,
   onRefresh,
+  onOpenSettings,
 }) => {
   const { t } = useTranslation();
   /* D19 gives a finished meeting a title from its own content, and what is
@@ -185,7 +188,6 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
     null,
   );
   const [loops, setLoops] = useState<MeetingLoopRow[] | null>(null);
-  const [people, setPeople] = useState<PersonListEntry[]>([]);
   const [loopsBusy, setLoopsBusy] = useState(false);
   const editable = snapshot.session.allowed_actions.includes("edit");
   const canRegenerate = snapshot.session.allowed_actions.includes("regenerate");
@@ -195,7 +197,6 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
   const canCancelRemote =
     snapshot.remote_cancellation_pending &&
     snapshot.session.allowed_actions.includes("cancel_remote");
-  const busy = pendingAction !== null;
   const speakerNames: Record<string, string> = {};
   for (const speaker of snapshot.speakers) {
     speakerNames[speaker.speaker_id] = speaker.display_name;
@@ -206,6 +207,8 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
    * regeneration or a finished processing pass. */
   const sessionId = snapshot.session.session_id;
   const revision = snapshot.session.revision;
+  const voiceIdentity = useVoiceIdentity({ snapshot, onRefresh });
+  const busy = pendingAction !== null || voiceIdentity.pending;
   /* ⌘K offers this meeting's saved prompts for as long as it is on screen. */
   useOpenPromptTarget("meeting", sessionId);
   const loadAnalytics = useCallback(async () => {
@@ -253,12 +256,8 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
    * from the store. Re-read on the same trigger as the metrics, because a
    * regeneration can rewrite the rows a resolution was attached to. */
   const loadLoops = useCallback(async () => {
-    const [loopsResult, peopleResult] = await Promise.all([
-      commands.meetingLoops(sessionId),
-      commands.peopleList(),
-    ]);
+    const loopsResult = await commands.meetingLoops(sessionId);
     setLoops(loopsResult.status === "ok" ? loopsResult.data.rows : []);
-    setPeople(peopleResult.status === "ok" ? peopleResult.data.entries : []);
   }, [sessionId]);
 
   const loopsRevision = useRef<number | null>(null);
@@ -426,8 +425,10 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
           speakerNames={speakerNames}
           busy={busy}
           editable={editable}
+          unresolvedSpeakerCount={voiceIdentity.unresolvedSpeakerCount}
           onBack={onBack}
           onTitleSet={onTitleSet}
+          onLabelSpeaker={voiceIdentity.openNextUnresolved}
         />
       }
     >
@@ -479,6 +480,7 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
             onSegmentEdit={onSegmentEdit}
             onSpeakerRename={onSpeakerRename}
             onSpeakerMerge={onSpeakerMerge}
+            onSpeakerCorrect={voiceIdentity.openCorrection}
           />
         </TabsContent>
 
@@ -503,6 +505,7 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
             }
             onRefresh={onRefresh}
             onAnalyticsRefresh={loadAnalytics}
+            onOpenSettings={onOpenSettings}
           />
         </TabsContent>
 
@@ -514,7 +517,7 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
             onJumpToSegment={jumpToSegment}
             onExportLedger={() => void exportLedger()}
             loops={loops}
-            people={people}
+            people={voiceIdentity.people ?? []}
             onLoopChange={(row, change) => void changeLoop(row, change)}
           />
         </TabsContent>
@@ -528,6 +531,25 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
         onExport={onExport}
         onDelete={onDelete}
       />
+
+      <SpeakerIdentityDialog
+        open={voiceIdentity.dialog !== null}
+        mode={voiceIdentity.dialog?.kind ?? "label"}
+        speaker={voiceIdentity.dialogSpeaker}
+        people={voiceIdentity.people}
+        peopleLoading={voiceIdentity.peopleLoading}
+        peopleLoadFailed={voiceIdentity.peopleLoadFailed}
+        pending={voiceIdentity.pending}
+        unknownConfirming={voiceIdentity.unknownConfirming}
+        onOpenChange={(open) => {
+          if (!open) voiceIdentity.closeDialog();
+        }}
+        onRetryPeople={() => void voiceIdentity.retryPeople()}
+        onSave={voiceIdentity.saveLabel}
+        onUnknownRequest={voiceIdentity.requestUnknown}
+        onUnknownCancel={voiceIdentity.cancelUnknown}
+        onSkip={voiceIdentity.skipSpeaker}
+      />
     </SettingsPage>
   );
 };
@@ -540,8 +562,10 @@ interface MeetingReviewHeaderProps {
   speakerNames: Record<string, string>;
   busy: boolean;
   editable: boolean;
+  unresolvedSpeakerCount: number | null;
   onBack: () => void;
   onTitleSet: (title: string) => void;
+  onLabelSpeaker: () => void;
 }
 
 const MeetingReviewHeader: React.FC<MeetingReviewHeaderProps> = ({
@@ -551,8 +575,10 @@ const MeetingReviewHeader: React.FC<MeetingReviewHeaderProps> = ({
   speakerNames,
   busy,
   editable,
+  unresolvedSpeakerCount,
   onBack,
   onTitleSet,
+  onLabelSpeaker,
 }) => {
   const { t } = useTranslation();
   const startedAtUtcMs = snapshot.session.started_at_utc_ms;
@@ -585,12 +611,40 @@ const MeetingReviewHeader: React.FC<MeetingReviewHeaderProps> = ({
         <ArrowLeft aria-hidden="true" className="size-3.5" />
         {t("meetings.actions.back")}
       </Button>
-      <MeetingTitleEditor
-        key={`${snapshot.session.session_id}:${snapshot.session.revision}:${snapshot.session.title}`}
-        title={snapshot.session.title}
-        disabled={busy || !editable}
-        onTitleSet={onTitleSet}
-      />
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <MeetingTitleEditor
+            key={
+              snapshot.session.session_id +
+              ":" +
+              snapshot.session.revision +
+              ":" +
+              snapshot.session.title
+            }
+            title={snapshot.session.title}
+            disabled={busy || !editable}
+            onTitleSet={onTitleSet}
+          />
+        </div>
+        {unresolvedSpeakerCount !== null && unresolvedSpeakerCount > 0 ? (
+          <div className="flex flex-none items-center gap-2">
+            <span className="max-w-28 truncate text-end text-[11px] leading-4 text-gray-800">
+              {t("meetings.review.unresolvedSpeakers", {
+                count: unresolvedSpeakerCount,
+              })}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={busy || !editable}
+              onClick={onLabelSpeaker}
+            >
+              {t("meetings.review.labelSpeaker")}
+            </Button>
+          </div>
+        ) : null}
+      </div>
       {/* One line of facts about the recording, and the state it is in. The
        * completeness word only appears when it changes what the record can be
        * trusted for: "Complete" beside "Ready for review" says nothing twice,

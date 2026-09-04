@@ -6,6 +6,7 @@
 //! A text value is read only by the run that needs it, and only when a generation
 //! change is known to have happened inside that run's pre-roll window.
 
+use super::{ContextSourceStatus, SourceOutcome};
 use std::sync::{Condvar, LazyLock, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -36,9 +37,35 @@ impl Generation {
                 .is_some_and(|changed_at| now_ms.saturating_sub(changed_at) <= preroll_ms)
     }
 
-    pub(crate) fn matches_current(self) -> bool {
-        self.count
-            .is_some_and(|count| platform_generation() == Some(count))
+    fn matches(self, current: Option<i64>) -> bool {
+        self.count.is_some_and(|count| current == Some(count))
+    }
+}
+/// Reads content only after proving the observed generation is fresh and still
+/// current. The second generation check closes the race with a later copy.
+pub(crate) fn read_if_fresh(
+    generation: Generation,
+    now_ms: u64,
+    preroll_ms: u64,
+    mut current_generation: impl FnMut() -> Option<i64>,
+    read_text: impl FnOnce() -> Option<String>,
+) -> SourceOutcome {
+    if !generation.is_fresh(now_ms, preroll_ms) || !generation.matches(current_generation()) {
+        return SourceOutcome::Unavailable(ContextSourceStatus::Stale);
+    }
+
+    let text = read_text();
+    if !generation.matches(current_generation()) {
+        return SourceOutcome::Unavailable(ContextSourceStatus::Stale);
+    }
+
+    SourceOutcome::read(text)
+}
+#[cfg(test)]
+pub(super) fn generation_for_test(count: i64, changed_at_ms: u64) -> Generation {
+    Generation {
+        count: Some(count),
+        changed_at_ms: Some(changed_at_ms),
     }
 }
 
@@ -280,5 +307,125 @@ mod tests {
         observe_locked(&mut state, 2_000, None);
         assert_eq!(state.changed_at_ms, None);
         assert_eq!(state.last_count, None);
+    }
+    #[test]
+    fn fresh_preroll_reads_content_between_stable_generation_checks() {
+        let generation = Generation {
+            count: Some(9),
+            changed_at_ms: Some(2_000),
+        };
+        let events = std::cell::RefCell::new(Vec::new());
+
+        let outcome = read_if_fresh(
+            generation,
+            5_000,
+            DEFAULT_CLIPBOARD_PREROLL_MS,
+            || {
+                events.borrow_mut().push("generation");
+                Some(9)
+            },
+            || {
+                events.borrow_mut().push("content");
+                Some("copied inside the frozen pre-roll".to_string())
+            },
+        );
+
+        assert_eq!(
+            outcome,
+            SourceOutcome::Captured("copied inside the frozen pre-roll".to_string())
+        );
+        assert_eq!(
+            events.into_inner(),
+            ["generation", "content", "generation"],
+            "the content read stays between the two generation checks"
+        );
+    }
+
+    #[test]
+    fn stale_or_mismatched_generation_never_reads_content() {
+        let stale = Generation {
+            count: Some(9),
+            changed_at_ms: Some(2_000),
+        };
+        let mut generation_reads = 0;
+        let mut content_reads = 0;
+        let outcome = read_if_fresh(
+            stale,
+            5_001,
+            DEFAULT_CLIPBOARD_PREROLL_MS,
+            || {
+                generation_reads += 1;
+                Some(9)
+            },
+            || {
+                content_reads += 1;
+                Some("old clipboard".to_string())
+            },
+        );
+        assert_eq!(
+            outcome,
+            SourceOutcome::Unavailable(ContextSourceStatus::Stale)
+        );
+        assert_eq!(
+            generation_reads, 0,
+            "a stale observation does not query the pasteboard"
+        );
+        assert_eq!(
+            content_reads, 0,
+            "a stale observation does not read content"
+        );
+
+        let fresh = Generation {
+            count: Some(9),
+            changed_at_ms: Some(2_000),
+        };
+        let outcome = read_if_fresh(
+            fresh,
+            5_000,
+            DEFAULT_CLIPBOARD_PREROLL_MS,
+            || Some(10),
+            || {
+                content_reads += 1;
+                Some("different copy".to_string())
+            },
+        );
+        assert_eq!(
+            outcome,
+            SourceOutcome::Unavailable(ContextSourceStatus::Stale)
+        );
+        assert_eq!(
+            content_reads, 0,
+            "a generation mismatch fails before content is read"
+        );
+    }
+
+    #[test]
+    fn a_copy_racing_the_content_read_fails_closed() {
+        let generation = Generation {
+            count: Some(9),
+            changed_at_ms: Some(2_000),
+        };
+        let mut observed = [Some(9), Some(10)].into_iter();
+        let mut content_reads = 0;
+
+        let outcome = read_if_fresh(
+            generation,
+            5_000,
+            DEFAULT_CLIPBOARD_PREROLL_MS,
+            || observed.next().expect("two generation observations"),
+            || {
+                content_reads += 1;
+                Some("copy that lost the race".to_string())
+            },
+        );
+
+        assert_eq!(
+            outcome,
+            SourceOutcome::Unavailable(ContextSourceStatus::Stale)
+        );
+        assert_eq!(
+            content_reads, 1,
+            "the second generation check discards a raced content read"
+        );
     }
 }

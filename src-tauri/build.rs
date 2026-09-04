@@ -4,12 +4,33 @@
 /// install gets exercised as if it were current. `unknown` when git is not
 /// there to ask, as in a source tarball.
 ///
-/// It is the commit this build script last observed, not a claim about the
-/// tree. Everything below emits `rerun-if-changed`, which replaces cargo's
-/// default of rerunning on any package change, so a source edit alone does
-/// not re-run this — only a move of `HEAD` or a ref does. A `-dirty` marker
-/// was tried and removed for that reason: it would have gone stale in both
-/// directions and lied with confidence. The sha alone carries the story.
+/// A bare sha claims more than a build script can know, and on 2026-09-03 it
+/// collected: a release bundle finalised at 05:08 stamped `2c94651`, whose
+/// eleven successor commits were created at 05:10 from the same working
+/// tree, so the shipped code was newer than the sha it printed. A whole
+/// batch of agents reasoned from that string for an hour. A stamp that is
+/// sometimes right is worse than `unknown`, because it is trusted.
+///
+/// So the sha is now qualified by the tree it was taken from, and the two
+/// halves below only work together. `-dirty` alone was tried and removed
+/// once, correctly: watching only `HEAD` and `refs` re-runs this script just
+/// after a commit, when the tree is clean, so the flag would have observed
+/// "clean" forever and lied with confidence. Watching the sources as well is
+/// what makes the observation contemporaneous with the code being compiled —
+/// a build after an edit to a watched input re-samples and says `-dirty` until
+/// it is committed. It costs one build-script run per such edit.
+///
+/// Watched, and therefore covered: this crate's `src`, the frontend `../src`,
+/// the Swift bridges, and `tauri.conf.json`. The dirty check is scoped to the
+/// same set, so scope and claim agree. An uncommitted edit to a bundle input
+/// outside it, `Info.plist` or `Entitlements.plist` or `capabilities`, does not
+/// re-run this script, and a flag that would not be re-sampled must not be
+/// claimed. Add such an input to both lists together when that matters.
+///
+/// What it still cannot see: an edit made *during* a build. The sample is
+/// taken once, before compilation, and the 05:08 bundle compiled for nine
+/// minutes. No build script can close that; `-dirty` narrows the window from
+/// "every build since the last commit" to "this build's own compile".
 ///
 /// Only `sona --version` reads it. The update check keeps comparing bare
 /// `CARGO_PKG_VERSION`, which is the number releases are ordered by.
@@ -32,21 +53,88 @@ fn emit_build_identity() {
             }
         }
     }
+    // The dirty flag speaks for the whole bundle, so both halves of the
+    // bundle re-trigger the observation: this crate's Rust sources and the
+    // frontend that ships inside it. Watching only one would leave the flag
+    // stale for a change in the other, which is the failure this is here to
+    // stop rather than reproduce one layer down.
+    for sources in ["src", "../src"] {
+        if std::path::Path::new(sources).is_dir() {
+            println!("cargo:rerun-if-changed={sources}");
+        }
+    }
+
     let commit = git(&["rev-parse", "--short=7", "HEAD"]).filter(|sha| !sha.is_empty());
-    println!(
-        "cargo:rustc-env=SONA_BUILD_COMMIT={}",
-        commit.as_deref().unwrap_or("unknown")
+    // Scoped to the watched sources, and untracked files count: a `mod`-declared
+    // source that was never added is compiled into the binary exactly like a
+    // modified one.
+    //
+    // One exception, and it is the difference between a useful flag and a
+    // flag that is always on. `build.yml` and `release.yml` rewrite
+    // `tauri.conf.json` in place with `jq` before the build, to point the
+    // bundler at a downloaded ONNX Runtime — so a clean CI checkout is
+    // already modified by the time this runs, and every release would ship
+    // `-dirty`. That edit is deliberate, recorded in the workflow, and
+    // changes what is bundled beside the binary rather than what the binary
+    // does. Nothing else on either workflow touches a tracked file: `out`,
+    // `.next`, `target` and the staged agent hook are all ignored, and
+    // `src-tauri/gen` is byte-stable across builds (measured).
+    let dirty = git(&[
+        "status",
+        "--porcelain",
+        "--",
+        ":(top)src",
+        ":(top)src-tauri/src",
+        ":(top)src-tauri/swift",
+    ])
+    .is_some_and(|status| !status.is_empty());
+    let identity = match commit {
+        Some(sha) if dirty => format!("{sha}-dirty"),
+        Some(sha) => sha,
+        None => "unknown".to_string(),
+    };
+    println!("cargo:rustc-env=SONA_BUILD_COMMIT={identity}");
+}
+
+/// Keep one answer to "what version is this". `sona --version`, the update
+/// check's comparison, the tray title and Settings > About all resolve to the
+/// crate version today — About through Tauri's `getVersion()`, which falls
+/// back to `[package] version` only while `tauri.conf.json` declares none.
+/// Declaring one there silently splits the two: About would move and the
+/// update check would not, so a user could be told they are up to date while
+/// looking at a different number. Fail the build instead of shipping the
+/// disagreement.
+fn assert_one_version_source() {
+    // `tauri_build::build()` already registers this file with cargo.
+    const CONFIG: &str = "tauri.conf.json";
+    let Ok(config) = std::fs::read_to_string(CONFIG) else {
+        return;
+    };
+    let Ok(config) = serde_json::from_str::<serde_json::Value>(&config) else {
+        return;
+    };
+    let Some(declared) = config.get("version").and_then(serde_json::Value::as_str) else {
+        return;
+    };
+    // PANIC: cargo always sets CARGO_PKG_VERSION for a build script.
+    let crate_version = std::env::var("CARGO_PKG_VERSION").expect("crate version unavailable");
+    assert!(
+        declared == crate_version,
+        "{CONFIG} declares version {declared} but the crate is {crate_version}: Settings > \
+         About would read the first and `sona --version`, the update check and the tray the \
+         second. Remove the key or make them agree."
     );
 }
 
 fn main() {
     emit_build_identity();
+    assert_one_version_source();
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     build_apple_intelligence_bridge();
 
     #[cfg(target_os = "macos")]
-    build_meeting_capture_bridge();
+    build_swift_capture_bridges();
     #[cfg(target_os = "macos")]
     println!("cargo:rustc-link-arg=-Wl,-rpath,/usr/lib/swift");
 
@@ -484,115 +572,10 @@ fn escape_string(s: &str) -> String {
 }
 
 #[cfg(target_os = "macos")]
-fn build_meeting_capture_bridge() {
-    use std::env;
-    use std::path::{Path, PathBuf};
-    use std::process::Command;
+fn build_swift_capture_bridges() {
+    build_capture_bridge("swift/meeting_capture.swift", "meeting_capture");
+    build_capture_bridge("swift/screen_recorder.swift", "screen_recorder");
 
-    const SOURCE: &str = "swift/meeting_capture.swift";
-    println!("cargo:rerun-if-changed={SOURCE}");
-
-    // The compiled bridge has nowhere to go without cargo's output directory.
-    // PANIC: cargo always sets OUT_DIR for a build script.
-    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
-    let object_path = out_dir.join("meeting_capture.o");
-    let archive_path = out_dir.join("libmeeting_capture.a");
-    // Every macOS toolchain that can build this crate ships xcrun, and the SDK
-    // path it prints is a filesystem path.
-    // PANIC: no SDK means no Swift bridge, so the build cannot continue.
-    let sdk_path = env::var("SDKROOT").unwrap_or_else(|_| {
-        String::from_utf8(
-            Command::new("xcrun")
-                .args(["--sdk", "macosx", "--show-sdk-path"])
-                .output()
-                .expect("Failed to locate macOS SDK")
-                .stdout,
-        )
-        .expect("SDK path is not valid UTF-8")
-        .trim()
-        .to_string()
-    });
-    // Same toolchain guarantee as the SDK above: xcrun locates swiftc, and its
-    // answer is a filesystem path.
-    // PANIC: no Swift compiler means no bridge to link against.
-    let swiftc_path = env::var("SWIFTC").unwrap_or_else(|_| {
-        String::from_utf8(
-            Command::new("xcrun")
-                .args(["--find", "swiftc"])
-                .output()
-                .expect("Failed to locate swiftc")
-                .stdout,
-        )
-        .expect("swiftc path is not valid UTF-8")
-        .trim()
-        .to_string()
-    });
-    // The Swift target triple cannot be formed without the architecture.
-    // PANIC: cargo always sets CARGO_CFG_TARGET_ARCH.
-    let target_arch = env::var("CARGO_CFG_TARGET_ARCH").expect("target architecture unavailable");
-    let target = format!("{target_arch}-apple-macosx14.0");
-
-    if !Path::new(SOURCE).is_file() {
-        panic!("Meeting capture Swift source is missing");
-    }
-    // Both paths were just built from OUT_DIR, which cargo keeps UTF-8, and a
-    // swiftc that cannot run leaves the crate with no bridge to link.
-    // PANIC: stop here rather than fail obscurely at link time.
-    let status = Command::new(&swiftc_path)
-        .args([
-            "-parse-as-library",
-            "-target",
-            &target,
-            "-sdk",
-            &sdk_path,
-            "-O",
-            "-c",
-            SOURCE,
-            "-o",
-            object_path
-                .to_str()
-                .expect("meeting capture object path is not UTF-8"),
-        ])
-        .status()
-        .expect("Failed to invoke swiftc for meeting capture");
-    if !status.success() {
-        panic!("swiftc failed to compile meeting capture bridge");
-    }
-    // libtool is part of the same toolchain, and without the archive there is
-    // nothing for `rustc-link-lib=static` to find.
-    // PANIC: stop here rather than fail obscurely at link time.
-    let status = Command::new("libtool")
-        .args([
-            "-static",
-            "-o",
-            archive_path
-                .to_str()
-                .expect("meeting capture archive path is not UTF-8"),
-            object_path
-                .to_str()
-                .expect("meeting capture object path is not UTF-8"),
-        ])
-        .status()
-        .expect("Failed to archive meeting capture bridge");
-    if !status.success() {
-        panic!("libtool failed for meeting capture bridge");
-    }
-
-    // swiftc lives at <toolchain>/usr/bin/swiftc, so it always has two parents.
-    // PANIC: a layout without them is not a toolchain this bridge can link to.
-    let toolchain_swift_lib = Path::new(&swiftc_path)
-        .parent()
-        .and_then(|path| path.parent())
-        .map(|root| root.join("lib/swift/macosx"))
-        .expect("Unable to determine Swift toolchain lib directory");
-    let sdk_swift_lib = Path::new(&sdk_path).join("usr/lib/swift");
-    println!("cargo:rustc-link-search=native={}", out_dir.display());
-    println!("cargo:rustc-link-lib=static=meeting_capture");
-    println!(
-        "cargo:rustc-link-search=native={}",
-        toolchain_swift_lib.display()
-    );
-    println!("cargo:rustc-link-search=native={}", sdk_swift_lib.display());
     for framework in [
         "ScreenCaptureKit",
         "AVFoundation",
@@ -602,11 +585,130 @@ fn build_meeting_capture_bridge() {
         "CoreAudio",
         "AudioToolbox",
         "CoreGraphics",
+        "CoreImage",
+        "CoreVideo",
         "Foundation",
         "CoreFoundation",
     ] {
         println!("cargo:rustc-link-lib=framework={framework}");
     }
+}
+
+#[cfg(target_os = "macos")]
+fn build_capture_bridge(source: &str, library_name: &str) {
+    if let Err(error) = try_build_capture_bridge(source, library_name) {
+        panic!("{error}");
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn try_build_capture_bridge(source: &str, library_name: &str) -> Result<(), String> {
+    use std::env;
+    use std::path::{Path, PathBuf};
+    use std::process::Command;
+
+    println!("cargo:rerun-if-changed={source}");
+    if !Path::new(source).is_file() {
+        return Err(format!("Swift capture source is missing: {source}"));
+    }
+
+    let out_dir = env::var_os("OUT_DIR")
+        .map(PathBuf::from)
+        .ok_or_else(|| "OUT_DIR not set".to_string())?;
+    let object_path = out_dir.join(format!("{library_name}.o"));
+    let archive_path = out_dir.join(format!("lib{library_name}.a"));
+    let sdk_path = match env::var_os("SDKROOT") {
+        Some(path) => PathBuf::from(path),
+        None => xcrun_path(&["--sdk", "macosx", "--show-sdk-path"], "macOS SDK")?,
+    };
+    let swiftc_path = match env::var_os("SWIFTC") {
+        Some(path) => PathBuf::from(path),
+        None => xcrun_path(&["--find", "swiftc"], "swiftc")?,
+    };
+    let target_arch = env::var("CARGO_CFG_TARGET_ARCH")
+        .map_err(|error| format!("target architecture unavailable: {error}"))?;
+    let target = format!("{target_arch}-apple-macosx14.0");
+
+    // swiftc and libtool run unconditionally, and this script re-runs whenever a watched source
+    // changes, so an untouched bridge would be recompiled on every cargo invocation. Compare
+    // timestamps: an archive newer than its source means there is nothing to do.
+    let archive_is_current = std::fs::metadata(&archive_path)
+        .and_then(|archive| archive.modified())
+        .ok()
+        .zip(
+            std::fs::metadata(source)
+                .and_then(|swift| swift.modified())
+                .ok(),
+        )
+        .is_some_and(|(archive, swift)| archive >= swift);
+    if !archive_is_current {
+        let status = Command::new(&swiftc_path)
+            .args(["-parse-as-library", "-target", &target, "-sdk"])
+            .arg(&sdk_path)
+            .args(["-O", "-c", source, "-o"])
+            .arg(&object_path)
+            .status()
+            .map_err(|error| format!("Failed to invoke swiftc for capture bridge: {error}"))?;
+        if !status.success() {
+            return Err(format!("swiftc failed to compile capture bridge: {source}"));
+        }
+
+        let status = Command::new("libtool")
+            .args(["-static", "-o"])
+            .arg(&archive_path)
+            .arg(&object_path)
+            .status()
+            .map_err(|error| format!("Failed to archive capture bridge: {error}"))?;
+        if !status.success() {
+            return Err(format!("libtool failed for capture bridge: {source}"));
+        }
+    }
+
+    let toolchain_swift_lib = swiftc_path
+        .parent()
+        .and_then(|path| path.parent())
+        .map(|root| root.join("lib/swift/macosx"))
+        .ok_or_else(|| {
+            format!(
+                "Unable to determine Swift toolchain lib directory from {}",
+                swiftc_path.display()
+            )
+        })?;
+    let sdk_swift_lib = sdk_path.join("usr/lib/swift");
+    println!("cargo:rustc-link-search=native={}", out_dir.display());
+    println!("cargo:rustc-link-lib=static={library_name}");
+    println!(
+        "cargo:rustc-link-search=native={}",
+        toolchain_swift_lib.display()
+    );
+    println!("cargo:rustc-link-search=native={}", sdk_swift_lib.display());
+
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn xcrun_path(args: &[&str], name: &str) -> Result<std::path::PathBuf, String> {
+    use std::process::Command;
+
+    let output = Command::new("xcrun")
+        .args(args)
+        .output()
+        .map_err(|error| format!("Failed to locate {name}: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "Failed to locate {name}: xcrun exited with {}",
+            output.status
+        ));
+    }
+
+    let path = std::str::from_utf8(&output.stdout)
+        .map_err(|error| format!("{name} path is not valid UTF-8: {error}"))?
+        .trim();
+    if path.is_empty() {
+        return Err(format!("xcrun returned an empty {name} path"));
+    }
+
+    Ok(path.into())
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]

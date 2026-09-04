@@ -150,6 +150,47 @@ fn document_workflow_links_exact_alias_mentions() {
 }
 
 #[test]
+fn disabled_document_linking_leaves_its_ingest_unlinked() {
+    let (_directory, store) = store();
+    let person_id = person(&store, "Alice Doe", &["Alice Jones"], &[]);
+    let document = store
+        .ingest_document(
+            MeetingOperationId::new(),
+            "Plan".to_string(),
+            "plan.md".to_string(),
+            "text/markdown".to_string(),
+            "Alice Jones owns the rollout.".to_string(),
+            10,
+        )
+        .unwrap()
+        .document
+        .unwrap();
+    let revision = store.workflows_list().unwrap().revision;
+    store
+        .set_workflow_enabled(WorkflowId::DocumentLinking, false, revision)
+        .unwrap();
+
+    let dispatch = store
+        .record_and_run_workflow_event(
+            event(
+                WorkflowEventKind::DocumentIngested,
+                serde_json::json!({"document_id": document.summary.id.uuid().to_string()}),
+                "disabled-doc-1",
+            ),
+            &inputs(),
+        )
+        .unwrap();
+
+    assert!(dispatch.inserted);
+    assert!(dispatch.receipts.is_empty());
+    assert!(store
+        .documents_list(Some(person_id))
+        .unwrap()
+        .entries
+        .is_empty());
+}
+
+#[test]
 fn finalization_does_not_confirm_default_speaker_labels_as_people() {
     let (_directory, store) = store();
     let meeting_id = meeting(&store, "Ordinary meeting", 1);

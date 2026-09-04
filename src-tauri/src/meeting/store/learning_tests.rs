@@ -782,22 +782,39 @@ fn the_configurable_and_permanent_sets_partition_every_workflow() {
     );
 }
 
-/// The ledger keys capture advice is counted under are the engine's serde
-/// names, and they are persisted. `as_str` drifting from serde would re-key
-/// every baseline and re-advise a subject the user dismissed.
+/// Both names a transcription route answers to are persisted, and they are not
+/// the same string for Deepgram.
+///
+/// `as_str` is the subject key of `learning_advice_baselines`, so drifting it
+/// re-keys every baseline and re-advises a subject the user dismissed. The
+/// serde value is what the settings UI writes, so renaming that breaks reading
+/// a stored mode. Deepgram's two spellings diverged on purpose when the UI
+/// adopted `deepgram_nova_3`; pinning both sides here is what keeps either one
+/// from being "fixed" into the other.
 #[test]
-fn every_engine_route_name_is_its_serde_name() {
-    for engine in [
+fn each_engine_pins_its_ledger_key_and_its_wire_value() {
+    let named = [
         RequestedEngine::Local,
         RequestedEngine::DeepgramNova3,
         RequestedEngine::ElevenLabsScribeV2,
-    ] {
-        assert_eq!(
-            serde_json::to_value(engine).unwrap().as_str(),
-            Some(engine.as_str()),
-            "{engine:?} is stored under a name serde does not write"
-        );
-    }
+    ]
+    .map(|engine| {
+        let wire = serde_json::to_value(engine)
+            .expect("an engine serializes")
+            .as_str()
+            .expect("an engine serializes to a string")
+            .to_string();
+        (engine.as_str(), wire)
+    });
+
+    assert_eq!(
+        named,
+        [
+            ("local", "local".to_string()),
+            ("deepgram_nova3", "deepgram_nova_3".to_string()),
+            ("eleven_labs_scribe_v2", "eleven_labs_scribe_v2".to_string()),
+        ]
+    );
 }
 
 // ------------------------------------------------------------- forward compat

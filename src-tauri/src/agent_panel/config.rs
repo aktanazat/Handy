@@ -182,7 +182,7 @@ pub(crate) async fn build_snapshot(app: &AppHandle) -> Result<SnapshotContext, C
     Ok(SnapshotContext { snapshot, allowed })
 }
 
-fn snapshot_from_parts(
+pub(super) fn snapshot_from_parts(
     settings: &AppSettings,
     models: &[crate::managers::model::ModelInfo],
     device_names: &DeviceNames,
@@ -445,12 +445,22 @@ pub(crate) fn apply_changes(
     changes: &[SonaSettingChangeV1],
     allowed: &SonaAllowedValuesV1,
 ) -> Result<AppliedSettings, ConfigError> {
-    let resolved = resolve_changes(changes, allowed)?;
     let (undo, revision) = settings::try_update_settings_with_revision(app, |settings| {
-        mutate_settings(settings, expected_revision, &resolved)
+        apply_changes_to_settings(settings, expected_revision, changes, allowed)
     })?;
-    apply_runtime_effects(app, &kinds_for_resolved(&resolved));
+    let kinds = undo.iter().map(SettingUndo::kind).collect::<Vec<_>>();
+    apply_runtime_effects(app, &kinds);
     Ok(AppliedSettings { revision, undo })
+}
+
+pub(super) fn apply_changes_to_settings(
+    settings: &mut AppSettings,
+    expected_revision: u64,
+    changes: &[SonaSettingChangeV1],
+    allowed: &SonaAllowedValuesV1,
+) -> Result<Vec<SettingUndo>, ConfigError> {
+    let resolved = resolve_changes(changes, allowed)?;
+    mutate_settings(settings, expected_revision, &resolved)
 }
 
 pub(crate) fn undo_changes(
@@ -459,17 +469,25 @@ pub(crate) fn undo_changes(
     undo: &[SettingUndo],
 ) -> Result<u64, ConfigError> {
     let (_, revision) = settings::try_update_settings_with_revision(app, |settings| {
-        if settings.settings_revision != expected_revision {
-            return Err(ConfigError::StaleRevision);
-        }
-        for change in undo.iter().rev() {
-            restore_setting(settings, change)?;
-        }
-        Ok(())
+        undo_changes_to_settings(settings, expected_revision, undo)
     })?;
     let kinds = undo.iter().map(SettingUndo::kind).collect::<Vec<_>>();
     apply_runtime_effects(app, &kinds);
     Ok(revision)
+}
+
+pub(super) fn undo_changes_to_settings(
+    settings: &mut AppSettings,
+    expected_revision: u64,
+    undo: &[SettingUndo],
+) -> Result<(), ConfigError> {
+    if settings.settings_revision != expected_revision {
+        return Err(ConfigError::StaleRevision);
+    }
+    for change in undo.iter().rev() {
+        restore_setting(settings, change)?;
+    }
+    Ok(())
 }
 
 fn resolve_changes(
@@ -772,31 +790,6 @@ fn restore_setting(settings: &mut AppSettings, undo: &SettingUndo) -> Result<(),
         SettingUndo::UpdateNoteVisibility(value) => settings.show_whats_new_on_update = *value,
     }
     Ok(())
-}
-
-fn kinds_for_resolved(changes: &[ResolvedChange]) -> Vec<SettingKind> {
-    changes
-        .iter()
-        .map(|change| match change {
-            ResolvedChange::Theme(_) => SettingKind::Theme,
-            ResolvedChange::OverlayStyle(_) => SettingKind::OverlayStyle,
-            ResolvedChange::OverlayPosition(_) => SettingKind::OverlayPosition,
-            ResolvedChange::AudioFeedback(_) => SettingKind::AudioFeedback,
-            ResolvedChange::AudioVolume(_) => SettingKind::AudioVolume,
-            ResolvedChange::MuteWhileRecording(_) => SettingKind::MuteWhileRecording,
-            ResolvedChange::OutputDevice(_) => SettingKind::OutputDevice,
-            ResolvedChange::Microphone(_) => SettingKind::Microphone,
-            ResolvedChange::DefaultModel(_) => SettingKind::DefaultModel,
-            ResolvedChange::Language(_) => SettingKind::Language,
-            ResolvedChange::Spelling(_) => SettingKind::Spelling,
-            ResolvedChange::ModeSelection(_) => SettingKind::ModeSelection,
-            ResolvedChange::ModeToggles(_) => SettingKind::ModeToggles,
-            ResolvedChange::Retention(_) => SettingKind::Retention,
-            ResolvedChange::StartHidden(_) => SettingKind::StartHidden,
-            ResolvedChange::TrayVisibility(_) => SettingKind::TrayVisibility,
-            ResolvedChange::UpdateNoteVisibility(_) => SettingKind::UpdateNoteVisibility,
-        })
-        .collect()
 }
 
 fn apply_runtime_effects(app: &AppHandle, kinds: &[SettingKind]) {

@@ -82,12 +82,17 @@ export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
     reload,
   } = usePeopleQuery(`person-detail:${personId}`, loadDetail);
 
-  const reportMutationError = (error: MeetingCommandError | null) => {
-    if (error === "stale_revision") {
-      toast.error(t("people.errors.stale"));
-    } else {
-      toast.error(t("people.errors.operation"));
-    }
+  /* One place decides what a refused mutation says, so "this changed on
+   * another screen" is detected once. A mutation that owns a different
+   * sentence for everything else passes that key in instead of repeating the
+   * stale check around it. */
+  const reportMutationError = (
+    error: MeetingCommandError | null,
+    failureKey = "people.errors.operation",
+  ) => {
+    toast.error(
+      t(error === "stale_revision" ? "people.errors.stale" : failureKey),
+    );
   };
 
   const runPersonMutation = async (
@@ -131,6 +136,13 @@ export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
           source_person_id: personId,
           target_person_id: targetPersonId,
           expected_revision: loaded.person.revision,
+          /* The store refuses a merge that carries no resolution as soon as
+           * either person has a saved voice, and a second press sends the same
+           * request, so the refusal never clears. Combining keeps both records'
+           * samples, which is what merging two records of one person means;
+           * the other two resolutions throw one side away, so neither belongs
+           * in a default nobody chose. */
+          voice_profile_resolution: "combine_compatible",
         }),
       (nextPersonId) => {
         onPersonChange(nextPersonId ?? targetPersonId);
@@ -257,6 +269,31 @@ export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
       .finally(() => setPending(false));
   };
 
+  const removeVoiceProfile = () => {
+    if (loaded === null) return;
+    setPending(true);
+    void commands
+      .voiceRemoveProfile({
+        person_id: personId,
+        expected_people_revision: loaded.person.revision,
+      })
+      .then(async (result) => {
+        if (result.status === "error") {
+          reportMutationError(
+            result.error,
+            "people.detail.voiceProfileRemovalFailed",
+          );
+        } else {
+          toast.success(t("people.detail.voiceProfileRemoved"));
+        }
+        await reload();
+      })
+      .catch(() =>
+        reportMutationError(null, "people.detail.voiceProfileRemovalFailed"),
+      )
+      .finally(() => setPending(false));
+  };
+
   if (loaded !== null) {
     return (
       <PersonDetailView
@@ -277,6 +314,7 @@ export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
         onOpenMeeting={onOpenMeeting ?? (() => {})}
         onOpenOrganization={onOpenOrganization}
         onRegenerateSummary={regenerateSummary}
+        onRemoveVoiceProfile={removeVoiceProfile}
       />
     );
   }

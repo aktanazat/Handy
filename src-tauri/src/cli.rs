@@ -6,13 +6,14 @@ use std::path::PathBuf;
 /* The corpus flags below are one verb per invocation, so they live in a clap
  * group rather than in pairwise `conflicts_with`es: the group is what makes
  * `sona --meetings --loops` a usage error clap words itself, and what keeps
- * the list in one place when the next verb arrives. Their modifiers hang off
- * the verb they belong to with `requires`, so a flag that cannot mean anything
- * on its own says so instead of being ignored.
+ * the list in one place when the next verb arrives. `requires` rejects a
+ * bare modifier, but the read group lets it accept any read verb.
+ * `ExternalRequest::from_args` checks the exact modifier/verb relationship
+ * so no accepted modifier is silently ignored.
  *
- * All but one of them read. `--loop-resolve` writes, and the group is why it
- * cannot be smuggled in beside a read: one verb, one consent scope, one
- * answer. */
+ * All but one of them read. `--loop-resolve` reads its loop revision before it
+ * writes, so it needs both external access and external mutations. The group
+ * keeps it out of a read invocation: one verb, one answer. */
 #[derive(Parser, Debug, Clone, Default)]
 #[command(name = "sona", about = "Sona — speech to text")]
 #[command(version = concat!(
@@ -95,12 +96,18 @@ pub struct CliArgs {
     #[arg(long, value_name = "TEXT")]
     pub query: Option<String>,
 
+    // Each modifier below is bound to the verb that reads it by
+    // `query::external::foreign_modifier`, not by the `requires` beside it:
+    // `requires` names a member of the `read` group, and clap satisfies that
+    // with any member of the group, so it refuses a bare modifier but accepts
+    // one beside the wrong verb.
     /// Which nouns --query searches. Defaults to all of them.
     #[arg(long, value_enum, requires = "query")]
     pub scope: Option<QueryScope>,
 
-    /// How many rows a read returns (max 100). Not for --meetings, which
-    /// counts with --last.
+    // Bound to the paging verbs by `query::external::foreign_modifier`.
+    /// How many rows a paged read returns (max 100). --meetings uses it unless
+    /// --last is named.
     #[arg(long, value_name = "N", conflicts_with = "last")]
     pub limit: Option<usize>,
 
@@ -108,6 +115,7 @@ pub struct CliArgs {
     #[arg(long)]
     pub meetings: bool,
 
+    // Bound to --meetings by `query::external::foreign_modifier`.
     /// How many meetings --meetings returns (max 100).
     #[arg(long, value_name = "N", requires = "meetings")]
     pub last: Option<usize>,
@@ -132,6 +140,7 @@ pub struct CliArgs {
     #[arg(long)]
     pub loops: bool,
 
+    // Bound to --loops by `query::external::foreign_modifier`.
     /// Keep only loops in this state. Omit to get every state.
     #[arg(long, value_enum, requires = "loops")]
     pub status: Option<ExternalLoopStatus>,
@@ -163,8 +172,9 @@ pub struct CliArgs {
     #[arg(long, value_name = "LOOP_ID")]
     pub loop_resolve: Option<String>,
 
-    /// Resume --events after this event id.
-    #[arg(long, value_name = "EVENT_ID", requires = "events")]
+    // Bound to --events or --loops by `query::external::foreign_modifier`.
+    /// Resume --events after an event id or --loops after a loop cursor.
+    #[arg(long, value_name = "CURSOR", requires = "read")]
     pub after: Option<String>,
 
     /// Audio file paths supplied by an operating-system Open With action.
@@ -189,6 +199,24 @@ mod tests {
         );
         assert!(args.transcribe_file.is_none());
     }
+    #[test]
+    fn parses_loop_cursor() {
+        let args = CliArgs::try_parse_from(["sona", "--loops", "--after", "loop-cursor"])
+            .expect("parse a loop cursor");
+        assert!(args.loops);
+        assert_eq!(args.after.as_deref(), Some("loop-cursor"));
+    }
+
+    #[test]
+    fn refuses_cursor_without_a_read_verb() {
+        let error = CliArgs::try_parse_from(["sona", "--after", "loop-cursor"])
+            .expect_err("refuse a bare cursor");
+        assert_eq!(
+            error.kind(),
+            clap::error::ErrorKind::MissingRequiredArgument
+        );
+    }
+
     #[test]
     fn parses_agent_panel_public_identity_flag() {
         let args = CliArgs::try_parse_from(["sona", "--agent-panel-public-identity"])

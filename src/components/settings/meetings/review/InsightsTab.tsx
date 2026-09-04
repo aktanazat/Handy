@@ -12,7 +12,7 @@ import { Textarea } from "@/components/vg/textarea";
 import { MeetingAnalyticsStrip } from "../MeetingAnalyticsStrip";
 import { MeetingNotesPane } from "../MeetingNotesPane";
 import type { MeetingAnalytics } from "../meetingAnalytics";
-import { formatMeetingOffset } from "../meetingUtils";
+import { formatMeetingOffset, processingStatusKey } from "../meetingUtils";
 import { MeetingArtifactPanel } from "./MeetingArtifactPanel";
 import { FollowUpAgentAction } from "./FollowUpAgentAction";
 import { PreviouslyTogetherBand } from "./PreviouslyTogetherBand";
@@ -42,6 +42,7 @@ export interface InsightsTabProps {
   ) => void;
   onRefresh: () => Promise<void>;
   onAnalyticsRefresh: () => Promise<void>;
+  onOpenSettings: () => void;
 }
 
 export const InsightsTab: React.FC<InsightsTabProps> = ({
@@ -62,18 +63,31 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
   onActionItemToggle,
   onRefresh,
   onAnalyticsRefresh,
+  onOpenSettings,
 }) => {
   const { t } = useTranslation();
   const disabled = busy || !editable;
   const processingStatus = snapshot.session.processing_status;
   const processing =
     processingStatus.kind === "pending" || processingStatus.kind === "running";
-  /* Remote processing is modelled end to end and every destination resolves to
-   * RemoteUnavailable today, so the failure gets named instead of leaving an
-   * empty panel behind a route that never completes. */
-  const remoteUnavailable =
-    processingStatus.kind === "failed" &&
-    processingStatus.reason === "remote_unavailable";
+  /* Why there are no notes, when the answer is a failure rather than a wait.
+   *
+   * This used to name exactly one reason, `remote_unavailable`, on the
+   * argument that every remote destination resolves to it today. True along
+   * that axis, and the collision was on the other one: `LocalModelUnavailable`
+   * is the reason `generation_shortfall` calls "the case that filled the
+   * corpus with blank meetings", and it rendered as "No generated notes …
+   * they can be rebuilt at any time" — the same screen as a meeting that
+   * recorded silence and has nothing to rebuild from. So the reason is read
+   * off the status instead of being matched against one value, and
+   * `processingStatusKey` already has a word for all five.
+   *
+   * `cancelled` is somebody stopping the pass, not a fault, so it names
+   * itself without the alarm the other four earn. */
+  const failure =
+    processingStatus.kind === "failed" ? processingStatus.reason : null;
+  const hasSettingsRecovery =
+    failure === "local_model_unavailable" || failure === "remote_unavailable";
 
   return (
     <>
@@ -164,36 +178,53 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
           </div>
         }
       >
-        {remoteUnavailable ? (
-          <div className="px-4 py-3">
-            <Notice tone="danger">
-              {t(
-                "meetings.review.remoteProcessingUnavailable",
-                "The remote destination never became available, so nothing was generated. Regenerating runs on this Mac.",
-              )}
-            </Notice>
-          </div>
-        ) : null}
         {snapshot.artifacts.length === 0 ? (
           <div className="flex flex-col items-start gap-2 px-4 py-6">
-            <h3 className="text-[13px] leading-5 text-gray-1000">
-              {processing
-                ? t(
-                    "meetings.review.processingTitle",
-                    "Sona is still processing this meeting",
-                  )
-                : t("meetings.review.noGeneratedNotes")}
-            </h3>
-            <Notice tone="muted" live={false}>
+            {/* The state word carries the colour and the sentence below it
+             * stays plain, which is what `MeetingArtifactPanel`'s state chip
+             * and the ledger's outcome chips both do. `cancelled` is somebody
+             * stopping the pass rather than a fault, so it names itself
+             * without the alarm the other four earn. */}
+            <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
+              <h3
+                className={`text-[13px] leading-5 ${
+                  failure === null || failure === "cancelled"
+                    ? "text-gray-1000"
+                    : "text-red-900"
+                }`}
+              >
+                {processing
+                  ? t(
+                      "meetings.review.processingTitle",
+                      "Sona is still processing this meeting",
+                    )
+                  : failure === null
+                    ? t("meetings.review.noGeneratedNotes")
+                    : t(processingStatusKey(processingStatus))}
+              </h3>
+              {hasSettingsRecovery ? (
+                <Button variant="link" size="xs" onClick={onOpenSettings}>
+                  {t("chat.openSettings")}
+                </Button>
+              ) : null}
+            </div>
+            {/* A failure that arrived under an open review screen is worth
+             * announcing; "nothing here yet" is not. */}
+            <Notice tone="muted" live={failure !== null}>
               {processing
                 ? t(
                     "meetings.review.processingDescription",
                     "Generated notes and local answers appear once the transcript is complete.",
                   )
-                : t(
-                    "meetings.review.noGeneratedNotesDescription",
-                    "Generated notes are derived from the transcript, so they can be rebuilt at any time.",
-                  )}
+                : failure === null
+                  ? t(
+                      "meetings.review.noGeneratedNotesDescription",
+                      "Generated notes are derived from the transcript, so they can be rebuilt at any time.",
+                    )
+                  : t(
+                      "meetings.review.generationFailedDescription",
+                      "The transcript and your manual notes are unaffected. Regenerate once the cause is resolved.",
+                    )}
             </Notice>
             {/* Regenerate is already on the section label line; the wait is
              * the only state with a control of its own. */}

@@ -54,6 +54,7 @@ pub enum PromptPreset {
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum CloudSttProvider {
+    #[serde(rename = "deepgram_nova_3", alias = "deepgram_nova3")]
     DeepgramNova3,
     ElevenLabsScribeV2,
 }
@@ -1340,6 +1341,7 @@ impl CommandPlan {
 pub enum RequestedEngine {
     #[default]
     Local,
+    #[serde(rename = "deepgram_nova_3", alias = "deepgram_nova3")]
     DeepgramNova3,
     ElevenLabsScribeV2,
 }
@@ -1353,9 +1355,10 @@ impl RequestedEngine {
         }
     }
 
-    /// The route's stable name, matching what `serde` writes. Callers that key
-    /// durable rows or user-visible copy on the engine read it from here, so no
-    /// unknown variant can be silently relabelled as another one.
+    /// The route's durable name, which keys receipt rows and user-visible
+    /// copy. It deliberately does not track the serialized wire value: serde
+    /// writes Deepgram as `deepgram_nova_3` to match the settings UI, while
+    /// stored rows keep the older `deepgram_nova3` spelling.
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Local => "local",
@@ -1579,6 +1582,12 @@ impl RunPlan {
         settings: &AppSettings,
         intent: &TranscriptionIntent,
     ) -> Result<Self, RunPlanError> {
+        // A command run resolves its own plan before anything is read from
+        // the screen: the text it edits has to be captured before any
+        // application, activation rule, or website is considered.
+        if matches!(intent, TranscriptionIntent::Command) {
+            return Self::for_command(settings);
+        }
         let frontmost_application_id = context::frontmost_application_identifier();
         let website_rules_enabled = matches!(
             intent,
@@ -1606,8 +1615,9 @@ impl RunPlan {
         website_host: Option<&str>,
     ) -> Result<Self, RunPlanError> {
         let (mode, post_process_override, mode_selection_source) = match intent {
-            // A command run resolves its own plan: the text it edits has to be
-            // captured before any mode, rule, or website is considered.
+            // Exhaustiveness only. `for_intent` routes a command run before
+            // this function is reached, and the ordering rationale lives on
+            // that early return.
             TranscriptionIntent::Command => return Self::for_command(settings),
             TranscriptionIntent::Mode { mode_id } => (
                 settings.modes.iter().find(|mode| mode.id == *mode_id),
@@ -1889,7 +1899,14 @@ impl RunPlan {
     /// spoken words are an instruction, and pasting them over the selection is
     /// never what was asked for.
     pub fn for_command(settings: &AppSettings) -> Result<Self, RunPlanError> {
-        let selection = match context::capture_selected_text() {
+        Self::for_command_with_selection(settings, context::capture_selected_text)
+    }
+
+    fn for_command_with_selection(
+        settings: &AppSettings,
+        capture_selection: impl FnOnce() -> context::SelectionCapture,
+    ) -> Result<Self, RunPlanError> {
+        let selection = match capture_selection() {
             context::SelectionCapture::Captured(selection) => selection,
             context::SelectionCapture::Unavailable(reason) => {
                 log::debug!("Refusing a command run: no usable selection ({reason:?})");
@@ -2156,6 +2173,51 @@ mod tests {
         let mut settings = get_default_settings();
         ensure_mode_settings(&mut settings);
         settings
+    }
+    #[test]
+    fn command_chord_captures_only_its_explicit_operand_when_context_is_disabled() {
+        let mut settings = configured_settings();
+        global_local_provider(&mut settings);
+        settings.context_policy_ceiling = ContextPolicy::None;
+        settings.modes[0].context_policy = ContextPolicy::Full;
+        let selection_reads = std::cell::Cell::new(0);
+
+        let run = RunPlan::for_command_with_selection(&settings, || {
+            selection_reads.set(selection_reads.get() + 1);
+            context::SelectionCapture::Captured("selected by the command chord".to_string())
+        })
+        .expect("the explicit selection is a valid command operand");
+
+        assert_eq!(selection_reads.get(), 1);
+        assert_eq!(
+            run.command().expect("command plan").selection(),
+            "selected by the command chord"
+        );
+        let snapshot = run.context();
+        assert_eq!(snapshot.packet(), &context::ContextPacket::default());
+        assert_eq!(
+            snapshot.receipt().sources,
+            context::ContextSources {
+                target: context::ContextSourceStatus::DisabledByCeiling,
+                focused_field: context::ContextSourceStatus::DisabledByCeiling,
+                selected_text: context::ContextSourceStatus::DisabledByCeiling,
+                browser_url: context::ContextSourceStatus::DisabledByCeiling,
+                clipboard: context::ContextSourceStatus::DisabledByCeiling,
+            }
+        );
+    }
+    #[test]
+    fn command_chord_refuses_a_missing_explicit_operand_before_context_capture() {
+        let settings = configured_settings();
+        let selection_reads = std::cell::Cell::new(0);
+
+        let result = RunPlan::for_command_with_selection(&settings, || {
+            selection_reads.set(selection_reads.get() + 1);
+            context::SelectionCapture::Unavailable(context::ContextSourceStatus::Empty)
+        });
+
+        assert!(matches!(result, Err(RunPlanError::CommandWithoutSelection)));
+        assert_eq!(selection_reads.get(), 1);
     }
 
     #[test]
@@ -3174,5 +3236,39 @@ mod tests {
         assert_eq!(held.engine_used, None);
         assert!(!held.cloud_fallback);
         assert_eq!(held.cloud_status, CloudReceiptStatus::HeldCloudUnavailable);
+    }
+
+    /// The generated bindings and the settings UI name Deepgram
+    /// `deepgram_nova_3`, while serde's own `snake_case` writes
+    /// `deepgram_nova3`. Both enums have to answer to the UI spelling and
+    /// keep reading whatever was persisted under the older one, and the two
+    /// durable identifiers have to stay put: `CloudSttProvider::id` names the
+    /// stored secret account and `RequestedEngine::as_str` keys receipt rows.
+    #[test]
+    fn deepgram_wire_values_match_the_ui_and_still_read_the_legacy_spelling() {
+        assert_eq!(
+            serde_json::to_value(CloudSttProvider::DeepgramNova3).expect("provider serializes"),
+            serde_json::json!("deepgram_nova_3")
+        );
+        assert_eq!(
+            serde_json::to_value(RequestedEngine::DeepgramNova3).expect("engine serializes"),
+            serde_json::json!("deepgram_nova_3")
+        );
+
+        for spelling in ["deepgram_nova_3", "deepgram_nova3"] {
+            assert_eq!(
+                serde_json::from_value::<CloudSttProvider>(serde_json::json!(spelling))
+                    .unwrap_or_else(|error| panic!("provider reads {spelling}: {error}")),
+                CloudSttProvider::DeepgramNova3
+            );
+            assert_eq!(
+                serde_json::from_value::<RequestedEngine>(serde_json::json!(spelling))
+                    .unwrap_or_else(|error| panic!("engine reads {spelling}: {error}")),
+                RequestedEngine::DeepgramNova3
+            );
+        }
+
+        assert_eq!(CloudSttProvider::DeepgramNova3.id(), "deepgram_nova3");
+        assert_eq!(RequestedEngine::DeepgramNova3.as_str(), "deepgram_nova3");
     }
 }

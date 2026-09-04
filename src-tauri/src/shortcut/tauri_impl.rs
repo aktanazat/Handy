@@ -11,7 +11,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use crate::settings::get_settings;
 use crate::settings::{self, ShortcutBinding};
 
-use super::handler::handle_shortcut_event;
+use super::handler::{handle_shortcut_event, ShortcutIntent};
 
 /// Initialize shortcuts using Tauri's global-shortcut plugin
 pub fn init_shortcuts(app: &AppHandle) {
@@ -65,6 +65,25 @@ pub fn validate_shortcut(raw: &str) -> Result<(), String> {
         .map_err(|e| format!("Tauri global shortcuts cannot parse '{raw}': {e}"))
 }
 
+fn handle_registered_shortcut_event(
+    registered: &Shortcut,
+    event_shortcut: &Shortcut,
+    state: ShortcutState,
+    binding_id: &str,
+    dispatch: impl FnOnce(&str, &str, bool) -> Option<ShortcutIntent>,
+) -> Option<ShortcutIntent> {
+    if event_shortcut != registered {
+        return None;
+    }
+
+    let shortcut_label = event_shortcut.into_string();
+    let is_pressed = state == ShortcutState::Pressed;
+    debug!(
+        "tauri global-shortcut event: binding={binding_id}, shortcut={shortcut_label}, state={state:?}"
+    );
+    dispatch(binding_id, &shortcut_label, is_pressed)
+}
+
 /// Register a shortcut using Tauri's global-shortcut plugin
 pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(), String> {
     // Validate for Tauri requirements
@@ -101,23 +120,15 @@ pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<()
 
     app.global_shortcut()
         .on_shortcut(shortcut, move |app_handle, scut, event| {
-            if scut == &shortcut {
-                let shortcut_label = scut.into_string();
-                let is_pressed = event.state == ShortcutState::Pressed;
-                // Mirrors the handy-keys event log line; the distinct prefix
-                // makes it possible to tell which backend fired a shortcut
-                // (e.g. when diagnosing the Secure Input fallback)
-                debug!(
-                    "tauri global-shortcut event: binding={}, shortcut={}, state={:?}",
-                    binding_id_for_closure, shortcut_label, event.state
-                );
-                handle_shortcut_event(
-                    app_handle,
-                    &binding_id_for_closure,
-                    &shortcut_label,
-                    is_pressed,
-                );
-            }
+            let _ = handle_registered_shortcut_event(
+                &shortcut,
+                scut,
+                event.state,
+                &binding_id_for_closure,
+                |binding_id, shortcut, is_pressed| {
+                    handle_shortcut_event(app_handle, binding_id, shortcut, is_pressed)
+                },
+            );
         })
         .map_err(|e| {
             let error_msg = format!(
@@ -198,5 +209,98 @@ pub fn unregister_cancel_shortcut(app: &AppHandle) {
                 let _ = unregister_shortcut(&app_clone, binding);
             }
         });
+    }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::super::{
+        bindings_for_registration,
+        handler::{shortcut_intent, ShortcutIntent},
+    };
+    use super::{handle_registered_shortcut_event, Shortcut, ShortcutState};
+    use crate::command_mode::COMMAND_BINDING_ID;
+    use crate::modes::{ensure_mode_settings, TranscriptionIntent};
+    use crate::settings::get_default_settings;
+
+    #[test]
+    fn registered_macos_start_chords_deliver_one_coordinator_intent_each() {
+        let mut settings = get_default_settings();
+        ensure_mode_settings(&mut settings);
+        let bindings = bindings_for_registration(&settings);
+        let cases = [
+            (COMMAND_BINDING_ID, TranscriptionIntent::Command),
+            (
+                "mode/email/transcribe",
+                TranscriptionIntent::Mode {
+                    mode_id: "email".to_string(),
+                },
+            ),
+            (
+                "mode/meeting/transcribe",
+                TranscriptionIntent::Mode {
+                    mode_id: "meeting".to_string(),
+                },
+            ),
+            (
+                "mode/notes/transcribe",
+                TranscriptionIntent::Mode {
+                    mode_id: "notes".to_string(),
+                },
+            ),
+        ];
+
+        for (binding_id, expected) in cases {
+            let binding = bindings
+                .iter()
+                .find(|binding| binding.id.as_str() == binding_id)
+                .expect("start chord is registered");
+            let registered = binding
+                .current_binding
+                .parse::<Shortcut>()
+                .expect("parse registered shortcut");
+            let mut coordinator_intents = Vec::new();
+            let returned = handle_registered_shortcut_event(
+                &registered,
+                &registered,
+                ShortcutState::Pressed,
+                binding_id,
+                |binding_id, _, is_pressed| {
+                    assert!(is_pressed);
+                    let intent = shortcut_intent(binding_id);
+                    if let Some(ShortcutIntent::StartStop(intent)) = &intent {
+                        coordinator_intents.push(intent.clone());
+                    }
+                    intent
+                },
+            );
+
+            assert_eq!(coordinator_intents, vec![expected.clone()]);
+            assert_eq!(returned, Some(ShortcutIntent::StartStop(expected)));
+        }
+    }
+
+    #[test]
+    fn unrelated_shortcut_event_is_not_dispatched() {
+        let registered = "option+shift+space"
+            .parse::<Shortcut>()
+            .expect("parse registered shortcut");
+        let unrelated = "option+shift+2"
+            .parse::<Shortcut>()
+            .expect("parse unrelated shortcut");
+        let mut dispatched = 0;
+        let returned = handle_registered_shortcut_event(
+            &registered,
+            &unrelated,
+            ShortcutState::Pressed,
+            COMMAND_BINDING_ID,
+            |_, _, _| {
+                dispatched += 1;
+                shortcut_intent(COMMAND_BINDING_ID)
+            },
+        );
+
+        assert_eq!(returned, None);
+        assert_eq!(dispatched, 0);
     }
 }

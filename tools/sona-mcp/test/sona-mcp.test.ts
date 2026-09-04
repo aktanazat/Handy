@@ -157,6 +157,9 @@ describe("tool to argv", () => {
     ]);
   });
 
+  test("upcoming names the TCC subject", () => {
+    expect(tool("sona_upcoming").description).toContain("responsible_process");
+  });
   /* The one tool that writes. Its loop id goes through verbatim, and its
    * schema says so is required, so a call without one never spawns anything. */
   test("resolving a loop carries the loop id and nothing else", () => {
@@ -187,7 +190,7 @@ describe("tool to argv", () => {
     ).toEqual(["--meetings", "--from", "2026-06-01", "--to", "2026-06-30"]);
   });
 
-  test("action items narrow by state and by side", () => {
+  test("action items narrow by state and side, then resume after a loop", () => {
     expect(tool("sona_action_items").argv({ status: "open" })).toEqual([
       "--loops",
       "--status",
@@ -200,6 +203,23 @@ describe("tool to argv", () => {
     expect(
       tool("sona_action_items").argv({ side: "waiting", limit: 10 }),
     ).toEqual(["--loops", "--waiting", "--limit", "10"]);
+    expect(
+      tool("sona_action_items").argv({
+        status: "open",
+        side: "waiting",
+        after: "loop-123",
+        limit: 10,
+      }),
+    ).toEqual([
+      "--loops",
+      "--status",
+      "open",
+      "--waiting",
+      "--after",
+      "loop-123",
+      "--limit",
+      "10",
+    ]);
   });
 
   test("a meeting id and a name go through verbatim", () => {
@@ -252,7 +272,7 @@ describe("running sona", () => {
   });
 
   test("a tool call reaches the binary as the argv the tool built", async () => {
-    const sona = stub({ stdout: '{"schema_version":1,"entries":[]}' });
+    const sona = stub({ stdout: '{"schema_version":2,"entries":[]}' });
 
     const answer = await runSona(
       tool("sona_search").argv({ query: "tier comparison", scope: "meetings" }),
@@ -264,7 +284,7 @@ describe("running sona", () => {
       "--scope",
       "meetings",
     ]);
-    expect(answer).toEqual({ schema_version: 1, entries: [] });
+    expect(answer).toEqual({ schema_version: 2, entries: [] });
   });
 
   /* The refusal this whole feature exists to gate on. It has to survive the
@@ -273,7 +293,7 @@ describe("running sona", () => {
   test("a consent refusal comes back with its code and its settings path", async () => {
     stub({
       stderr: JSON.stringify({
-        schema_version: 1,
+        schema_version: 2,
         error: "consent_required",
         message:
           "External access is off. Turn on Settings > Agents > External access in Sona to allow read-only corpus queries.",
@@ -296,7 +316,7 @@ describe("running sona", () => {
   test("a mutation refusal names the mutations row, not the read one", async () => {
     stub({
       stderr: JSON.stringify({
-        schema_version: 1,
+        schema_version: 2,
         error: "consent_required",
         message:
           "External mutations are off. Turn on Settings > Agents > External mutations in Sona to allow changes to the corpus.",
@@ -316,7 +336,7 @@ describe("running sona", () => {
       stderr: [
         "[2026-08-31][INFO][sona] meeting storage mounted",
         JSON.stringify({
-          schema_version: 1,
+          schema_version: 2,
           error: "unavailable",
           message: "The corpus is not open.",
         }),
@@ -331,15 +351,31 @@ describe("running sona", () => {
   });
 
   /* Clap answers a usage error in its own words rather than in JSON, so a
-   * stderr that is not a refusal still has to reach the caller intact. */
-  test("a non-JSON failure is reported as what sona said", async () => {
+   * stderr that is not a refusal still has to reach the caller intact — and
+   * its exit code still has to be read. 2 is bad input on both sides of this
+   * boundary: `ExternalErrorCode::exit_code` reserves it, and clap uses it.
+   * Measured against the shipped binary: `--scope nonsense` and `--from`
+   * without `--to` both exit 2 with plain text, and both reached an agent as
+   * `failed` -> InternalError, which says stop rather than fix your call. */
+  test("a usage error sona had no JSON for is still the caller's to fix", async () => {
     stub({ stderr: "error: unexpected argument '--nope' found", exit: 2 });
 
     const refused = await refusalOf(["--nope"]);
 
-    expect(refused.code).toBe("failed");
+    expect(refused.code).toBe("invalid_request");
     expect(refused.message).toContain("unexpected argument");
     expect(refused.exitCode).toBe(2);
+  });
+
+  /* And the discrimination is real rather than a relabelling of everything:
+   * a non-JSON failure that is not exit 2 is still this side's problem. */
+  test("a non-JSON failure that is not a usage error stays a failure", async () => {
+    stub({ stderr: "dyld: Library not loaded", exit: 1 });
+
+    const refused = await refusalOf(["--meetings"]);
+
+    expect(refused.code).toBe("failed");
+    expect(refused.message).toContain("Library not loaded");
   });
 
   test("a missing install says where it looked", async () => {
@@ -417,23 +453,116 @@ describe("the stdio server", () => {
     await client.close();
   });
 
-  test("a tools/call becomes an argv and comes back as one text block", async () => {
-    const sona = stub({ stdout: '{"schema_version":1,"entries":[]}' });
-    const client = await connected();
-
-    const answered = await client.callTool({
-      name: "sona_search",
-      arguments: { query: "tier comparison", limit: 5 },
-    });
-
-    expect(sona.argv()).toEqual(["--query", "tier comparison", "--limit", "5"]);
-    expect(answered.content).toEqual([
+  test("every published tool reaches isolated sona with its documented argv", async () => {
+    const cases: ReadonlyArray<{
+      name: string;
+      args: RawCallArguments;
+      argv: string[];
+    }> = [
       {
-        type: "text",
-        text: JSON.stringify({ schema_version: 1, entries: [] }, null, 2),
+        name: "sona_search",
+        args: { query: "tier" },
+        argv: ["--query", "tier"],
       },
-    ]);
-    await client.close();
+      {
+        name: "sona_meetings",
+        args: { last: 3 },
+        argv: ["--meetings", "--last", "3"],
+      },
+      {
+        name: "sona_meeting",
+        args: { meeting_id: "meeting-1" },
+        argv: ["--meeting", "meeting-1"],
+      },
+      {
+        name: "sona_transcript",
+        args: { meeting_id: "meeting-1" },
+        argv: ["--transcript", "meeting-1"],
+      },
+      {
+        name: "sona_action_items",
+        args: { status: "open", side: "mine", after: "loop-1", limit: 2 },
+        argv: [
+          "--loops",
+          "--status",
+          "open",
+          "--mine",
+          "--after",
+          "loop-1",
+          "--limit",
+          "2",
+        ],
+      },
+      {
+        name: "sona_people",
+        args: { name: "Dana" },
+        argv: ["--people", "Dana"],
+      },
+      {
+        name: "sona_upcoming",
+        args: { limit: 2 },
+        argv: ["--upcoming", "--limit", "2"],
+      },
+      {
+        name: "sona_loop_resolve",
+        args: { loop_id: "loop-1" },
+        argv: ["--loop-resolve", "loop-1"],
+      },
+    ];
+
+    for (const { name, args, argv } of cases) {
+      const payload = { schema_version: 2, tool: name };
+      const sona = stub({ stdout: JSON.stringify(payload) });
+      const client = await connected();
+      try {
+        const answered = await client.callTool({ name, arguments: args });
+
+        expect(sona.argv()).toEqual(argv);
+        expect(answered.content).toEqual([
+          { type: "text", text: JSON.stringify(payload, null, 2) },
+        ]);
+      } finally {
+        await client.close();
+      }
+    }
+  });
+
+  test("a committed loop receipt reaches an MCP caller unchanged", async () => {
+    const loopId = "1e1a5f0e-0000-4000-8000-000000000001:loop:0123456789abcdef";
+    const payload = {
+      schema_version: 2,
+      receipt: {
+        schema_version: 2,
+        operation_id: "5c02eb2b-811d-53f1-8d9a-36cfd7e89b85",
+        session_id: "1e1a5f0e-0000-4000-8000-000000000001",
+        actor: "user",
+        command: "loop_resolve",
+        expected_revision: 0,
+        from_phase: "review_ready",
+        to_phase: "review_ready",
+        requested_at_utc_ms: 1_700_000_000_000,
+        committed_at_utc_ms: 1_700_000_000_001,
+        result: "committed",
+        reason_codes: [],
+        new_revision: 1,
+        effect_ids: [loopId],
+      },
+    };
+    const sona = stub({ stdout: JSON.stringify(payload) });
+    const client = await connected();
+    try {
+      const answered = await client.callTool({
+        name: "sona_loop_resolve",
+        arguments: { loop_id: loopId },
+      });
+
+      expect(sona.argv()).toEqual(["--loop-resolve", loopId]);
+      expect(answered.content).toEqual([
+        { type: "text", text: JSON.stringify(payload, null, 2) },
+      ]);
+    } finally {
+      await client.close();
+    }
   });
 
   /* The refusal an agent has to be able to branch on: the code and the
@@ -441,7 +570,7 @@ describe("the stdio server", () => {
   test("a consent refusal arrives as an invalid-request error naming the switch", async () => {
     stub({
       stderr: JSON.stringify({
-        schema_version: 1,
+        schema_version: 2,
         error: "consent_required",
         message: "External access is off.",
         settings_path: "Settings > Agents > External access",
@@ -460,6 +589,25 @@ describe("the stdio server", () => {
     });
   });
 
+  test("a Sona usage refusal remains invalid parameters through tools/call", async () => {
+    stub({
+      stderr: JSON.stringify({
+        schema_version: 2,
+        error: "invalid_request",
+        message: "--last is only read by --meetings.",
+      }),
+      exit: 2,
+    });
+
+    const failed = await errorOf("sona_search", { query: "Dana" });
+
+    expect(failed.code).toBe(ErrorCode.InvalidParams);
+    expect(failed.data).toEqual({
+      code: "invalid_request",
+      settingsPath: undefined,
+    });
+  });
+
   /* The other half of that branch. A caller told "internal error" retries or
    * gives up; a caller told "invalid params" fixes the id it passed. Sona
    * already distinguishes the two, so losing it here would be this server's
@@ -468,7 +616,7 @@ describe("the stdio server", () => {
   test("a corpus refusal is the caller's fault only when Sona says it is", async () => {
     stub({
       stderr: JSON.stringify({
-        schema_version: 1,
+        schema_version: 2,
         error: "not_found",
         message: "No loop m:loop:abc in this corpus.",
       }),
@@ -480,7 +628,7 @@ describe("the stdio server", () => {
 
     stub({
       stderr: JSON.stringify({
-        schema_version: 1,
+        schema_version: 2,
         error: "failed",
         message: "The corpus read failed.",
       }),

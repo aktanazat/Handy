@@ -356,7 +356,12 @@ pub enum MeetingCommandError {
     ExportCancelled,
     ExportFailed,
     LocalModelUnavailable,
+    LocalEvidenceUnavailable,
+    InsufficientEnrollmentEvidence,
+    ProfileModelIncompatible,
+    ProfileMergeResolutionRequired,
     RemoteUnavailable,
+    EngineFailure,
     /// The file offered for import is not a recording or transcript export
     /// Sona can read. Every refusal reaching the operator says this, because
     /// they all have the same answer: choose a different file.
@@ -688,6 +693,7 @@ pub enum MeetingCommandKind {
     TitleSet,
     SpeakerRename,
     SpeakerMerge,
+    SpeakerIdentify,
     SegmentEdit,
     NoteCreate,
     NoteUpdate,
@@ -986,7 +992,12 @@ pub enum MeetingTimeWindow {
     #[default]
     Any,
     Today,
+    /// serde's `snake_case` writes `last7_days` while specta splits the digit
+    /// off and the UI sends `last_7_days`; the alias keeps reading whatever a
+    /// caller on the older spelling sends.
+    #[serde(rename = "last_7_days", alias = "last7_days")]
     Last7Days,
+    #[serde(rename = "last_30_days", alias = "last30_days")]
     Last30Days,
 }
 
@@ -1335,4 +1346,39 @@ pub struct MeetingNavigationRequestedEvent(pub MeetingNavigationPayload);
 
 impl tauri_specta::Event for MeetingNavigationRequestedEvent {
     const NAME: &'static str = "meeting:navigation-requested";
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The bindings and the Meetings time filter both say `last_7_days`,
+    /// while serde's own `snake_case` writes `last7_days`. The window has to
+    /// answer to the UI spelling, keep reading the older one, and keep its
+    /// day counts, which the store's cutoff query reads.
+    #[test]
+    fn time_window_wire_values_match_the_ui_and_still_read_the_legacy_spelling() {
+        for (window, ui_spelling, legacy_spelling, days) in [
+            (MeetingTimeWindow::Last7Days, "last_7_days", "last7_days", 7),
+            (
+                MeetingTimeWindow::Last30Days,
+                "last_30_days",
+                "last30_days",
+                30,
+            ),
+        ] {
+            assert_eq!(
+                serde_json::to_value(window).expect("time window serializes"),
+                serde_json::json!(ui_spelling)
+            );
+            for spelling in [ui_spelling, legacy_spelling] {
+                assert_eq!(
+                    serde_json::from_value::<MeetingTimeWindow>(serde_json::json!(spelling))
+                        .unwrap_or_else(|error| panic!("window reads {spelling}: {error}")),
+                    window
+                );
+            }
+            assert_eq!(window.days(), Some(days));
+        }
+    }
 }

@@ -468,48 +468,74 @@ impl RecordingReadiness {
     }
 }
 
-/// Lock-free ownership record for the one meeting microphone stream. The
-/// session manager owns the global meeting lease; this narrower lease prevents
-/// dictation and a meeting from commanding the same cpal stream concurrently.
-struct MeetingMicrophoneLease {
-    active: AtomicBool,
-    next_generation: AtomicU64,
-    owner_generation: AtomicU64,
+/// Tracks exclusive microphone ownership across dictation, meetings, and recorder capture.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CaptureOwner {
+    Dictation,
+    Meeting,
+    Recorder,
 }
 
-impl MeetingMicrophoneLease {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct CaptureLeaseToken {
+    owner: CaptureOwner,
+    generation: u64,
+}
+
+struct MicrophoneCaptureLease {
+    token: Mutex<Option<CaptureLeaseToken>>,
+    next_generation: AtomicU64,
+}
+
+impl MicrophoneCaptureLease {
     fn new() -> Self {
         Self {
-            active: AtomicBool::new(false),
+            token: Mutex::new(None),
             next_generation: AtomicU64::new(0),
-            owner_generation: AtomicU64::new(0),
         }
     }
 
-    fn try_acquire(&self) -> Option<u64> {
-        self.active
-            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .ok()?;
-        let generation = self.next_generation.fetch_add(1, Ordering::AcqRel) + 1;
-        self.owner_generation.store(generation, Ordering::Release);
-        Some(generation)
+    fn try_acquire(&self, owner: CaptureOwner) -> Option<CaptureLeaseToken> {
+        let mut held = lock_recover(&self.token);
+        if held.is_some() {
+            return None;
+        }
+        let token = CaptureLeaseToken {
+            owner,
+            generation: self.next_generation.fetch_add(1, Ordering::AcqRel) + 1,
+        };
+        *held = Some(token);
+        Some(token)
     }
 
-    fn owns(&self, generation: u64) -> bool {
-        self.active.load(Ordering::Acquire)
-            && self.owner_generation.load(Ordering::Acquire) == generation
+    fn owns(&self, token: CaptureLeaseToken) -> bool {
+        *lock_recover(&self.token) == Some(token)
     }
 
-    fn release(&self, generation: u64) -> bool {
-        if !self.owns(generation) {
+    fn release(&self, token: CaptureLeaseToken) -> bool {
+        let mut held = lock_recover(&self.token);
+        if *held != Some(token) {
             return false;
         }
-        self.active.store(false, Ordering::Release);
+        *held = None;
         true
     }
 
+    /// Releases whatever token this owner holds. Callers that keep no copy of the token use
+    /// this; it is a no-op when someone else owns the microphone.
+    fn release_owner(&self, owner: CaptureOwner) -> bool {
+        let mut held = lock_recover(&self.token);
+        match *held {
+            Some(token) if token.owner == owner => {
+                *held = None;
+                true
+            }
+            _ => false,
+        }
+    }
+
     fn is_active(&self) -> bool {
-        self.active.load(Ordering::Acquire)
+        lock_recover(&self.token).is_some()
     }
 }
 
@@ -528,9 +554,25 @@ enum MeetingMicrophonePhase {
 /// retains device ownership.
 pub struct MeetingMicrophoneSource {
     audio: Arc<AudioRecordingManager>,
-    lease_generation: u64,
+    lease: CaptureLeaseToken,
     phase: MeetingMicrophonePhase,
     epoch: Option<SourceEpoch>,
+}
+/// Holds the shared microphone authority while AVFoundation owns recorder input.
+///
+/// It raises `SelfInputDeviceLease` for the same span. That lease is what meeting detection reads
+/// to discount Sona's own microphone use, and AVFoundation raises the device-in-use property just
+/// as cpal does, so without it the recorder's own capture looks like a third-party call and
+/// prompts the user to take notes on themselves.
+pub struct RecorderMicrophoneLease {
+    audio: Arc<AudioRecordingManager>,
+    token: CaptureLeaseToken,
+}
+
+impl Drop for RecorderMicrophoneLease {
+    fn drop(&mut self) {
+        self.audio.release_recorder_microphone(self.token);
+    }
 }
 
 #[derive(Clone)]
@@ -565,7 +607,7 @@ pub struct AudioRecordingManager {
     /// so the retry re-enumerates. The system-default case is never cached —
     /// the recorder resolves the current default itself, cheaply.
     cached_device: Arc<Mutex<Option<(String, cpal::Device)>>>,
-    meeting_lease: Arc<MeetingMicrophoneLease>,
+    capture_lease: Arc<MicrophoneCaptureLease>,
     /// What meeting detection reads to discount Sona's own microphone. Raised
     /// by `open_holding_lease` and dropped by `close_releasing_lease` alone;
     /// see their docs for why it brackets the device work rather than tracking
@@ -602,7 +644,7 @@ impl AudioRecordingManager {
             recording_active: Arc::new(AtomicBool::new(false)),
             capture_generation: Arc::new(AtomicU64::new(0)),
             cached_device: Arc::new(Mutex::new(None)),
-            meeting_lease: Arc::new(MeetingMicrophoneLease::new()),
+            capture_lease: Arc::new(MicrophoneCaptureLease::new()),
             self_lease: Arc::new(SelfInputDeviceLease::default()),
         };
 
@@ -751,7 +793,7 @@ impl AudioRecordingManager {
             let state = lock_recover(&rm.state);
             if rm.close_generation.load(Ordering::SeqCst) == gen
                 && matches!(*state, RecordingState::Idle)
-                && !rm.meeting_lease.is_active()
+                && !rm.capture_lease.is_active()
             {
                 // stop_microphone_stream does not acquire the state lock,
                 // so holding it here is safe (no deadlock).
@@ -764,39 +806,47 @@ impl AudioRecordingManager {
         });
     }
 
-    /// Reserve the microphone for one meeting source without opening a stream.
-    ///
-    /// The meeting session actor remains capture authority. This lease only
-    /// prevents the existing dictation path from driving the same device while
-    /// that authorized source is live or paused.
+    /// Reserve the microphone for a meeting source without opening a stream.
     pub fn try_acquire_meeting_microphone(
         self: &Arc<Self>,
     ) -> Result<MeetingMicrophoneSource, MeetingCaptureError> {
-        let Some(lease_generation) = self.meeting_lease.try_acquire() else {
-            return Err(MeetingCaptureError::Unavailable);
-        };
-        if !matches!(*lock_recover(&self.state), RecordingState::Idle) {
-            self.meeting_lease.release(lease_generation);
+        let state = lock_recover(&self.state);
+        if !matches!(*state, RecordingState::Idle) {
             return Err(MeetingCaptureError::InvalidState);
         }
+        let Some(lease) = self.capture_lease.try_acquire(CaptureOwner::Meeting) else {
+            return Err(MeetingCaptureError::Unavailable);
+        };
+        drop(state);
         Ok(MeetingMicrophoneSource {
             audio: Arc::clone(self),
-            lease_generation,
+            lease,
             phase: MeetingMicrophonePhase::Ready,
             epoch: None,
         })
     }
 
-    /// Hands the microphone back and closes the stream the meeting was holding.
-    ///
-    /// Every lock here goes through `lock_recover`, and that is load-bearing
-    /// rather than stylistic: the lease is already down by the time the mode is
-    /// read, so a panic between the two would leave the device open with
-    /// nothing holding it and no path left that closes it. A poisoned mutex is
-    /// reachable from any panic elsewhere under `state` or `mode`, and this is
-    /// the one release the meeting has.
-    fn release_meeting_microphone(&self, lease_generation: u64) {
-        if !self.meeting_lease.release(lease_generation) {
+    /// Reserve the microphone while the native screen recorder owns AVFoundation input.
+    pub fn try_acquire_recorder_microphone(self: &Arc<Self>) -> Option<RecorderMicrophoneLease> {
+        let state = lock_recover(&self.state);
+        if !matches!(*state, RecordingState::Idle) {
+            return None;
+        }
+        let token = self.capture_lease.try_acquire(CaptureOwner::Recorder)?;
+        self.self_lease.acquire();
+        drop(state);
+        Some(RecorderMicrophoneLease {
+            audio: Arc::clone(self),
+            token,
+        })
+    }
+
+    pub fn capture_lease_is_active(&self) -> bool {
+        self.capture_lease.is_active()
+    }
+
+    fn release_meeting_microphone(&self, lease: CaptureLeaseToken) {
+        if !self.capture_lease.release(lease) {
             return;
         }
         if matches!(*lock_recover(&self.mode), MicrophoneMode::OnDemand) {
@@ -806,6 +856,17 @@ impl AudioRecordingManager {
                 self.stop_microphone_stream();
             }
         }
+    }
+
+    fn release_recorder_microphone(&self, token: CaptureLeaseToken) {
+        let _ = self.capture_lease.release(token);
+        self.self_lease.release();
+    }
+
+    /// Hands the microphone back when dictation goes idle. The lease itself remembers who holds
+    /// it, so there is no second copy of the token to keep in step.
+    fn release_dictation_microphone(&self) {
+        let _ = self.capture_lease.release_owner(CaptureOwner::Dictation);
     }
 
     /* ---------- microphone life-cycle -------------------------------------- */
@@ -1089,7 +1150,7 @@ impl AudioRecordingManager {
     }
 
     pub fn stop_microphone_stream(&self) {
-        if self.meeting_lease.is_active() {
+        if self.capture_lease.is_active() {
             return;
         }
         let mut open_flag = lock_recover(&self.is_open);
@@ -1153,7 +1214,16 @@ impl AudioRecordingManager {
     /// must not: the recording state is not when Sona holds the input device,
     /// only when it is consuming what the device delivers. The pair around the
     /// device open and close owns that.
+    ///
+    /// It does hand the microphone back. Returning to `Idle` releases dictation's capture lease
+    /// here rather than at each stop site, because every path to idle goes through this function
+    /// — normal stop, cancel, and the error paths that reset state — and one of them forgetting
+    /// would strand the lease and lock out meetings and the recorder for the life of the process.
+    /// The ordering that matters: the state write lands first, then the release, so nothing can
+    /// observe a free microphone while this manager still reports itself as recording.
     fn set_state(&self, guard: &mut RecordingState, new_state: RecordingState) {
+        let release_dictation =
+            matches!(new_state, RecordingState::Idle) && !matches!(*guard, RecordingState::Idle);
         *guard = new_state;
         let active = matches!(
             *guard,
@@ -1164,6 +1234,9 @@ impl AudioRecordingManager {
                 manager.signal_idle_watcher();
             }
         }
+        if release_dictation {
+            self.release_dictation_microphone();
+        }
     }
 
     pub fn try_start_recording(
@@ -1172,55 +1245,56 @@ impl AudioRecordingManager {
         vad_policy: VadPolicy,
     ) -> Result<RecordingReadiness, String> {
         let mut state = lock_recover(&self.state);
-        if self.meeting_lease.is_active() {
-            return Err("Microphone is leased by an active meeting".to_string());
+        if !matches!(*state, RecordingState::Idle) {
+            return Err("Already recording".to_string());
+        }
+        let Some(token) = self.capture_lease.try_acquire(CaptureOwner::Dictation) else {
+            return Err("Microphone is leased by an active capture".to_string());
+        };
+
+        self.close_generation.fetch_add(1, Ordering::SeqCst);
+        if let Err(error) = self.start_microphone_stream() {
+            let message = error.to_string();
+            self.capture_lease.release(token);
+            error!("Failed to open microphone stream: {message}");
+            return Err(message);
         }
 
-        if let RecordingState::Idle = *state {
-            // Cancel any pending lazy close (no-op in always-on mode, where
-            // closes are never scheduled).
-            self.close_generation.fetch_add(1, Ordering::SeqCst);
-            // Opens the stream in on-demand mode. In always-on mode the stream
-            // is normally already open and this is a cheap aliveness check —
-            // but if the capture worker died (device disconnect), it rebuilds
-            // the stream instead of leaving every subsequent start wedged on
-            // "Recorder not available".
-            if let Err(e) = self.start_microphone_stream() {
-                let msg = format!("{e}");
-                error!("Failed to open microphone stream: {msg}");
-                return Err(msg);
+        let result = lock_recover(&self.recorder)
+            .as_ref()
+            .ok_or_else(|| "Recorder not available".to_string())
+            .and_then(|recorder| {
+                recorder
+                    .start(vad_policy)
+                    .map_err(|error| format!("Failed to start recorder: {error}"))
+            });
+        let receiver = match result {
+            Ok(receiver) => receiver,
+            Err(error) => {
+                self.capture_lease.release(token);
+                return Err(error);
             }
+        };
 
-            if let Some(rec) = lock_recover(&self.recorder).as_ref() {
-                match rec.start(vad_policy) {
-                    Ok(receiver) => {
-                        let generation = self.capture_generation.fetch_add(1, Ordering::AcqRel) + 1;
-                        *lock_recover(&self.is_recording) = true;
-                        self.set_state(
-                            &mut state,
-                            RecordingState::Recording {
-                                binding_id: binding_id.to_string(),
-                            },
-                        );
-                        debug!("Recording requested for binding {binding_id}");
-                        return Ok(RecordingReadiness {
-                            receiver,
-                            generation,
-                        });
-                    }
-                    Err(error) => return Err(format!("Failed to start recorder: {error}")),
-                }
-            }
-            Err("Recorder not available".to_string())
-        } else {
-            Err("Already recording".to_string())
-        }
+        let generation = self.capture_generation.fetch_add(1, Ordering::AcqRel) + 1;
+        *lock_recover(&self.is_recording) = true;
+        self.set_state(
+            &mut state,
+            RecordingState::Recording {
+                binding_id: binding_id.to_string(),
+            },
+        );
+        debug!("Recording requested for binding {binding_id}");
+        Ok(RecordingReadiness {
+            receiver,
+            generation,
+        })
     }
 
     pub fn update_selected_device(&self) -> Result<(), anyhow::Error> {
-        if self.meeting_lease.is_active() {
+        if self.capture_lease.is_active() {
             return Err(anyhow::anyhow!(
-                "Cannot change the microphone while a meeting is capturing"
+                "Cannot change the microphone while another capture owns it"
             ));
         }
         // Device settings changed; re-enumerate the device and restart capture.
@@ -1238,9 +1312,9 @@ impl AudioRecordingManager {
         &self,
         selected_channel: Option<u16>,
     ) -> Result<(), anyhow::Error> {
-        if self.meeting_lease.is_active() {
+        if self.capture_lease.is_active() {
             return Err(anyhow::anyhow!(
-                "Cannot change the input channel while a meeting is capturing"
+                "Cannot change the input channel while another capture owns it"
             ));
         }
         // Serialize against recording start/stop. Restarting an active capture
@@ -1469,7 +1543,7 @@ impl AudioRecordingManager {
 
 impl MeetingMicrophoneSource {
     fn ensure_lease(&self) -> Result<(), MeetingCaptureError> {
-        if self.audio.meeting_lease.owns(self.lease_generation) {
+        if self.audio.capture_lease.owns(self.lease) {
             Ok(())
         } else {
             Err(MeetingCaptureError::InvalidState)
@@ -1480,7 +1554,7 @@ impl MeetingMicrophoneSource {
         if self.phase == MeetingMicrophonePhase::Closed {
             return;
         }
-        self.audio.release_meeting_microphone(self.lease_generation);
+        self.audio.release_meeting_microphone(self.lease);
         self.phase = MeetingMicrophonePhase::Closed;
     }
 
@@ -1667,22 +1741,55 @@ impl Drop for MeetingMicrophoneSource {
 }
 
 #[cfg(test)]
-mod meeting_microphone_lease_tests {
-    use super::MeetingMicrophoneLease;
+mod microphone_capture_lease_tests {
+    use super::{CaptureOwner, MicrophoneCaptureLease};
 
     #[test]
-    fn lease_allows_one_owner_and_rejects_stale_release() {
-        let lease = MeetingMicrophoneLease::new();
-        let first = lease.try_acquire().expect("first lease");
-        assert!(lease.owns(first));
-        assert!(lease.try_acquire().is_none());
-        assert!(!lease.release(first + 1));
-        assert!(lease.is_active());
-        assert!(lease.release(first));
+    fn capture_lease_excludes_meeting_recorder_and_dictation() {
+        let lease = MicrophoneCaptureLease::new();
+        let meeting = lease
+            .try_acquire(CaptureOwner::Meeting)
+            .expect("meeting acquires the microphone");
 
-        let second = lease.try_acquire().expect("second lease");
-        assert_ne!(first, second);
-        assert!(lease.release(second));
+        assert!(lease.owns(meeting));
+        assert!(lease.try_acquire(CaptureOwner::Recorder).is_none());
+        assert!(lease.try_acquire(CaptureOwner::Dictation).is_none());
+        assert!(lease.release(meeting));
+
+        let next_meeting = lease
+            .try_acquire(CaptureOwner::Meeting)
+            .expect("meeting reacquires after release");
+        assert!(!lease.release(meeting));
+        assert!(lease.owns(next_meeting));
+        assert!(lease.release(next_meeting));
+
+        let recorder = lease
+            .try_acquire(CaptureOwner::Recorder)
+            .expect("recorder acquires after meeting releases");
+        assert!(lease.release(recorder));
+
+        let dictation = lease
+            .try_acquire(CaptureOwner::Dictation)
+            .expect("dictation acquires after recorder releases");
+        assert!(lease.release(dictation));
+    }
+
+    /// Dictation keeps no copy of its token: `set_state` hands the microphone back by owner when
+    /// the manager returns to idle. If that lookup ever released someone else's lease, a meeting
+    /// or a screen recording would lose the microphone under it mid-capture.
+    #[test]
+    fn release_by_owner_frees_only_that_owner() {
+        let lease = MicrophoneCaptureLease::new();
+        let meeting = lease
+            .try_acquire(CaptureOwner::Meeting)
+            .expect("meeting acquires the microphone");
+
+        assert!(!lease.release_owner(CaptureOwner::Dictation));
+        assert!(!lease.release_owner(CaptureOwner::Recorder));
+        assert!(lease.owns(meeting));
+        assert!(lease.release_owner(CaptureOwner::Meeting));
+        assert!(!lease.is_active());
+        assert!(!lease.release_owner(CaptureOwner::Meeting));
     }
 }
 

@@ -136,7 +136,6 @@ pub(crate) async fn rewrite_selection(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::{capture_selected_text, ContextSourceStatus, SelectionCapture};
     use crate::modes::{CommandPlan, TranscriptionIntent};
     use crate::settings::get_default_settings;
 
@@ -170,19 +169,12 @@ mod tests {
         );
     }
 
-    /// The operand is frozen before the microphone opens, so the rewrite edits
-    /// what the user had selected when they started speaking even if the screen
-    /// changed while they spoke. The proof is that a read taken *now* cannot
-    /// produce the frozen text — on a test host it produces nothing at all —
-    /// yet the rendered prompt still carries it.
+    /// The operand is frozen before the microphone opens, so rendering consumes
+    /// the selection captured at command start rather than consulting the
+    /// frontmost application again.
     #[test]
     fn the_rewrite_uses_the_selection_frozen_at_record_start() {
         let frozen = plan("the original selection");
-        let live = capture_selected_text();
-        assert!(
-            !matches!(&live, SelectionCapture::Captured(text) if text == frozen.selection()),
-            "a live read must not be able to reproduce the frozen operand"
-        );
 
         let rendered = render_instruction(InstructionRenderInput {
             instruction: "shorten it",
@@ -197,32 +189,13 @@ mod tests {
         assert_eq!(frozen.selection(), "the original selection");
     }
 
-    /// A command chord pressed with nothing selected refuses instead of
-    /// recording, and the refusal reaches the user as a typed event rather than
-    /// a log line. On a test host there is no Accessibility grant and no
-    /// selection, so the capture must never claim one.
+    /// The mode layer rejects a missing explicit operand before any ambient
+    /// context capture. This module maps that rejection to the typed event.
     #[test]
-    fn a_command_run_without_a_selection_is_refused_with_a_typed_event() {
-        assert!(matches!(
-            capture_selected_text(),
-            SelectionCapture::Unavailable(
-                ContextSourceStatus::PermissionDenied
-                    | ContextSourceStatus::Empty
-                    | ContextSourceStatus::Unsupported
-                    | ContextSourceStatus::Failed
-                    | ContextSourceStatus::SecureField
-            )
-        ));
-
-        let settings = get_default_settings();
-        let refusal = RunPlan::for_command(&settings);
-        assert!(matches!(
-            refusal,
-            Err(RunPlanError::CommandWithoutSelection)
-        ));
+    fn a_command_run_without_a_selection_has_a_typed_refusal() {
         assert_eq!(
             refusal_error_type(&RunPlanError::CommandWithoutSelection),
-            Some("command_no_selection")
+            Some(NO_SELECTION_ERROR)
         );
     }
 

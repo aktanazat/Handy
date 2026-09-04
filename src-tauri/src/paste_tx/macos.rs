@@ -24,7 +24,7 @@ use objc2_foundation::{NSArray, NSInteger, NSObject, NSString};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
-use super::{evaluate, send_chord, TxState, WaitDecision};
+use super::{evaluate, send_chord, take_auto_submit_key, TxState, WaitDecision};
 use crate::clipboard::send_return_key;
 use crate::input::EnigoState;
 use crate::settings::{AutoSubmitKey, ClipboardHandling, PasteMethod};
@@ -134,22 +134,27 @@ fn settle(
     }
     p.settled = true;
 
-    let (receipt_seen, ownership_lost) = match p.state.lock() {
-        Ok(st) => (st.any_receipt_after_injection(), st.ownership_lost),
-        Err(_) => (false, true),
+    let auto_submit = p.auto_submit;
+    let configured_submit_key = p.auto_submit_key;
+    let (ownership_lost, submit_key) = match p.state.lock() {
+        Ok(mut state) => (
+            state.ownership_lost,
+            take_auto_submit_key(&mut state, auto_submit, configured_submit_key),
+        ),
+        Err(_) => (true, None),
     };
 
-    // Auto-submit only once the target demonstrably read the transcript;
-    // pressing Enter after an unconfirmed paste could submit stale content.
-    if p.auto_submit && receipt_seen {
+    // A reliable transaction owns its submit only after a post-injection
+    // receipt, and the transaction state makes that ownership one-shot.
+    if let Some(submit_key) = submit_key {
         match enigo {
             Some(e) => {
-                let _ = send_return_key(e, p.auto_submit_key);
+                let _ = send_return_key(e, submit_key);
             }
             None => {
                 if let Some(enigo_state) = app_handle.try_state::<EnigoState>() {
                     if let Ok(mut e) = enigo_state.0.lock() {
-                        let _ = send_return_key(&mut e, p.auto_submit_key);
+                        let _ = send_return_key(&mut e, submit_key);
                     }
                 }
             }

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Loader2, Plus, X } from "lucide-react";
 import type {
   AgentChatConversationSummaryV1,
+  AgentPanelCommandErrorV1,
   AgentPanelProposalPreviewV1,
   AgentPanelTurnStatusV1,
   AgentPanelWorkspaceV1,
@@ -39,6 +40,42 @@ const CHAT_WIDTH = "w-[340px]";
  * layer alive while chat is still. */
 const CHAT_FRAME =
   "transition-none [transform:translateX(var(--shell-chat-offset))] [contain:layout_style]";
+
+/* The line each command refusal shows, by the wire variant that raised it.
+ *
+ * Literal key names in a table rather than a key built from the variant: the
+ * catalogue checker and a grep can both see these, and a variant added to the
+ * backend fails this type until somebody has said what it tells the reader.
+ *
+ * Twelve of them share `chat.error.failed` because no catalogue has copy for
+ * them yet. That request is filed; until it lands this is the sentence the
+ * sheet already showed. The nine pairing reasons are read from where the
+ * pairing panel keeps them, so one refusal is worded once. */
+export const CHAT_ERROR_KEYS = {
+  link_failed: "meetings.preview.linkFailed",
+  unauthorized_window: "settings.agents.sonaAgent.reason.unauthorized_window",
+  disabled: "settings.agents.sonaAgent.reason.disabled",
+  unpaired: "settings.agents.sonaAgent.reason.unpaired",
+  offline: "settings.agents.sonaAgent.reason.offline",
+  invalid_configuration:
+    "settings.agents.sonaAgent.reason.invalid_configuration",
+  secret_unavailable: "settings.agents.sonaAgent.reason.secret_unavailable",
+  untrusted_response: "settings.agents.sonaAgent.reason.untrusted_response",
+  remote_rejected: "settings.agents.sonaAgent.reason.remote_rejected",
+  ownership_rejected: "settings.agents.sonaAgent.reason.ownership_rejected",
+  unknown_conversation: "chat.error.failed",
+  invalid_request: "chat.error.failed",
+  turn_active: "chat.error.failed",
+  unknown_turn: "chat.error.failed",
+  unknown_proposal: "chat.error.failed",
+  unknown_action: "chat.error.failed",
+  action_failed: "chat.error.failed",
+  confirmation_required: "chat.error.failed",
+  stale_proposal: "chat.error.failed",
+  invalid_proposal: "chat.error.failed",
+  invalid_setting: "chat.error.failed",
+  not_undoable: "chat.error.failed",
+} satisfies Record<AgentPanelCommandErrorV1 | "link_failed", string>;
 
 interface ChatSheetHeaderProps {
   history: readonly AgentChatConversationSummaryV1[];
@@ -194,8 +231,8 @@ export interface ChatSheetProps {
   consentNeeded: boolean;
   /** A send, stop, apply, undo or history read is mid-flight. */
   busy: boolean;
-  /** A refused command, as distinct from the relay's own state. */
-  error: string | null;
+  /** A typed command refusal, or a citation route the app could not open. */
+  error: AgentPanelCommandErrorV1 | "link_failed" | null;
   onClose: () => void;
   onHistoryOpenChange: (open: boolean) => void;
   onSelectConversation: (conversationId: string) => void;
@@ -263,6 +300,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   onRetryTurn,
 }) => {
   const { t } = useTranslation();
+  const errorText = error === null ? null : t(CHAT_ERROR_KEYS[error]);
   const running = isTurnRunning(turn);
   const columnRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -428,12 +466,12 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
             </Button>
           </p>
         )}
-        {error !== null && (
+        {errorText !== null && (
           <p
             role="alert"
             className="flex-none border-t border-gray-alpha-400 px-3 py-2 text-[12px] leading-4 text-red-900 [overflow-wrap:anywhere]"
           >
-            {error}
+            {errorText}
           </p>
         )}
         <ChatComposer

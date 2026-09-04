@@ -14,7 +14,12 @@
 //! So advice is keyed on the identity receipts do carry: the transcription route
 //! that produced the text (`engine_used`, falling back to the requested route on
 //! a run that delivered nothing). The copy names that route, so no card claims
-//! anything about a microphone.
+//! anything about a microphone. The key itself is
+//! [`crate::modes::RequestedEngine::as_str`], deliberately not the serde
+//! spelling: Deepgram stores `deepgram_nova3` while the wire value is
+//! `deepgram_nova_3`. That key is the primary key of
+//! `learning_advice_baselines`, so re-keying it would re-advise every subject a
+//! user has dismissed.
 //!
 //! # Why re-advising does not contradict dismissal memory
 //!

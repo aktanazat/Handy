@@ -9,7 +9,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   configWithoutExternalBinaries,
@@ -94,5 +94,110 @@ describe("prepare-agent-hook", () => {
 
     expect(readFileSync(destination, "utf8")).toBe("current hook binary");
     expect(statSync(destination).mode & 0o111).not.toBe(0);
+  });
+
+  function stageCargoTargetHelper(
+    profile: "release" | "debug",
+    tauriDebug: "false" | "true",
+  ) {
+    const directory = temporaryDirectory();
+    const root = join(directory, "project");
+    const target = "aarch64-apple-darwin";
+    const targetDirectory = join(root, "isolated-target");
+    const bin = join(directory, "bin");
+    const payload = `${profile} target helper`;
+    mkdirSync(join(root, "src-tauri"), { recursive: true });
+    mkdirSync(bin, { recursive: true });
+    writeExecutable(
+      join(bin, "cargo"),
+      `#!/bin/sh
+set -eu
+profile=debug
+target=""
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "--release" ]; then
+    profile=release
+    shift
+  elif [ "$1" = "--target" ]; then
+    target="$2"
+    shift 2
+  else
+    shift
+  fi
+done
+mkdir -p "$CARGO_TARGET_DIR/$target/$profile"
+printf '%s' "$SONA_HOOK_PAYLOAD" > "$CARGO_TARGET_DIR/$target/$profile/sona-agent-hook"
+chmod 755 "$CARGO_TARGET_DIR/$target/$profile/sona-agent-hook"
+`,
+    );
+    const runner = join(directory, "run-prepare-agent-hook.ts");
+    writeFileSync(
+      runner,
+      `import { prepareAgentHook } from ${JSON.stringify(
+        new URL("./prepare-agent-hook.ts", import.meta.url).href,
+      )};
+prepareAgentHook("${target}", process.argv[2]);
+`,
+    );
+
+    const result = Bun.spawnSync([process.execPath, runner, root], {
+      env: {
+        ...process.env,
+        CARGO_TARGET_DIR: "../isolated-target",
+        PATH: [bin, process.env.PATH].filter(Boolean).join(delimiter),
+        SONA_HOOK_PAYLOAD: payload,
+        TAURI_ENV_DEBUG: tauriDebug,
+      },
+      stderr: "pipe",
+      stdout: "pipe",
+    });
+
+    return { payload, result, root, target, targetDirectory };
+  }
+
+  test("stages a Cargo target helper for a release Tauri build", () => {
+    const fixture = stageCargoTargetHelper("release", "false");
+
+    expect(fixture.result.exitCode).toBe(0);
+    expect(
+      readFileSync(
+        join(
+          fixture.root,
+          "src-tauri",
+          "binaries",
+          sidecarFilename(fixture.target),
+        ),
+        "utf8",
+      ),
+    ).toBe(fixture.payload);
+    expect(
+      readFileSync(
+        join(fixture.targetDirectory, "release", "agent-hook"),
+        "utf8",
+      ),
+    ).toBe(fixture.payload);
+  });
+
+  test("stages a Cargo target helper for a debug Tauri build", () => {
+    const fixture = stageCargoTargetHelper("debug", "true");
+
+    expect(fixture.result.exitCode).toBe(0);
+    expect(
+      readFileSync(
+        join(
+          fixture.root,
+          "src-tauri",
+          "binaries",
+          sidecarFilename(fixture.target),
+        ),
+        "utf8",
+      ),
+    ).toBe(fixture.payload);
+    expect(
+      readFileSync(
+        join(fixture.targetDirectory, "debug", "agent-hook"),
+        "utf8",
+      ),
+    ).toBe(fixture.payload);
   });
 });

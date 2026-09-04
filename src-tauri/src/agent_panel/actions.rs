@@ -29,8 +29,7 @@ use crate::meeting::series_types::MeetingSeriesTemplateSetRequest;
 use crate::meeting::session::{MeetingSessionManager, MeetingSpeakerRenameRequest};
 use crate::meeting::types::{MeetingOperationId, MeetingSessionId, OperationReceipt, SpeakerId};
 use crate::settings::VocabularyEntry;
-use std::sync::Arc;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 /// How to put one applied change back.
 ///
@@ -79,28 +78,29 @@ pub(crate) struct ActionError;
 
 type Outcome<T> = Result<T, ActionError>;
 
-fn meetings(app: &AppHandle) -> Outcome<Arc<MeetingSessionManager>> {
-    app.try_state::<Arc<MeetingSessionManager>>()
-        .map(|state| Arc::clone(&state))
-        .ok_or(ActionError)
-}
-
 /// The receipt id a mutation recorded, as the card reports it.
 fn receipt_id(receipt: &OperationReceipt) -> String {
     receipt.operation_id.uuid().to_string()
 }
 
-pub(crate) async fn apply(app: &AppHandle, action: &SonaChatActionV1) -> Outcome<AppliedAction> {
+/// Run one card. Everything that touches the corpus goes through `manager`,
+/// the handle the command resolved; `app` carries only the vocabulary term,
+/// because a spelling is a setting rather than a row in the meeting store.
+pub(crate) async fn apply(
+    app: &AppHandle,
+    manager: &MeetingSessionManager,
+    action: &SonaChatActionV1,
+) -> Outcome<AppliedAction> {
     match action {
-        SonaChatActionV1::ResolveLoop { loop_id, .. } => resolve_loop(app, loop_id).await,
+        SonaChatActionV1::ResolveLoop { loop_id, .. } => resolve_loop(manager, loop_id).await,
         SonaChatActionV1::AssignLoop {
             loop_id, person_id, ..
-        } => assign_loop(app, loop_id, Some(*person_id)).await,
+        } => assign_loop(manager, loop_id, Some(*person_id)).await,
         SonaChatActionV1::SetSeriesTemplate {
             series_key,
             template_id,
             ..
-        } => set_series_template(app, series_key, Some(*template_id)).await,
+        } => set_series_template(manager, series_key, Some(*template_id)).await,
         SonaChatActionV1::AddVocabularyTerm {
             term, replacement, ..
         } => add_vocabulary_term(app, term, replacement.as_deref()),
@@ -109,21 +109,27 @@ pub(crate) async fn apply(app: &AppHandle, action: &SonaChatActionV1) -> Outcome
             speaker_id,
             name,
             ..
-        } => rename_speaker(app, *session_id, *speaker_id, name).await,
+        } => rename_speaker(manager, *session_id, *speaker_id, name).await,
     }
 }
 
-pub(crate) async fn undo(app: &AppHandle, undo: &ActionUndo) -> Outcome<()> {
+pub(crate) async fn undo(
+    app: &AppHandle,
+    manager: &MeetingSessionManager,
+    undo: &ActionUndo,
+) -> Outcome<()> {
     match undo {
-        ActionUndo::ReopenLoop { loop_id } => reopen_loop(app, loop_id).await.map(drop),
+        ActionUndo::ReopenLoop { loop_id } => reopen_loop(manager, loop_id).await.map(drop),
         ActionUndo::AssignLoop {
             loop_id,
             owner_person_id,
-        } => assign_loop(app, loop_id, *owner_person_id).await.map(drop),
+        } => assign_loop(manager, loop_id, *owner_person_id)
+            .await
+            .map(drop),
         ActionUndo::SeriesTemplate {
             series_key,
             template,
-        } => set_series_template(app, series_key, *template)
+        } => set_series_template(manager, series_key, *template)
             .await
             .map(drop),
         ActionUndo::Vocabulary { spoken, prior } => restore_vocabulary(app, spoken, prior.as_ref()),
@@ -131,14 +137,16 @@ pub(crate) async fn undo(app: &AppHandle, undo: &ActionUndo) -> Outcome<()> {
             session_id,
             speaker_id,
             display_name,
-        } => rename_speaker(app, *session_id, *speaker_id, display_name)
+        } => rename_speaker(manager, *session_id, *speaker_id, display_name)
             .await
             .map(drop),
     }
 }
 
-/// The meeting a loop belongs to, and the revision every write against it must
-/// carry. Both come out of the id and one list read; a loop whose row is not
+/// The revision every write against a loop must carry, and its current owner.
+/// Both come out of the id and one list read. The store fences each loop on
+/// its own row revision, not on the meeting's, so a row that has been resolved
+/// or reassigned before still accepts the next write; a loop whose row is not
 /// in that list is a loop that no longer exists.
 async fn loop_fence(
     manager: &MeetingSessionManager,
@@ -154,12 +162,14 @@ async fn loop_fence(
         .iter()
         .find(|row| &row.loop_id == loop_id)
         .ok_or(ActionError)?;
-    Ok((loops.revision, row.owner_person_id))
+    Ok((row.revision, row.owner_person_id))
 }
 
-async fn resolve_loop(app: &AppHandle, loop_id: &MeetingLoopId) -> Outcome<AppliedAction> {
-    let manager = meetings(app)?;
-    let (expected_revision, _) = loop_fence(&manager, loop_id).await?;
+pub(super) async fn resolve_loop(
+    manager: &MeetingSessionManager,
+    loop_id: &MeetingLoopId,
+) -> Outcome<AppliedAction> {
+    let (expected_revision, _) = loop_fence(manager, loop_id).await?;
     let result = manager
         .loop_resolve(MeetingLoopResolveRequest {
             operation_id: MeetingOperationId::new(),
@@ -180,12 +190,11 @@ async fn resolve_loop(app: &AppHandle, loop_id: &MeetingLoopId) -> Outcome<Appli
     ))
 }
 
-async fn reopen_loop(
-    app: &AppHandle,
+pub(super) async fn reopen_loop(
+    manager: &MeetingSessionManager,
     loop_id: &MeetingLoopId,
 ) -> Outcome<MeetingLoopMutationResult> {
-    let manager = meetings(app)?;
-    let (expected_revision, _) = loop_fence(&manager, loop_id).await?;
+    let (expected_revision, _) = loop_fence(manager, loop_id).await?;
     manager
         .loop_reopen(MeetingLoopReopenRequest {
             operation_id: MeetingOperationId::new(),
@@ -197,12 +206,11 @@ async fn reopen_loop(
 }
 
 async fn assign_loop(
-    app: &AppHandle,
+    manager: &MeetingSessionManager,
     loop_id: &MeetingLoopId,
     owner_person_id: Option<PersonId>,
 ) -> Outcome<AppliedAction> {
-    let manager = meetings(app)?;
-    let (expected_revision, prior_owner) = loop_fence(&manager, loop_id).await?;
+    let (expected_revision, prior_owner) = loop_fence(manager, loop_id).await?;
     let result = manager
         .loop_assign(MeetingLoopAssignRequest {
             operation_id: MeetingOperationId::new(),
@@ -229,11 +237,10 @@ fn applied_loop(result: MeetingLoopMutationResult, undo: ActionUndo) -> AppliedA
 }
 
 async fn set_series_template(
-    app: &AppHandle,
+    manager: &MeetingSessionManager,
     series_key: &str,
     template: Option<MeetingNotesTemplate>,
 ) -> Outcome<AppliedAction> {
-    let manager = meetings(app)?;
     let preferences = manager
         .series_preferences(series_key.to_string())
         .await
@@ -262,12 +269,11 @@ async fn set_series_template(
 }
 
 async fn rename_speaker(
-    app: &AppHandle,
+    manager: &MeetingSessionManager,
     session_id: MeetingSessionId,
     speaker_id: SpeakerId,
     display_name: &str,
 ) -> Outcome<AppliedAction> {
-    let manager = meetings(app)?;
     let store = manager.store().await.map_err(|_| ActionError)?;
     let review = store.review_snapshot(session_id).map_err(|_| ActionError)?;
     let prior = review

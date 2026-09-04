@@ -43,7 +43,7 @@ export const AdvancedModels: React.FC<{ onOpenCatalog: () => void }> = ({
       <SettingsDisclosure label={t("settingsV2.advanced.cloudKeys")}>
         <CloudSttProviderSettings />
       </SettingsDisclosure>
-      <SettingsDisclosure label={t("settingsV2.advanced.cleanupProvider")}>
+      <SettingsDisclosure label={t("settingsV2.advanced.cleanupProvider")} lazy>
         <PostProcessingSettingsApi />
       </SettingsDisclosure>
     </SettingsSection>

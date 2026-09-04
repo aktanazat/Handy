@@ -8,9 +8,9 @@
  * back. A second validator here would be a second opinion, and the two would
  * drift.
  *
- * Seven of them read. `sona_loop_resolve` writes, and it is gated on its own
- * settings row rather than the read one — Sona refuses it with
- * `consent_required` naming that row, which this server forwards unchanged.
+ * Seven of them only read. `sona_loop_resolve` reads a loop revision before
+ * it writes, so Sona requires both external-access rows and returns whichever
+ * `consent_required` refusal names the missing row.
  *
  * The only checking below is what building an argv actually requires: a
  * required string has to be there, or there is no command to run. */
@@ -211,7 +211,7 @@ export const TOOLS: readonly ToolDefinition[] = [
     name: "sona_action_items",
     title: "List Sona action items",
     description:
-      "List the loops and commitments across every meeting: what is still open, what got done, what the user owes and what they are waiting on somebody else for.",
+      "List loops and commitments across every meeting. Pass next_cursor from an earlier result as after, with the same filters, to continue after that loop.",
     inputSchema: {
       type: "object",
       properties: {
@@ -227,6 +227,11 @@ export const TOOLS: readonly ToolDefinition[] = [
           description:
             "Keep only rows on one side of the conversation: 'mine' is what the user owes, 'waiting' is what somebody else owes them.",
         },
+        after: {
+          type: "string",
+          description:
+            "The next_cursor from an earlier result. Keep the same status and side filters when resuming.",
+        },
         limit: LIMIT,
       },
       additionalProperties: false,
@@ -237,6 +242,7 @@ export const TOOLS: readonly ToolDefinition[] = [
         "--loops",
         ...optional("--status", text(input, "status")),
         ...(side === null ? [] : [side === "mine" ? "--mine" : "--waiting"]),
+        ...optional("--after", text(input, "after")),
         ...optional("--limit", count(input, "limit")),
       ];
     },
@@ -269,7 +275,7 @@ export const TOOLS: readonly ToolDefinition[] = [
     name: "sona_upcoming",
     title: "List upcoming meetings",
     description:
-      "List today and the next seven days of calendar: each event's title, times, attendees, join link, and — for a recurring one — its series key and whether it records itself. Returns calendar_access, so an empty list under anything but 'authorized' means Sona has no calendar grant rather than a free week.",
+      "List today and the next seven days of calendar: each event's title, times, attendees, join link, and — for a recurring one — its series key and whether it records itself. Returns calendar_access_subject set to responsible_process and calendar_access. On macOS the latter is the TCC result for the headless caller's responsible process, often the terminal, not a claim about the installed GUI. An empty list under anything but 'authorized' means this request cannot read the calendar, not that the GUI lacks a grant.",
     inputSchema: {
       type: "object",
       properties: { limit: LIMIT },
@@ -284,7 +290,7 @@ export const TOOLS: readonly ToolDefinition[] = [
     name: "sona_loop_resolve",
     title: "Resolve a Sona loop",
     description:
-      "Mark one loop or commitment done, and get back the operation receipt. This is the only tool here that changes anything, so it needs Settings > Agents > External mutations as well as external access; while that row is off it refuses with consent_required and names it. The receipt's result is 'committed' when the write landed and 'rejected' when the meeting moved underneath it.",
+      "Mark one loop or commitment done, and get back the operation receipt. It reads the loop revision before writing, so it requires both Settings > Agents > External access and External mutations. If either is off, Sona returns consent_required and names the missing setting. The receipt's result is 'committed' when the write landed and 'rejected' when the meeting moved underneath it.",
     inputSchema: {
       type: "object",
       properties: {

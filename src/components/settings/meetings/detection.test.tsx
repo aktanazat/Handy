@@ -423,7 +423,6 @@ const status = (inputDeviceActive: boolean): DetectionStatus => ({
     calendarEnabled: true,
     anyMicActivity: false,
     autoStartOnOpenPane: false,
-    silenceStopMinutes: 0,
     meetingApps: [],
     autoRecordApps: [],
   },
@@ -434,7 +433,6 @@ const status = (inputDeviceActive: boolean): DetectionStatus => ({
   suppressReason: null,
   countdown: null,
   runningMeetingApps: [],
-  availableStopTriggers: [],
   inputDeviceReportingSuspect: false,
 });
 

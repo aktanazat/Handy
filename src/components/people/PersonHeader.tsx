@@ -46,6 +46,7 @@ interface PersonHeaderProps {
   onSplit: (
     request: Omit<PersonSplitRequest, "source_person_id" | "expected_revision">,
   ) => void;
+  onRemoveVoiceProfile?: () => void;
 }
 
 /**
@@ -56,10 +57,10 @@ interface PersonHeaderProps {
  * which commits on Enter or on leaving it and reverts on Escape. There is no
  * Save, because a rename is one value with a receipt behind it, and no "rename
  * this person?" dialog, because confirming a reversible edit of a name is
- * ceremony. Splitting, merging and deleting are the three things that change
- * who this person *is*, so they wait behind the row's own menu — the same
- * quiet glyph a meeting row and a mode row keep their operations behind — and
- * the two irreversible ones keep their confirmation.
+ * ceremony. Splitting, merging, forgetting a saved voice, and deleting change
+ * who this person is, so they wait behind the row's own menu — the same quiet
+ * glyph a meeting row and a mode row keep their operations behind — and every
+ * irreversible action keeps its confirmation.
  */
 export const PersonHeader: React.FC<PersonHeaderProps> = ({
   person,
@@ -73,6 +74,7 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
   onDelete,
   onSplit,
   onOpenOrganization,
+  onRemoveVoiceProfile,
 }) => {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
@@ -80,6 +82,8 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
   const [splitting, setSplitting] = useState(false);
   const [mergeConfirming, setMergeConfirming] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [voiceProfileRemovalConfirming, setVoiceProfileRemovalConfirming] =
+    useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
   const mergeOptions = people.filter((entry) => entry.person.id !== person.id);
   const mergeTargetName = mergeOptions.find(
@@ -204,6 +208,18 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
             >
               {t("people.detail.merge")}
             </DropdownMenuItem>
+            {onRemoveVoiceProfile === undefined ? null : (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={pending}
+                  variant="destructive"
+                  onSelect={() => setVoiceProfileRemovalConfirming(true)}
+                >
+                  {t("people.detail.removeVoiceProfile")}
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               disabled={pending}
@@ -278,6 +294,19 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
         destructive
         onConfirm={onDelete}
       />
+
+      {onRemoveVoiceProfile === undefined ? null : (
+        <PeopleConfirmDialog
+          open={voiceProfileRemovalConfirming}
+          onOpenChange={setVoiceProfileRemovalConfirming}
+          title={t("people.detail.removeVoiceProfileTitle")}
+          description={t("people.detail.removeVoiceProfileDescription")}
+          confirmLabel={t("people.detail.removeVoiceProfile")}
+          pending={pending}
+          destructive
+          onConfirm={onRemoveVoiceProfile}
+        />
+      )}
     </div>
   );
 };

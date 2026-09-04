@@ -5,8 +5,48 @@ import {
   commands,
   type AppSettings as Settings,
   type AudioDevice,
+  type PostProcessModelCatalog,
+  type PostProcessModelOption,
   type Result,
 } from "@/bindings";
+export type PostProcessModelCatalogState = {
+  catalog: PostProcessModelCatalog;
+  /** The last successful list for this exact provider/configuration. */
+  cachedModels: PostProcessModelOption[];
+};
+
+/** A remote list is valid only for the provider and endpoint that produced it. */
+export const postProcessModelCatalogScope = (
+  providerId: string,
+  baseUrl: string,
+): string => `${providerId}\u0000${baseUrl.trim()}`;
+
+const catalogScopeForSettings = (
+  settings: Settings | null,
+  providerId: string,
+): string => {
+  const baseUrl =
+    settings?.post_process_providers?.find(
+      (provider) => provider.id === providerId,
+    )?.base_url ?? "";
+  return postProcessModelCatalogScope(providerId, baseUrl);
+};
+
+/* An invalidation must also make an in-flight result ineligible to write back.
+ * The counters are transport bookkeeping, not rendered state. */
+const catalogProviderRevisions = new Map<string, number>();
+const catalogRequestRevisions = new Map<string, number>();
+
+const fallbackCatalog = (
+  providerId: string,
+  discovery: PostProcessModelCatalog["discovery"],
+  allowsManualModelId: boolean,
+): PostProcessModelCatalog => ({
+  provider_id: providerId,
+  models: [],
+  discovery,
+  allows_manual_model_id: allowsManualModelId,
+});
 
 export interface SettingsStore {
   settings: Settings | null;
@@ -16,7 +56,7 @@ export interface SettingsStore {
   audioDevices: AudioDevice[];
   outputDevices: AudioDevice[];
   customSounds: { start: boolean; stop: boolean };
-  postProcessModelOptions: Record<string, string[]>;
+  postProcessModelCatalogs: Record<string, PostProcessModelCatalogState>;
 
   // Actions
   initialize: () => Promise<void>;
@@ -47,8 +87,10 @@ export interface SettingsStore {
   removePostProcessSecret: (providerId: string) => Promise<boolean>;
   refreshPostProcessSecretState: (providerId: string) => Promise<void>;
   updatePostProcessModel: (providerId: string, model: string) => Promise<void>;
-  fetchPostProcessModels: (providerId: string) => Promise<string[]>;
-  setPostProcessModelOptions: (providerId: string, models: string[]) => void;
+  discoverPostProcessModelCatalog: (
+    providerId: string,
+  ) => Promise<PostProcessModelCatalog>;
+  invalidatePostProcessModelCatalog: (providerId: string) => void;
 
   // Internal state setters
   setSettings: (settings: Settings | null) => void;
@@ -183,7 +225,7 @@ export const useSettingsStore = create<SettingsStore>()(
     audioDevices: [],
     outputDevices: [],
     customSounds: { start: false, stop: false },
-    postProcessModelOptions: {},
+    postProcessModelCatalogs: {},
 
     // Internal setters
     setSettings: (settings) => set({ settings }),
@@ -413,12 +455,7 @@ export const useSettingsStore = create<SettingsStore>()(
     },
 
     setPostProcessProvider: async (providerId) => {
-      const {
-        settings,
-        setUpdating,
-        refreshSettings,
-        setPostProcessModelOptions,
-      } = get();
+      const { settings, setUpdating, refreshSettings } = get();
       const updateKey = "post_process_provider_id";
       const previousId = settings?.post_process_provider_id ?? null;
 
@@ -431,10 +468,6 @@ export const useSettingsStore = create<SettingsStore>()(
             : null,
         }));
       }
-
-      // Clear cached model options for the new provider so the dropdown
-      // doesn't show stale models from a previous fetch or base_url.
-      setPostProcessModelOptions(providerId, []);
 
       try {
         await commands.setPostProcessProvider(providerId);
@@ -454,7 +487,11 @@ export const useSettingsStore = create<SettingsStore>()(
     },
 
     updatePostProcessBaseUrl: async (providerId, baseUrl) => {
-      const { setUpdating, refreshSettings } = get();
+      const {
+        setUpdating,
+        refreshSettings,
+        invalidatePostProcessModelCatalog,
+      } = get();
       const updateKey = `post_process_base_url:${providerId}`;
 
       setUpdating(updateKey, true);
@@ -468,6 +505,10 @@ export const useSettingsStore = create<SettingsStore>()(
           return;
         }
 
+        /* A changed endpoint is a different compatibility boundary even if
+         * clearing its saved model fails afterwards. */
+        invalidatePostProcessModelCatalog(providerId);
+
         const modelResult = await commands.changePostProcessModelSetting(
           providerId,
           "",
@@ -477,12 +518,6 @@ export const useSettingsStore = create<SettingsStore>()(
           return;
         }
 
-        set((state) => ({
-          postProcessModelOptions: {
-            ...state.postProcessModelOptions,
-            [providerId]: [],
-          },
-        }));
         await refreshSettings();
       } catch (error) {
         console.error("Failed to update post-process base URL:", error);
@@ -493,7 +528,7 @@ export const useSettingsStore = create<SettingsStore>()(
 
     replacePostProcessSecret: async (providerId, secret) => {
       const updateKey = `post_process_secret:${providerId}`;
-      const { setUpdating } = get();
+      const { setUpdating, invalidatePostProcessModelCatalog } = get();
       setUpdating(updateKey, true);
 
       try {
@@ -516,11 +551,8 @@ export const useSettingsStore = create<SettingsStore>()(
                 },
               }
             : null,
-          postProcessModelOptions: {
-            ...state.postProcessModelOptions,
-            [providerId]: [],
-          },
         }));
+        invalidatePostProcessModelCatalog(providerId);
         return true;
       } catch (error) {
         console.error("Failed to store provider credential:", error);
@@ -532,7 +564,7 @@ export const useSettingsStore = create<SettingsStore>()(
 
     removePostProcessSecret: async (providerId) => {
       const updateKey = `post_process_secret:${providerId}`;
-      const { setUpdating } = get();
+      const { setUpdating, invalidatePostProcessModelCatalog } = get();
       setUpdating(updateKey, true);
 
       try {
@@ -551,11 +583,8 @@ export const useSettingsStore = create<SettingsStore>()(
                 },
               }
             : null,
-          postProcessModelOptions: {
-            ...state.postProcessModelOptions,
-            [providerId]: [],
-          },
         }));
+        invalidatePostProcessModelCatalog(providerId);
         return true;
       } catch (error) {
         console.error("Failed to remove provider credential:", error);
@@ -619,38 +648,86 @@ export const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    fetchPostProcessModels: async (providerId) => {
-      const updateKey = `post_process_models_fetch:${providerId}`;
-      const { setUpdating, setPostProcessModelOptions } = get();
+    discoverPostProcessModelCatalog: async (providerId) => {
+      const scope = catalogScopeForSettings(get().settings, providerId);
+      const updateKey = `post_process_model_catalog:${scope}`;
+      const previous = get().postProcessModelCatalogs[scope];
+      const providerRevision = catalogProviderRevisions.get(providerId) ?? 0;
+      const requestRevision = (catalogRequestRevisions.get(scope) ?? 0) + 1;
+      catalogRequestRevisions.set(scope, requestRevision);
+      const { setUpdating } = get();
+
+      const canWrite = () =>
+        (catalogProviderRevisions.get(providerId) ?? 0) === providerRevision &&
+        catalogRequestRevisions.get(scope) === requestRevision &&
+        catalogScopeForSettings(get().settings, providerId) === scope;
+      const storeCatalog = (catalog: PostProcessModelCatalog) => {
+        if (!canWrite()) return;
+        set((state) => {
+          const current = state.postProcessModelCatalogs[scope];
+          return {
+            postProcessModelCatalogs: {
+              ...state.postProcessModelCatalogs,
+              [scope]: {
+                catalog,
+                cachedModels:
+                  catalog.discovery === "ready"
+                    ? catalog.models
+                    : (current?.cachedModels ?? []),
+              },
+            },
+          };
+        });
+      };
 
       setUpdating(updateKey, true);
-
       try {
-        // Call Tauri backend command instead of fetch
-        const result = await commands.fetchPostProcessModels(providerId);
-        if (result.status === "ok") {
-          setPostProcessModelOptions(providerId, result.data);
-          return result.data;
-        } else {
-          console.error("Failed to fetch models:", result.error);
-          return [];
-        }
-      } catch (error) {
-        console.error("Failed to fetch models:", error);
-        // Don't cache empty array on error - let user retry
-        return [];
+        const response =
+          await commands.discoverPostProcessModelCatalog(providerId);
+        const catalog =
+          response.provider_id === providerId
+            ? response
+            : fallbackCatalog(
+                providerId,
+                "invalid_response",
+                previous?.catalog.allows_manual_model_id ?? true,
+              );
+        storeCatalog(catalog);
+        return catalog;
+      } catch {
+        const catalog = fallbackCatalog(
+          providerId,
+          "unreachable",
+          previous?.catalog.allows_manual_model_id ?? true,
+        );
+        storeCatalog(catalog);
+        return catalog;
       } finally {
         setUpdating(updateKey, false);
       }
     },
 
-    setPostProcessModelOptions: (providerId, models) =>
-      set((state) => ({
-        postProcessModelOptions: {
-          ...state.postProcessModelOptions,
-          [providerId]: models,
-        },
-      })),
+    invalidatePostProcessModelCatalog: (providerId) => {
+      catalogProviderRevisions.set(
+        providerId,
+        (catalogProviderRevisions.get(providerId) ?? 0) + 1,
+      );
+      const providerPrefix = `${providerId}\u0000`;
+      for (const scope of catalogRequestRevisions.keys()) {
+        if (scope.startsWith(providerPrefix)) {
+          catalogRequestRevisions.delete(scope);
+        }
+      }
+      set((state) => {
+        const postProcessModelCatalogs = { ...state.postProcessModelCatalogs };
+        for (const scope of Object.keys(postProcessModelCatalogs)) {
+          if (scope.startsWith(providerPrefix)) {
+            delete postProcessModelCatalogs[scope];
+          }
+        }
+        return { postProcessModelCatalogs };
+      });
+    },
 
     // Load default settings from Rust
     loadDefaultSettings: async () => {

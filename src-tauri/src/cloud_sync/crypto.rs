@@ -1637,4 +1637,231 @@ mod tests {
             Err(CryptoError::AuthenticationFailed)
         );
     }
+
+    /// A deterministic generator. Seeded per case so a failure prints the seed that
+    /// reproduces it, and no case depends on the order the others ran in.
+    struct Xorshift(u64);
+
+    impl Xorshift {
+        fn next_u64(&mut self) -> u64 {
+            let mut state = self.0;
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            self.0 = state;
+            state
+        }
+
+        fn bytes(&mut self, length: usize) -> Vec<u8> {
+            (0..length)
+                .map(|_| u8::try_from(self.next_u64() & 0xff).expect("masked to one byte"))
+                .collect()
+        }
+
+        fn below(&mut self, bound: u64) -> u64 {
+            self.next_u64() % bound
+        }
+    }
+
+    /// The two AES-GCM envelopes that carry user content off this machine. They are
+    /// separate code paths over the same contract, so the property is stated once and
+    /// run against both.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum Envelope {
+        ObjectRevision,
+        Share,
+    }
+
+    /// Everything a sealed payload is bound to. Neighbouring cases differ from a case
+    /// in exactly one of these fields.
+    #[derive(Clone, Debug)]
+    struct Binding {
+        root: Vec<u8>,
+        id: String,
+        index: u64,
+        total: u64,
+        manifest: bool,
+    }
+
+    impl Binding {
+        fn generate(random: &mut Xorshift) -> Self {
+            let total = random.below(8) + 1;
+            Self {
+                root: random.bytes(AES_GCM_KEY_BYTES),
+                id: format!("id{:016x}", random.next_u64()),
+                index: random.below(total),
+                total,
+                manifest: random.next_u64() & 1 == 0,
+            }
+        }
+
+        /// Every one-field neighbour of this binding, named for the failure message.
+        /// A neighbour that cannot exist (there is no other index when total is one)
+        /// is left out rather than fudged.
+        fn neighbours(&self) -> Vec<(&'static str, Self)> {
+            let mut neighbours = vec![
+                (
+                    "root",
+                    Self {
+                        root: self.root.iter().map(|byte| byte ^ 0x5a).collect(),
+                        ..self.clone()
+                    },
+                ),
+                (
+                    "id",
+                    Self {
+                        id: format!("{}x", self.id),
+                        ..self.clone()
+                    },
+                ),
+                (
+                    "total",
+                    Self {
+                        total: self.total + 1,
+                        ..self.clone()
+                    },
+                ),
+                (
+                    "content kind",
+                    Self {
+                        manifest: !self.manifest,
+                        ..self.clone()
+                    },
+                ),
+            ];
+            if self.index + 1 < self.total {
+                neighbours.push((
+                    "index",
+                    Self {
+                        index: self.index + 1,
+                        ..self.clone()
+                    },
+                ));
+            }
+            neighbours
+        }
+    }
+
+    impl Envelope {
+        fn seal(
+            self,
+            binding: &Binding,
+            nonce: &[u8],
+            plaintext: &[u8],
+        ) -> Result<Vec<u8>, CryptoError> {
+            match self {
+                Self::ObjectRevision => seal_object_revision_payload(
+                    &binding.root,
+                    &object_context(binding),
+                    nonce,
+                    plaintext,
+                ),
+                Self::Share => {
+                    seal_share_payload(&binding.root, &share_context(binding), nonce, plaintext)
+                }
+            }
+        }
+
+        fn open(self, binding: &Binding, payload: &[u8]) -> Result<Vec<u8>, CryptoError> {
+            match self {
+                Self::ObjectRevision => {
+                    open_object_revision_payload(&binding.root, &object_context(binding), payload)
+                }
+                Self::Share => open_share_payload(&binding.root, &share_context(binding), payload),
+            }
+        }
+    }
+
+    fn object_context(binding: &Binding) -> ObjectRevisionCryptoContext<'_> {
+        ObjectRevisionCryptoContext {
+            vault_id: "vault-id",
+            object_id: &binding.id,
+            revision_id: "revision-id",
+            index: binding.index,
+            total: binding.total,
+            content_kind: if binding.manifest {
+                ObjectContentKind::Manifest
+            } else {
+                ObjectContentKind::Chunk
+            },
+            source_format: "sona-meeting-bundle-v1",
+        }
+    }
+
+    fn share_context(binding: &Binding) -> SharePayloadContext<'_> {
+        SharePayloadContext {
+            share_id: &binding.id,
+            index: binding.index,
+            total: binding.total,
+            domain: if binding.manifest {
+                SharePayloadDomain::Manifest
+            } else {
+                SharePayloadDomain::Chunk
+            },
+        }
+    }
+
+    /// The invariant both egress envelopes owe: a sealed payload opens to exactly the
+    /// plaintext under the binding it was sealed with, and under nothing else. Any
+    /// mutation of the sealed bytes, any truncation of them, and any single-field
+    /// change to the binding all fail to open rather than returning some other
+    /// plaintext.
+    #[test]
+    fn a_sealed_payload_opens_only_under_the_binding_it_was_sealed_with() {
+        for envelope in [Envelope::ObjectRevision, Envelope::Share] {
+            for case in 0..64_u64 {
+                let seed = 0x2545_f491_4f6c_dd1d
+                    ^ (case << 8)
+                    ^ match envelope {
+                        Envelope::ObjectRevision => 0,
+                        Envelope::Share => 1,
+                    };
+                let mut random = Xorshift(seed);
+                let context = format!("{envelope:?} seed {seed:#x}");
+                let binding = Binding::generate(&mut random);
+                let nonce = random.bytes(AES_GCM_NONCE_BYTES);
+                let plaintext_len = usize::try_from(random.below(65)).expect("small");
+                let plaintext = random.bytes(plaintext_len);
+
+                let sealed = envelope
+                    .seal(&binding, &nonce, &plaintext)
+                    .unwrap_or_else(|error| panic!("{context}: seal failed: {error}"));
+                assert_eq!(
+                    sealed.len(),
+                    AES_GCM_NONCE_BYTES + plaintext.len() + AES_GCM_TAG_BYTES,
+                    "{context}: sealed payload is nonce || ciphertext || tag"
+                );
+                assert_eq!(
+                    envelope.open(&binding, &sealed).as_deref(),
+                    Ok(plaintext.as_slice()),
+                    "{context}: round trip"
+                );
+
+                for position in 0..sealed.len() {
+                    let mut mutated = sealed.clone();
+                    mutated[position] ^= 1 << (position % 8);
+                    assert_eq!(
+                        envelope.open(&binding, &mutated),
+                        Err(CryptoError::AuthenticationFailed),
+                        "{context}: mutating byte {position} must not open"
+                    );
+                }
+
+                for length in 0..sealed.len() {
+                    assert!(
+                        envelope.open(&binding, &sealed[..length]).is_err(),
+                        "{context}: a {length}-byte prefix must not open"
+                    );
+                }
+
+                for (field, neighbour) in binding.neighbours() {
+                    assert_eq!(
+                        envelope.open(&neighbour, &sealed),
+                        Err(CryptoError::AuthenticationFailed),
+                        "{context}: a payload must not open under a different {field}"
+                    );
+                }
+            }
+        }
+    }
 }

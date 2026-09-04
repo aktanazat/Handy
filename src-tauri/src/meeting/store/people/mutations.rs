@@ -6,16 +6,21 @@ pub(in crate::meeting::store) use derivation::{
     link_document_mentions_in, recompute_organizations_in,
 };
 
-use self::linking::{confidence_from_db, repoint_meeting_links_in, source_from_db, upsert_link_in};
+pub(in crate::meeting::store) use self::linking::upsert_link_in;
+use self::linking::{confidence_from_db, repoint_meeting_links_in, source_from_db};
 use super::{
     bump_people_revision_in, merge_unique_case_insensitive, normalized, normalized_email,
     person_by_id_in, require_people_revision_in, SCHEMA_VERSION,
 };
 use crate::meeting::people_types::{
     PeopleMutationResult, Person, PersonId, PersonLinkConfidence, PersonLinkSource,
-    PersonSplitRequest, PersonSplitTarget, PersonSummary,
+    PersonSplitRequest, PersonSplitTarget, PersonSummary, VoiceProfileMergeResolution,
 };
 use crate::meeting::store::documents::bump_document_revision_in;
+use crate::meeting::store::voice_identity::{
+    merge_voice_profiles_in, remove_source_person_voice_evidence_for_sessions_in,
+    remove_voice_person_evidence_in,
+};
 use crate::meeting::store::{MeetingStore, StoreError};
 use crate::meeting::types::MeetingSessionId;
 use rusqlite::{params, OptionalExtension, TransactionBehavior};
@@ -59,11 +64,12 @@ impl MeetingStore {
         Ok(mutation_result(revision, Some(person), false))
     }
 
-    pub(crate) fn merge_persons(
+    pub(crate) fn merge_persons_with_voice_resolution(
         &self,
         source_id: PersonId,
         target_id: PersonId,
         expected_revision: u64,
+        voice_profile_resolution: Option<VoiceProfileMergeResolution>,
         now_utc_ms: i64,
     ) -> Result<PeopleMutationResult, StoreError> {
         if source_id == target_id {
@@ -96,6 +102,13 @@ impl MeetingStore {
              SELECT document_id, ?1, created_at_utc_ms
                FROM document_person_links WHERE person_id = ?2",
             params![target_id.uuid().to_string(), source_id.uuid().to_string()],
+        )?;
+        merge_voice_profiles_in(
+            &transaction,
+            source_id,
+            target_id,
+            voice_profile_resolution,
+            now_utc_ms,
         )?;
         transaction.execute(
             "DELETE FROM persons WHERE id = ?1",
@@ -211,7 +224,7 @@ impl MeetingStore {
         }
 
         let meeting_ids = request.meeting_ids.into_iter().collect::<HashSet<_>>();
-        for meeting_id in meeting_ids {
+        for &meeting_id in &meeting_ids {
             let link: Option<(String, String, i64)> = transaction
                 .query_row(
                     "SELECT source, confidence, created_at_utc_ms
@@ -244,6 +257,13 @@ impl MeetingStore {
             )?;
             changed = true;
         }
+
+        let voice_change = remove_source_person_voice_evidence_for_sessions_in(
+            &transaction,
+            request.source_person_id,
+            &meeting_ids,
+        )?;
+        changed |= voice_change.people_changed();
 
         let document_ids = request.document_ids.into_iter().collect::<HashSet<_>>();
         let mut documents_changed = false;
@@ -304,6 +324,8 @@ impl MeetingStore {
         let mut connection = self.connection()?;
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         require_people_revision_in(&transaction, expected_revision)?;
+        person_by_id_in(&transaction, person_id)?;
+        remove_voice_person_evidence_in(&transaction, person_id)?;
         let removed = transaction.execute(
             "DELETE FROM persons WHERE id = ?1",
             [person_id.uuid().to_string()],

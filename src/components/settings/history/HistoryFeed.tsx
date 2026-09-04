@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { FileAudio, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { HistoryRunReceipt } from "@/bindings";
@@ -42,6 +48,8 @@ interface HistoryFeedProps {
   setQuery: (query: string) => void;
   view: HistoryTextView;
   activeQuery: string;
+  /** The dictation a sona:// link named, including a nonce for repeat links. */
+  focusRequest?: { historyId: number; nonce: number } | null;
   sentinelRef: React.RefObject<HTMLDivElement | null>;
   receiptsByHistoryId: Record<number, HistoryRunReceipt[] | null>;
   startingAudioImport: boolean;
@@ -54,6 +62,90 @@ interface HistoryFeedProps {
   onStartAudioImport: () => void;
 }
 
+/* How far a dictation link will page before it gives up: six pages, or 180
+ * rows at the feed's page size. A `sona://dictation/<id>` link can name a row
+ * that was deleted or swept by retention, and with no bound the walk mounts
+ * the whole log looking for a row that is not there. */
+const DEEP_LINK_PAGE_BUDGET = 6;
+
+/** What the feed has already done for one dictation link. */
+export type DeepLinkProgress = {
+  nonce: number;
+  satisfied: boolean;
+  pagesLoaded: number;
+};
+
+/** The one thing the feed does next for a dictation link. */
+export type DeepLinkStep =
+  | { kind: "none" }
+  | { kind: "clear-search" }
+  | { kind: "expand"; historyId: number }
+  | { kind: "load-page"; cursor: number };
+
+/** That step, with the progress the feed stores back for this link. */
+export type DeepLinkPlan = {
+  step: DeepLinkStep;
+  progress: DeepLinkProgress | null;
+};
+
+type DeepLinkPlanInput = {
+  focusRequest: { historyId: number; nonce: number } | null;
+  progress: DeepLinkProgress | null;
+  activeQuery: string;
+  entries: readonly { id: number }[];
+  phase: ListState["phase"];
+  hasMore: boolean;
+};
+
+/* The whole deep-link decision, kept out of the effect below so that what the
+ * feed does for a link is one value rather than a sequence of renders.
+ *
+ * `App.tsx` sets the dictation request in its `queryLinkRequested` listener
+ * and never clears it, so a request that has been served is spent. Acting on
+ * it a second time cleared the History search box 200 ms after the user typed
+ * into it, re-ran the expand on every return to the section, and re-expanded
+ * the row on every history event. A later link carries a higher nonce, which
+ * starts a fresh search clear and a fresh page walk. */
+export const planDeepLinkStep = ({
+  focusRequest,
+  progress,
+  activeQuery,
+  entries,
+  phase,
+  hasMore,
+}: DeepLinkPlanInput): DeepLinkPlan => {
+  if (focusRequest === null) return { step: { kind: "none" }, progress };
+  const served =
+    progress !== null && progress.nonce === focusRequest.nonce
+      ? progress
+      : { nonce: focusRequest.nonce, satisfied: false, pagesLoaded: 0 };
+  if (served.satisfied) return { step: { kind: "none" }, progress: served };
+  // The row is looked for in the unfiltered log, so a search goes first and
+  // the reload it triggers runs this decision again.
+  if (activeQuery !== "") {
+    return { step: { kind: "clear-search" }, progress: served };
+  }
+  const target = entries.find((entry) => entry.id === focusRequest.historyId);
+  if (target) {
+    return {
+      step: { kind: "expand", historyId: target.id },
+      progress: { ...served, satisfied: true },
+    };
+  }
+  // A page is already in flight; its result runs this decision again.
+  if (phase !== "ready") return { step: { kind: "none" }, progress: served };
+  const last = entries[entries.length - 1];
+  if (!hasMore || !last || served.pagesLoaded >= DEEP_LINK_PAGE_BUDGET) {
+    // The row is not in the log, or is further back than the walk goes. The
+    // link is spent here, so the next history event does not re-arm it.
+    return { step: { kind: "none" }, progress: { ...served, satisfied: true } };
+  }
+  return {
+    step: { kind: "load-page", cursor: last.id },
+    progress: { ...served, pagesLoaded: served.pagesLoaded + 1 },
+  };
+};
+
 /* The log, in day groups, and the four things the list can be instead of rows:
  * still loading, unreadable, empty, or empty because a search matched
  * nothing. */
@@ -62,6 +154,7 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
   setQuery,
   view,
   activeQuery,
+  focusRequest = null,
   sentinelRef,
   receiptsByHistoryId,
   startingAudioImport,
@@ -93,6 +186,44 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
     (id: number) => setExpandedId((current) => (current === id ? null : id)),
     [],
   );
+
+  /* What has already been done for the link this feed was handed. A ref, not
+   * state: the effect below both reads it and carries it forward, and none of
+   * that is something to render. */
+  const deepLinkRef = useRef<DeepLinkProgress | null>(null);
+
+  useEffect(() => {
+    const plan = planDeepLinkStep({
+      focusRequest,
+      progress: deepLinkRef.current,
+      activeQuery,
+      entries: state.entries,
+      phase: state.phase,
+      hasMore: state.hasMore,
+    });
+    deepLinkRef.current = plan.progress;
+    switch (plan.step.kind) {
+      case "clear-search":
+        setQuery("");
+        return;
+      case "expand":
+        setExpandedId(plan.step.historyId);
+        return;
+      case "load-page":
+        void fetchPage("", plan.step.cursor);
+        return;
+      case "none":
+        return;
+    }
+  }, [
+    activeQuery,
+    fetchPage,
+    focusRequest,
+    setQuery,
+    state.entries,
+    state.hasMore,
+    state.phase,
+  ]);
 
   const loadNextPage = () => {
     const last = state.entries[state.entries.length - 1];
@@ -209,6 +340,11 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
                     receipts={receiptsByHistoryId[entry.id]}
                     view={view}
                     expanded={entry.id === expandedId}
+                    focusNonce={
+                      entry.id === focusRequest?.historyId
+                        ? focusRequest.nonce
+                        : undefined
+                    }
                     onToggleExpanded={toggleExpanded}
                     onToggleSaved={toggleSaved}
                     onCopyText={copyToClipboard}

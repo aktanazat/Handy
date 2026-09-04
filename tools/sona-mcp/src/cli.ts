@@ -64,7 +64,17 @@ export function sonaBinary(): string {
 /** Sona's own refusal if stderr holds one, and what stderr says otherwise.
  *
  * Read from the last line back: headless Sona sends its log lines to stderr
- * too, so the refusal is the last thing printed rather than the only thing. */
+ * too, so the refusal is the last thing printed rather than the only thing.
+ *
+ * When there is no refusal to read — a clap usage error, which Sona answers
+ * in clap's words rather than in its own JSON — the exit code is the only
+ * thing it said about the *kind* of failure, and it is a documented signal
+ * rather than a guess. `ExternalErrorCode::exit_code` reserves 2 for bad
+ * input and 1 for everything else, and clap exits 2 for a usage error for the
+ * same reason. Reading it matters because the code chooses the JSON-RPC error
+ * an agent sees: `failed` lands in `InternalError`, which says stop and
+ * report, and a caller that misspelled an enum value or left out a paired
+ * flag can fix that itself. */
 function refusalFrom(stderr: string, exitCode: number | null): SonaRefusal {
   const lines = stderr.trim().split("\n");
   for (let index = lines.length - 1; index >= 0; index -= 1) {
@@ -79,7 +89,7 @@ function refusalFrom(stderr: string, exitCode: number | null): SonaRefusal {
   }
   return {
     schema_version: 0,
-    error: "failed",
+    error: exitCode === 2 ? "invalid_request" : "failed",
     message:
       stderr.trim() === ""
         ? `sona exited with code ${exitCode ?? "unknown"} and said nothing.`

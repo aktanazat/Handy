@@ -25,7 +25,7 @@ use windows::Win32::Foundation::{
     SetLastError, ERROR_SUCCESS, HANDLE, HGLOBAL, HINSTANCE, HWND, LPARAM, LRESULT, WPARAM,
 };
 
-use super::{evaluate, send_chord, TxState, WaitDecision};
+use super::{evaluate, send_chord, take_auto_submit_key, TxState, WaitDecision};
 use crate::clipboard::send_return_key;
 use crate::input::EnigoState;
 use crate::settings::{AutoSubmitKey, ClipboardHandling, PasteMethod};
@@ -123,23 +123,26 @@ unsafe fn shared_ptr(hwnd: HWND) -> *const WinTxShared {
     GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *const WinTxShared
 }
 
-/// Sends the auto-submit Enter. Uses `try_lock` because the paste caller may
-/// currently hold the enigo lock while waiting for this worker.
+/// Sends the owed auto-submit Enter, if one is owed. Whether it is owed lives
+/// entirely in `take_auto_submit_key`; this function only owns the input lock.
+/// It uses `try_lock` because the paste caller may currently hold that lock
+/// while waiting for this worker.
 fn send_auto_submit(shared: &WinTxShared) {
-    {
-        let mut st = match transaction_state(shared) {
-            Ok(st) => st,
+    let submit_key = {
+        let mut state = match transaction_state(shared) {
+            Ok(state) => state,
             Err(_) => return,
         };
-        if st.auto_submit_sent {
-            return;
-        }
-        st.auto_submit_sent = true;
-    }
+        take_auto_submit_key(&mut state, shared.auto_submit, shared.auto_submit_key)
+    };
+    let Some(submit_key) = submit_key else {
+        return;
+    };
+
     if let Some(enigo_state) = shared.app_handle.try_state::<EnigoState>() {
         match enigo_state.0.try_lock() {
             Ok(mut enigo) => {
-                let _ = send_return_key(&mut enigo, shared.auto_submit_key);
+                let _ = send_return_key(&mut enigo, submit_key);
             }
             Err(_) => warn!("[reliable-paste] skipping auto-submit: input state busy"),
         }
@@ -260,17 +263,14 @@ fn flush_pending() {
     let Some(previous) = previous else {
         return;
     };
-    let receipt = {
+    {
         let mut st = match transaction_state(&previous) {
             Ok(st) => st,
             Err(_) => return,
         };
         st.cancelled = true;
-        st.any_receipt_after_injection()
-    };
-    if previous.auto_submit && receipt {
-        send_auto_submit(&previous);
     }
+    send_auto_submit(&previous);
     let sequence = match stored_sequence(&previous) {
         Ok(sequence) => sequence,
         Err(error) => {
@@ -501,11 +501,7 @@ fn on_timer(_hwnd: HWND, shared: &WinTxShared) {
         info!("[reliable-paste] settling: no read within timeout, restoring anyway");
     }
 
-    // Auto-submit only once the target demonstrably read the transcript;
-    // pressing Enter after an unconfirmed paste could submit stale content.
-    if shared.auto_submit && receipt {
-        send_auto_submit(shared);
-    }
+    send_auto_submit(shared);
 
     let still_ours = match stored_sequence(shared) {
         Ok(sequence) => !ownership_lost && system_clipboard_sequence() == sequence,

@@ -56,12 +56,77 @@ pub fn reconcile_autostart(app: &AppHandle) {
     apply_locked(app, crate::settings::get_settings(app).autostart_enabled);
 }
 
+/// Whether this install owns the machine's login item at all.
+///
+/// A portable copy does not. `SMAppService::mainAppService()` and the plugin's
+/// launch-agent plist are both keyed on the *bundle*, never on the data
+/// directory — so a portable copy applies its own `autostart_enabled` to the
+/// installed app's login item and deletes the installed app's launch agent.
+/// Measured: a portable copy of Sona logged "Unregistered login item via
+/// SMAppService" on its first launch while the installed app's persisted
+/// preference was `true`, leaving the setting and the system permanently
+/// disagreeing with nothing to say so.
+///
+/// Portable mode already refuses host credential storage for the same reason
+/// ([`crate::secrets::SecretManager::native_for_service`]); a login item is
+/// host state of the same class.
+fn owns_host_login_item(portable: bool) -> bool {
+    !portable
+}
+/// Whether macOS must keep the legacy plugin owner for this OS release.
+///
+/// `SMAppService` replaces the plugin's LaunchAgent on macOS 13 and later.
+/// Leaving the plugin registered there keeps an alternate writer for
+/// `~/Library/LaunchAgents/sona.plist`, so an upgraded app could recreate the
+/// lowercase legacy entry after this module removes it. Earlier supported
+/// macOS releases have no `SMAppService`, and keep the plugin path.
+const fn macos_plugin_autostart_required(sm_app_service_available: bool) -> bool {
+    !sm_app_service_available
+}
+
+/// Whether this process needs the plugin's managed autostart backend.
+///
+/// Non-macOS platforms continue to use the plugin. On macOS, only hosts that
+/// lack `SMAppService` register it, which leaves a single owner on newer
+/// systems while preserving the supported older-macOS behavior.
+pub(crate) fn should_install_autostart_plugin() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        macos_plugin_autostart_required(macos::login_item_api_available())
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        true
+    }
+}
+
 /// The platform work itself. Callers hold [`APPLYING`].
 fn apply_locked(app: &AppHandle, enabled: bool) {
+    if !owns_host_login_item(crate::portable::is_portable()) {
+        log::info!(
+            "Portable mode: leaving the login item and launch agent alone (autostart_enabled={})",
+            enabled
+        );
+        return;
+    }
+
     #[cfg(target_os = "macos")]
     if macos::login_item_api_available() {
         macos::remove_plugin_launch_agent(app);
         macos::set_login_item(enabled);
+        return;
+    }
+
+    if !should_install_autostart_plugin() {
+        // `autolaunch()` is `state::<AutoLaunchManager>()`, which panics when
+        // the plugin was never registered. One predicate decides registration
+        // and this reads it, rather than deriving the same answer a second time
+        // from the OS check it happens to bottom out in today.
+        log::warn!(
+            "Autostart plugin is not registered on this host, so autostart_enabled={} cannot be applied",
+            enabled
+        );
         return;
     }
 
@@ -99,6 +164,11 @@ mod macos {
     use objc2::runtime::AnyClass;
     use objc2_service_management::{SMAppService, SMAppServiceStatus};
     use tauri::{AppHandle, Manager};
+
+    // `tauri-plugin-autostart` 2.5.1 uses `app.package_info().name` as this
+    // name. The shipped package name was lowercase, and it is an artifact we
+    // must keep removing even if a future package rename changes that value.
+    const LEGACY_PLUGIN_LAUNCH_AGENT_NAME: &str = "sona";
 
     /// `SMAppService` requires macOS 13. The ServiceManagement framework is
     /// linked unconditionally (it has existed since 10.6), so looking up the
@@ -150,7 +220,12 @@ mod macos {
         let Ok(home) = app.path().home_dir() else {
             return;
         };
-        remove_launch_agent_file(&plugin_launch_agent_path(&home, &app.package_info().name));
+        remove_launch_agent_file(&legacy_plugin_launch_agent_path(&home));
+
+        let package_name = &app.package_info().name;
+        if package_name != LEGACY_PLUGIN_LAUNCH_AGENT_NAME {
+            remove_launch_agent_file(&plugin_launch_agent_path(&home, package_name));
+        }
     }
 
     /// Path of the plist the auto-launch crate writes:
@@ -159,6 +234,10 @@ mod macos {
         home.join("Library")
             .join("LaunchAgents")
             .join(format!("{}.plist", app_name))
+    }
+
+    fn legacy_plugin_launch_agent_path(home: &Path) -> PathBuf {
+        plugin_launch_agent_path(home, LEGACY_PLUGIN_LAUNCH_AGENT_NAME)
     }
 
     fn remove_launch_agent_file(path: &Path) {
@@ -197,6 +276,14 @@ mod macos {
             assert_eq!(
                 path,
                 Path::new("/Users/someone/Library/LaunchAgents/Sona.plist")
+            );
+        }
+
+        #[test]
+        fn legacy_plugin_owner_is_the_lowercase_launch_agent() {
+            assert_eq!(
+                legacy_plugin_launch_agent_path(Path::new("/Users/someone")),
+                Path::new("/Users/someone/Library/LaunchAgents/sona.plist")
             );
         }
 
@@ -266,5 +353,44 @@ mod linux {
         for file in ["Handy Personal.desktop", "Handy.desktop", "handy.desktop"] {
             let _ = fs::remove_file(config.join("autostart").join(file));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The whole point of the guard is the *portable* case, and the installed
+    /// case is what makes "refused" observable rather than "always refuses":
+    /// a guard that returned `false` unconditionally would disable
+    /// launch-at-login for every user, which no test that only checked the
+    /// portable branch could tell apart from correct behaviour.
+    ///
+    /// The requested preference is deliberately not an input. Portable refuses
+    /// `enabled: true` as well — registering would mint a login item pointing
+    /// at the portable bundle's own path, which is host state written by a copy
+    /// that may live on removable media.
+    #[test]
+    fn only_an_installed_copy_owns_the_host_login_item() {
+        assert!(
+            !owns_host_login_item(true),
+            "a portable copy applied its own preference to the installed app's login item"
+        );
+        assert!(
+            owns_host_login_item(false),
+            "an installed copy refused to manage its own login item"
+        );
+    }
+
+    #[test]
+    fn macos_uses_one_owner_per_os_generation() {
+        assert!(
+            !macos_plugin_autostart_required(true),
+            "SMAppService hosts must not retain a plugin launch-agent writer"
+        );
+        assert!(
+            macos_plugin_autostart_required(false),
+            "older macOS releases still need the plugin launch-agent backend"
+        );
     }
 }

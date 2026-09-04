@@ -183,12 +183,42 @@ impl BackgroundScanGate {
     }
 }
 
-fn background_scan_configured(settings: &CloudSyncSettings) -> bool {
+/// Whether stored settings ask this device to sync: setup finished, the current
+/// disclosure accepted, not paused, an endpoint that parses, and an install
+/// with credential storage. The background scan gates on this and so does
+/// every error the UI shows, so a sync that is deliberately off cannot report
+/// a failure it is not trying to reach.
+fn sync_requested(settings: &CloudSyncSettings, portable_mode: bool) -> bool {
     settings.enabled
         && settings.has_current_consent()
         && !settings.paused
         && settings.endpoint().is_ok_and(|endpoint| endpoint.is_some())
-        && !portable::is_portable()
+        && !portable_mode
+}
+
+/// What the runtime knows about itself when a caller asks for the status error,
+/// as opposed to what settings say. Named fields: these used to be three
+/// positional `bool`s, and transposing two of them compiled while silently
+/// moving which suppression was under test.
+#[derive(Clone, Copy)]
+struct SyncGate {
+    portable: bool,
+    stopped: bool,
+    capturing: bool,
+}
+
+/// The one owner of the suppression rule. An operational error is worth showing
+/// only while sync is running, so a shut-down runtime and a live capture hide it
+/// on top of the settings the background scan already gates on.
+fn active_status_error(
+    settings: &CloudSyncSettings,
+    gate: SyncGate,
+    error: Option<CloudSyncErrorKind>,
+) -> Option<CloudSyncErrorKind> {
+    if gate.stopped || gate.capturing || !sync_requested(settings, gate.portable) {
+        return None;
+    }
+    error
 }
 
 pub(crate) struct CloudSyncRuntime {
@@ -198,6 +228,7 @@ pub(crate) struct CloudSyncRuntime {
     stopped: AtomicBool,
     started: AtomicBool,
     client: Mutex<Option<EndpointClient>>,
+    operational_error: Mutex<Option<CloudSyncErrorKind>>,
     background_scan: BackgroundScanGate,
 }
 
@@ -575,6 +606,7 @@ impl CloudSyncRuntime {
             stopped: AtomicBool::new(false),
             started: AtomicBool::new(false),
             client: Mutex::new(None),
+            operational_error: Mutex::new(None),
             background_scan: BackgroundScanGate::default(),
         }
     }
@@ -633,21 +665,65 @@ impl CloudSyncRuntime {
     }
 
     pub(crate) fn cloud_settings_changed(&self, settings: &CloudSyncSettings) {
-        self.background_scan
-            .set_configured(background_scan_configured(settings));
+        let configured = sync_requested(settings, portable::is_portable());
+        self.background_scan.set_configured(configured);
+        if !configured {
+            self.set_operational_error(None);
+        }
+    }
+
+    pub(crate) fn status_error_for(
+        &self,
+        settings: &CloudSyncSettings,
+        portable_mode: bool,
+    ) -> Option<CloudSyncErrorKind> {
+        let error = *self
+            .operational_error
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        active_status_error(
+            settings,
+            SyncGate {
+                portable: portable_mode,
+                stopped: self.stopped.load(Ordering::Acquire),
+                capturing: self.meetings.is_capture_active(),
+            },
+            error,
+        )
+    }
+
+    fn set_operational_error(&self, error: Option<CloudSyncErrorKind>) {
+        let changed = {
+            let mut current = self
+                .operational_error
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if *current == error {
+                false
+            } else {
+                *current = error;
+                true
+            }
+        };
+        if changed {
+            self.emit_changed(None, None);
+        }
     }
 
     pub(crate) async fn overview(&self) -> Result<CloudSyncOverview, CloudRuntimeError> {
         let settings = settings::get_settings(&self.app).cloud_sync;
         let portable_mode = portable::is_portable();
         let Some(store) = self.meetings.cloud_store().await.ok() else {
+            // Closed, not corrupt: startup recovery has not finished, or the
+            // mount is still waiting behind a system prompt.
+            self.set_operational_error(Some(CloudSyncErrorKind::SetupRequired));
             return Ok(CloudSyncOverview {
                 enabled: settings.enabled && settings.has_current_consent(),
                 portable_mode,
                 paused: settings.paused,
                 queued_objects: 0,
                 pending_deletions: 0,
-                terminal_error: None,
+                terminal_error: self.status_error_for(&settings, portable_mode),
             });
         };
         let counts = store.cloud_status_counts().map_err(map_store_error)?;
@@ -666,7 +742,9 @@ impl CloudSyncRuntime {
             paused: settings.paused || state_paused,
             queued_objects: counts.queued_outbox.saturating_add(counts.claimed_outbox),
             pending_deletions: counts.pending_tombstones,
-            terminal_error,
+            terminal_error: self
+                .status_error_for(&settings, portable_mode)
+                .or(terminal_error),
         })
     }
 
@@ -1359,10 +1437,11 @@ impl CloudSyncRuntime {
             return Ok(None);
         }
         let cloud_settings = settings::get_settings(&self.app).cloud_sync;
-        if !cloud_settings.enabled
-            || !cloud_settings.has_current_consent()
-            || cloud_settings.paused
-            || self.meetings.is_capture_active()
+        if self.meetings.is_capture_active() {
+            self.set_operational_error(None);
+            return Ok(None);
+        }
+        if !cloud_settings.enabled || !cloud_settings.has_current_consent() || cloud_settings.paused
         {
             return Ok(None);
         }
@@ -1372,18 +1451,37 @@ impl CloudSyncRuntime {
         };
         let store = match self.meetings.cloud_store().await {
             Ok(store) => store,
-            Err(_) => return Ok(None),
+            // Not mounted yet, which is setup rather than a failed check.
+            Err(_) => {
+                self.set_operational_error(Some(CloudSyncErrorKind::SetupRequired));
+                return Ok(None);
+            }
         };
-        let state = match store.cloud_state().map_err(map_store_error)? {
-            Some(state) if !state.paused && state.endpoint == endpoint => state,
-            _ => return Ok(None),
+        let state = match store.cloud_state() {
+            Ok(Some(state)) if state.paused => {
+                self.set_operational_error(None);
+                return Ok(None);
+            }
+            Ok(Some(state)) if state.endpoint == endpoint => state,
+            Ok(_) => {
+                self.set_operational_error(Some(CloudSyncErrorKind::SetupRequired));
+                return Ok(None);
+            }
+            Err(_) => {
+                self.set_operational_error(Some(CloudSyncErrorKind::IntegrityFailure));
+                return Ok(None);
+            }
         };
         let keys = match self.secrets.cloud_sync_keys().await {
             Ok(keys) => keys,
-            Err(_) => return Ok(None),
+            Err(_) => {
+                self.set_operational_error(Some(CloudSyncErrorKind::SecretUnavailable));
+                return Ok(None);
+            }
         };
         let client = self.client_for(&endpoint)?;
         client.set_clock_offset_ms(state.clock_offset_ms);
+        self.set_operational_error(None);
         Ok(Some(CloudAccess {
             store,
             state,
@@ -4106,6 +4204,7 @@ fn strict_text(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::secrets::{MemorySecretBackend, SecretErrorKind};
 
     #[test]
     fn unconfigured_background_sync_has_no_scan_deadline() {
@@ -4140,6 +4239,57 @@ mod tests {
         stopped.store(true, Ordering::Release);
         gate.wake();
         worker.join().expect("scan gate worker");
+    }
+
+    #[test]
+    fn unavailable_keychain_is_visible_only_while_sync_can_run() {
+        let backend = Arc::new(MemorySecretBackend::new());
+        let secrets = SecretManager::with_backend(backend.clone());
+        backend.fail_next(SecretErrorKind::Unavailable);
+
+        let observed_error = tauri::async_runtime::block_on(secrets.cloud_sync_keys())
+            .err()
+            .map(|_| CloudSyncErrorKind::SecretUnavailable);
+        assert_eq!(observed_error, Some(CloudSyncErrorKind::SecretUnavailable));
+        assert!(!backend.has("cloud_sync/vault-root-v1"));
+        assert!(!backend.has("cloud_sync/signing-seed-v1"));
+        assert!(!backend.has("cloud_sync/pairing-secret-v1"));
+
+        let mut settings = CloudSyncSettings {
+            enabled: true,
+            paused: false,
+            consent_version: Some(CLOUD_SYNC_CONSENT_VERSION),
+            endpoint: Some("https://sync.example.test/v1".to_owned()),
+        };
+        let running = SyncGate {
+            portable: false,
+            stopped: false,
+            capturing: false,
+        };
+        let status_error = |settings: &CloudSyncSettings, gate: SyncGate| {
+            active_status_error(settings, gate, observed_error)
+        };
+        assert_eq!(status_error(&settings, running), observed_error);
+
+        settings.paused = true;
+        assert_eq!(status_error(&settings, running), None);
+        settings.paused = false;
+        settings.enabled = false;
+        assert_eq!(status_error(&settings, running), None);
+        settings.enabled = true;
+        settings.consent_version = None;
+        assert_eq!(status_error(&settings, running), None);
+        settings.consent_version = Some(CLOUD_SYNC_CONSENT_VERSION);
+
+        let mut gate = running;
+        gate.portable = true;
+        assert_eq!(status_error(&settings, gate), None);
+        gate = running;
+        gate.stopped = true;
+        assert_eq!(status_error(&settings, gate), None);
+        gate = running;
+        gate.capturing = true;
+        assert_eq!(status_error(&settings, gate), None);
     }
 
     fn browser_share_payload(root: &[u8; 32]) -> (CloudShareRecord, StagedPayload) {
@@ -4278,7 +4428,6 @@ mod tests {
     const TEST_DEVICE_ID: &str = "phonedeviceid123";
 
     struct PhoneObject {
-        audio: Vec<u8>,
         sealed_manifest: Vec<u8>,
         sealed_chunks: Vec<Vec<u8>>,
         envelope: ObjectRevisionEnvelope,
@@ -4361,7 +4510,6 @@ mod tests {
             writer_signature: base64_url_encode(&[0; 64]),
         };
         PhoneObject {
-            audio,
             sealed_manifest,
             sealed_chunks,
             envelope,

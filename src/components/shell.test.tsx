@@ -97,12 +97,14 @@ const shell = (
         currentSection={section}
         onSectionChange={() => undefined}
         onOpenMeeting={() => undefined}
+        onOpenRecorder={() => undefined}
         loadingLabel="Loading"
         meetingInvalidation={0}
         meetingNavigationRequest={null}
         meetingStartRequest={0}
         personRequest={null}
         organizationRequest={null}
+        dictationRequest={null}
         commandOpen={false}
         commandActions={[]}
         commandSeed={null}
@@ -402,5 +404,17 @@ describe("the pane's drag band", () => {
     expect(openTag(shell("overview", OFF), "drag-band")).toContain(
       "data-tauri-drag-region",
     );
+  });
+});
+
+/* The native main window is fixed at 900 × 800. The page scroll owner must be
+ * allowed to shrink inside that fixed flex column; otherwise Settings grows
+ * past the pane and its lower controls are clipped instead of scrollable. */
+describe("the fixed-window page scroll owner", () => {
+  test("Settings has a shrinkable vertical scroll owner", () => {
+    const scrollOwner = openTag(shell("settings"), "page-scroll");
+
+    expect(scrollOwner).toContain("min-h-0");
+    expect(scrollOwner).toContain("overflow-y-auto");
   });
 });

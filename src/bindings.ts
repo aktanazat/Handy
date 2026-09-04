@@ -782,30 +782,6 @@ async changeExtraRecordingBufferSetting(ms: number) : Promise<Result<null, strin
     else return { status: "error", error: e  as any };
 }
 },
-async changePasteDelayMsSetting(ms: number) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("change_paste_delay_ms_setting", { ms }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async changePasteDelayAfterMsSetting(ms: number) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("change_paste_delay_after_ms_setting", { ms }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async changeReliablePasteSetting(enabled: boolean) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("change_reliable_paste_setting", { enabled }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async getAvailableTypingTools() : Promise<string[]> {
     return await TAURI_INVOKE("get_available_typing_tools");
 },
@@ -889,13 +865,8 @@ async setPostProcessProvider(providerId: string) : Promise<Result<null, string>>
     else return { status: "error", error: e  as any };
 }
 },
-async fetchPostProcessModels(providerId: string) : Promise<Result<string[], SecretCommandError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("fetch_post_process_models", { providerId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async discoverPostProcessModelCatalog(providerId: string) : Promise<PostProcessModelCatalog> {
+    return await TAURI_INVOKE("discover_post_process_model_catalog", { providerId });
 },
 async addPostProcessPrompt(name: string, prompt: string) : Promise<Result<LLMPrompt, string>> {
     try {
@@ -1475,6 +1446,97 @@ async cancelAudioImport(jobId: number) : Promise<Result<AudioImportJob, string>>
 },
 async listAudioImportJobs() : Promise<AudioImportJob[]> {
     return await TAURI_INVOKE("list_audio_import_jobs");
+},
+async recorderPreflight() : Promise<RecorderPreflight> {
+    return await TAURI_INVOKE("recorder_preflight");
+},
+async recorderPreviewStart(request: RecorderStartRequest) : Promise<Result<RecorderSnapshot, RecorderCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("recorder_preview_start", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async recorderPreviewStop() : Promise<Result<RecorderSnapshot, RecorderCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("recorder_preview_stop") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async recorderStart() : Promise<Result<RecorderSnapshot, RecorderCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("recorder_start") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async recorderPause() : Promise<Result<RecorderSnapshot, RecorderCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("recorder_pause") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async recorderResume() : Promise<Result<RecorderSnapshot, RecorderCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("recorder_resume") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async recorderStop() : Promise<Result<RecorderSnapshot, RecorderCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("recorder_stop") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async recorderCancel() : Promise<Result<RecorderSnapshot, RecorderCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("recorder_cancel") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async voiceIdentityStatus(sessionId: MeetingSessionId) : Promise<Result<VoiceIdentityStatus, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("voice_identity_status", { sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async voiceIdentifySpeaker(request: VoiceSpeakerIdentityRequest) : Promise<Result<VoiceSpeakerIdentityResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("voice_identify_speaker", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async voiceEnrollProfile(request: VoiceProfileEnrollmentRequest) : Promise<Result<VoiceProfileEnrollmentStatus, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("voice_enroll_profile", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async voiceRemoveProfile(request: VoiceProfileRemovalRequest) : Promise<Result<VoiceProfileEnrollmentStatus, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("voice_remove_profile", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
 async getHistoryStats() : Promise<Result<HistoryStats, null>> {
     try {
@@ -2518,6 +2580,11 @@ async cloudShareImportFile(request: CloudShareImportRequest) : Promise<Result<Cl
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * `async` because `status_error_for` takes the meeting actor mutex, which a
+ * starting meeting holds across a system-audio device open. On the main
+ * thread that would stall the whole UI while Settings > Privacy opens.
+ */
 async cloudSyncServiceStatus() : Promise<CloudSyncServiceStatus> {
     return await TAURI_INVOKE("cloud_sync_service_status");
 },
@@ -2816,10 +2883,13 @@ meetingSuggestionChanged: MeetingSuggestionChangedEvent,
 meetingTranscriptChanged: MeetingTranscriptChangedEvent,
 modesChangedEvent: ModesChangedEvent,
 queryLinkRequested: QueryLinkRequestedEvent,
+recorderStateChangedEvent: RecorderStateChangedEvent,
 sonaCaptureRequested: CaptureRequestedEvent,
 streamEngineEvent: StreamEngineEvent,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent,
+trayCopyFailed: TrayCopyFailedEvent,
+traySettingsRequested: TraySettingsRequestedEvent,
 upstreamImportProgressEvent: UpstreamImportProgressEvent
 }>({
 agentBridgeUpdateEvent: "agent-bridge-update-event",
@@ -2845,10 +2915,13 @@ meetingSuggestionChanged: "meeting:suggestion-changed",
 meetingTranscriptChanged: "meeting:transcript-changed",
 modesChangedEvent: "modes-changed-event",
 queryLinkRequested: "query:link-requested",
+recorderStateChangedEvent: "recorder-state-changed-event",
 sonaCaptureRequested: "sona:capture-requested",
 streamEngineEvent: "stream-engine-event",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event",
+trayCopyFailed: "tray:copy-failed",
+traySettingsRequested: "tray:settings-requested",
 upstreamImportProgressEvent: "upstream-import-progress-event"
 })
 
@@ -3280,11 +3353,6 @@ detection_any_mic_activity?: boolean;
  */
 detection_auto_start_on_open_pane?: boolean;
 /**
- * Minutes without transcript-worthy audio before a detected capture stops
- * itself. Zero leaves manual stop as the only timer.
- */
-detection_silence_stop_minutes?: number;
-/**
  * Bundle IDs treated as meeting applications. Seeded from the known set and
  * editable, because vendors rename these: Microsoft has already renamed
  * Teams's bundle ID once. An entry only becomes a signal when a process
@@ -3535,12 +3603,18 @@ export type CloudSyncErrorKind = "portable_unavailable" | "secret_unavailable" |
 export type CloudSyncOverview = { enabled: boolean; portable_mode: boolean; paused: boolean; queued_objects: number; pending_deletions: number; terminal_error: CloudSyncErrorKind | null }
 export type CloudSyncRecoveryRequest = { endpoint: string; recovery_code: string }
 /**
- * Whether this installation actually has a cloud-sync service to talk to.
- * Derived only from stored settings: this reads no network and starts no
- * sync work, so the UI can hide destructive setup actions on a device that
- * was never bootstrapped.
+ * What the privacy page says about cloud sync on this device. Derived from
+ * stored settings and the runtime's last access result: reads no network and
+ * acquires no credentials.
+ *
+ * `configured` answers provisioning alone, meaning setup finished, the current
+ * disclosure accepted, and a remote endpoint stored. `error` is the only
+ * failure signal. A provisioned vault that cannot be opened right now stays
+ * configured and reports the failure in `error`, so a locked keychain never
+ * reads as a device that was never set up, which is the state destructive
+ * setup actions key off.
  */
-export type CloudSyncServiceStatus = { configured: boolean; endpoint: string | null; reason: string }
+export type CloudSyncServiceStatus = { configured: boolean; endpoint: string | null; error: CloudSyncErrorKind | null; reason: string }
 /**
  * Persisted cloud-sync intent only. Cryptographic material, vault identifiers,
  * device identifiers, and sync cursors remain outside the settings store.
@@ -3684,7 +3758,16 @@ export type DeliveryOutcome =
  * Input was sent or may have reached the target, but the target cannot
  * confirm it. Never retry this outcome.
  */
-"dispatched_but_unconfirmed"
+"dispatched_but_unconfirmed" |
+/**
+ * Dispatched through synthetic key events while macOS held Secure Event
+ * Input, which is the one condition under which those events are known
+ * to be dropped before any application sees them. Still unconfirmed —
+ * the platform never reports where a key event landed — but not the same
+ * unconfirmed as an ordinary paste, because here Sona knows the target
+ * was locked to exactly the mechanism it used. Never retry.
+ */
+"dispatched_under_secure_input"
 export type DeliveryReceipt = { method: DeliveryMethod; outcome: DeliveryOutcome; dispatched_at_ms: number }
 /**
  * The countdown half of §5.3 case 1, and everything the pre-meeting card
@@ -3786,7 +3869,7 @@ export type DetectionPromptRetractionReason = "trigger_app_quit" | "event_ended"
  * together — turning the calendar path on while detection itself is off is not
  * a state the UI should be able to produce halfway through.
  */
-export type DetectionSettings = { enabled: boolean; calendarEnabled: boolean; anyMicActivity: boolean; autoStartOnOpenPane: boolean; silenceStopMinutes: number; meetingApps: string[];
+export type DetectionSettings = { enabled: boolean; calendarEnabled: boolean; anyMicActivity: boolean; autoStartOnOpenPane: boolean; meetingApps: string[];
 /**
  * Bundle IDs that record without a prompt. A subset of `meeting_apps` in
  * practice: an entry detection does not watch grants nothing.
@@ -3818,10 +3901,6 @@ suppressReason: SuppressReason | null; countdown: DetectionCountdown | null;
  * legitimate answer and the settings UI shows it as such.
  */
 runningMeetingApps: string[];
-/**
- * Which auto-stop triggers can actually fire, given what is observable.
- */
-availableStopTriggers: StopTrigger[];
 /**
  * True when the Bluetooth-microphone false negative applies: nothing is
  * reported as holding the input device while a meeting app is frontmost.
@@ -4330,14 +4409,14 @@ provisional: boolean }
  */
 export type MeetingCatchUpState = "ready" | "no_transcript_yet" | "model_unavailable" | "failed"
 export type MeetingCitation = { kind: CitationKind; session_id: MeetingSessionId; entity_id: string; start_offset_ns: number | null; end_offset_ns?: number | null }
-export type MeetingCommandError = "consent_required" | "consent_stale" | "invalid_transition" | "stale_revision" | "capture_lease_busy" | "no_source_started" | "source_unavailable" | "storage_unavailable" | "recovery_required" | "deletion_in_progress" | "not_found" | "invalid_request" | "export_cancelled" | "export_failed" | "local_model_unavailable" | "remote_unavailable" |
+export type MeetingCommandError = "consent_required" | "consent_stale" | "invalid_transition" | "stale_revision" | "capture_lease_busy" | "no_source_started" | "source_unavailable" | "storage_unavailable" | "recovery_required" | "deletion_in_progress" | "not_found" | "invalid_request" | "export_cancelled" | "export_failed" | "local_model_unavailable" | "local_evidence_unavailable" | "insufficient_enrollment_evidence" | "profile_model_incompatible" | "profile_merge_resolution_required" | "remote_unavailable" | "engine_failure" |
 /**
  * The file offered for import is not a recording or transcript export
  * Sona can read. Every refusal reaching the operator says this, because
  * they all have the same answer: choose a different file.
  */
 "import_unreadable"
-export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel" | "loop_resolve" | "loop_reopen" | "loop_assign" | "loop_carry" | "series_template_set" | "series_digest_set" | "series_always_record_set" | "follow_up_draft" | "series_automation_set" | "series_remote_opt_out_set" | "saved_prompt_save" | "saved_prompt_delete"
+export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "speaker_identify" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel" | "loop_resolve" | "loop_reopen" | "loop_assign" | "loop_carry" | "series_template_set" | "series_digest_set" | "series_always_record_set" | "follow_up_draft" | "series_automation_set" | "series_remote_opt_out_set" | "saved_prompt_save" | "saved_prompt_delete"
 export type MeetingConsentInput = { policy_version: number; microphone_acknowledged: boolean; system_audio_acknowledged: boolean; known_missing_sources_acknowledged: SourceKind[]; degraded_start_policy: DegradedStartPolicy; destination: ProcessingDestination; remote_acknowledgement: RemoteAcknowledgement | null }
 export type MeetingConsentPanelSessionState = { snapshot: MeetingSessionSnapshot; standing_series_key: string | null;
 /**
@@ -4910,7 +4989,13 @@ median_switch_gap_ms: number | null }
 /**
  * A window of local calendar days, today included. `Any` is unbounded.
  */
-export type MeetingTimeWindow = "any" | "today" | "last_7_days" | "last_30_days"
+export type MeetingTimeWindow = "any" | "today" |
+/**
+ * serde's `snake_case` writes `last7_days` while specta splits the digit
+ * off and the UI sends `last_7_days`; the alias keeps reading whatever a
+ * caller on the older spelling sends.
+ */
+"last_7_days" | "last_30_days"
 export type MeetingTitleSetRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; title: string }
 export type MeetingTrackSnapshot = { track_id: SourceTrackId; source_kind: SourceKind; format: AudioFormat | null; first_offset_ns: number | null; last_offset_ns: number | null; durable_record_count: number }
 export type MeetingTranscriptChangedEvent = MeetingEventPayload
@@ -5040,7 +5125,7 @@ revision: number; updated_at_utc_ms: number }
  * runs on an autosave timer while other edits may be in flight.
  */
 export type MeetingUserNotesSaveRequest = { session_id: MeetingSessionId; body: string; template: MeetingNotesTemplate; expected_note_revision: number }
-export type MeetingWrapCard = { sessionId: MeetingSessionId; title: string; headline: string; followUpCount: number; waitingOnCount: number; waitingOnNames: string[] }
+export type MeetingWrapCard = { sessionId: MeetingSessionId; title: string; headline: string; unresolvedSpeakerCount: number | null; followUpCount: number; waitingOnCount: number; waitingOnNames: string[] }
 /**
  * One exact frontmost-application identity mapped to one mode. Application
  * bundle identities are the only match keys; URLs and sites never enter this
@@ -5302,7 +5387,7 @@ export type PersonListLastMeeting = { session_id: MeetingSessionId; title: strin
 export type PersonMeetingHeadline = { kind: "ledger"; text: string } | { kind: "summary"; text: string }
 export type PersonMeetingLink = { meeting: PersonMeetingSummary; source: PersonLinkSource; confidence: PersonLinkConfidence }
 export type PersonMeetingSummary = { id: MeetingSessionId; title: string; at_utc_ms: number; headline: string | null; series_number: number }
-export type PersonMergeRequest = { source_person_id: PersonId; target_person_id: PersonId; expected_revision: number }
+export type PersonMergeRequest = { source_person_id: PersonId; target_person_id: PersonId; expected_revision: number; voice_profile_resolution?: VoiceProfileMergeResolution | null }
 /**
  * A loop raised in a meeting with this person, as the people surfaces read it.
  *
@@ -5354,7 +5439,19 @@ model_id: string }
  * sent anywhere the transcript itself would not already go.
  */
 export type PersonaSample = { id: string; text: string }
-export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean }
+export type PostProcessModelCatalog = { provider_id: string; models: PostProcessModelOption[]; discovery: PostProcessModelDiscovery; allows_manual_model_id: boolean }
+/**
+ * A safe, content-free outcome for a post-processing model refresh.
+ */
+export type PostProcessModelDiscovery = "ready" | "requires_consent" | "missing_credential" | "credential_unavailable" | "credential_locked" | "credential_corrupt" | "credential_busy" | "invalid_destination" | "unsupported" | "unauthorized" | "forbidden" | "rate_limited" | "unreachable" | "invalid_response"
+export type PostProcessModelOption = { id: string; provenance: PostProcessModelProvenance }
+/**
+ * Where one catalog entry came from. Only the provider can report an entry:
+ * a saved selection lives in settings and is merged by the caller for its own
+ * scope, so a failed refresh can never claim the provider still advertises it.
+ */
+export type PostProcessModelProvenance = "provider_reported"
+export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; supports_structured_output?: boolean }
 /**
  * A content-free acknowledgement for one exact remote LLM route. The base
  * endpoint and origin both have to match before text or an LLM credential can
@@ -5481,9 +5578,10 @@ export type QueryError =
 /**
  * One line of "what happened since I last looked".
  *
- * `action` and `detail` are machine tokens and store-authored text, never
- * prose written here: this is the backend, and a sentence invented in Rust
- * would be a user-facing string outside the translation catalogue.
+ * `action`, `detail` and `outcome_summary` are machine tokens and
+ * store-authored text, never prose written here: this is the backend, and a
+ * sentence invented in Rust would be a user-facing string outside the
+ * translation catalogue.
  */
 export type QueryEvent = { id: string; source: QueryEventSource;
 /**
@@ -5492,9 +5590,13 @@ export type QueryEvent = { id: string; source: QueryEventSource;
  */
 action: string; result: QueryEventResult;
 /**
- * The reason codes a receipt carries, or the summary a run wrote.
+ * The reason codes a receipt carries, or a run's error when it failed.
  */
-detail: string; when_utc_ms: number;
+detail: string;
+/**
+ * The workflow run's store-authored summary. A receipt has none.
+ */
+outcome_summary: string | null; when_utc_ms: number;
 /**
  * The `sona://` address of the noun this event touched. Absent for events
  * that touched no addressable noun — a default retention change, a
@@ -5591,13 +5693,29 @@ export type QuerySearchPage = { schema_version: number; entries: QueryRow[];
  * Absent when this page is the end of the result.
  */
 next_cursor: QueryCursor | null }
+export type RecorderAvailability = "supported" | "unsupported"
+export type RecorderCommandError = "invalidState"
+export type RecorderDevice = { id: string; name: string }
+export type RecorderFailureCode = "unsupported" | "captureBusy" | "screenPermissionDenied" | "cameraPermissionDenied" | "microphonePermissionDenied" | "sourceSelectionCancelled" | "sourceUnavailable" | "cameraUnavailable" | "microphoneUnavailable" | "streamFailed" | "timestampDiscontinuity" | "writerFailed" | "outputFinalizeFailed" | "outputCommitFailed"
+export type RecorderPhase = "checking" | "permission" | "idle" | "selectingSource" | "previewing" | "starting" | "recording" | "paused" | "finalizing" | "saved" | "failed"
+export type RecorderPreflight = { availability: RecorderAvailability; startAvailability: RecorderStartAvailability; cameraDevices: RecorderDevice[]; microphoneDevices: RecorderDevice[] }
+export type RecorderSnapshot = { phase: RecorderPhase; elapsedMs: number; screenSelected: boolean; droppedVideoFrames: number; outputPath: string | null; width: number | null; height: number | null; failure: RecorderFailureCode | null }
+export type RecorderStartAvailability = "ready" | "captureBusy"
+export type RecorderStartRequest = { cameraEnabled: boolean; cameraDeviceId: string | null; microphoneEnabled: boolean; microphoneDeviceId: string | null }
+export type RecorderStateChangedEvent = { snapshot: RecorderSnapshot }
 /**
  * Where an imported recording came from. Recorded on the track's descriptor,
  * so a meeting can say afterwards that its audio arrived from a paired phone
  * rather than from a file somebody dropped in.
  */
 export type RecordingOrigin = { kind: "local_file" } | { kind: "paired_device"; device_id: string }
-export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
+export type RecordingRetentionPeriod = "never" | "preserve_limit" |
+/**
+ * serde's `snake_case` keeps the digit attached (`days3`) while specta
+ * splits it off, so the bindings and the settings UI say `days_3`. The
+ * aliases keep reading settings files written under the older spelling.
+ */
+"days_3" | "weeks_2" | "months_3"
 export type RemoteAcknowledgement = { destination_id: string; policy_version: number; acknowledged_at_utc_ms: number }
 /**
  * A deterministic spoken-phrase rewrite applied before vocabulary
@@ -5632,7 +5750,7 @@ export type SavedPromptRunRequest = { prompt_id: SavedPromptId; target: PromptTa
  * a replayed save from a stale window updates in place rather than duplicating.
  */
 export type SavedPromptSaveRequest = { operation_id: MeetingOperationId; prompt_id: SavedPromptId | null; name: string; body: string; output: PromptOutput; target: PromptTarget; expected_revision: number }
-export type SecretCommandError = "not_found" | "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend" | "consent_required"
+export type SecretCommandError = "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend"
 export type SecretErrorKind = "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend"
 export type SecretKind = "llm" | "stt" | "meeting_storage"
 export type SecretState = { configured: boolean; lastVerifiedAt: number | null; lastErrorKind: SecretErrorKind | null }
@@ -5708,41 +5826,6 @@ export type SpeakerId = string
  * so the displayed shares always add up to 100%.
  */
 export type SpeakerTalkShare = { speaker_id: SpeakerId; speaking_ns: number; share_permille: number; turn_count: number; longest_monologue_ns: number }
-/**
- * Why a capture ended by itself. Manual stop is not in this list: it stays the
- * primary path and does not go through the heuristic at all.
- */
-export type StopTrigger =
-/**
- * §5.5 condition 4.
- */
-"sleep_boundary" |
-/**
- * §5.5 condition 1.
- */
-"event_end" |
-/**
- * §5.5 condition 3, observable variant: the triggering app quit.
- */
-"trigger_app_exited" |
-/**
- * §5.5 condition 3 proper: the input device went idle. Only meaningful when
- * Sona is not itself the process holding the device.
- */
-"input_device_idle" |
-/**
- * The call this capture was started for ended: its app stopped playing
- * through the default output device and stayed silent past
- * `CALL_HANGUP_GRACE_MS`. `InputDeviceIdle` cannot express this — Sona's
- * own capture keeps the input device raised for the whole meeting — and a
- * call app stays open long after a call hangs up, so `TriggerAppExited`
- * cannot either.
- */
-"call_ended" |
-/**
- * §5.5 condition 2.
- */
-"silence"
 export type StorageAvailability = "available" | "unavailable"
 /**
  * The source currently shown by the live overlay. Cloud failures switch to
@@ -5860,6 +5943,8 @@ export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 export type TranscriptRevisionId = string
 export type TranscriptSegment = { segment_id: TranscriptSegmentId; transcript_revision_id: TranscriptRevisionId; track_id: SourceTrackId; ordinal: number; start_offset_ns: number; end_offset_ns: number; speaker_id: SpeakerId; text: string; confidence_milli: number | null }
 export type TranscriptSegmentId = string
+export type TrayCopyFailedEvent = null
+export type TraySettingsRequestedEvent = null
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
 /**
  * The result of one manual update check. A failed check is reported in
@@ -5888,6 +5973,15 @@ export type VocabularyCsvPreview = { total_rows: number; valid_rows: number; inv
  */
 export type VocabularyEntry = { spoken: string; written: string }
 export type VocabularyScope = { kind: "global" } | { kind: "current_mode" } | { kind: "mode"; mode_id: string }
+export type VoiceIdentityStatus = { unresolved_active_speaker_ids: SpeakerId[] }
+export type VoiceIdentityTarget = { kind: "existing"; person_id: PersonId } | { kind: "create"; display_name: string }
+export type VoiceProfileEnrollmentRequest = { person_id: PersonId; session_id: MeetingSessionId; speaker_id: SpeakerId; expected_meeting_revision: number; expected_speaker_revision: number; expected_people_revision: number; consent_version: number }
+export type VoiceProfileEnrollmentStatus = { enrolled: boolean; sample_count: number }
+export type VoiceProfileMergeResolution = "discard_source" | "replace_target_with_source" | "combine_compatible"
+export type VoiceProfileRemovalRequest = { person_id: PersonId; expected_people_revision: number }
+export type VoiceSpeakerIdentityAction = { kind: "label"; target: VoiceIdentityTarget } | { kind: "correct_to"; target: VoiceIdentityTarget } | { kind: "mark_unknown" }
+export type VoiceSpeakerIdentityRequest = { operation_id: MeetingOperationId; requested_at_utc_ms: number; session_id: MeetingSessionId; expected_meeting_revision: number; expected_people_revision: number; speaker_id: SpeakerId; action: VoiceSpeakerIdentityAction }
+export type VoiceSpeakerIdentityResult = { receipt: OperationReceipt; resolved_person_id: PersonId | null }
 /**
  * The scope of one website activation rule. Exact rules match only the
  * normalized host; suffix rules also match its subdomains.

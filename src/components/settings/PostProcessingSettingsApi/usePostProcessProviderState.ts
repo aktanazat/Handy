@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSettings } from "../../../hooks/useSettings";
+import { useSettings } from "@/hooks/useSettings";
 import {
   commands,
   type PostProcessProvider,
@@ -7,8 +7,9 @@ import {
   type SecretState,
 } from "@/bindings";
 import type { ModelOption, ProviderOption } from "./types";
+import { usePostProcessModelCatalog } from "./usePostProcessModelCatalog";
 
-type PostProcessProviderState = {
+export type PostProcessProviderState = {
   providerOptions: ProviderOption[];
   selectedProviderId: string;
   selectedProvider: PostProcessProvider | undefined;
@@ -24,8 +25,9 @@ type PostProcessProviderState = {
   isSecretUpdating: boolean;
   isSecretUnavailable: boolean;
   model: string;
-  handleModelChange: (value: string) => void;
   modelOptions: ModelOption[];
+  modelStatusKeys: string[];
+  allowsManualModelId: boolean;
   isModelUpdating: boolean;
   isFetchingModels: boolean;
   remoteConsent: PostProcessProviderConsent | undefined;
@@ -37,7 +39,6 @@ type PostProcessProviderState = {
 
 const APPLE_PROVIDER_ID = "apple_intelligence";
 const EMPTY_POST_PROCESS_PROVIDERS: PostProcessProvider[] = [];
-const EMPTY_POST_PROCESS_MODEL_OPTIONS: string[] = [];
 
 export const usePostProcessProviderState = (): PostProcessProviderState => {
   const {
@@ -49,8 +50,6 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     removePostProcessSecret,
     refreshPostProcessSecretState,
     updatePostProcessModel,
-    fetchPostProcessModels,
-    postProcessModelOptions,
   } = useSettings();
 
   const providers =
@@ -60,12 +59,10 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     [providers, settings?.post_process_provider_id],
   );
   const selectedProvider = useMemo(
-    () =>
-      providers.find((provider) => provider.id === selectedProviderId) ||
-      providers[0],
+    () => providers.find((provider) => provider.id === selectedProviderId),
     [providers, selectedProviderId],
   );
-
+  const isKnownSelectedProvider = selectedProvider !== undefined;
   const isAppleProvider = selectedProvider?.id === APPLE_PROVIDER_ID;
   const [appleIntelligenceUnavailable, setAppleIntelligenceUnavailable] =
     useState(false);
@@ -75,11 +72,17 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
   const remoteConsent =
     settings?.post_process_provider_consents?.[selectedProviderId];
   const model = settings?.post_process_models?.[selectedProviderId] ?? "";
+
   useEffect(() => {
-    if (!isAppleProvider) {
+    if (isKnownSelectedProvider && !isAppleProvider) {
       void refreshPostProcessSecretState(selectedProviderId);
     }
-  }, [isAppleProvider, refreshPostProcessSecretState, selectedProviderId]);
+  }, [
+    isAppleProvider,
+    isKnownSelectedProvider,
+    refreshPostProcessSecretState,
+    selectedProviderId,
+  ]);
 
   const providerOptions = useMemo<ProviderOption[]>(
     () =>
@@ -89,19 +92,36 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
       })),
     [providers],
   );
+  const discoveryReady =
+    isKnownSelectedProvider &&
+    Boolean(baseUrl.trim()) &&
+    (selectedProvider?.id === "custom" || secretState !== undefined);
+  const automaticDiscoveryKey = [
+    remoteConsent?.text_transfer_consent ? "consented" : "needs-consent",
+    secretState?.configured === true
+      ? "configured"
+      : secretState?.configured === false
+        ? "missing"
+        : "unknown",
+    secretState?.lastErrorKind ?? "none",
+  ].join("\u0000");
+  const modelCatalog = usePostProcessModelCatalog({
+    autoDiscover: discoveryReady && !isAppleProvider,
+    autoDiscoveryKey: automaticDiscoveryKey,
+    baseUrl,
+    enabled: isKnownSelectedProvider && !isAppleProvider,
+    providerId: selectedProviderId,
+    savedModelId: model,
+  });
 
   const handleProviderSelect = useCallback(
     async (providerId: string) => {
       setAppleIntelligenceUnavailable(false);
-      if (providerId === selectedProviderId) {
-        return;
-      }
+      if (providerId === selectedProviderId) return;
 
       if (providerId === APPLE_PROVIDER_ID) {
         const available = await commands.checkAppleIntelligenceAvailable();
-        if (!available) {
-          setAppleIntelligenceUnavailable(true);
-        }
+        if (!available) setAppleIntelligenceUnavailable(true);
       }
       await setPostProcessProvider(providerId);
     },
@@ -110,9 +130,7 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
 
   const handleBaseUrlChange = useCallback(
     (value: string) => {
-      if (!selectedProvider || selectedProvider.id !== "custom") {
-        return;
-      }
+      if (selectedProvider?.id !== "custom") return;
       const trimmed = value.trim();
       if (trimmed && trimmed !== baseUrl) {
         void updatePostProcessBaseUrl(selectedProvider.id, trimmed);
@@ -125,85 +143,38 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     (value: string) => replacePostProcessSecret(selectedProviderId, value),
     [replacePostProcessSecret, selectedProviderId],
   );
-
   const handleSecretDelete = useCallback(() => {
     void removePostProcessSecret(selectedProviderId);
   }, [removePostProcessSecret, selectedProviderId]);
-
-  const handleModelChange = useCallback(
-    (value: string) => {
-      const trimmed = value.trim();
-      if (trimmed !== model) {
-        void updatePostProcessModel(selectedProviderId, trimmed);
-      }
-    },
-    [model, selectedProviderId, updatePostProcessModel],
-  );
-
   const handleModelSelect = useCallback(
     (value: string) => {
       void updatePostProcessModel(selectedProviderId, value.trim());
     },
     [selectedProviderId, updatePostProcessModel],
   );
-
   const handleModelCreate = useCallback(
     (value: string) => {
-      void updatePostProcessModel(selectedProviderId, value);
+      void updatePostProcessModel(selectedProviderId, value.trim());
     },
     [selectedProviderId, updatePostProcessModel],
   );
-
+  /* The catalog hook returns a fresh view object on every render, so this
+   * depends on its `discover` callback, which is stable, rather than on the
+   * view that carries it. */
+  const discoverModelCatalog = modelCatalog.discover;
   const handleRefreshModels = useCallback(() => {
-    if (isAppleProvider) {
-      return;
-    }
+    if (!isKnownSelectedProvider || isAppleProvider) return;
     void (async () => {
       await refreshPostProcessSecretState(selectedProviderId);
-      await fetchPostProcessModels(selectedProviderId);
+      await discoverModelCatalog();
     })();
   }, [
-    fetchPostProcessModels,
+    discoverModelCatalog,
     isAppleProvider,
+    isKnownSelectedProvider,
     refreshPostProcessSecretState,
     selectedProviderId,
   ]);
-
-  const availableModelsRaw =
-    postProcessModelOptions[selectedProviderId] ??
-    EMPTY_POST_PROCESS_MODEL_OPTIONS;
-  const modelOptions = useMemo<ModelOption[]>(() => {
-    const seen = new Set<string>();
-    const options: ModelOption[] = [];
-    const upsert = (value: string | null | undefined) => {
-      const trimmed = value?.trim();
-      if (!trimmed || seen.has(trimmed)) {
-        return;
-      }
-      seen.add(trimmed);
-      options.push({ value: trimmed, label: trimmed });
-    };
-
-    for (const candidate of availableModelsRaw) {
-      upsert(candidate);
-    }
-    upsert(model);
-    return options;
-  }, [availableModelsRaw, model]);
-
-  const isBaseUrlUpdating = isUpdating(
-    `post_process_base_url:${selectedProviderId}`,
-  );
-  const isSecretUpdating = isUpdating(
-    `post_process_secret:${selectedProviderId}`,
-  );
-  const isModelUpdating = isUpdating(
-    `post_process_model:${selectedProviderId}`,
-  );
-  const isFetchingModels = isUpdating(
-    `post_process_models_fetch:${selectedProviderId}`,
-  );
-  const isSecretUnavailable = secretState?.lastErrorKind === "unavailable";
 
   return {
     providerOptions,
@@ -214,17 +185,20 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     appleIntelligenceUnavailable,
     baseUrl,
     handleBaseUrlChange,
-    isBaseUrlUpdating,
+    isBaseUrlUpdating: isUpdating(
+      `post_process_base_url:${selectedProviderId}`,
+    ),
     secretState,
     handleSecretCommit,
     handleSecretDelete,
-    isSecretUpdating,
-    isSecretUnavailable,
+    isSecretUpdating: isUpdating(`post_process_secret:${selectedProviderId}`),
+    isSecretUnavailable: secretState?.lastErrorKind === "unavailable",
     model,
-    handleModelChange,
-    modelOptions,
-    isModelUpdating,
-    isFetchingModels,
+    modelOptions: modelCatalog.modelOptions,
+    modelStatusKeys: modelCatalog.statusKeys,
+    allowsManualModelId: modelCatalog.allowsManualModelId,
+    isModelUpdating: isUpdating(`post_process_model:${selectedProviderId}`),
+    isFetchingModels: modelCatalog.isLoading,
     remoteConsent,
     handleProviderSelect,
     handleModelSelect,

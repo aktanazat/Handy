@@ -1,9 +1,29 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { FactChip } from "@/components/settings/rows";
 import { FailureNotice } from "./FailureNotice";
-import { useCloudSyncServiceStatus } from "./privacyStatus";
+import {
+  useCloudSyncServiceStatus,
+  type CloudSyncServiceStatus,
+} from "./privacyStatus";
 import { useEgressRoutes } from "./useEgressRoutes";
+
+/* One state word for the chip. Why a route is unavailable is a sentence, and
+ * sentences belong in the notice below, not in a slot styled for
+ * measurements. */
+export const cloudSyncFact = (
+  status: CloudSyncServiceStatus | null,
+  t: TFunction,
+): string => {
+  if (status === null) return "…";
+  if (status.error) return t("cloudSync.account.status.unavailable");
+  if (!status.configured)
+    return t("settings.privacy.cloudSync.notConfigured", "Not configured");
+  return (
+    status.endpoint ?? t("settings.privacy.cloudSync.configured", "Configured")
+  );
+};
 
 /* The privacy page in four lines: one sentence that holds regardless of
  * settings, then one compact fact per route that can carry anything off this
@@ -73,17 +93,7 @@ export const PrivacyEgress: React.FC = () => {
         {service.phase === "failed" ? null : (
           <FactChip
             label={t("settings.privacy.cloudSync.title", "Cloud sync")}
-            value={
-              status === null
-                ? "…"
-                : status.configured
-                  ? (status.endpoint ??
-                    t("settings.privacy.cloudSync.configured", "Configured"))
-                  : t(
-                      "settings.privacy.cloudSync.notConfigured",
-                      "Not configured",
-                    )
-            }
+            value={cloudSyncFact(status, t)}
           />
         )}
       </div>
@@ -100,6 +110,9 @@ export const PrivacyEgress: React.FC = () => {
           )}
           {service.error === null ? "" : ` ${service.error}`}
         </FailureNotice>
+      ) : null}
+      {status?.error ? (
+        <FailureNotice>{t("cloudSync.errors." + status.error)}</FailureNotice>
       ) : null}
     </div>
   );

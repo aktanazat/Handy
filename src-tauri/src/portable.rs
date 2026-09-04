@@ -12,6 +12,64 @@ static PORTABLE_DATA_DIR: OnceLock<Option<PathBuf>> = OnceLock::new();
 pub const PORTABLE_MAGIC: &str = "Sona Portable Mode";
 const LEGACY_PORTABLE_MAGIC: &str = "Handy Portable Mode";
 
+/// Holds the operating-system lock that admits one portable GUI runtime for a
+/// Data directory. Headless CLI/MCP commands intentionally do not claim it.
+#[cfg(target_os = "macos")]
+pub(crate) struct DataDirInstanceLock {
+    _file: std::fs::File,
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Debug)]
+pub(crate) enum DataDirInstanceLockError {
+    AlreadyClaimed,
+    Io(std::io::Error),
+}
+
+#[cfg(target_os = "macos")]
+impl std::fmt::Display for DataDirInstanceLockError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AlreadyClaimed => {
+                formatter.write_str("another portable Sona is already using this Data directory")
+            }
+            Self::Io(error) => write!(
+                formatter,
+                "could not lock the portable Data directory: {error}"
+            ),
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+impl std::error::Error for DataDirInstanceLockError {}
+
+/// Claim the portable GUI runtime before Tauri plugins can open this root.
+/// The file remains locked until its guard drops at app exit.
+#[cfg(target_os = "macos")]
+pub(crate) fn claim_instance_lock() -> Result<Option<DataDirInstanceLock>, DataDirInstanceLockError>
+{
+    data_dir()
+        .map(|data_dir| claim_data_dir_lock(data_dir))
+        .transpose()
+}
+
+#[cfg(target_os = "macos")]
+fn claim_data_dir_lock(data_dir: &Path) -> Result<DataDirInstanceLock, DataDirInstanceLockError> {
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .open(data_dir.join(".sona-instance.lock"))
+        .map_err(DataDirInstanceLockError::Io)?;
+
+    match file.try_lock() {
+        Ok(()) => Ok(DataDirInstanceLock { _file: file }),
+        Err(std::fs::TryLockError::WouldBlock) => Err(DataDirInstanceLockError::AlreadyClaimed),
+        Err(std::fs::TryLockError::Error(error)) => Err(DataDirInstanceLockError::Io(error)),
+    }
+}
+
 /// Detect portable mode by looking for a `portable` marker file next to the exe.
 /// Must be called once at startup before Tauri initializes.
 pub fn init() {
@@ -23,9 +81,9 @@ pub fn init() {
         let data_dir = exe_dir.join("Data");
 
         let marker = portable_marker(&marker_path);
-        let legacy_empty_marker =
-            marker.is_none() && marker_path.exists() && data_dir.exists();
-        let is_portable = marker.is_some() || legacy_empty_marker;
+        let adopted_unknown_marker =
+            adopts_unknown_marker(marker, marker_path.exists(), data_dir.exists());
+        let is_portable = marker.is_some() || adopted_unknown_marker;
 
         if is_portable
             && debug_portable_marker_requires_override(
@@ -45,10 +103,10 @@ pub fn init() {
             if marker == Some(LEGACY_PORTABLE_MAGIC) {
                 eprintln!("[portable] upgrading legacy marker to Sona");
                 let _ = std::fs::write(&marker_path, PORTABLE_MAGIC);
-            } else if legacy_empty_marker {
-                // An empty marker next to Data/ is the legacy Scoop layout. Keep
-                // the install portable and make its intent explicit for Sona.
-                eprintln!("[portable] upgrading legacy empty marker to Sona");
+            } else if adopted_unknown_marker {
+                eprintln!(
+                    "[portable] adopting unrecognized marker beside Data/ as Sona portable"
+                );
                 let _ = std::fs::write(&marker_path, PORTABLE_MAGIC);
             }
             if !data_dir.exists() {
@@ -128,6 +186,30 @@ fn portable_marker(path: &Path) -> Option<&'static str> {
     }
 }
 
+/// Whether an unrecognized marker still turns portable mode on.
+///
+/// It does, whenever a `Data/` directory sits beside it. The rule arrived for
+/// the legacy Scoop layout, whose marker was empty, and the code has never
+/// tested emptiness — any content this build does not recognize takes the
+/// same path, and until 2026-09-03 the doc comment and the log line both said
+/// "empty" while the code meant "any". The harness this project's own test
+/// runs from writes `sona` into the marker and has been riding this branch
+/// unnoticed.
+///
+/// Keep the rule and fix the words, because the permissive reading is the
+/// safe one. A marker beside a populated `Data/` is an install someone made
+/// portable; refusing it because the sentinel is misspelled would silently
+/// relocate that user to the platform app-data root and show them an empty
+/// app. Content decides only whether the marker is already canonical —
+/// `init` rewrites it to `PORTABLE_MAGIC` either way.
+fn adopts_unknown_marker(
+    marker: Option<&'static str>,
+    marker_exists: bool,
+    data_dir_exists: bool,
+) -> bool {
+    marker.is_none() && marker_exists && data_dir_exists
+}
+
 fn debug_portable_override_enabled() -> bool {
     std::env::var("SONA_ALLOW_PORTABLE_DEV").as_deref() == Ok("1")
 }
@@ -194,23 +276,34 @@ mod tests {
         std::fs::remove_dir_all(dir).unwrap();
     }
 
+    /// The old name of this test claimed the empty marker "requires" a data
+    /// directory and then asserted `marker.exists()` on a file it had just
+    /// created, which cannot fail. The rule `init` actually applies is below.
     #[test]
-    fn empty_marker_requires_existing_data_directory() {
-        let dir = temporary_directory("empty");
-        let marker = dir.join("portable");
-        std::fs::File::create(&marker).unwrap();
-        assert!(!is_valid_portable_marker(&marker));
-        std::fs::create_dir(dir.join("Data")).unwrap();
-        assert!(marker.exists());
-        std::fs::remove_dir_all(dir).unwrap();
+    fn an_unknown_marker_turns_portable_on_only_beside_an_existing_data_dir() {
+        assert!(adopts_unknown_marker(None, true, true));
+        assert!(!adopts_unknown_marker(None, true, false));
+        assert!(!adopts_unknown_marker(None, false, true));
+        // A recognized sentinel never reaches this branch: `init` takes it on
+        // its own and creates `Data/` when it is missing.
+        assert!(!adopts_unknown_marker(Some(PORTABLE_MAGIC), true, false));
     }
 
+    /// Content decides whether the marker is canonical, not whether portable
+    /// mode turns on. Naming this `wrong_content_does_not_enable_portable`
+    /// was the drift: it is true of `portable_marker` and false of `init`.
     #[test]
-    fn wrong_content_does_not_enable_portable() {
+    fn unknown_content_is_not_a_sentinel_yet_still_adopts_beside_data() {
         let dir = temporary_directory("wrong");
         let marker = dir.join("portable");
         std::fs::write(&marker, "some other content").unwrap();
+
         assert!(!is_valid_portable_marker(&marker));
+        assert!(adopts_unknown_marker(
+            portable_marker(&marker),
+            marker.exists(),
+            true
+        ));
         std::fs::remove_dir_all(dir).unwrap();
     }
 
@@ -251,5 +344,30 @@ mod tests {
             false,
             false,
         ));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn portable_gui_data_root_ownership_is_per_root_and_exclusive() {
+        let temporary_root = tempfile::tempdir().unwrap();
+        let installed_root = temporary_root.path().join("installed-data");
+        let portable_root = temporary_root.path().join("portable-copy/Data");
+        std::fs::create_dir_all(&installed_root).unwrap();
+        std::fs::create_dir_all(&portable_root).unwrap();
+
+        let installed_owner = claim_data_dir_lock(&installed_root).unwrap();
+        let portable_owner = claim_data_dir_lock(&portable_root).unwrap();
+
+        let portable_alias = temporary_root.path().join("portable-data-alias");
+        std::os::unix::fs::symlink(&portable_root, &portable_alias).unwrap();
+        assert!(matches!(
+            claim_data_dir_lock(&portable_alias),
+            Err(DataDirInstanceLockError::AlreadyClaimed)
+        ));
+
+        drop(portable_owner);
+        let reclaimed_portable_owner = claim_data_dir_lock(&portable_alias).unwrap();
+        drop(reclaimed_portable_owner);
+        drop(installed_owner);
     }
 }

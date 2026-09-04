@@ -527,7 +527,30 @@
           "descriptionCustom": "Enter the model ID your custom server expects.",
           "placeholderWithOptions": "Search or select a model",
           "placeholderNoOptions": "Type a model name",
-          "refreshModels": "Refresh models"
+          "refreshModels": "Refresh models",
+          "search": "Search models",
+          "useCustom": "Use “{{modelId}}”",
+          "source": {
+            "provider": "Provider",
+            "cached": "Cached",
+            "saved": "Saved",
+            "manual": "Manual"
+          },
+          "status": {
+            "loading": "Loading models",
+            "savedNotInLatest": "The saved selection is not in the latest provider list.",
+            "cachedFallback": "Using the last model list loaded in this window.",
+            "requiresConsent": "Allow remote text transfer before loading models.",
+            "requiresCredential": "Add an API key before loading models.",
+            "credentialUnavailable": "The API key is unavailable.",
+            "credentialLocked": "Unlock the API key before loading models.",
+            "unsupported": "This provider does not publish a compatible model list. Enter a model ID manually.",
+            "unauthorized": "The provider rejected the API key.",
+            "forbidden": "The provider does not allow this model list.",
+            "rateLimited": "The provider is rate limiting model discovery.",
+            "unreachable": "Sona could not reach this provider.",
+            "invalidResponse": "The provider returned an invalid model list."
+          }
         }
       },
       "prompts": {
@@ -649,6 +672,7 @@
       "loading": "Loading history…",
       "empty": "No recordings yet.",
       "copyToClipboard": "Copy transcript to clipboard",
+      "copyFailed": "Couldn't copy the transcript",
       "save": "Save entry",
       "unsave": "Remove from saved",
       "delete": "Delete entry",
@@ -743,7 +767,8 @@
         "deliveryOutcome": {
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not sent",
-          "dispatched_but_unconfirmed": "Sent, not confirmed"
+          "dispatched_but_unconfirmed": "Sent, not confirmed",
+          "dispatched_under_secure_input": "Sent while Secure Input was on"
         },
         "modeLabel": "Mode",
         "revisionLabel": "Settings version",
@@ -912,6 +937,7 @@
         "verdictNoEvents": "Nothing arrived at all. Press a few keys while the diagnostic runs.",
         "verdictOk": "Keys reach Sona.",
         "failed": "The diagnostic could not run: {{error}}",
+        "inputMonitoringDenied": "Sona cannot read keyboard events. Allow Input Monitoring, then try again.",
         "keyDown": "Key down",
         "keyUp": "Key up",
         "flagsChanged": "Modifiers",
@@ -2106,7 +2132,8 @@
       "export_failed": "Export failed. No completed export was created.",
       "local_model_unavailable": "A local model is unavailable for this meeting.",
       "remote_unavailable": "The selected remote destination is unavailable.",
-      "import_unreadable": "Sona could not read that file as a recording or a transcript export."
+      "import_unreadable": "Sona could not read that file as a recording or a transcript export.",
+      "profile_merge_resolution_required": "Sona needs to know which saved voice to keep before merging these people."
     },
     "discard": {
       "liveTitle": "Stop and discard this session?",
@@ -2144,6 +2171,21 @@
       "speakerName": "Speaker name",
       "renameSpeaker": "Rename this speaker",
       "samePersonAs": "Same person as {{name}}",
+      "unresolvedSpeakers_one": "1 speaker to label",
+      "unresolvedSpeakers_other": "{{count}} speakers to label",
+      "labelSpeaker": "Label speaker",
+      "correctSpeaker": "Correct speaker",
+      "labelSpeakerNamed": "Label {{speaker}}",
+      "correctSpeakerNamed": "Correct {{speaker}}",
+      "identityPerson": "Choose a person",
+      "identityNewPerson": "New person",
+      "identityExistingPerson": "Existing person",
+      "identityNewPersonName": "New person's name",
+      "markUnknown": "Mark as unknown",
+      "markUnknownDescription": "This transcript stops naming {{speaker}}, and Sona deletes the voice samples saved from this speaker. The transcript text and your notes stay.",
+      "rememberVoice": "Remember this voice on this Mac",
+      "notNow": "Not now",
+      "rememberVoiceFailed": "The label was saved. Sona couldn't remember this voice from this meeting. Try another meeting.",
       "manualNotes": "Manual notes",
       "manualNote": "Manual note",
       "newNote": "New manual note",
@@ -2184,10 +2226,10 @@
         "manualNote": "Manual note",
         "title": "Meeting title"
       },
+      "generationFailedDescription": "The transcript and your manual notes are unaffected. Regenerate once the cause is resolved.",
       "noGeneratedNotesDescription": "Generated notes are derived from the transcript, so they can be rebuilt at any time.",
       "processingDescription": "Generated notes and local answers appear once the transcript is complete.",
       "processingTitle": "Sona is still processing this meeting",
-      "remoteProcessingUnavailable": "The remote destination never became available, so nothing was generated. Regenerating runs on this Mac.",
       "tabs": {
         "insights": "Insights",
         "ledger": "Ledger",
@@ -2552,7 +2594,7 @@
     "scopeLabel": "Who answers",
     "scope": {
       "sona_chat": "Ask",
-      "sona_config": "Settings"
+      "sona_config": "Configure"
     },
     "workedFor": "Worked for {{seconds}}s",
     "stepSeconds": "{{seconds}}s",
@@ -2607,7 +2649,7 @@
       "receipt": "Receipt {{id}}"
     },
     "consent": {
-      "notice": "Sona answers about your recordings once you allow it to send matching quotes to your server.",
+      "notice": "Sona answers about your recordings once you turn on meeting intelligence. That sends matching quotes to your server, and writes the notes for every later meeting there too.",
       "allow": "Allow"
     },
     "tool": {
@@ -2678,7 +2720,7 @@
       "resume": "Resume sync"
     },
     "setup": {
-      "title": "Set up a sync account",
+      "title": "Set up sync — deploy your companion Worker first",
       "endpoint": "Server address",
       "bootstrapSecret": "Setup secret",
       "submit": "Set up sync"
@@ -2779,6 +2821,11 @@
       "rename": "Rename",
       "personActions": "Person actions",
       "deletePerson": "Delete person",
+      "removeVoiceProfile": "Remove voice profile",
+      "removeVoiceProfileTitle": "Remove voice profile?",
+      "removeVoiceProfileDescription": "Sona will stop remembering this voice on this Mac. The person's name and meeting links stay.",
+      "voiceProfileRemoved": "Sona stopped remembering this voice on this Mac.",
+      "voiceProfileRemovalFailed": "Couldn't remove the voice profile. Try again.",
       "aliases": "Also: {{aliases}}",
       "merge": "Merge",
       "mergeTitle": "Merge this person?",
@@ -3102,6 +3149,8 @@
       "waitingOn": "Waiting on ({{count}})",
       "openNotes": "Open notes",
       "copyFollowUp": "Copy follow-up",
+      "unresolvedSpeakers_one": "1 speaker to label",
+      "unresolvedSpeakers_other": "{{count}} speakers to label",
       "copied": "Copied",
       "done": "Done"
     }
@@ -3146,6 +3195,62 @@
       "primed": "Prepared a recurring meeting",
       "noticed_one": "Noticed 1 thing",
       "noticed_other": "Noticed {{count}} things"
+    }
+  },
+  "recorder": {
+    "open": "Record screen",
+    "title": "Record screen",
+    "screen": "Screen",
+    "required": "Required",
+    "chooseScreen": "Choose screen",
+    "change": "Change",
+    "camera": "Camera",
+    "microphone": "Microphone",
+    "unavailable": "Unavailable",
+    "screenSelected": "Screen selected",
+    "elapsed": "Elapsed",
+    "start": "Start recording",
+    "resume": "Resume",
+    "stopAndSave": "Stop & save",
+    "reveal": "Reveal",
+    "done": "Done",
+    "dimensions": "{{width}} × {{height}}",
+    "phase": {
+      "checking": "Checking",
+      "permission": "Permission needed",
+      "idle": "Set up",
+      "selectingSource": "Selecting source",
+      "previewing": "Preview ready",
+      "starting": "Starting recording",
+      "recording": "Recording",
+      "paused": "Paused",
+      "finalizing": "Saving recording",
+      "saved": "Saved",
+      "failed": "Needs attention"
+    },
+    "permission": {
+      "screen": "Allow screen recording to choose a source.",
+      "camera": "Allow camera access to include your camera.",
+      "microphone": "Allow microphone access to include your microphone.",
+      "grant": "Grant access",
+      "recheck": "Re-check"
+    },
+    "error": {
+      "unsupported": "Screen recording requires macOS 14 or later.",
+      "captureBusy": "Another Sona capture is using the microphone.",
+      "screenPermissionDenied": "Screen recording access was denied.",
+      "cameraPermissionDenied": "Camera access was denied.",
+      "microphonePermissionDenied": "Microphone access was denied.",
+      "sourceSelectionCancelled": "Source selection was cancelled.",
+      "sourceUnavailable": "The selected screen is no longer available.",
+      "cameraUnavailable": "The selected camera is no longer available.",
+      "microphoneUnavailable": "The selected microphone is no longer available.",
+      "streamFailed": "The recording stream stopped unexpectedly.",
+      "timestampDiscontinuity": "The recording timeline became invalid.",
+      "writerFailed": "The recording could not be written.",
+      "outputFinalizeFailed": "The recording could not be finalized.",
+      "outputCommitFailed": "The recording could not be saved.",
+      "revealFailed": "The recordings folder could not be opened."
     }
   }
 }

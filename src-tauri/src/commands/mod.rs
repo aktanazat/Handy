@@ -15,17 +15,26 @@ pub mod people;
 pub mod persona;
 pub mod prompts;
 pub mod query;
+pub mod recorder;
 pub mod snippets;
 pub mod transcription;
 pub mod upcoming;
 pub mod updates;
 pub mod vocabulary;
+pub mod voice_identity;
 pub mod workflows;
 
 use crate::settings::{get_settings, update_settings, AppSettings, LogLevel};
 use crate::utils::cancel_current_operation;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::OpenerExt;
+
+const BUNDLED_NOTICE_DIRECTORY: &str = "_up_";
+
+fn bundled_notice_path(resource_dir: &Path, name: &str) -> PathBuf {
+    resource_dir.join(BUNDLED_NOTICE_DIRECTORY).join(name)
+}
 
 #[tauri::command]
 #[specta::specta]
@@ -139,7 +148,7 @@ pub fn open_license_notices(app: AppHandle) -> Result<(), String> {
         .resource_dir()
         .map_err(|error| format!("Failed to locate bundled notices: {error}"))?;
     for name in ["LICENSE", "NOTICE"] {
-        let path = resource_dir.join(name);
+        let path = bundled_notice_path(&resource_dir, name);
         if !path.is_file() {
             return Err(format!("Bundled {name} is unavailable"));
         }
@@ -148,6 +157,34 @@ pub fn open_license_notices(app: AppHandle) -> Result<(), String> {
             .map_err(|error| format!("Failed to open bundled {name}: {error}"))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parent_notices_resolve_where_the_bundle_places_them() {
+        let resource_dir = Path::new("/Applications/Sona.app/Contents/Resources");
+        for name in ["LICENSE", "NOTICE"] {
+            assert_eq!(
+                bundled_notice_path(resource_dir, name),
+                resource_dir.join("_up_").join(name)
+            );
+        }
+        let manifest: serde_json::Value =
+            serde_json::from_str(include_str!("../../tauri.conf.json"))
+                .expect("tauri.conf.json is JSON");
+        let resources = manifest["bundle"]["resources"]
+            .as_array()
+            .expect("bundle resource declarations");
+        for source in ["../LICENSE", "../NOTICE"] {
+            assert!(
+                resources.iter().any(|value| value.as_str() == Some(source)),
+                "{source} is a bundled parent resource"
+            );
+        }
+    }
 }
 
 /// Check if Apple Intelligence is available on this device.

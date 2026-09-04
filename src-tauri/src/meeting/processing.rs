@@ -3,7 +3,9 @@ use super::analytics::{
     MeetingCatchUp, MeetingCatchUpState, MeetingNotesTemplate, CATCH_UP_MAX_BULLETS,
 };
 use super::diarization::{
-    model_manifest, DiarizationError, DiarizedWindow, MeetingDiarizationSession, MeetingDiarizer,
+    model_manifest, wespeaker_embedding_model_key, DiarizationEngineKind, DiarizationError,
+    DiarizedWindow, MeetingDiarizationSession, MeetingDiarizer, SpeakerEmbedding,
+    SpeakerEmbeddingModelKey, SpeakerEmbeddingSession,
 };
 use super::ledger::{
     self, LedgerCommitment, LedgerFirmness, LedgerOpenLoop, LedgerReceipt, LedgerReceiptState,
@@ -15,12 +17,21 @@ use super::prompt_types::{
     PromptTargetRef, SavedPrompt,
 };
 use super::relay_generator::RelayTextGenerator;
+use super::store::voice_identity::{
+    DiarizationEvidenceKind, DiarizationEvidenceSpanInput, VoiceEnrollmentEvidence,
+    VoiceEnrollmentRecord,
+};
 use super::store::{
     ArtifactEvidence, ArtifactRevisionInput, DiarizationAssignmentInput, DurableTrackRecord,
     MeetingEvidence, MeetingStore, StoreError, StoreTransition, TranscriptRevisionInput,
     TranscriptSegmentInput,
 };
 use super::types::*;
+use super::voice_identity::{
+    automatic_identity_mode, coalesce_evidence, fallback_evidence_span, identity_source_allowed,
+    map_sortformer_evidence, AudioSpan, AutoIdentityMode, VoiceEvidenceSpan,
+    VoiceIdentityCollector, VoiceMatchCandidate,
+};
 use super::workflow_engine::{known_vocabulary, record_meeting_finalized};
 use crate::audio_toolkit::vad::{self, VoiceActivityDetector};
 use crate::managers::transcription::TranscriptionManager;
@@ -33,6 +44,7 @@ use sha2::{Digest, Sha256};
 use std::collections::hash_map::Entry;
 use std::collections::{BTreeMap, HashMap};
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::thread::{self, JoinHandle};
@@ -411,6 +423,22 @@ impl MeetingProcessingService {
             jobs: Arc::new(Mutex::new(HashMap::new())),
             jobs_idle: Arc::new(Condvar::new()),
         }
+    }
+
+    pub(crate) async fn embed_voice_enrollment_evidence(
+        &self,
+        store: &MeetingStore,
+        evidence: VoiceEnrollmentEvidence,
+    ) -> Result<(SpeakerEmbeddingModelKey, SpeakerEmbedding), StoreError> {
+        let model_directory = store.diarization_model_directory();
+        let mut embedder = open_enrollment_embedder(&self.diarizer, &model_directory).await?;
+        let mut audio = EnrollmentAudioCollector::new(evidence)?;
+        store.visit_voice_enrollment_evidence_records(evidence, |record| audio.push(record))?;
+        let samples = audio.finish()?;
+        let embedding = embedder
+            .embed(&samples)
+            .map_err(enrollment_diarization_error)?;
+        Ok((wespeaker_embedding_model_key(), embedding))
     }
 
     pub fn set_transcription_manager(&self, manager: Arc<TranscriptionManager>) {
@@ -1076,7 +1104,7 @@ impl MeetingProcessingService {
     }
 
     /// The two passes that read captured audio: one transcript revision over
-    /// every track, then diarization over the system-audio track.
+    /// every track, then diarization over the meeting-appropriate track.
     fn transcribe_and_diarize(
         &self,
         store: &MeetingStore,
@@ -1109,10 +1137,13 @@ impl MeetingProcessingService {
                 language: &plan.language,
             })
             .map_err(|_| ProcessingFailure::EngineFailure)?;
-        let tracks = store
+        let review = store
             .review_snapshot(session_id)
-            .map_err(|_| ProcessingFailure::EngineFailure)?
-            .tracks;
+            .map_err(|_| ProcessingFailure::EngineFailure)?;
+        let origin = store
+            .meeting_origin(session_id)
+            .map_err(|_| ProcessingFailure::EngineFailure)?;
+        let tracks = review.tracks;
         for source_kind in [SourceKind::Microphone, SourceKind::SystemAudio] {
             for track in tracks
                 .iter()
@@ -1139,6 +1170,7 @@ impl MeetingProcessingService {
             store,
             session_id,
             transcript_revision_id,
+            origin,
             &tracks,
             cancelled,
         );
@@ -1164,13 +1196,11 @@ impl MeetingProcessingService {
             .open(source_kind)?;
         let mut chunker = SpeechChunker::new(detector);
         let mut frames = RecordFrameBuffer::new();
-        let mut previous_end = None;
-        let mut previous_epoch = None;
         store
             .visit_durable_track_records(session_id, track_id, None, |record| {
                 self.wait_for_capture(cancelled)
                     .map_err(store_error_from_processing)?;
-                if record_starts_new_span(previous_end, previous_epoch, &record) {
+                if frames.starts_new_span(&record) {
                     if let Some(chunk) = chunker.finish(false) {
                         self.transcribe_chunk(
                             store,
@@ -1198,8 +1228,6 @@ impl MeetingProcessingService {
                     )
                     .map_err(store_error_from_processing)
                 })?;
-                previous_end = record.start_offset_ns.checked_add(record.duration_ns);
-                previous_epoch = Some(record.source_epoch);
                 Ok(())
             })
             .map_err(|_| ProcessingFailure::EngineFailure)?;
@@ -1256,13 +1284,11 @@ impl MeetingProcessingService {
         store: &MeetingStore,
         session_id: MeetingSessionId,
         transcript_revision_id: TranscriptRevisionId,
+        origin: MeetingOrigin,
         tracks: &[MeetingTrackSnapshot],
         cancelled: &AtomicBool,
     ) {
-        let Some(track) = tracks
-            .iter()
-            .find(|track| track.source_kind == SourceKind::SystemAudio)
-        else {
+        let Some(track) = Self::diarization_track(origin, tracks) else {
             return;
         };
         let manifest = model_manifest();
@@ -1382,13 +1408,70 @@ impl MeetingProcessingService {
                 return;
             }
         };
+        let identity_model = wespeaker_embedding_model_key();
+        let identity_source_allowed = identity_source_allowed(origin, track.source_kind);
+        let has_compatible_profiles = identity_source_allowed
+            && store
+                .has_compatible_local_voice_profiles(identity_model)
+                .unwrap_or(false);
+        // Which engine is diarizing drives three decisions, so it is read once
+        // and matched once. A new engine variant then fails to compile here
+        // rather than answering false to a scattered `==` and writing empty
+        // evidence under the other engine's label.
+        let engine = diarizer.engine();
+        let (evidence_from_exclusive_spans, evidence_kind) = match engine {
+            DiarizationEngineKind::Sortformer => {
+                (true, DiarizationEvidenceKind::SortformerExclusive)
+            }
+            DiarizationEngineKind::WeSpeaker => {
+                (false, DiarizationEvidenceKind::WeSpeakerUnambiguousWindow)
+            }
+        };
+        let collect_window_evidence = !evidence_from_exclusive_spans;
+        let mut identity_collector = match automatic_identity_mode(
+            origin,
+            track.source_kind,
+            has_compatible_profiles,
+            engine,
+        ) {
+            // The embedder is the plain WeSpeaker graph, not a diarization
+            // session: the collector wants one vector per candidate, and the
+            // streaming session would also apply its own clustering policy,
+            // whose overlap verdict can veto a Sortformer-exclusive span.
+            Some(AutoIdentityMode::EmbedSortformerCandidates) => self
+                .diarizer
+                .wespeaker_fallback(&model_directory)
+                .and_then(|fallback| SpeakerEmbeddingSession::open(&fallback.path).ok())
+                .map(|embedder| {
+                    VoiceIdentityCollector::primary(diarizer.exclusive_spans(), Box::new(embedder))
+                }),
+            Some(AutoIdentityMode::ReuseWeSpeakerWindows) => {
+                Some(VoiceIdentityCollector::fallback())
+            }
+            None => None,
+        };
         let mut windower = DiarizationWindower::new(detector);
         let mut frames = RecordFrameBuffer::new();
+        let mut contiguous_audio = ContiguousAudioSpans::default();
         let mut cluster_speakers = HashMap::new();
-        let result =
+        let mut fallback_evidence = Vec::new();
+        let mut result =
             store.visit_durable_track_records(session_id, track.track_id, None, |record| {
                 self.wait_for_capture(cancelled)
                     .map_err(store_error_from_processing)?;
+                // This loop discards the pending window where `process_track`
+                // flushes its pending chunk: a window cut by a gap holds two
+                // pieces of audio that are not adjacent, so scoring it would
+                // attribute one speaker's frames to another. `split()` runs
+                // before the record is appended, so the span it closes ends at
+                // the previous record.
+                if frames.starts_new_span(&record) {
+                    windower.discard_pending();
+                    contiguous_audio.split();
+                    if let Some(collector) = &mut identity_collector {
+                        collector.reset();
+                    }
+                }
                 process_record_frames(&record, &mut frames, &mut windower, |window| {
                     self.assign_diarized_window(
                         store,
@@ -1397,24 +1480,62 @@ impl MeetingProcessingService {
                         generation_id,
                         &mut diarizer,
                         &mut cluster_speakers,
+                        &mut identity_collector,
+                        &mut fallback_evidence,
+                        identity_source_allowed,
+                        collect_window_evidence,
                         window,
                     )
                     .map_err(store_error_from_processing)
                 })?;
+                contiguous_audio.observe(&record)?;
                 Ok(())
             });
         if result.is_ok() {
             if let Some(window) = windower.finish() {
-                let _ = self.assign_diarized_window(
-                    store,
-                    session_id,
-                    transcript_revision_id,
-                    generation_id,
-                    &mut diarizer,
-                    &mut cluster_speakers,
-                    window,
-                );
+                result = self
+                    .assign_diarized_window(
+                        store,
+                        session_id,
+                        transcript_revision_id,
+                        generation_id,
+                        &mut diarizer,
+                        &mut cluster_speakers,
+                        &mut identity_collector,
+                        &mut fallback_evidence,
+                        identity_source_allowed,
+                        collect_window_evidence,
+                        window,
+                    )
+                    .map_err(store_error_from_processing);
             }
+        }
+        let evidence = if result.is_ok() && identity_source_allowed {
+            if evidence_from_exclusive_spans {
+                map_sortformer_evidence(
+                    diarizer.exclusive_spans(),
+                    &cluster_speakers,
+                    &contiguous_audio.finish(),
+                )
+            } else {
+                coalesce_evidence(fallback_evidence)
+            }
+        } else {
+            Vec::new()
+        };
+        if result.is_ok() {
+            let evidence = evidence
+                .into_iter()
+                .map(|span| DiarizationEvidenceSpanInput {
+                    generation_id,
+                    speaker_id: span.speaker_id,
+                    track_id: track.track_id,
+                    start_offset_ns: span.start_offset_ns,
+                    end_offset_ns: span.end_offset_ns,
+                    kind: evidence_kind,
+                })
+                .collect::<Vec<_>>();
+            result = store.replace_diarization_evidence_spans(generation_id, &evidence);
         }
         if result.is_ok()
             && !cancelled.load(Ordering::Acquire)
@@ -1422,6 +1543,14 @@ impl MeetingProcessingService {
                 .publish_diarization_generation(session_id, generation_id)
                 .is_ok()
         {
+            if let Some(collector) = identity_collector {
+                self.apply_automatic_voice_matches(
+                    store,
+                    session_id,
+                    &cluster_speakers,
+                    collector.into_candidates(),
+                );
+            }
             self.emit_current(store, "meeting:transcript-changed", session_id);
             return;
         }
@@ -1433,6 +1562,17 @@ impl MeetingProcessingService {
         );
     }
 
+    fn diarization_track(
+        origin: MeetingOrigin,
+        tracks: &[MeetingTrackSnapshot],
+    ) -> Option<&MeetingTrackSnapshot> {
+        let source_kind = match origin {
+            MeetingOrigin::Import => SourceKind::Microphone,
+            _ => SourceKind::SystemAudio,
+        };
+        tracks.iter().find(|track| track.source_kind == source_kind)
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn assign_diarized_window(
         &self,
@@ -1442,6 +1582,10 @@ impl MeetingProcessingService {
         generation_id: MeetingDiarizationGenerationId,
         diarizer: &mut MeetingDiarizationSession,
         cluster_speakers: &mut HashMap<u32, SpeakerId>,
+        identity_collector: &mut Option<VoiceIdentityCollector>,
+        fallback_evidence: &mut Vec<VoiceEvidenceSpan>,
+        collect_identity_evidence: bool,
+        collect_window_evidence: bool,
         window: AudioChunk,
     ) -> Result<(), ProcessingFailure> {
         let diarized = diarizer
@@ -1451,8 +1595,13 @@ impl MeetingProcessingService {
                 window.end_offset_ns,
             )
             .map_err(|_| ProcessingFailure::EngineFailure)?;
+        let diarized_window = diarized.window;
+        let assignment = diarized_window.assignment;
+        let cluster = diarized_window.cluster;
+        let transient_embedding = diarized.embedding;
+        let has_transient_embedding = transient_embedding.is_some();
         let speaker_id =
-            self.resolve_diarized_speaker(store, session_id, diarized, cluster_speakers)?;
+            self.resolve_diarized_speaker(store, session_id, &diarized_window, cluster_speakers)?;
         let segments = store
             .transcript_segments_overlapping(
                 transcript_revision_id,
@@ -1466,19 +1615,95 @@ impl MeetingProcessingService {
             .map(|segment_id| DiarizationAssignmentInput {
                 segment_id,
                 speaker_id,
-                assignment: diarized.assignment,
+                assignment,
             })
             .collect::<Vec<_>>();
         store
             .write_diarization_assignments(generation_id, &assignments)
-            .map_err(|_| ProcessingFailure::EngineFailure)
+            .map_err(|_| ProcessingFailure::EngineFailure)?;
+
+        if collect_identity_evidence && collect_window_evidence && has_transient_embedding {
+            if let Some(span) = fallback_evidence_span(
+                speaker_id,
+                assignment,
+                window.start_offset_ns,
+                window.end_offset_ns,
+                window.samples.len(),
+                window.voiced_frames,
+            ) {
+                fallback_evidence.push(span);
+            }
+        }
+        if let Some(collector) = identity_collector {
+            collector.observe_primary_window(
+                &window.samples,
+                window.start_offset_ns,
+                &window.voice_frames,
+            );
+            collector.observe_fallback_window(
+                assignment,
+                cluster,
+                window.start_offset_ns,
+                window.end_offset_ns,
+                window.samples.len(),
+                window.voiced_frames,
+                transient_embedding,
+            );
+        }
+        Ok(())
+    }
+
+    fn apply_automatic_voice_matches(
+        &self,
+        store: &MeetingStore,
+        session_id: MeetingSessionId,
+        cluster_speakers: &HashMap<u32, SpeakerId>,
+        candidates: Vec<VoiceMatchCandidate>,
+    ) {
+        let model = wespeaker_embedding_model_key();
+        for candidate in candidates {
+            let Some(&speaker_id) = cluster_speakers.get(&candidate.cluster) else {
+                continue;
+            };
+            let speaker_revision = match store.active_voice_speaker_revision(session_id, speaker_id)
+            {
+                Ok(revision) => revision,
+                Err(error) => {
+                    log::debug!(
+                        "Automatic voice match skipped for {session_id:?}: the active speaker \
+                             revision could not be read: {error:?}"
+                    );
+                    continue;
+                }
+            };
+            let matched = match store.match_local_voice_profile(&candidate.embedding, model) {
+                Ok(Some(matched)) => matched,
+                Ok(None) => continue,
+                Err(error) => {
+                    log::debug!(
+                        "Automatic voice match skipped for {session_id:?}: the local profiles \
+                         could not be read: {error:?}"
+                    );
+                    continue;
+                }
+            };
+            if let Err(error) = store.commit_successful_voice_match(
+                session_id,
+                speaker_id,
+                speaker_revision,
+                matched,
+                utc_now_ms(),
+            ) {
+                log::debug!("Automatic voice match was fenced for {session_id:?}: {error:?}");
+            }
+        }
     }
 
     fn resolve_diarized_speaker(
         &self,
         store: &MeetingStore,
         session_id: MeetingSessionId,
-        diarized: DiarizedWindow,
+        diarized: &DiarizedWindow,
         cluster_speakers: &mut HashMap<u32, SpeakerId>,
     ) -> Result<SpeakerId, ProcessingFailure> {
         match diarized.cluster {
@@ -2302,6 +2527,8 @@ struct AudioChunk {
     samples: Vec<f32>,
     start_offset_ns: u64,
     end_offset_ns: u64,
+    voiced_frames: u32,
+    voice_frames: Vec<bool>,
 }
 
 trait FrameConsumer {
@@ -2320,6 +2547,7 @@ struct RecordFrameBuffer {
     start_offset_ns: Option<u64>,
     previous_end_offset_ns: Option<u64>,
     previous_epoch: Option<SourceEpoch>,
+    previous_sequence: Option<u64>,
 }
 
 impl RecordFrameBuffer {
@@ -2329,11 +2557,21 @@ impl RecordFrameBuffer {
             start_offset_ns: None,
             previous_end_offset_ns: None,
             previous_epoch: None,
+            previous_sequence: None,
         }
     }
 
+    fn starts_new_span(&self, record: &DurableTrackRecord) -> bool {
+        record_starts_new_span(
+            self.previous_end_offset_ns,
+            self.previous_epoch,
+            self.previous_sequence,
+            record,
+        )
+    }
+
     fn append(&mut self, record: &DurableTrackRecord, samples: &[f32]) -> Result<(), StoreError> {
-        if record_starts_new_span(self.previous_end_offset_ns, self.previous_epoch, record) {
+        if self.starts_new_span(record) {
             self.samples.clear();
             self.start_offset_ns = None;
         }
@@ -2348,16 +2586,61 @@ impl RecordFrameBuffer {
                 .ok_or(StoreError::Corrupt)?,
         );
         self.previous_epoch = Some(record.source_epoch);
+        self.previous_sequence = Some(record.sequence);
         Ok(())
+    }
+}
+
+#[derive(Default)]
+struct ContiguousAudioSpans {
+    spans: Vec<AudioSpan>,
+    start_offset_ns: Option<u64>,
+    end_offset_ns: Option<u64>,
+}
+
+impl ContiguousAudioSpans {
+    fn observe(&mut self, record: &DurableTrackRecord) -> Result<(), StoreError> {
+        if self.start_offset_ns.is_none() {
+            self.start_offset_ns = Some(record.start_offset_ns);
+        }
+        self.end_offset_ns = Some(
+            record
+                .start_offset_ns
+                .checked_add(record.duration_ns)
+                .ok_or(StoreError::Corrupt)?,
+        );
+        Ok(())
+    }
+
+    fn split(&mut self) {
+        if let (Some(start_offset_ns), Some(end_offset_ns)) =
+            (self.start_offset_ns.take(), self.end_offset_ns.take())
+        {
+            if let Some(span) = AudioSpan::new(start_offset_ns, end_offset_ns) {
+                self.spans.push(span);
+            }
+        }
+    }
+
+    fn finish(mut self) -> Vec<AudioSpan> {
+        self.split();
+        self.spans
     }
 }
 
 fn record_starts_new_span(
     previous_end_offset_ns: Option<u64>,
     previous_epoch: Option<SourceEpoch>,
+    previous_sequence: Option<u64>,
     record: &DurableTrackRecord,
 ) -> bool {
-    previous_epoch.is_some_and(|epoch| epoch != record.source_epoch)
+    previous_sequence.is_some_and(|sequence| sequence.checked_add(1) != Some(record.sequence))
+        || previous_epoch.is_some_and(|epoch| epoch != record.source_epoch)
+        // Forward only. A record that starts before the previous record's
+        // computed end is the capture device's clock-rate error against a
+        // truncated `duration_ns`, which the writer already treats as ordinary
+        // drift; reading it as a gap restarts the frame buffer on every record
+        // and no VAD frame ever forms. A real gap moves the start forward.
         || previous_end_offset_ns.is_some_and(|end| {
             record.start_offset_ns.saturating_sub(end) > TIMESTAMP_ROUNDING_TOLERANCE_NS
         })
@@ -2410,6 +2693,8 @@ impl SpeechChunker {
             samples,
             start_offset_ns,
             end_offset_ns,
+            voiced_frames: 0,
+            voice_frames: Vec::new(),
         })
     }
 }
@@ -2456,6 +2741,7 @@ impl FrameConsumer for SpeechChunker {
 struct DiarizationWindower {
     detector: Box<dyn MeetingVad>,
     current: Vec<f32>,
+    voice_frames: Vec<bool>,
     start_offset_ns: Option<u64>,
     end_offset_ns: u64,
     voiced_frames: u32,
@@ -2466,25 +2752,40 @@ impl DiarizationWindower {
         Self {
             detector,
             current: Vec::with_capacity(DIARIZATION_WINDOW_SAMPLES),
+            voice_frames: Vec::with_capacity(DIARIZATION_WINDOW_SAMPLES / VAD_FRAME_SAMPLES),
             start_offset_ns: None,
             end_offset_ns: 0,
             voiced_frames: 0,
         }
     }
 
+    fn discard_pending(&mut self) {
+        self.current.clear();
+        self.voice_frames.clear();
+        self.start_offset_ns = None;
+        self.end_offset_ns = 0;
+        self.voiced_frames = 0;
+    }
+
     fn finish(&mut self) -> Option<AudioChunk> {
         if self.voiced_frames < DIARIZATION_MIN_VOICED_FRAMES {
-            self.current.clear();
-            self.start_offset_ns = None;
+            self.discard_pending();
             return None;
         }
-        let start_offset_ns = self.start_offset_ns.take()?;
-        self.voiced_frames = 0;
+        let Some(start_offset_ns) = self.start_offset_ns.take() else {
+            self.discard_pending();
+            return None;
+        };
+        let end_offset_ns = self.end_offset_ns;
+        let voiced_frames = std::mem::replace(&mut self.voiced_frames, 0);
+        self.end_offset_ns = 0;
         Some(AudioChunk {
             track_id: SourceTrackId::new(),
             samples: std::mem::take(&mut self.current),
             start_offset_ns,
-            end_offset_ns: self.end_offset_ns,
+            end_offset_ns,
+            voiced_frames,
+            voice_frames: std::mem::take(&mut self.voice_frames),
         })
     }
 }
@@ -2507,6 +2808,7 @@ impl FrameConsumer for DiarizationWindower {
             self.start_offset_ns = Some(start_offset_ns);
         }
         self.current.extend_from_slice(frame);
+        self.voice_frames.push(voice);
         self.end_offset_ns = start_offset_ns.saturating_add(VAD_FRAME_NS);
         if voice {
             self.voiced_frames = self.voiced_frames.saturating_add(1);
@@ -2643,6 +2945,142 @@ fn downmix_and_resample(record: &DurableTrackRecord) -> Result<Vec<f32>, StoreEr
         output.push(lower_value + (upper_value - lower_value) * fraction);
     }
     Ok(output)
+}
+
+async fn open_enrollment_embedder(
+    diarizer: &MeetingDiarizer,
+    model_directory: &Path,
+) -> Result<SpeakerEmbeddingSession, StoreError> {
+    let prepared = diarizer
+        .ensure_wespeaker(model_directory)
+        .await
+        .map_err(enrollment_diarization_error)?;
+    SpeakerEmbeddingSession::open(&prepared.path).map_err(enrollment_diarization_error)
+}
+
+fn enrollment_diarization_error(error: DiarizationError) -> StoreError {
+    match error {
+        DiarizationError::ModelUnavailable
+        | DiarizationError::ModelInvalid
+        | DiarizationError::DownloadFailed => StoreError::LocalModelUnavailable,
+        DiarizationError::InvalidAudio | DiarizationError::AudioTooLong => {
+            StoreError::InsufficientEnrollmentEvidence
+        }
+        DiarizationError::InferenceFailed => StoreError::Unavailable,
+    }
+}
+
+struct EnrollmentAudioCollector {
+    evidence: VoiceEnrollmentEvidence,
+    samples: Vec<f32>,
+    next_offset_ns: u64,
+    previous_record: Option<(u64, SourceEpoch)>,
+}
+
+impl EnrollmentAudioCollector {
+    fn new(evidence: VoiceEnrollmentEvidence) -> Result<Self, StoreError> {
+        let duration_ns = evidence
+            .end_offset_ns()
+            .checked_sub(evidence.start_offset_ns())
+            .ok_or(StoreError::InsufficientEnrollmentEvidence)?;
+        let capacity = usize::try_from(
+            u128::from(duration_ns)
+                .checked_mul(16_000)
+                .ok_or(StoreError::Corrupt)?
+                .checked_add(999_999_999)
+                .ok_or(StoreError::Corrupt)?
+                / 1_000_000_000,
+        )
+        .map_err(|_| StoreError::Corrupt)?;
+        Ok(Self {
+            evidence,
+            samples: Vec::with_capacity(capacity),
+            next_offset_ns: evidence.start_offset_ns(),
+            previous_record: None,
+        })
+    }
+
+    fn push(&mut self, enrollment: VoiceEnrollmentRecord) -> Result<(), StoreError> {
+        let record = enrollment.record;
+        if record.track_id != self.evidence.track_id() || enrollment.approved_spans.is_empty() {
+            return Err(StoreError::InsufficientEnrollmentEvidence);
+        }
+        if let Some((sequence, source_epoch)) = self.previous_record {
+            if record.source_epoch != source_epoch
+                || record.sequence
+                    != sequence
+                        .checked_add(1)
+                        .ok_or(StoreError::InsufficientEnrollmentEvidence)?
+            {
+                return Err(StoreError::InsufficientEnrollmentEvidence);
+            }
+        }
+        let record_end = record
+            .start_offset_ns
+            .checked_add(record.duration_ns)
+            .ok_or(StoreError::Corrupt)?;
+        let resampled = downmix_and_resample(&record)?;
+        for span in enrollment.approved_spans {
+            if span.start_offset_ns != self.next_offset_ns
+                || span.end_offset_ns <= span.start_offset_ns
+                || span.end_offset_ns > record_end
+                || span.start_offset_ns < record.start_offset_ns
+            {
+                return Err(StoreError::InsufficientEnrollmentEvidence);
+            }
+            let start = enrollment_sample_index(
+                span.start_offset_ns - record.start_offset_ns,
+                record.duration_ns,
+                resampled.len(),
+                true,
+            )?;
+            let end = enrollment_sample_index(
+                span.end_offset_ns - record.start_offset_ns,
+                record.duration_ns,
+                resampled.len(),
+                false,
+            )?;
+            let approved = resampled
+                .get(start..end)
+                .filter(|samples| !samples.is_empty())
+                .ok_or(StoreError::InsufficientEnrollmentEvidence)?;
+            self.samples.extend_from_slice(approved);
+            self.next_offset_ns = span.end_offset_ns;
+        }
+        self.previous_record = Some((record.sequence, record.source_epoch));
+        Ok(())
+    }
+
+    fn finish(self) -> Result<Vec<f32>, StoreError> {
+        if self.next_offset_ns != self.evidence.end_offset_ns() || self.samples.is_empty() {
+            return Err(StoreError::InsufficientEnrollmentEvidence);
+        }
+        Ok(self.samples)
+    }
+}
+
+fn enrollment_sample_index(
+    offset_ns: u64,
+    duration_ns: u64,
+    sample_count: usize,
+    round_up: bool,
+) -> Result<usize, StoreError> {
+    if duration_ns == 0 || offset_ns > duration_ns {
+        return Err(StoreError::Corrupt);
+    }
+    let denominator = u128::from(duration_ns);
+    let numerator = u128::from(offset_ns)
+        .checked_mul(u128::try_from(sample_count).map_err(|_| StoreError::Corrupt)?)
+        .ok_or(StoreError::Corrupt)?;
+    let index = if round_up {
+        numerator
+            .checked_add(denominator - 1)
+            .ok_or(StoreError::Corrupt)?
+            / denominator
+    } else {
+        numerator / denominator
+    };
+    usize::try_from(index).map_err(|_| StoreError::Corrupt)
 }
 
 fn downmix_frame(samples: &[f32], frame: usize, channels: usize) -> Result<f32, StoreError> {
@@ -3769,6 +4207,51 @@ mod tests {
         }
     }
 
+    fn track(source_kind: SourceKind) -> MeetingTrackSnapshot {
+        MeetingTrackSnapshot {
+            track_id: SourceTrackId::new(),
+            source_kind,
+            format: None,
+            first_offset_ns: None,
+            last_offset_ns: None,
+            durable_record_count: 0,
+        }
+    }
+
+    #[test]
+    fn imported_recordings_select_their_microphone_track_for_diarization() {
+        let microphone = track(SourceKind::Microphone);
+
+        assert_eq!(
+            MeetingProcessingService::diarization_track(
+                MeetingOrigin::Import,
+                std::slice::from_ref(&microphone),
+            ),
+            Some(&microphone),
+        );
+    }
+
+    #[test]
+    fn live_recordings_select_only_system_audio_for_diarization() {
+        let microphone = track(SourceKind::Microphone);
+        let system_audio = track(SourceKind::SystemAudio);
+
+        assert_eq!(
+            MeetingProcessingService::diarization_track(
+                MeetingOrigin::Manual,
+                std::slice::from_ref(&microphone),
+            ),
+            None,
+        );
+        assert_eq!(
+            MeetingProcessingService::diarization_track(
+                MeetingOrigin::Manual,
+                &[microphone, system_audio.clone()],
+            ),
+            Some(&system_audio),
+        );
+    }
+
     #[test]
     fn callback_sized_records_form_vad_frames_across_boundaries() {
         let track_id = SourceTrackId::new();
@@ -3790,6 +4273,194 @@ mod tests {
             process_record_frames(&record, &mut frames, &mut consumer, |_| Ok(())).unwrap();
         }
         assert_eq!(consumer.count, 1);
+    }
+
+    #[test]
+    fn source_sequence_gap_discards_the_pending_diarization_window() {
+        let track_id = SourceTrackId::new();
+        let mut frames = RecordFrameBuffer::new();
+        let mut windower = DiarizationWindower::new(Box::new(EnergyVad));
+        let first = DurableTrackRecord {
+            track_id,
+            sequence: 0,
+            source_epoch: SourceEpoch::new(0),
+            start_offset_ns: 0,
+            duration_ns: 1_500_000_000,
+            format: AudioFormat {
+                sample_rate_hz: 16_000,
+                channels: 1,
+            },
+            samples: vec![0.25; 24_000],
+        };
+        let resumed = DurableTrackRecord {
+            track_id,
+            sequence: 2,
+            source_epoch: SourceEpoch::new(0),
+            start_offset_ns: 2_000_000_000,
+            duration_ns: 2_010_000_000,
+            format: AudioFormat {
+                sample_rate_hz: 16_000,
+                channels: 1,
+            },
+            samples: vec![0.25; 32_160],
+        };
+        let mut emitted = Vec::new();
+
+        process_record_frames(&first, &mut frames, &mut windower, |chunk| {
+            emitted.push(chunk);
+            Ok(())
+        })
+        .expect("first durable record is valid");
+        assert!(emitted.is_empty());
+        assert!(frames.starts_new_span(&resumed));
+
+        windower.discard_pending();
+        process_record_frames(&resumed, &mut frames, &mut windower, |chunk| {
+            emitted.push(chunk);
+            Ok(())
+        })
+        .expect("recovery record is valid");
+
+        assert_eq!(emitted.len(), 1);
+        assert_eq!(emitted[0].start_offset_ns, resumed.start_offset_ns);
+        assert_eq!(emitted[0].end_offset_ns, 4_010_000_000);
+        assert_eq!(emitted[0].samples.len(), resumed.samples.len());
+        assert_eq!(emitted[0].voice_frames.len(), 67);
+    }
+
+    /// Microphone records carry a host-clock start and a truncated duration, so
+    /// on a device whose clock runs slow each record starts a little before the
+    /// previous record's computed end. Reading that as a gap restarted the frame
+    /// buffer on every record, no VAD frame ever formed, and the track's
+    /// transcript came out empty.
+    #[test]
+    fn negative_timestamp_drift_stays_inside_one_span() {
+        let track_id = SourceTrackId::new();
+        let mut consumer = CountingFrames { count: 0 };
+        let mut frames = RecordFrameBuffer::new();
+        let mut boundaries = 0;
+        for sequence in 0..12 {
+            let record = DurableTrackRecord {
+                track_id,
+                sequence,
+                source_epoch: SourceEpoch::new(0),
+                start_offset_ns: sequence * 21_333_000,
+                duration_ns: 21_333_333,
+                format: AudioFormat {
+                    sample_rate_hz: 48_000,
+                    channels: 1,
+                },
+                samples: vec![0.25; 1_024],
+            };
+            if frames.starts_new_span(&record) {
+                boundaries += 1;
+            }
+            process_record_frames(&record, &mut frames, &mut consumer, |_| Ok(()))
+                .expect("drifting record is valid");
+        }
+
+        assert_eq!(boundaries, 0);
+        assert_eq!(consumer.count, 8);
+    }
+
+    #[test]
+    fn enrollment_audio_clips_to_the_approved_evidence_range() {
+        let session_id = MeetingSessionId::new();
+        let track_id = SourceTrackId::new();
+        let evidence = VoiceEnrollmentEvidence::new(
+            session_id,
+            MeetingDiarizationGenerationId::new(),
+            SpeakerId::new(),
+            track_id,
+            500_000_000,
+            1_500_000_000,
+        )
+        .expect("valid evidence");
+        let mut collector = EnrollmentAudioCollector::new(evidence).expect("bounded collector");
+        collector
+            .push(VoiceEnrollmentRecord {
+                record: DurableTrackRecord {
+                    track_id,
+                    sequence: 0,
+                    source_epoch: SourceEpoch::new(0),
+                    start_offset_ns: 0,
+                    duration_ns: 2_000_000_000,
+                    format: AudioFormat {
+                        sample_rate_hz: 16_000,
+                        channels: 1,
+                    },
+                    samples: (0..32_000)
+                        .map(|sample| f32::from(u16::try_from(sample).expect("test sample")))
+                        .collect(),
+                },
+                approved_spans: vec![
+                    crate::meeting::store::voice_identity::VoiceEnrollmentAudioSpan {
+                        start_offset_ns: 500_000_000,
+                        end_offset_ns: 1_500_000_000,
+                    },
+                ],
+            })
+            .expect("approved audio is continuous");
+
+        let samples = collector.finish().expect("complete evidence");
+        assert_eq!(samples.len(), 16_000);
+        assert_eq!(samples.first(), Some(&8_000.0));
+        assert_eq!(samples.last(), Some(&23_999.0));
+    }
+
+    #[test]
+    fn enrollment_audio_rejects_a_durable_sequence_gap() {
+        let track_id = SourceTrackId::new();
+        let evidence = VoiceEnrollmentEvidence::new(
+            MeetingSessionId::new(),
+            MeetingDiarizationGenerationId::new(),
+            SpeakerId::new(),
+            track_id,
+            0,
+            2_000_000_000,
+        )
+        .expect("valid evidence");
+        let mut collector = EnrollmentAudioCollector::new(evidence).expect("bounded collector");
+        let record = |sequence, start_offset_ns| VoiceEnrollmentRecord {
+            record: DurableTrackRecord {
+                track_id,
+                sequence,
+                source_epoch: SourceEpoch::new(0),
+                start_offset_ns,
+                duration_ns: 1_000_000_000,
+                format: AudioFormat {
+                    sample_rate_hz: 16_000,
+                    channels: 1,
+                },
+                samples: vec![0.25; 16_000],
+            },
+            approved_spans: vec![
+                crate::meeting::store::voice_identity::VoiceEnrollmentAudioSpan {
+                    start_offset_ns,
+                    end_offset_ns: start_offset_ns + 1_000_000_000,
+                },
+            ],
+        };
+        collector.push(record(0, 0)).expect("first record");
+
+        assert_eq!(
+            collector.push(record(2, 1_000_000_000)),
+            Err(StoreError::InsufficientEnrollmentEvidence)
+        );
+    }
+
+    #[test]
+    fn enrollment_model_unavailable_is_reported_without_a_download() {
+        let diarizer = MeetingDiarizer::without_download();
+        let model_directory = std::env::temp_dir().join(format!(
+            "sona-enrollment-model-missing-{}",
+            std::process::id()
+        ));
+
+        assert!(matches!(
+            tauri::async_runtime::block_on(open_enrollment_embedder(&diarizer, &model_directory)),
+            Err(StoreError::LocalModelUnavailable)
+        ));
     }
 
     #[test]

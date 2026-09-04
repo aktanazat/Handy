@@ -88,6 +88,7 @@ const RELAY_TURN_DEADLINE: Duration = Duration::from_secs(240);
 /// on top. Keeping these numbers current is a manual act: nothing here can
 /// observe that file, and the check below is only as true as what is written
 /// on this line.
+#[cfg(test)]
 const RELAY_TRANSPORT_TAIL: Duration = Duration::from_millis(750 + 15_000 + 15_000);
 
 /// How long the calling thread waits for the turn it handed to the runtime.

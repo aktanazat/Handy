@@ -91,7 +91,7 @@ pub trait MeetingSourceProvider: Send + Sync {
     ) -> Result<Box<dyn MeetingCaptureSource>, MeetingCaptureError>;
 }
 
-struct NoCaptureSources;
+pub(crate) struct NoCaptureSources;
 
 impl MeetingSourceProvider for NoCaptureSources {
     fn probe(&self, source_kind: SourceKind) -> SourceProbe {
@@ -3986,12 +3986,27 @@ fn map_secret_error(error: SecretResolveError) -> MeetingCommandError {
 
 fn map_store_error(error: StoreError) -> MeetingCommandError {
     match error {
-        StoreError::NotFound => MeetingCommandError::NotFound,
+        StoreError::NotFound | StoreError::PersonNotFound | StoreError::SpeakerNotFound => {
+            MeetingCommandError::NotFound
+        }
         StoreError::ConsentStale => MeetingCommandError::ConsentStale,
+        StoreError::ExplicitConsentRequired => MeetingCommandError::ConsentRequired,
         StoreError::Conflict => MeetingCommandError::InvalidTransition,
+        StoreError::StaleRevision => MeetingCommandError::StaleRevision,
         StoreError::Invalid => MeetingCommandError::InvalidRequest,
+        StoreError::LocalModelUnavailable => MeetingCommandError::LocalModelUnavailable,
+        StoreError::LocalEvidenceUnavailable => MeetingCommandError::LocalEvidenceUnavailable,
+        StoreError::InsufficientEnrollmentEvidence => {
+            MeetingCommandError::InsufficientEnrollmentEvidence
+        }
+        StoreError::ProfileModelIncompatible => MeetingCommandError::ProfileModelIncompatible,
+        StoreError::ProfileMergeResolutionRequired => {
+            MeetingCommandError::ProfileMergeResolutionRequired
+        }
         StoreError::EncryptionUnavailable
+        | StoreError::StorageUnavailable
         | StoreError::Unavailable
+        | StoreError::VoiceInvariant
         | StoreError::Io
         | StoreError::Corrupt => MeetingCommandError::StorageUnavailable,
     }
@@ -4006,7 +4021,7 @@ fn map_processing_error(error: ProcessingFailure) -> MeetingCommandError {
         // live operation. If one ever surfaces it, the meeting does need
         // recovery, which is the error that says so.
         ProcessingFailure::Interrupted => MeetingCommandError::RecoveryRequired,
-        ProcessingFailure::EngineFailure => MeetingCommandError::InvalidRequest,
+        ProcessingFailure::EngineFailure => MeetingCommandError::EngineFailure,
     }
 }
 
@@ -4413,6 +4428,15 @@ pub(crate) mod tests {
                 .unwrap();
             store.session_snapshot(session_id).unwrap()
         })
+    }
+
+    #[test]
+    fn engine_processing_failures_keep_their_wire_error() {
+        assert_eq!(
+            serde_json::to_value(map_processing_error(ProcessingFailure::EngineFailure))
+                .expect("command error serializes"),
+            serde_json::json!("engine_failure"),
+        );
     }
 
     #[test]
@@ -5718,6 +5742,14 @@ pub(crate) mod tests {
         assert_eq!(snapshot.phase, MeetingPhase::Processing);
         assert_eq!(snapshot.title, "Team sync");
         assert_eq!(snapshot.started_at_utc_ms, Some(1_700_000_000_000));
+
+        assert_eq!(
+            tauri::async_runtime::block_on(manager.store())
+                .expect("meeting store mounts")
+                .meeting_origin(snapshot.session_id)
+                .expect("imported meeting preserves its origin"),
+            MeetingOrigin::Import,
+        );
 
         let review = tauri::async_runtime::block_on(manager.get(snapshot.session_id))
             .expect("the imported meeting is readable");

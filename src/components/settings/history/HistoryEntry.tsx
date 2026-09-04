@@ -44,6 +44,8 @@ interface HistoryEntryComponentProps {
    * already enforces one level down — one thing playing, one thing open.
    */
   expanded: boolean;
+  /** A fresh deep-link request asks this row to reveal and receive focus. */
+  focusNonce?: number;
   onToggleExpanded: (id: number) => void;
   onToggleSaved: (id: number) => Promise<void>;
   onCopyText: (text: string) => Promise<void>;
@@ -57,6 +59,7 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
   receipts,
   view,
   expanded,
+  focusNonce,
   onToggleExpanded,
   onToggleSaved,
   onCopyText,
@@ -73,6 +76,7 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
   const correction = useHistoryCorrection();
   const copiedTimerRef = useRef<number | undefined>(undefined);
   const deleteTimerRef = useRef<number | undefined>(undefined);
+  const rowButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(
     () => () => {
@@ -81,6 +85,19 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
     },
     [],
   );
+
+  useEffect(() => {
+    if (focusNonce === undefined) return;
+    const button = rowButtonRef.current;
+    if (!button) return;
+    button.scrollIntoView({
+      block: "center",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+    button.focus({ preventScroll: true });
+  }, [focusNonce]);
 
   const processedText = entry.post_processed_text?.trim() ?? "";
   const rawText = entry.transcription_text.trim();
@@ -216,12 +233,16 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
       /* The grid-rows track is what lets a deleted row collapse to nothing
        * before it unmounts, instead of vanishing and yanking everything below
        * it upward. */
+      id={`history-entry-${entry.id}`}
       className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-[var(--duration-standard)] ease-[var(--ease-out)] data-[removing=true]:pointer-events-none data-[removing=true]:grid-rows-[0fr] data-[removing=true]:opacity-0"
+      data-history-id={entry.id}
+      data-deeplink-target={focusNonce === undefined ? undefined : "true"}
       data-removing={removing ? "true" : undefined}
       data-testid="history-entry"
     >
       <div className="min-h-0 overflow-hidden">
         <button
+          ref={rowButtonRef}
           type="button"
           className={ROW_BUTTON}
           aria-expanded={expanded}

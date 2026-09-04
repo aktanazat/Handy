@@ -23,6 +23,7 @@ interface SpeakerRosterProps {
   disabled: boolean;
   onRename: (speakerId: SpeakerId, displayName: string) => void;
   onMerge: (sourceSpeakerId: SpeakerId, targetSpeakerId: SpeakerId) => void;
+  onCorrect: (speakerId: SpeakerId) => void;
 }
 
 export const SpeakerRoster: React.FC<SpeakerRosterProps> = ({
@@ -31,6 +32,7 @@ export const SpeakerRoster: React.FC<SpeakerRosterProps> = ({
   disabled,
   onRename,
   onMerge,
+  onCorrect,
 }) => {
   const { t } = useTranslation();
   const [editingSpeakerId, setEditingSpeakerId] = useState<SpeakerId | null>(
@@ -71,6 +73,10 @@ export const SpeakerRoster: React.FC<SpeakerRosterProps> = ({
                       if (next !== null) onRename(speaker.speaker_id, next);
                     }}
                     onCancel={() => setEditingSpeakerId(null)}
+                    onCorrect={() => {
+                      setEditingSpeakerId(null);
+                      onCorrect(speaker.speaker_id);
+                    }}
                     onMerge={(targetSpeakerId) => {
                       setEditingSpeakerId(null);
                       onMerge(speaker.speaker_id, targetSpeakerId);
@@ -109,20 +115,21 @@ export interface SpeakerNameEditorProps {
   onCommit: (draft: string) => void;
   onCancel: () => void;
   onMerge: (targetSpeakerId: SpeakerId) => void;
+  onCorrect: () => void;
 }
 
-/* The chip, open. Naming and merging are the same intent seen twice — this is
- * who that voice was — so they sit together and both leave when it is settled.
+/* The chip, open. Naming, matching, and correcting all answer who this voice
+ * was, so the actions sit together and leave when it is settled.
  *
- * The merge actions keep the field focused on the way down: a commit fired by
- * losing focus would close this editor out from under the click that asked for
- * the merge. */
+ * The actions keep the field focused on the way down: a commit fired by losing
+ * focus would close this editor out from under the click that chose one. */
 export const SpeakerNameEditor: React.FC<SpeakerNameEditorProps> = ({
   speaker,
   others,
   onCommit,
   onCancel,
   onMerge,
+  onCorrect,
 }) => {
   const { t } = useTranslation();
   const container = useRef<HTMLDivElement>(null);
@@ -149,22 +156,29 @@ export const SpeakerNameEditor: React.FC<SpeakerNameEditorProps> = ({
           )}
         />
       </span>
-      {others.length === 0 ? null : (
-        <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          {others.map((other) => (
-            <button
-              key={other.speaker_id}
-              type="button"
-              data-slot="speaker-merge"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => onMerge(other.speaker_id)}
-              className="cursor-pointer text-[11px] text-gray-700 underline-offset-2 transition-colors hover:text-gray-1000 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
-            >
-              {t("meetings.review.samePersonAs", { name: other.display_name })}
-            </button>
-          ))}
-        </span>
-      )}
+      <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <button
+          type="button"
+          data-slot="speaker-correct"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={onCorrect}
+          className="cursor-pointer text-[11px] text-gray-700 underline-offset-2 transition-colors hover:text-gray-1000 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+        >
+          {t("meetings.review.correctSpeaker")}
+        </button>
+        {others.map((other) => (
+          <button
+            key={other.speaker_id}
+            type="button"
+            data-slot="speaker-merge"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => onMerge(other.speaker_id)}
+            className="cursor-pointer text-[11px] text-gray-700 underline-offset-2 transition-colors hover:text-gray-1000 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+          >
+            {t("meetings.review.samePersonAs", { name: other.display_name })}
+          </button>
+        ))}
+      </span>
     </div>
   );
 };

@@ -8,7 +8,9 @@
 //! worth raising — that is `crate::meeting::digest`'s call.
 
 use super::loops::ledger_rows_in;
-use super::{MeetingStore, StoreError};
+#[cfg(test)]
+use super::MeetingStore;
+use super::StoreError;
 use crate::meeting::loop_types::waiting_on_is_stale;
 use crate::meeting::types::{MeetingCommandKind, OperationResult};
 use rusqlite::{params, Connection};
@@ -22,6 +24,7 @@ pub(crate) struct MeetingDigestCounts {
     pub waiting_on_stale: u64,
 }
 
+#[cfg(test)]
 impl MeetingStore {
     pub(crate) fn digest_counts(
         &self,

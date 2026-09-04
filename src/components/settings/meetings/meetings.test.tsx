@@ -15,6 +15,7 @@ import type {
   MeetingReviewSnapshot,
   MeetingStatusFilter,
   MeetingSuggestion,
+  ProcessingFailure,
   ProcessingStatus,
 } from "@/bindings";
 import { meetingCardStatus } from "./home/MeetingStatusChip";
@@ -26,7 +27,7 @@ import { MeetingsHome } from "./MeetingsHome";
 import { MeetingLedgerSection } from "./MeetingLedgerSection";
 import { currentLedger } from "./meetingLedger";
 import { MeetingsSettings } from "./MeetingsSettings";
-import { NO_MEETING_FILTER } from "./meetingUtils";
+import { meetingErrorKey, NO_MEETING_FILTER } from "./meetingUtils";
 import type { MeetingStartOptions } from "./meetingTypes";
 
 /* First paint of every meetings surface, and the shape of the start flow.
@@ -351,9 +352,15 @@ const homeMarkup = (
     />,
   );
 
+describe("meeting command errors", () => {
+  test("engine failures show the processing failure message", () => {
+    expect(i18n.t(meetingErrorKey("engine_failure"))).toBe("Processing failed");
+  });
+});
+
 describe("meetings section", () => {
   test("mounts on first paint and waits on the list skeleton", () => {
-    const markup = render(<MeetingsSettings />);
+    const markup = render(<MeetingsSettings onOpenSettings={noop} />);
     expect(markup).toContain('aria-label="Loading meeting history…"');
     expect(markup).toContain(">Meetings</h1>");
     expect(markup).toContain(">Start recording<");
@@ -804,6 +811,7 @@ const insightsMarkup = (
       onActionItemToggle={noop}
       onRefresh={async () => {}}
       onAnalyticsRefresh={async () => {}}
+      onOpenSettings={noop}
       {...overrides}
     />,
   );
@@ -830,6 +838,7 @@ describe("meeting review", () => {
         onRemoteCancel={noop}
         onDelete={noop}
         onRefresh={async () => {}}
+        onOpenSettings={noop}
         {...overrides}
       />,
     );
@@ -1074,21 +1083,118 @@ describe("insights panel", () => {
     expect(markup).toContain(">Refresh<");
   });
 
-  test("a remote destination that never arrived says so instead of spinning", () => {
+  /* A meeting with no notes has two genuinely different causes, and the screen
+   * has to say which. This used to assert the opposite for four of the five:
+   * only `remote_unavailable` was matched, so `local_model_unavailable` — the
+   * reason `generation_shortfall` names "the case that filled the corpus with
+   * blank meetings" — rendered the same "they can be rebuilt at any time"
+   * screen as a meeting that recorded silence and has nothing to rebuild from.
+   *
+   * The headings are `meetings.processing.failed.*`, which the status chip
+   * already reads, so a reason cannot be named here and left blank there. */
+  /* One table for the whole union, checked against `ProcessingFailure`
+   * itself: a sixth reason added to the union fails to compile here until it
+   * is named, which is what makes this a matrix rather than five hand-copied
+   * cases. `settingsRoute` carries the partition the pane draws — a reason a
+   * person can act on in Settings keeps the route there, the rest do not — so
+   * the split has one owner in this file as well. */
+  const GENERATION_FAILURES = {
+    local_model_unavailable: {
+      heading: "Local model unavailable",
+      settingsRoute: true,
+    },
+    remote_unavailable: {
+      heading: "Remote destination unavailable",
+      settingsRoute: true,
+    },
+    engine_failure: { heading: "Processing failed", settingsRoute: false },
+    cancelled: { heading: "Processing cancelled", settingsRoute: false },
+    interrupted: {
+      heading: "Interrupted before it finished",
+      settingsRoute: false,
+    },
+  } satisfies Record<
+    ProcessingFailure,
+    { heading: string; settingsRoute: boolean }
+  >;
+
+  // SAFETY: the table above satisfies `Record<ProcessingFailure, …>`, so its
+  // own keys are exactly the members of that union.
+  const reasons = Object.keys(GENERATION_FAILURES) as ProcessingFailure[];
+
+  const failedMarkup = (reason: ProcessingFailure) =>
+    insightsMarkup({
+      snapshot: {
+        ...SNAPSHOT,
+        artifacts: [],
+        session: {
+          ...SNAPSHOT.session,
+          processing_status: { kind: "failed", reason },
+        },
+      },
+    });
+
+  for (const reason of reasons) {
+    test(
+      "no notes because of " +
+        reason +
+        " names that reason and does not offer a rebuild",
+      () => {
+        const markup = failedMarkup(reason);
+        expect(markup).toContain(GENERATION_FAILURES[reason].heading);
+        expect(markup).toContain(
+          "The transcript and your manual notes are unaffected.",
+        );
+        expect(markup).not.toContain("they can be rebuilt at any time");
+      },
+    );
+  }
+
+  for (const reason of reasons.filter(
+    (candidate) => GENERATION_FAILURES[candidate].settingsRoute,
+  )) {
+    test(
+      "no notes because of " +
+        reason +
+        " keeps Regenerate available and links to Settings",
+      () => {
+        const markup = failedMarkup(reason);
+        expect(markup).toContain(GENERATION_FAILURES[reason].heading);
+        expect(buttonTag(markup, "Settings")).not.toBe("");
+        expect(buttonTag(markup, "Settings")).not.toMatch(
+          /\sdisabled(?:="")?(?=\s|>)/,
+        );
+        expect(buttonTag(markup, "Regenerate")).not.toMatch(
+          /\sdisabled(?:="")?(?=\s|>)/,
+        );
+      },
+    );
+  }
+
+  for (const reason of reasons.filter(
+    (candidate) => !GENERATION_FAILURES[candidate].settingsRoute,
+  )) {
+    test("no notes because of " + reason + " offers no Settings route", () => {
+      expect(buttonTag(failedMarkup(reason), "Settings")).toBe("");
+    });
+  }
+
+  /* The discriminator the negative assertion above rests on: a pass that
+   * finished with nothing to say still offers the rebuild, so "not.toContain"
+   * is a difference between two states rather than a string nothing renders. */
+  test("a finished pass with nothing to say still offers the rebuild", () => {
     const markup = insightsMarkup({
       snapshot: {
         ...SNAPSHOT,
         artifacts: [],
         session: {
           ...SNAPSHOT.session,
-          processing_status: { kind: "failed", reason: "remote_unavailable" },
+          processing_status: { kind: "succeeded" },
         },
       },
     });
-    expect(markup).toContain(
-      "The remote destination never became available, so nothing was generated. Regenerating runs on this Mac.",
-    );
     expect(markup).toContain("No generated notes are available yet.");
+    expect(markup).toContain("they can be rebuilt at any time");
   });
 });
 

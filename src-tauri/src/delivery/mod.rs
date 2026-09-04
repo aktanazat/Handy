@@ -111,19 +111,21 @@ pub fn deliver(app: &AppHandle, text: String, settings: &DeliveryPlan) -> Delive
     // suppressed paste distinguishable from an ordinary unconfirmed one.
     let dispatched = dispatched_outcome(settings.paste_method, secure_input_holds_keys_now());
 
-    match clipboard::paste_frozen(&text, app, settings) {
+    let clipboard_dispatch = clipboard::paste_frozen(&text, app, settings);
+    if clipboard_dispatch_owes_finishing(&clipboard_dispatch) {
+        finish_after_dispatch(app, settings, &text);
+    }
+
+    match clipboard_dispatch {
         ClipboardDispatch::DefinitelyNotDispatched(error) => {
             log::warn!("Text delivery was not dispatched: {error}");
             DeliveryReceipt::new(primary, DeliveryOutcome::DefinitelyNotDispatched)
         }
-        ClipboardDispatch::Dispatched => {
-            finish_after_dispatch(app, settings, &text);
-            DeliveryReceipt::new(primary, dispatched)
-        }
-        // A backend error leaves the insertion unproven, so no submit key and
-        // no clipboard rewrite follow it; the reliable transaction already ran
-        // its own finishing.
-        ClipboardDispatch::DispatchedWithBackendError
+        // Every state that reached a backend carries the same certainty: the
+        // platform never reports where the insertion landed. What each of them
+        // still owes the user was decided once, above.
+        ClipboardDispatch::Dispatched
+        | ClipboardDispatch::DispatchedWithBackendError
         | ClipboardDispatch::DispatchedAndFinished => DeliveryReceipt::new(primary, dispatched),
     }
 }
@@ -240,6 +242,24 @@ fn is_clipboard_family(method: PasteMethod) -> bool {
         method,
         PasteMethod::CtrlV | PasteMethod::CtrlShiftV | PasteMethod::ShiftInsert
     )
+}
+
+/// What a dispatch state owes the user, in one place.
+///
+/// An exhaustive match, not a `matches!`: a new dispatch state has to state
+/// its own answer here rather than inheriting a silent `false`.
+fn clipboard_dispatch_owes_finishing(dispatch: &ClipboardDispatch) -> bool {
+    match dispatch {
+        // The one state that proves a route invoked its input backend.
+        ClipboardDispatch::Dispatched => true,
+        // Nothing was dispatched; or a backend error left the insertion
+        // unproven, so no submit key and no clipboard rewrite may follow it;
+        // or the reliable transaction already ran this mode's finishing,
+        // timed against the target's own paste receipt.
+        ClipboardDispatch::DefinitelyNotDispatched(_)
+        | ClipboardDispatch::DispatchedWithBackendError
+        | ClipboardDispatch::DispatchedAndFinished => false,
+    }
 }
 
 /// What Sona still owes the user after a route dispatched text.
@@ -418,6 +438,21 @@ mod tests {
                 "finishing for {method:?}"
             );
         }
+    }
+    #[test]
+    fn only_a_dispatched_clipboard_route_earns_coordinator_finishing() {
+        assert!(clipboard_dispatch_owes_finishing(
+            &ClipboardDispatch::Dispatched
+        ));
+        assert!(!clipboard_dispatch_owes_finishing(
+            &ClipboardDispatch::DefinitelyNotDispatched("refused".to_string())
+        ));
+        assert!(!clipboard_dispatch_owes_finishing(
+            &ClipboardDispatch::DispatchedWithBackendError
+        ));
+        assert!(!clipboard_dispatch_owes_finishing(
+            &ClipboardDispatch::DispatchedAndFinished
+        ));
     }
 
     /// A dictation that vanishes into a password field used to produce the

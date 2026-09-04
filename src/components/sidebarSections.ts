@@ -53,7 +53,7 @@ interface SectionConfig {
    * through the command palette and from links inside pages.
    */
   inRail: boolean;
-  component: ComponentType;
+  component: ComponentType<never>;
 }
 
 /**

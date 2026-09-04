@@ -45,6 +45,8 @@ const RUNTIME_COUNT_KEYS = [
   "settings.workflows.outcomes.documentLinks",
   "libraryV2.recordings",
   "libraryV2.words",
+  "meetings.review.unresolvedSpeakers",
+  "consentPanel.wrap.unresolvedSpeakers",
 ] as const;
 
 const PLURAL_SAMPLE_COUNTS = [
@@ -83,6 +85,12 @@ const sampleCount = (
 const DYNAMIC_KEYS = {
   "settings.history.receipts.engine": ["local", "cloud", "local_fallback"],
   "settings.history.receipts.source": ["microphone", "file", "legacy"],
+  "settings.history.receipts.deliveryOutcome": [
+    "delivered",
+    "definitely_not_dispatched",
+    "dispatched_but_unconfirmed",
+    "dispatched_under_secure_input",
+  ],
   "settingsV2.tabs": ["essentials", "advanced", "debug"],
   "settings.workflows.items": [
     "person_linking.name",

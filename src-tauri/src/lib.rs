@@ -39,6 +39,9 @@ mod paste_tx;
 pub mod portable;
 mod prompt_renderer;
 pub mod query;
+pub mod recorder;
+#[cfg(target_os = "macos")]
+pub mod recorder_macos;
 mod secrets;
 mod secure_input;
 mod settings;
@@ -68,6 +71,7 @@ use meeting::types::{
     AllowedMeetingAction, MeetingEventPayload, MeetingNavigationDestination,
     MeetingNavigationPayload, MeetingOperationId, MeetingSessionSnapshot, OperationResult,
 };
+use recorder::ScreenRecorderManager;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Arc;
@@ -153,7 +157,10 @@ fn build_console_filter() -> env_filter::Filter {
     builder.build()
 }
 
-fn activate_main_window(app: &AppHandle, main_window: &tauri::WebviewWindow<tauri::Wry>) {
+fn activate_main_window<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    main_window: &tauri::WebviewWindow<R>,
+) {
     // The paint handoff is asynchronous; respect a minimize that won the race.
     if main_window.is_minimized().is_ok_and(|minimized| minimized) {
         return;
@@ -168,7 +175,7 @@ fn activate_main_window(app: &AppHandle, main_window: &tauri::WebviewWindow<taur
     }
 }
 
-pub(crate) fn show_main_window(app: &AppHandle) {
+pub(crate) fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     if let Some(main_window) = app.get_webview_window("main") {
         if let Err(error) = main_window.unminimize() {
             log::error!("Failed to unminimize webview window: {error}");
@@ -479,6 +486,21 @@ fn initial_opened_audio_paths(
         .map(|path| Ok::<&Path, OpenedAudioImportFailure>(path.as_path()))
 }
 
+/// The `sona://` addresses an operating system handed us as opened files.
+///
+/// Windows and Linux cold-start the binary with a registered protocol URL in
+/// argv, and `opened_audio_files` is the variadic positional, so the address
+/// arrives looking like a file. The forwarded path and macOS `RunEvent::Opened`
+/// both route before the import funnel sees the list; a cold start had no
+/// router in front of it at all, so `sona://search?q=…` — an address the query
+/// plane mints itself — produced no navigation, no error and no log line.
+fn opened_deep_link_addresses(paths: &[PathBuf]) -> impl Iterator<Item = &str> {
+    paths
+        .iter()
+        .filter_map(|path| path.to_str())
+        .filter(|raw| deeplink::deep_link_route(raw).is_some())
+}
+
 fn forwarded_opened_audio_paths<'a>(
     paths: &'a [PathBuf],
     cwd: &'a str,
@@ -534,6 +556,33 @@ where
         match path {
             Ok(path) => {
                 let path = path.as_ref();
+                // A `sona://` address is never a file to import.
+                //
+                // Three callers hand this function the URL list an operating
+                // system gave us, and the invariant used to be enforced in two
+                // of them: the forwarded path filtered, the macOS open-urls
+                // path filtered, and `initial_opened_audio_paths` did not. So a
+                // cold start turned every deep link — including one the query
+                // plane mints itself, `sona://search?q=…` — into "Select a
+                // readable audio file", a diagnosis pointing at the filesystem
+                // for a problem that is a URL, while the route table never saw
+                // the address at all.
+                //
+                // Here rather than in a third per-caller filter, so the next
+                // caller inherits it instead of having to remember. It does not
+                // make the forwarded path's own filter redundant, and that is
+                // not an oversight: `resolve_opened_audio_path` joins a
+                // relative path onto the cwd, and `sona://quit` *is* relative
+                // as a `Path`, so by the time a forwarded argv reaches this
+                // loop it reads `<cwd>/sona://quit` and no longer parses as a
+                // URL. That filter has to run before resolution; this one is
+                // what covers everybody who has not transformed the string.
+                if path
+                    .to_str()
+                    .is_some_and(|raw| deeplink::deep_link_route(raw).is_some())
+                {
+                    continue;
+                }
                 match enqueue(path) {
                     Ok(()) => queued_any = true,
                     Err(failure) => reject(Some(path), failure),
@@ -625,7 +674,7 @@ fn should_force_show_permissions_window(app: &AppHandle) -> bool {
     false
 }
 
-fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
+fn initialize_core_logic(app_handle: &AppHandle, runtime: StartupRuntime) -> anyhow::Result<()> {
     // Note: Enigo (keyboard/mouse simulation) is NOT initialized here.
     // The frontend is responsible for calling the `initialize_enigo` command
     // after onboarding completes. This avoids triggering permission dialogs
@@ -660,6 +709,11 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
         transcription_manager.clone(),
         history_manager.clone(),
     ));
+    let screen_recorder_manager = ScreenRecorderManager::new(
+        app_handle,
+        Arc::clone(&history_manager),
+        Arc::clone(&recording_manager),
+    );
     let meeting_secrets = Arc::clone(&app_handle.state::<Arc<secrets::SecretManager>>());
     let meeting_manager = Arc::new(MeetingSessionManager::new(
         app_handle,
@@ -688,6 +742,7 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
     app_handle.manage(model_manager.clone());
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
+    app_handle.manage(Arc::clone(&screen_recorder_manager));
     app_handle.manage(media_import_manager.clone());
     app_handle.manage(Arc::clone(&meeting_manager));
     app_handle.manage(Arc::clone(&cloud_runtime));
@@ -762,8 +817,7 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
     // If the tray icon is disabled, keep the dock icon so the user can reopen.
     #[cfg(target_os = "macos")]
     {
-        let settings = settings::get_settings(app_handle);
-        if settings.start_hidden && settings.show_tray_icon {
+        if runtime.starts_hidden && runtime.tray_available {
             let _ = app_handle.set_activation_policy(tauri::ActivationPolicy::Accessory);
         }
     }
@@ -818,7 +872,7 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
                 coordinator.send_intent(modes::TranscriptionIntent::ActiveMode, "tray");
             }
             "settings" => {
-                show_main_window(app);
+                tray::open_settings(app);
             }
             "secure_input_warning" => {
                 // Full explanation lives in the settings-window banner
@@ -983,8 +1037,7 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
     tray::update_tray_menu(app_handle);
 
     // Apply show_tray_icon setting
-    let settings = settings::get_settings(app_handle);
-    if !settings.show_tray_icon {
+    if !runtime.tray_available {
         tray::set_tray_visibility(app_handle, false);
     }
 
@@ -1067,6 +1120,162 @@ fn is_headless_mode(args: &CliArgs) -> bool {
         || args.list_models
         || args.agent_panel_public_identity
         || query::external::is_external_query(args)
+}
+
+/// macOS's plugin singleton is keyed by bundle identifier, not the data root.
+/// A portable GUI instead owns its adjacent Data directory with an OS lock.
+const fn uses_bundle_single_instance(portable: bool) -> bool {
+    !cfg!(target_os = "macos") || !portable
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct StartupRuntime {
+    log_level: settings::LogLevel,
+    debug_mode: bool,
+    starts_hidden: bool,
+    tray_available: bool,
+    show_window_before_core: bool,
+}
+
+fn tray_is_available(settings: &settings::AppSettings, cli_args: &CliArgs) -> bool {
+    settings.show_tray_icon && !cli_args.no_tray
+}
+
+/// What a close of the main window means.
+///
+/// A tray icon is the way back in, so the window hides. Without one there is no
+/// way back, and closing the window does not end the process either: the
+/// recording overlay and, on macOS, the consent panel stay alive and hidden, so
+/// wry never reports an empty window map. The process would keep holding global
+/// shortcuts with no surface left that can stop a recording, so this close ends
+/// the process.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MainWindowCloseAction {
+    Hide,
+    Exit,
+}
+
+fn main_window_close_action(
+    settings: &settings::AppSettings,
+    cli_args: &CliArgs,
+) -> MainWindowCloseAction {
+    if tray_is_available(settings, cli_args) {
+        MainWindowCloseAction::Hide
+    } else {
+        MainWindowCloseAction::Exit
+    }
+}
+
+fn startup_runtime(settings: &settings::AppSettings, cli_args: &CliArgs) -> StartupRuntime {
+    let starts_hidden = settings.start_hidden || cli_args.start_hidden;
+    let tray_available = tray_is_available(settings, cli_args);
+
+    StartupRuntime {
+        log_level: if cli_args.debug {
+            settings::LogLevel::Trace
+        } else {
+            settings.log_level
+        },
+        debug_mode: settings.debug_mode || cli_args.debug,
+        starts_hidden,
+        tray_available,
+        show_window_before_core: !starts_hidden || !tray_available,
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ForwardedControl {
+    ToggleTranscription,
+    TogglePostProcess,
+    Cancel,
+}
+
+fn forwarded_control(args: &[String]) -> Option<ForwardedControl> {
+    if args.iter().any(|arg| arg == "--toggle-transcription") {
+        Some(ForwardedControl::ToggleTranscription)
+    } else if args.iter().any(|arg| arg == "--toggle-post-process") {
+        Some(ForwardedControl::TogglePostProcess)
+    } else if args.iter().any(|arg| arg == "--cancel") {
+        Some(ForwardedControl::Cancel)
+    } else {
+        None
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ForwardedOpenAction {
+    DeepLink,
+    OpenedAudio,
+    RaiseWindow,
+}
+
+fn forwarded_open_action(
+    deep_link_dispatched: bool,
+    opened_audio_queued: bool,
+) -> ForwardedOpenAction {
+    if deep_link_dispatched {
+        ForwardedOpenAction::DeepLink
+    } else if opened_audio_queued {
+        ForwardedOpenAction::OpenedAudio
+    } else {
+        ForwardedOpenAction::RaiseWindow
+    }
+}
+
+/// How a portable copy reports that another copy holds the Data directory.
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PortableLockRefusal {
+    /// A launch the user is watching. A window was going to appear, so the
+    /// refusal has to be readable without a terminal.
+    NativeAlert,
+    /// A command line asking the running copy to start, stop or cancel. It was
+    /// never going to show a window, and the copy holding the lock is the one
+    /// it is talking to, so a modal telling the user to close that copy
+    /// describes the wrong problem.
+    Stderr,
+}
+
+/// Remote-control flags are a message to the running copy, not a second launch.
+#[cfg(target_os = "macos")]
+fn portable_lock_refusal(args: &CliArgs) -> PortableLockRefusal {
+    if args.toggle_transcription || args.toggle_post_process || args.cancel {
+        PortableLockRefusal::Stderr
+    } else {
+        PortableLockRefusal::NativeAlert
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn exit_for_portable_lock_error(
+    error: portable::DataDirInstanceLockError,
+    refusal: PortableLockRefusal,
+) -> ! {
+    if refusal == PortableLockRefusal::Stderr {
+        eprintln!(
+            "error: this portable copy cannot forward remote control because {error}. Use the running copy's tray icon or shortcuts."
+        );
+        std::process::exit(1);
+    }
+
+    let message = format!(
+        "Sona could not open this portable copy because {error}. Close the other copy, then try again."
+    );
+    let script =
+        "on run argv\ndisplay alert \"Sona\" message (item 1 of argv) as critical\nend run";
+
+    match std::process::Command::new("/usr/bin/osascript")
+        .arg("-e")
+        .arg(script)
+        .arg("--")
+        .arg(&message)
+        .status()
+    {
+        Ok(status) if status.success() => {}
+        Ok(status) => eprintln!("error: {message} Native alert exited with {status}"),
+        Err(error) => eprintln!("error: {message} Native alert unavailable: {error}"),
+    }
+    std::process::exit(1);
 }
 
 /// The ASR plan a headless run transcribes under: the active mode's, exactly as
@@ -1338,10 +1547,26 @@ pub fn run(cli_args: CliArgs) {
         return;
     }
 
+    let context = tauri::generate_context!();
+
     // Parse console logging directives from RUST_LOG, falling back to info-level logging
     // when the variable is unset
     let console_filter = build_console_filter();
     let headless_mode = is_headless_mode(&cli_args);
+
+    // Claim the portable GUI runtime before the logger or any Tauri plugin
+    // can write under this root. Headless CLI/MCP commands retain their
+    // existing concurrent path; the upstream macOS singleton cannot do this.
+    #[cfg(target_os = "macos")]
+    let portable_data_lock = if headless_mode {
+        None
+    } else {
+        match portable::claim_instance_lock() {
+            Ok(lock) => lock,
+            Err(error) => exit_for_portable_lock_error(error, portable_lock_refusal(&cli_args)),
+        }
+    };
+
     if !headless_mode {
         launch_trace::start();
     }
@@ -1452,7 +1677,7 @@ pub fn run(cli_args: CliArgs) {
             secrets::verify_stt_provider_secret,
             shortcut::change_post_process_model_setting,
             shortcut::set_post_process_provider,
-            shortcut::fetch_post_process_models,
+            shortcut::discover_post_process_model_catalog,
             shortcut::add_post_process_prompt,
             shortcut::update_post_process_prompt,
             shortcut::delete_post_process_prompt,
@@ -1527,6 +1752,18 @@ pub fn run(cli_args: CliArgs) {
             commands::media_import::import_audio_file,
             commands::media_import::cancel_audio_import,
             commands::media_import::list_audio_import_jobs,
+            commands::recorder::recorder_preflight,
+            commands::recorder::recorder_preview_start,
+            commands::recorder::recorder_preview_stop,
+            commands::recorder::recorder_start,
+            commands::recorder::recorder_pause,
+            commands::recorder::recorder_resume,
+            commands::recorder::recorder_stop,
+            commands::recorder::recorder_cancel,
+            commands::voice_identity::voice_identity_status,
+            commands::voice_identity::voice_identify_speaker,
+            commands::voice_identity::voice_enroll_profile,
+            commands::voice_identity::voice_remove_profile,
             commands::history::get_history_stats,
             commands::history::get_history_trend,
             commands::history::get_history_entries,
@@ -1682,6 +1919,7 @@ pub fn run(cli_args: CliArgs) {
             managers::transcription::StreamPhaseEvent,
             managers::transcription::StreamEngineEvent,
             managers::media_import::AudioImportUpdateEvent,
+            recorder::RecorderStateChangedEvent,
             meeting::types::MeetingSuggestionChangedEvent,
             meeting::types::MeetingSessionChangedEvent,
             meeting::types::MeetingSourceHealthChangedEvent,
@@ -1698,6 +1936,8 @@ pub fn run(cli_args: CliArgs) {
             meeting::detection::MeetingRitualRetractedEvent,
             meeting::detection::DetectionStatus,
             meeting::digest::CaptureRequestedEvent,
+            tray::TraySettingsRequestedEvent,
+            tray::TrayCopyFailedEvent,
             query::QueryLinkRequestedEvent,
         ]);
 
@@ -1763,15 +2003,32 @@ pub fn run(cli_args: CliArgs) {
                         let console_filter = console_filter.clone();
                         move |metadata| console_filter.enabled(metadata)
                     }),
-                    // File logs respect the user's settings (stored in FILE_LOG_LEVEL atomic)
-                    Target::new(if let Some(data_dir) = portable::data_dir() {
-                        TargetKind::Folder {
-                            path: data_dir.join("logs"),
-                            file_name: Some("sona".into()),
-                        }
-                    } else {
-                        TargetKind::LogDir {
-                            file_name: Some("sona".into()),
+                    // File logs respect the user's settings (stored in FILE_LOG_LEVEL atomic).
+                    //
+                    // Headless invocations get their own file, and that is not tidiness.
+                    // Sharing one path with the running app is a data-loss bug: the app
+                    // holds its fd open for a whole session while a CLI process lives a
+                    // couple of hundred milliseconds, so when a CLI write crosses
+                    // `max_file_size` the rotation replaces the *directory entry* and the
+                    // app's fd keeps pointing at the old inode. From that moment the app
+                    // appends to an unlinked file whose bytes are freed when it exits, and
+                    // nothing will ever rotate it again. Measured on a real install: the
+                    // app's fd held 526431 bytes — past the 500_000 cap — while the path
+                    // resolved to a different inode and `find -inum` found no entry for
+                    // the one being written. So any user who ever runs the CLI silently
+                    // detaches their app's logging, and every diagnostic they send after
+                    // that is empty. One writer per file is what prevents it; it also
+                    // stops CLI traffic evicting the app's own history.
+                    Target::new({
+                        let file_name =
+                            Some(if headless_mode { "sona-cli" } else { "sona" }.to_string());
+                        if let Some(data_dir) = portable::data_dir() {
+                            TargetKind::Folder {
+                                path: data_dir.join("logs"),
+                                file_name,
+                            }
+                        } else {
+                            TargetKind::LogDir { file_name }
                         }
                     })
                     .filter(|metadata| {
@@ -1798,62 +2055,97 @@ pub fn run(cli_args: CliArgs) {
         builder = builder.plugin(tauri_nspanel::init());
     }
 
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    if autostart::should_install_autostart_plugin() {
+        builder = builder.plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec![]),
+        ));
+    }
+
     // Single-instance forwards CLI args to an already-running Sona and exits.
     // That would make the headless path
     // (--transcribe-file/--list-devices/--list-models) a silent no-op whenever the
     // app is already open, so skip it in headless mode and run a standalone
     // instance instead.
-    if !headless_mode {
+    if !headless_mode && uses_bundle_single_instance(portable::is_portable()) {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
             // Windows and Linux deliver a registered protocol URL as argv, and
             // `opened_audio_files` is the variadic positional, so every
             // `sona://…` link forwarded here also looks like a file to import.
             // The route table owns those addresses; the importer never sees one.
-            let opened_audio_paths: Vec<PathBuf> = CliArgs::try_parse_from(args.clone())
-                .map(|parsed| parsed.opened_audio_files)
-                .unwrap_or_default()
-                .into_iter()
-                .filter(|path| {
-                    path.to_str()
-                        .map_or(true, |raw| deeplink::deep_link_route(raw).is_none())
-                })
-                .collect();
-            let opened_audio_queued =
-                enqueue_opened_paths(app, forwarded_opened_audio_paths(&opened_audio_paths, &cwd));
-            if args.iter().any(|a| a == "--toggle-transcription") {
-                signal_handle::send_transcription_intent(
-                    app,
-                    modes::TranscriptionIntent::ActiveMode,
-                    "CLI",
-                );
-            } else if args.iter().any(|a| a == "--toggle-post-process") {
-                signal_handle::send_transcription_intent(
-                    app,
-                    modes::TranscriptionIntent::ActiveModeWithPostProcess,
-                    "CLI",
-                );
-            } else if args
-                .iter()
-                .any(|argument| dispatch_deep_link(app, argument))
-            {
-                // Windows and Linux deliver a registered protocol URL as argv to
-                // a second process, which this plugin forwards here. macOS uses
-                // RunEvent::Opened instead.
-            } else if args.iter().any(|a| a == "--cancel") {
-                crate::utils::cancel_current_operation(app);
-            } else if opened_audio_queued {
-                show_main_window(app);
+            //
+            let handled = if let Some(control) = forwarded_control(&args) {
+                // A remote-control invocation is terminal: it must not also
+                // import a file, route a link, or raise the window.
+                match control {
+                    ForwardedControl::ToggleTranscription => {
+                        signal_handle::send_transcription_intent(
+                            app,
+                            modes::TranscriptionIntent::ActiveMode,
+                            "CLI",
+                        );
+                        "toggled transcription"
+                    }
+                    ForwardedControl::TogglePostProcess => {
+                        signal_handle::send_transcription_intent(
+                            app,
+                            modes::TranscriptionIntent::ActiveModeWithPostProcess,
+                            "CLI",
+                        );
+                        "toggled transcription with post-processing"
+                    }
+                    ForwardedControl::Cancel => {
+                        crate::utils::cancel_current_operation(app);
+                        "cancelled the current operation"
+                    }
+                }
             } else {
-                // A second process was launched without remote-control flags
-                // (e.g. the binary run from a shell). On macOS, relaunching the
-                // bundle from Spotlight/Finder/Dock does not start a process —
-                // it arrives as RunEvent::Reopen below — but treat this the
-                // same way: raise the window and recreate a possibly vanished
-                // tray icon (#1948).
-                #[cfg(target_os = "macos")]
-                tray::recreate_tray_icon(app);
-                show_main_window(app);
-            }
+                // Route `sona://` values before they become relative paths.
+                let opened_audio_paths: Vec<PathBuf> = CliArgs::try_parse_from(args.clone())
+                    .map(|parsed| parsed.opened_audio_files)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|path| {
+                        path.to_str()
+                            .map_or(true, |raw| deeplink::deep_link_route(raw).is_none())
+                    })
+                    .collect();
+                let opened_audio_queued = enqueue_opened_paths(
+                    app,
+                    forwarded_opened_audio_paths(&opened_audio_paths, &cwd),
+                );
+
+                let deep_link_dispatched = args
+                    .iter()
+                    .any(|argument| dispatch_deep_link(app, argument));
+
+                match forwarded_open_action(deep_link_dispatched, opened_audio_queued) {
+                    ForwardedOpenAction::DeepLink => {
+                        // Windows and Linux deliver a registered protocol URL as argv to
+                        // a second process, which this plugin forwards here. macOS uses
+                        // RunEvent::Opened instead.
+                        "dispatched a deep link"
+                    }
+                    ForwardedOpenAction::OpenedAudio => {
+                        show_main_window(app);
+                        "queued opened files and raised the window"
+                    }
+                    ForwardedOpenAction::RaiseWindow => {
+                        // A second process was launched without remote-control flags
+                        // (e.g. the binary run from a shell). On macOS, relaunching the
+                        // bundle from Spotlight/Finder/Dock does not start a process —
+                        // it arrives as RunEvent::Reopen below — but treat this the
+                        // same way: raise the window and recreate a possibly vanished
+                        // tray icon (#1948).
+                        #[cfg(target_os = "macos")]
+                        tray::recreate_tray_icon(app);
+                        show_main_window(app);
+                        "raised the window and recreated the tray icon"
+                    }
+                }
+            };
+            log::info!("Second instance forwarded {args:?} from {cwd}: {handled}");
         }));
     }
 
@@ -1866,10 +2158,6 @@ pub fn run(cli_args: CliArgs) {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        .plugin(tauri_plugin_autostart::init(
-            MacosLauncher::LaunchAgent,
-            Some(vec![]),
-        ))
         .manage(cli_args.clone())
         .setup(move |app| {
             {
@@ -1981,7 +2269,7 @@ pub fn run(cli_args: CliArgs) {
                 }
             });
 
-            let mut settings = get_settings(app.handle());
+            let settings = get_settings(app.handle());
             // Keep the first window non-activating until the webview reports a
             // composited frame. This prevents macOS from focusing empty chrome.
             #[cfg(target_os = "macos")]
@@ -1994,9 +2282,8 @@ pub fn run(cli_args: CliArgs) {
                     .title("Sona")
                     .inner_size(900.0, 800.0)
                     .min_inner_size(900.0, 800.0)
-                    .max_inner_size(900.0, 800.0)
-                    .resizable(false)
-                    .maximizable(false)
+                    .resizable(true)
+                    .maximizable(true)
                     .minimizable(true)
                     .fullscreen(false)
                     .visible(false);
@@ -2034,13 +2321,8 @@ pub fn run(cli_args: CliArgs) {
             #[cfg(any(target_os = "windows", target_os = "macos"))]
             shortcut::apply_window_theme(app.handle(), settings.theme);
 
-            // CLI --debug flag overrides debug_mode and log level (runtime-only, not persisted)
-            if cli_args.debug {
-                settings.debug_mode = true;
-                settings.log_level = settings::LogLevel::Trace;
-            }
-
-            let tauri_log_level: tauri_plugin_log::LogLevel = settings.log_level.into();
+            let runtime = startup_runtime(&settings, &cli_args);
+            let tauri_log_level: tauri_plugin_log::LogLevel = runtime.log_level.into();
             let file_log_level: log::Level = tauri_log_level.into();
             // Store the file log level in the atomic for the filter to use
             FILE_LOG_LEVEL.store(
@@ -2048,26 +2330,27 @@ pub fn run(cli_args: CliArgs) {
                 Ordering::Relaxed,
             );
             // Only forward logs to the webview while debug mode is on (the live log
-            // viewer is the sole consumer and only exists in debug mode). This also
-            // honors the runtime `--debug` override applied to `settings` above.
-            WEBVIEW_LOG_STREAMING.store(settings.debug_mode, Ordering::Relaxed);
+            // viewer is the sole consumer and only exists in debug mode).
+            WEBVIEW_LOG_STREAMING.store(runtime.debug_mode, Ordering::Relaxed);
             let app_handle = app.handle().clone();
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
             // Reveal the styled launch shell first. Its DOM-paint event below
             // releases manager construction, including catalog and HF scans.
-            let should_hide = settings.start_hidden || cli_args.start_hidden;
-            let tray_available = settings.show_tray_icon && !cli_args.no_tray;
-            let shell_shown_before_startup = !should_hide || !tray_available;
+            let shell_shown_before_startup = runtime.show_window_before_core;
             if shell_shown_before_startup {
                 show_main_window(&app_handle);
             }
 
             let startup_app = app_handle.clone();
             app_handle.once(launch_trace::FIRST_DOM_PAINT_EVENT, move |_| {
-                if let Err(error) = initialize_core_logic(&startup_app) {
+                if let Err(error) = initialize_core_logic(&startup_app, runtime) {
                     log::error!("Startup initialization failed after first paint: {error:#}");
                     startup_app.exit(1);
                     return;
+                }
+
+                for address in opened_deep_link_addresses(&cli_args.opened_audio_files) {
+                    dispatch_deep_link(&startup_app, address);
                 }
 
                 let opened_audio_queued = enqueue_opened_paths(
@@ -2103,10 +2386,6 @@ pub fn run(cli_args: CliArgs) {
                         manager.prewarm();
                     }
                 });
-
-                if cli_args.no_tray {
-                    tray::set_tray_visibility(&startup_app, false);
-                }
 
                 let should_force_show = should_force_show_permissions_window(&startup_app);
                 if !shell_shown_before_startup && (should_force_show || opened_audio_queued) {
@@ -2168,22 +2447,23 @@ pub fn run(cli_args: CliArgs) {
                     launch_trace::mark_window_focus();
                 }
                 tauri::WindowEvent::CloseRequested { api, .. } if label == "main" => {
+                    let settings = get_settings(window.app_handle());
+                    let cli_args = window.app_handle().state::<CliArgs>();
+                    if main_window_close_action(&settings, &cli_args) == MainWindowCloseAction::Exit
+                    {
+                        window.app_handle().exit(0);
+                        return;
+                    }
+
                     api.prevent_close();
                     let _ = window.hide();
 
                     #[cfg(target_os = "macos")]
+                    if let Err(error) = window
+                        .app_handle()
+                        .set_activation_policy(tauri::ActivationPolicy::Accessory)
                     {
-                        let settings = get_settings(window.app_handle());
-                        let tray_visible = settings.show_tray_icon
-                            && !window.app_handle().state::<CliArgs>().no_tray;
-                        if tray_visible {
-                            if let Err(error) = window
-                                .app_handle()
-                                .set_activation_policy(tauri::ActivationPolicy::Accessory)
-                            {
-                                log::error!("Failed to set activation policy: {error}");
-                            }
-                        }
+                        log::error!("Failed to set activation policy: {error}");
                     }
                 }
                 tauri::WindowEvent::Destroyed if label == "main" => {
@@ -2206,7 +2486,7 @@ pub fn run(cli_args: CliArgs) {
             }
         })
         .invoke_handler(invoke_handler)
-        .build(tauri::generate_context!())
+        .build(context)
     {
         Ok(app) => app,
         Err(error) => {
@@ -2262,8 +2542,199 @@ pub fn run(cli_args: CliArgs) {
         }
         _ => {}
     });
+
+    #[cfg(target_os = "macos")]
+    drop(portable_data_lock);
 }
 
+#[cfg(all(test, target_os = "macos"))]
+mod single_instance_policy_tests {
+    use super::uses_bundle_single_instance;
+
+    #[test]
+    fn portable_gui_does_not_use_the_bundle_wide_single_instance_socket() {
+        assert!(!uses_bundle_single_instance(true));
+        assert!(uses_bundle_single_instance(false));
+    }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod portable_lock_refusal_tests {
+    use super::{portable_lock_refusal, PortableLockRefusal};
+    use crate::cli::CliArgs;
+    use clap::Parser;
+
+    /// A remote-control flag is a message to the copy that already holds the
+    /// Data directory, so a refusal belongs on the terminal that sent it. Only
+    /// a launch raises the modal, because a launch is what was going to put a
+    /// window on screen.
+    #[test]
+    fn only_a_launch_refuses_a_held_data_directory_through_the_modal() {
+        let refusals = [
+            vec!["sona", "--cancel"],
+            vec!["sona", "--toggle-transcription"],
+            vec!["sona", "--toggle-post-process"],
+            vec!["sona"],
+            vec!["sona", "recording.wav"],
+        ]
+        .map(|argv| {
+            let args = CliArgs::try_parse_from(argv).expect("parse the invocation");
+            portable_lock_refusal(&args)
+        });
+
+        assert_eq!(
+            refusals,
+            [
+                PortableLockRefusal::Stderr,
+                PortableLockRefusal::Stderr,
+                PortableLockRefusal::Stderr,
+                PortableLockRefusal::NativeAlert,
+                PortableLockRefusal::NativeAlert,
+            ]
+        );
+    }
+}
+
+#[cfg(test)]
+mod startup_runtime_tests {
+    use super::{main_window_close_action, startup_runtime, MainWindowCloseAction};
+    use crate::cli::CliArgs;
+    use crate::settings::{get_default_settings, LogLevel};
+    use clap::Parser;
+
+    #[test]
+    fn start_hidden_keeps_the_shell_hidden_while_the_tray_is_available() {
+        let settings = get_default_settings();
+        let cli_args =
+            CliArgs::try_parse_from(["sona", "--start-hidden"]).expect("parse --start-hidden");
+
+        let runtime = startup_runtime(&settings, &cli_args);
+
+        assert!(runtime.starts_hidden);
+        assert!(runtime.tray_available);
+        assert!(!runtime.show_window_before_core);
+        assert_eq!(
+            main_window_close_action(&settings, &cli_args),
+            MainWindowCloseAction::Hide
+        );
+    }
+
+    #[test]
+    fn no_tray_forces_a_visible_shell_when_start_hidden_would_hide_it() {
+        let mut settings = get_default_settings();
+        settings.start_hidden = true;
+        let cli_args = CliArgs::try_parse_from(["sona", "--no-tray"]).expect("parse --no-tray");
+
+        let runtime = startup_runtime(&settings, &cli_args);
+
+        assert!(!runtime.tray_available);
+        assert!(runtime.show_window_before_core);
+        assert_eq!(
+            main_window_close_action(&settings, &cli_args),
+            MainWindowCloseAction::Exit
+        );
+    }
+
+    /// Every route that leaves no tray icon ends the process on close, not just
+    /// the flag: `show_tray_icon` is user-togglable at runtime, and a hidden
+    /// overlay window keeps the process alive after the main window is gone.
+    #[test]
+    fn a_close_with_no_tray_to_reopen_from_ends_the_process() {
+        let cases = [(true, false), (false, false), (true, true), (false, true)].map(
+            |(show_tray_icon, no_tray)| {
+                let mut settings = get_default_settings();
+                settings.show_tray_icon = show_tray_icon;
+                let cli_args = if no_tray {
+                    CliArgs::try_parse_from(["sona", "--no-tray"]).expect("parse --no-tray")
+                } else {
+                    CliArgs::try_parse_from(["sona"]).expect("parse a bare launch")
+                };
+
+                (
+                    (show_tray_icon, no_tray),
+                    main_window_close_action(&settings, &cli_args),
+                )
+            },
+        );
+
+        assert_eq!(
+            cases,
+            [
+                ((true, false), MainWindowCloseAction::Hide),
+                ((false, false), MainWindowCloseAction::Exit),
+                ((true, true), MainWindowCloseAction::Exit),
+                ((false, true), MainWindowCloseAction::Exit),
+            ]
+        );
+    }
+
+    #[test]
+    fn debug_enables_trace_for_this_launch_without_persisting_debug_settings() {
+        let mut settings = get_default_settings();
+        settings.debug_mode = false;
+        settings.log_level = LogLevel::Warn;
+        let persisted_debug_settings = (settings.debug_mode, settings.log_level);
+        let cli_args = CliArgs::try_parse_from(["sona", "--debug"]).expect("parse --debug");
+
+        let runtime = startup_runtime(&settings, &cli_args);
+
+        assert!(runtime.debug_mode);
+        assert_eq!(runtime.log_level, LogLevel::Trace);
+        assert_eq!(
+            (settings.debug_mode, settings.log_level),
+            persisted_debug_settings
+        );
+    }
+}
+
+#[cfg(test)]
+mod forwarded_control_tests {
+    use super::{forwarded_control, forwarded_open_action, ForwardedControl, ForwardedOpenAction};
+    use crate::cli::CliArgs;
+    use clap::Parser;
+
+    #[test]
+    fn remote_control_flags_select_one_terminal_action() {
+        for (flag, expected) in [
+            (
+                "--toggle-transcription",
+                ForwardedControl::ToggleTranscription,
+            ),
+            ("--toggle-post-process", ForwardedControl::TogglePostProcess),
+            ("--cancel", ForwardedControl::Cancel),
+        ] {
+            CliArgs::try_parse_from(["sona", flag]).expect("parse remote control flag");
+            let args = vec!["sona".to_string(), flag.to_string()];
+
+            assert_eq!(forwarded_control(&args), Some(expected));
+        }
+
+        let conflicting = [
+            "sona",
+            "--toggle-transcription",
+            "--toggle-post-process",
+            "--cancel",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+        assert_eq!(
+            forwarded_control(&conflicting),
+            Some(ForwardedControl::ToggleTranscription)
+        );
+    }
+
+    #[test]
+    fn bare_second_instance_launch_reaches_the_raise_window_fallback() {
+        let args = vec!["sona".to_string()];
+
+        assert_eq!(forwarded_control(&args), None);
+        assert_eq!(
+            forwarded_open_action(false, false),
+            ForwardedOpenAction::RaiseWindow
+        );
+    }
+}
 #[cfg(test)]
 mod headless_guard_tests {
     use super::{is_headless_mode, run_headless_guarded};
@@ -2339,6 +2810,7 @@ mod opened_audio_tests {
     use super::macos_opened_audio_paths;
     use super::{
         dispatch_opened_audio_paths, forwarded_opened_audio_paths, initial_opened_audio_paths,
+        opened_deep_link_addresses,
     };
     use crate::commands::media_import::OpenedAudioImportFailure;
     use std::ffi::OsStr;
@@ -2436,6 +2908,92 @@ mod opened_audio_tests {
         );
         assert_eq!(rejected, [Some(PathBuf::from("/tmp/opened/invalid.mp4"))]);
         assert_eq!(reveal_count, 1);
+    }
+
+    /// A `sona://` address in the opened-file list is skipped, not imported.
+    ///
+    /// Three callers hand `dispatch_opened_audio_paths` the URL list an
+    /// operating system gave us, and the guard used to live in two of them.
+    /// Measured on the shipped binary before this fix, own portable pid, own
+    /// log, positive control at 9 hits: a cold start with `sona://quit` and a
+    /// cold start with `sona://search?q=collagen` **both** logged
+    /// `Rejected an operating-system opened audio file: Select a readable
+    /// audio file.` and neither reached the route table. The second one is an
+    /// address the query plane mints itself.
+    #[test]
+    fn a_sona_url_in_the_opened_list_is_never_an_audio_file() {
+        let paths = vec![
+            PathBuf::from("sona://quit"),
+            PathBuf::from("sona://search?q=collagen"),
+            PathBuf::from("sona:record"),
+            PathBuf::from("real.wav"),
+        ];
+        let mut enqueued = Vec::new();
+        let queued_any = dispatch_opened_audio_paths(
+            initial_opened_audio_paths(&paths),
+            |path| {
+                enqueued.push(path.to_path_buf());
+                Ok(())
+            },
+            |path, _| panic!("a sona:// address was reported as a bad audio file: {path:?}"),
+        );
+
+        assert!(queued_any);
+        assert_eq!(
+            enqueued,
+            [PathBuf::from("real.wav")],
+            "only the file is a file"
+        );
+    }
+
+    /// The forwarded path keeps its own filter, and this is why.
+    ///
+    /// `resolve_opened_audio_path` joins a relative path onto the cwd, and
+    /// `sona://quit` *is* relative as a `Path`. So by the time a forwarded
+    /// argv reaches the funnel it reads `<cwd>/sona://quit` and no longer
+    /// parses as a URL — the guard in the funnel cannot see it, and the filter
+    /// at the forwarding call site has to run *before* resolution. Asserted
+    /// rather than commented so that removing that filter as "now redundant"
+    /// turns this red instead of silently restoring the defect.
+    #[test]
+    fn resolution_hides_a_url_from_the_funnel_guard() {
+        let forwarded = vec![PathBuf::from("sona://quit")];
+        let mut enqueued = Vec::new();
+        dispatch_opened_audio_paths(
+            forwarded_opened_audio_paths(&forwarded, "/tmp/opened"),
+            |path| {
+                enqueued.push(path.to_path_buf());
+                Ok(())
+            },
+            |_, _| {},
+        );
+
+        assert_eq!(
+            enqueued,
+            [PathBuf::from("/tmp/opened/sona://quit")],
+            "cwd-joined, so the funnel guard no longer recognises it as a URL"
+        );
+    }
+
+    /// A cold start is the ingress with no router in front of the funnel.
+    ///
+    /// Windows and Linux start the binary with a registered `sona://` address
+    /// in argv, where `opened_audio_files` collects it, so these strings have
+    /// to reach the route table. The funnel then skips them; skipping alone
+    /// left `sona://search?q=…` with no navigation, no error and no log line.
+    #[test]
+    fn a_cold_start_offers_every_sona_address_to_the_router_in_argv_order() {
+        let argv = [
+            PathBuf::from("first.wav"),
+            PathBuf::from("sona://search?q=collagen"),
+            PathBuf::from("second.flac"),
+            PathBuf::from("sona://quit"),
+        ];
+
+        assert_eq!(
+            opened_deep_link_addresses(&argv).collect::<Vec<_>>(),
+            ["sona://search?q=collagen", "sona://quit"]
+        );
     }
 
     #[cfg(target_os = "macos")]

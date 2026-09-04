@@ -1,6 +1,6 @@
 use super::people::calendar_context_in;
 use super::people::{
-    derive_calendar_links_in, derive_speaker_link_in, derive_title_links_in,
+    all_people_in, derive_calendar_links_in, derive_speaker_link_in, derive_title_links_in,
     recompute_organizations_in,
 };
 use super::*;
@@ -269,7 +269,27 @@ pub(crate) fn current_artifact(
         )
         .unwrap();
 }
-
+/// The committed receipts for one command in the shared encrypted test store.
+pub(crate) fn committed_receipt_count(
+    store: &MeetingStore,
+    command: crate::meeting::types::MeetingCommandKind,
+) -> usize {
+    let connection = store.connection().unwrap();
+    let mut statement = connection
+        .prepare("SELECT receipt_json FROM meeting_operation_receipts")
+        .unwrap();
+    statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .map(|row| {
+            serde_json::from_str::<crate::meeting::types::OperationReceipt>(&row.unwrap()).unwrap()
+        })
+        .filter(|receipt| {
+            receipt.command == command
+                && receipt.result == crate::meeting::types::OperationResult::Committed
+        })
+        .count()
+}
 pub(crate) fn transcript(store: &MeetingStore, meeting_id: MeetingSessionId, text: &str) {
     transcript_segments(store, meeting_id, &[text]);
 }
@@ -679,7 +699,9 @@ fn merge_repoints_links_and_unions_identity() {
     let source = person(&store, "Alice Jones", &["AJ"], &["aj@example.com"]);
     let target = person(&store, "Alice Doe", &["Al"], &["alice@example.com"]);
     link(&store, meeting_id, source, "speaker", "confirmed");
-    store.merge_persons(source, target, 0, 10).unwrap();
+    store
+        .merge_persons_with_voice_resolution(source, target, 0, None, 10)
+        .unwrap();
     let detail = store.person_detail(target).unwrap().detail;
     assert!(detail.person.aliases.contains(&"Alice Jones".to_string()));
     assert!(detail.person.aliases.contains(&"AJ".to_string()));
@@ -880,4 +902,85 @@ fn person_split_moves_only_selected_evidence_without_data_loss() {
         context.rows[0].top_open_loop.as_ref().unwrap().text,
         "Ship the integration"
     );
+}
+
+/// Renaming your own voice must not mint a contact out of you.
+///
+/// Two places state the invariant. `loop_types::MeetingLoopDirection` says
+/// "Sona models no `Person` for its own user … a `PersonId` is always somebody
+/// else", and `store::loops::microphone_speaker_labels_in` says the microphone
+/// track is the whole answer to which voice is the user's. So the one speaker
+/// row a rename must never derive a person from is the microphone one — and
+/// `Local speaker`, the display name the store writes for that row itself,
+/// clears the two-word bar the derivation uses to reject a bare first name.
+///
+/// The consequence is not cosmetic. A person for the user gets a `PersonId`,
+/// and `loop_direction` treats an explicit `owner_person_id` as settling the
+/// question *because a person is always somebody else* — so assigning your own
+/// commitment to yourself flips it from `Mine` to `WaitingOn`.
+#[test]
+fn speaker_derivation_refuses_the_users_own_microphone_voice() {
+    let (_directory, store) = store();
+    // Every session first: `meeting` takes its own connection, and holding one
+    // across that call deadlocks the pool.
+    let placeholder = meeting(&store, "Local notes", 1);
+    let renamed = meeting(&store, "Local notes", 2);
+    let remote = meeting(&store, "Pricing review", 3);
+    let connection = store.connection().unwrap();
+
+    // The store's own placeholder, and the real name a person renames it to.
+    for (session, label) in [(placeholder, "Local speaker"), (renamed, "Aktan Azat")] {
+        speaker(&connection, session, SourceKind::Microphone, label);
+        assert_eq!(
+            derive_speaker_link_in(&connection, session, label, 10).unwrap(),
+            0,
+            "{label:?} minted a person out of the user"
+        );
+    }
+    assert_eq!(all_people_in(&connection).unwrap().len(), 0);
+
+    // The other side of the conversation still lands, which is what the
+    // derivation is for.
+    speaker(
+        &connection,
+        remote,
+        SourceKind::SystemAudio,
+        "Stephen Kowalski",
+    );
+    assert!(derive_speaker_link_in(&connection, remote, "Stephen Kowalski", 10).unwrap() > 0);
+    // And the bar the guard was originally written for still holds.
+    assert_eq!(
+        derive_speaker_link_in(&connection, remote, "Stephen", 10).unwrap(),
+        0
+    );
+    assert_eq!(
+        all_people_in(&connection)
+            .unwrap()
+            .into_iter()
+            .map(|person| person.display_name)
+            .collect::<Vec<_>>(),
+        vec!["Stephen Kowalski".to_string()]
+    );
+}
+
+fn speaker(
+    connection: &Connection,
+    session_id: MeetingSessionId,
+    source_kind: SourceKind,
+    display_name: &str,
+) {
+    // PANIC: each caller creates `session_id` through `meeting` before opening this fixture connection.
+    connection
+        .execute(
+            "INSERT INTO meeting_speakers (
+                speaker_id, session_id, source_kind, display_name, revision, merged_into_speaker_id
+             ) VALUES (?1, ?2, ?3, ?4, 0, NULL)",
+            params![
+                Uuid::new_v4().to_string(),
+                session_id.uuid().to_string(),
+                source_kind.as_str(),
+                display_name,
+            ],
+        )
+        .unwrap();
 }

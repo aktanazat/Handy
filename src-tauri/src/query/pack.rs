@@ -430,17 +430,19 @@ mod tests {
 
         assert_eq!(
             pack.pack,
-            "sona context pack 1\n\
-             question: what did I promise Steven?\n\
-             quotes: 2 of 2\n\
-             \n\
-             [1] meeting · Pricing sync · 2026-08-14 09:32 UTC\n\
-             link: sona://meeting/m-1\n\
-             quote: I will send the revised deck on Friday.\n\
-             \n\
-             [2] person · Steven Park · 2026-08-14 09:32 UTC\n\
-             link: sona://person/p-1\n\
-             quote: Steven asked for the tiers."
+            format!(
+                "sona context pack {QUERY_SCHEMA_VERSION}\n\
+                 question: what did I promise Steven?\n\
+                 quotes: 2 of 2\n\
+                 \n\
+                 [1] meeting · Pricing sync · 2026-08-14 09:32 UTC\n\
+                 link: sona://meeting/m-1\n\
+                 quote: I will send the revised deck on Friday.\n\
+                 \n\
+                 [2] person · Steven Park · 2026-08-14 09:32 UTC\n\
+                 link: sona://person/p-1\n\
+                 quote: Steven asked for the tiers."
+            )
         );
         assert_eq!(pack.schema_version, QUERY_SCHEMA_VERSION);
         assert_eq!(pack.sources.len(), 2);
@@ -576,7 +578,7 @@ mod tests {
 
         assert_eq!(
             pack.pack,
-            "sona context pack 1\nquestion: nothing matched this\nquotes: 0 of 0"
+            format!("sona context pack {QUERY_SCHEMA_VERSION}\nquestion: nothing matched this\nquotes: 0 of 0")
         );
         assert!(pack.sources.is_empty());
         assert!(!pack.pack.is_empty(), "the panel refuses an empty pack");

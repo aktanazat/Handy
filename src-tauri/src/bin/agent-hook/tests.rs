@@ -10,7 +10,7 @@ use super::response::ClaudeAnswer;
 use super::runtime::{protocol_session_generation, Clock, RuntimePaths, SessionPaths};
 use super::wire::{
     atomic_write, atomic_write_json, project_hash, read_json_bounded, AppHeartbeat, AppLease,
-    HookRequest, HookResponse, PolicyProjection, SessionBinding, WriteMode,
+    HookRequest, HookResponse, PolicyProjection, SessionBinding, WriteMode, REQUEST_TTL_MS,
 };
 use super::{
     run_with_runtime, Diagnostic, HookRuntime, PollBudget, MAX_INPUT_BYTES, MAX_RESPONSE_BYTES,
@@ -26,6 +26,20 @@ const APPROVE_ANSWERS_OUTPUT: &[u8] =
 const APPROVE_OUTPUT: &[u8] = include_bytes!("fixtures/claude-pretooluse-approve-output.json");
 const REJECT_OUTPUT: &[u8] = include_bytes!("fixtures/claude-pretooluse-reject-output.json");
 const DONT_ASK_OUTPUT: &[u8] = include_bytes!("fixtures/claude-pretooluse-dontask-output.json");
+
+/// The envelope Claude actually sends, one fixture per event Sona bridges:
+/// the documented common core (`cwd`, `permission_mode`, `prompt_id`,
+/// `effort`) plus that event's own fields. The goldens above predate this and
+/// carry none of it — they were written to the fields Sona reads.
+const CLAUDE_LIVE_PROMPT_INPUT: &[u8] =
+    include_bytes!("fixtures/claude-live-userpromptsubmit-input.json");
+const CLAUDE_LIVE_PRE_TOOL_INPUT: &[u8] =
+    include_bytes!("fixtures/claude-live-pretooluse-input.json");
+const CLAUDE_LIVE_PERMISSION_INPUT: &[u8] =
+    include_bytes!("fixtures/claude-live-permissionrequest-input.json");
+const CLAUDE_LIVE_STOP_INPUT: &[u8] = include_bytes!("fixtures/claude-live-stop-input.json");
+const CLAUDE_LIVE_NOTIFICATION_INPUT: &[u8] =
+    include_bytes!("fixtures/claude-live-notification-input.json");
 
 const CODEX_SESSION_START_INPUT: &[u8] = include_bytes!("fixtures/codex-sessionstart-input.json");
 const CODEX_PROMPT_INPUT: &[u8] = include_bytes!("fixtures/codex-userpromptsubmit-input.json");
@@ -86,6 +100,27 @@ fn fixture(now_ms: u64, interactive_supported: bool) -> Fixture {
         project,
         hook,
     }
+}
+
+/// A permission gate stays answerable for as long as its request is valid, so
+/// the hook waits the whole wire lifetime for one. A turn end is answered only
+/// from a reply confirmed before it arrived, so it waits about two seconds
+/// rather than holding the agent open for the request's whole lifetime.
+#[test]
+fn the_production_poll_waits_the_wire_deadline_for_a_gate_and_two_seconds_for_a_stop() {
+    let budget = PollBudget::production();
+    assert_eq!(
+        budget.timeout(CanonicalEventKind::PermissionRequest),
+        std::time::Duration::from_millis(REQUEST_TTL_MS)
+    );
+    assert_eq!(
+        budget.timeout(CanonicalEventKind::PreToolUse),
+        std::time::Duration::from_millis(REQUEST_TTL_MS)
+    );
+    assert_eq!(
+        budget.timeout(CanonicalEventKind::Stop),
+        std::time::Duration::from_millis(2_000)
+    );
 }
 
 fn install_lifecycle(
@@ -473,6 +508,77 @@ fn every_provider_event_kind_decodes_from_its_own_fixture() {
     }
 }
 
+/// The five events Claude actually sends, in the envelope it sends them in.
+///
+/// Every Claude event carries a common core, so a decoder tuned to the
+/// goldens accepts none of them. Measured against the shipped hook before this
+/// changed: `cwd` on its own, `prompt` on its own, a missing
+/// `last_assistant_message` on its own and `permission_mode` on a `PreToolUse`
+/// each produced `invalid event; passing through` and wrote nothing to the
+/// wire — so the Claude half of the bridge could not see a single real event
+/// while its own fixtures passed.
+#[test]
+fn claude_decodes_the_envelope_claude_actually_sends() {
+    let cases = [
+        (
+            CLAUDE_LIVE_PROMPT_INPUT,
+            CanonicalEventKind::UserPromptSubmit,
+            None,
+            false,
+        ),
+        (
+            CLAUDE_LIVE_PRE_TOOL_INPUT,
+            CanonicalEventKind::PreToolUse,
+            Some("AskUserQuestion"),
+            true,
+        ),
+        (
+            CLAUDE_LIVE_PERMISSION_INPUT,
+            CanonicalEventKind::PermissionRequest,
+            Some("Bash"),
+            true,
+        ),
+        (CLAUDE_LIVE_STOP_INPUT, CanonicalEventKind::Stop, None, true),
+        (
+            CLAUDE_LIVE_NOTIFICATION_INPUT,
+            CanonicalEventKind::Notification,
+            None,
+            false,
+        ),
+    ];
+
+    for (input, kind, tool, awaited) in cases {
+        let event = decode_event(Agent::Claude, input)
+            .unwrap_or_else(|error| panic!("live Claude {kind:?} did not decode: {error:?}"));
+        assert_eq!(event.event, kind, "live Claude event kind");
+        assert_eq!(event.tool_name(), tool, "{kind:?} tool");
+        assert_eq!(event.awaits_response(), awaited, "{kind:?} reply channel");
+        // The mode shown beside a request in the console is the one the
+        // payload named, not a hole left by a decoder that refused to read it.
+        assert_eq!(
+            event.permission_mode.as_deref(),
+            Some("default"),
+            "{kind:?} permission mode"
+        );
+    }
+
+    // The two fields the canonical event has always had a place for and the
+    // Claude decoder never filled.
+    let prompt = decode_event(Agent::Claude, CLAUDE_LIVE_PROMPT_INPUT).expect("live prompt");
+    assert_eq!(
+        prompt.prompt.as_deref(),
+        Some("Write a function to calculate the factorial of a number")
+    );
+    let pre_tool = decode_event(Agent::Claude, CLAUDE_LIVE_PRE_TOOL_INPUT).expect("live pre-tool");
+    assert_eq!(
+        pre_tool
+            .tool
+            .as_ref()
+            .and_then(|tool| tool.use_id.as_deref()),
+        Some("toolu_01A09q90qw90lq917835lq9")
+    );
+}
+
 /// Each provider spells the same event differently, and the key conventions do
 /// not overlap, so a payload handed to the wrong decoder is refused rather than
 /// half-read.
@@ -686,6 +792,20 @@ fn omp_wrong_project_passes_through_without_persistence() -> Result<(), Box<dyn 
 #[test]
 fn answerable_provider_events_emit_their_golden_reply() {
     let cases = [
+        (
+            Agent::Claude,
+            CLAUDE_LIVE_PERMISSION_INPUT,
+            "approve",
+            None,
+            CODEX_ALLOW_OUTPUT,
+        ),
+        (
+            Agent::Claude,
+            CLAUDE_LIVE_PERMISSION_INPUT,
+            "reject",
+            None,
+            CODEX_DENY_OUTPUT,
+        ),
         (
             Agent::Codex,
             CODEX_PERMISSION_INPUT,
@@ -1009,6 +1129,43 @@ fn disabled_policy_and_agent_or_project_mismatch_pass_through() {
     assert!(stdout.is_empty());
     assert!(stderr.is_empty());
     assert!(sessions_are_empty(&wrong_project));
+}
+
+#[test]
+fn every_provider_passes_through_when_not_enabled_by_policy() -> Result<(), Box<dyn Error>> {
+    for agent in [Agent::Claude, Agent::Codex, Agent::Grok, Agent::Omp] {
+        let fixture = fixture(NOW_MS, true);
+        let input = match agent {
+            Agent::Claude => CLAUDE_LIVE_PERMISSION_INPUT.to_vec(),
+            Agent::Codex => in_project(CODEX_PERMISSION_INPUT, &fixture.project),
+            Agent::Grok => in_project(GROK_PRE_TOOL_INPUT, &fixture.project),
+            Agent::Omp => omp_stop_input(&fixture.project, 1, false)?,
+        };
+        let enabled_agents = [Agent::Claude, Agent::Codex, Agent::Grok, Agent::Omp]
+            .into_iter()
+            .filter(|candidate| *candidate != agent)
+            .collect();
+        install_lifecycle(
+            &fixture.hook,
+            enabled_agents,
+            &[&fixture.project],
+            true,
+            NOW_MS + 10_000,
+            NOW_MS + 10_000,
+            NOW_MS + 10_000,
+        );
+        let (stdout, stderr) = run(agent, &input, &fixture.hook);
+        assert!(stdout.is_empty(), "{agent:?} wrote a reply without policy");
+        assert!(
+            stderr.is_empty(),
+            "{agent:?} diagnosed a normal pass-through"
+        );
+        assert!(
+            sessions_are_empty(&fixture),
+            "{agent:?} persisted without policy"
+        );
+    }
+    Ok(())
 }
 
 #[test]

@@ -59,8 +59,8 @@ use std::sync::Arc;
 
 /// Wire version of everything in this module, and of the read-only external
 /// surface in [`external`] that projects the same nouns out of the same
-/// corpus. Bumped when a field changes meaning, never when one is added.
-pub const QUERY_SCHEMA_VERSION: u32 = 1;
+/// corpus. Bumped whenever a public payload's bytes or interpretation changes.
+pub const QUERY_SCHEMA_VERSION: u32 = 2;
 
 const DEFAULT_PAGE_SIZE: usize = 25;
 const MAX_PAGE_SIZE: usize = 100;
@@ -199,9 +199,10 @@ pub enum QueryEventResult {
 
 /// One line of "what happened since I last looked".
 ///
-/// `action` and `detail` are machine tokens and store-authored text, never
-/// prose written here: this is the backend, and a sentence invented in Rust
-/// would be a user-facing string outside the translation catalogue.
+/// `action`, `detail` and `outcome_summary` are machine tokens and
+/// store-authored text, never prose written here: this is the backend, and a
+/// sentence invented in Rust would be a user-facing string outside the
+/// translation catalogue.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct QueryEvent {
     pub id: String,
@@ -210,8 +211,10 @@ pub struct QueryEvent {
     /// snake_case tokens a client can translate.
     pub action: String,
     pub result: QueryEventResult,
-    /// The reason codes a receipt carries, or the summary a run wrote.
+    /// The reason codes a receipt carries, or a run's error when it failed.
     pub detail: String,
+    /// The workflow run's store-authored summary. A receipt has none.
+    pub outcome_summary: Option<String>,
     pub when_utc_ms: i64,
     /// The `sona://` address of the noun this event touched. Absent for events
     /// that touched no addressable noun — a default retention change, a
@@ -293,6 +296,7 @@ pub enum QueryLinkTarget {
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
 pub struct QueryLinkPayload {
     pub event_schema_version: u32,
+
     pub target: QueryLinkTarget,
 }
 
@@ -340,6 +344,7 @@ pub fn dictation_link(history_id: i64) -> String {
 
 /// `sona://search?q=…` — this plane's own surface, with the question in it.
 pub fn search_link(query: &str) -> String {
+    // SAFETY: this constant ASCII URL is valid by construction.
     let mut url = url::Url::parse("sona://search").expect("a static url parses");
     url.query_pairs_mut().append_pair("q", query);
     url.to_string()
@@ -616,6 +621,7 @@ pub(crate) fn event_from_row(row: QueryEventRow) -> QueryEvent {
                 .map(token)
                 .collect::<Vec<_>>()
                 .join(", "),
+            outcome_summary: None,
             when_utc_ms,
             link: receipt.session_id.map(meeting_link),
         },
@@ -638,7 +644,8 @@ pub(crate) fn event_from_row(row: QueryEventRow) -> QueryEvent {
                 "skipped" => QueryEventResult::Skipped,
                 _ => QueryEventResult::Failed,
             },
-            detail: error.unwrap_or(outcome_summary),
+            detail: error.unwrap_or_else(|| outcome_summary.clone()),
+            outcome_summary: Some(outcome_summary),
             when_utc_ms,
             link: session_id.map(meeting_link),
         },

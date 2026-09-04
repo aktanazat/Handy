@@ -29,6 +29,72 @@ fn candidates_from(all: &[QueryRow], cursor: Option<&QueryCursor>) -> Vec<QueryR
         .collect()
 }
 
+/// A workflow run keeps its outcome summary when an error replaces `detail`.
+///
+/// `MeetingActivity` writes `meeting_activity:decision=<event kind>` as its
+/// summary. `action` is always the workflow id, and an error replaces
+/// `detail`, so the summary must stay available separately.
+#[test]
+fn a_run_keeps_its_outcome_summary_when_it_errored() {
+    let run = |status: &str, error: Option<&str>| {
+        event_from_row(QueryEventRow::Run {
+            run_id: "run-1".to_string(),
+            workflow_id: "meeting_activity".to_string(),
+            status: status.to_string(),
+            outcome_summary: "meeting_activity:decision=meeting_auto_record_stopped".to_string(),
+            error: error.map(str::to_string),
+            session_id: None,
+            when_utc_ms: NOW,
+        })
+    };
+
+    let narrated = run("ok", None);
+    assert_eq!(narrated.source, QueryEventSource::WorkflowRun);
+    assert_eq!(
+        narrated.action, "meeting_activity",
+        "action carries the workflow id, never the event kind"
+    );
+    assert_eq!(
+        narrated.detail, "meeting_activity:decision=meeting_auto_record_stopped",
+        "the event kind remains in detail when the run did not fail"
+    );
+    assert_eq!(
+        serde_json::to_value(&narrated).unwrap()["outcome_summary"],
+        "meeting_activity:decision=meeting_auto_record_stopped",
+        "the summary is explicit even when detail already carries it"
+    );
+
+    let failed = run("failed", Some("the store was locked"));
+    assert_eq!(failed.result, QueryEventResult::Failed);
+    assert_eq!(
+        failed.detail, "the store was locked",
+        "the durable error remains visible"
+    );
+    assert_eq!(
+        serde_json::to_value(&failed).unwrap()["outcome_summary"],
+        "meeting_activity:decision=meeting_auto_record_stopped",
+        "the store-authored summary retains the event kind alongside the error"
+    );
+}
+
+/// The query-link event is the cross-process boundary: the shell must receive
+/// the exact dictation id a deep link named, not merely the destination.
+#[test]
+fn a_dictation_query_link_carries_its_history_id() {
+    let payload = QueryLinkPayload {
+        event_schema_version: 1,
+        target: QueryLinkTarget::Dictation { history_id: 4218 },
+    };
+
+    assert_eq!(
+        serde_json::to_value(payload).unwrap(),
+        serde_json::json!({
+            "event_schema_version": 1,
+            "target": { "kind": "dictation", "history_id": 4218 },
+        })
+    );
+}
+
 #[test]
 fn the_page_is_newest_first() {
     let (page, _) = merge(

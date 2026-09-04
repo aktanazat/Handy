@@ -19,7 +19,7 @@ use std::fs;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use codec::{decode_event, DecodeError};
 use runtime::{protocol_session_generation, Clock, Request, RuntimePaths, SessionPaths};
@@ -30,6 +30,16 @@ pub(crate) use wire::{
 
 const MAX_INPUT_BYTES: usize = wire::MAX_REQUEST_BYTES;
 const USAGE_EXIT_CODE: i32 = 64;
+
+/// How long the hook holds its agent open for an unanswered turn end.
+///
+/// The app answers a `Stop` only from a reply the user confirmed before the
+/// event arrived: `respond_to_stop` returns without writing when no confirmed
+/// reply is held, and nothing answers that request afterwards. So the wait is
+/// worth only the bridge worker's own scan, which runs every 100 ms, plus room
+/// for the write. Waiting the full request lifetime instead would stall every
+/// turn end for 30 seconds and never produce an answer.
+const STOP_POLL_TIMEOUT: Duration = Duration::from_millis(2_000);
 
 /// Fixed, content-free stderr lines. Event and response payloads are private and
 /// never appear in a diagnostic.
@@ -83,15 +93,21 @@ impl Diagnostic {
 }
 
 /// How long the hook is willing to hold the agent while the app answers.
+///
+/// A permission gate is worth the whole request lifetime, because the console
+/// can answer it for as long as the request is valid and the person deciding
+/// is the slow part. A turn end is not; see `STOP_POLL_TIMEOUT`.
 pub(crate) struct PollBudget {
-    max_attempts: u32,
+    gate_timeout: Duration,
+    stop_timeout: Duration,
     interval: Duration,
 }
 
 impl PollBudget {
     pub(crate) fn production() -> Self {
         Self {
-            max_attempts: 20,
+            gate_timeout: Duration::from_millis(wire::REQUEST_TTL_MS),
+            stop_timeout: STOP_POLL_TIMEOUT,
             interval: Duration::from_millis(100),
         }
     }
@@ -99,8 +115,16 @@ impl PollBudget {
     #[cfg(test)]
     pub(crate) fn immediate() -> Self {
         Self {
-            max_attempts: 1,
+            gate_timeout: Duration::ZERO,
+            stop_timeout: Duration::ZERO,
             interval: Duration::ZERO,
+        }
+    }
+
+    fn timeout(&self, kind: CanonicalEventKind) -> Duration {
+        match kind {
+            CanonicalEventKind::Stop => self.stop_timeout,
+            _ => self.gate_timeout,
         }
     }
 }
@@ -181,8 +205,7 @@ impl HookRuntime {
         session: &SessionPaths,
         request: &Request,
     ) -> Result<Option<PathBuf>, Diagnostic> {
-        let allowed = self.poll.max_attempts.max(1);
-        let mut attempts = 0;
+        let started = Instant::now();
         loop {
             if self.clock.now_ms() > request.expires_at_ms {
                 return Ok(None);
@@ -192,13 +215,14 @@ impl HookRuntime {
                 return Ok(Some(claimed));
             }
 
-            attempts += 1;
-            if attempts >= allowed {
+            let remaining = self
+                .poll
+                .timeout(request.event.event)
+                .saturating_sub(started.elapsed());
+            if remaining.is_zero() {
                 return Ok(None);
             }
-            if !self.poll.interval.is_zero() {
-                thread::sleep(self.poll.interval);
-            }
+            thread::sleep(self.poll.interval.min(remaining));
         }
     }
 }

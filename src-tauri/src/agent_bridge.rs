@@ -27,6 +27,19 @@ const POLICY_TTL_MS: u64 = 30_000;
 const MAX_ACK_BYTES: usize = 8 * 1024;
 /// The only reply lifetime comes from the existing hook request boundary.
 const DEFAULT_PENDING_TTL_MS: u64 = REQUEST_TTL_MS;
+/// The OMP extension's path *as `tauri.conf.json` ships it*, which is the
+/// repo-relative path under `src-tauri` and not the name of the file.
+///
+/// `resources: ["resources/**/*"]` preserves the whole relative path inside the
+/// bundle, so the extension lands at `Resources/resources/agent-bridge/…` and
+/// not at `Resources/agent-bridge/…`. Resolving it by joining the leaf onto
+/// `resource_dir()` therefore missed on every installed build, and because the
+/// snippet is one all-or-nothing document, one absent file for the agent
+/// nobody enables took the setup instructions for the other three down with
+/// it: the console read `Setup code unavailable: packaged OMP extension
+/// unavailable`. `BaseDirectory::Resource` is how `tray.rs` reads its own
+/// bundled files, and it takes the same repo-relative path.
+const OMP_EXTENSION_RESOURCE: &str = "resources/agent-bridge/sona-omp-agent-bridge.mjs";
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
@@ -184,8 +197,6 @@ pub struct AgentBridgeCore {
     observed_sessions: BTreeMap<String, AgentBridgeObservedSession>,
     observed_requests: BTreeMap<String, ObservedRequestRecord>,
     pending_messages: BTreeMap<String, PendingMessageRecord>,
-    seen_request_ids: BTreeSet<String>,
-    seen_ack_ids: BTreeSet<String>,
     prepared_sessions: BTreeSet<String>,
     next_id: u64,
 }
@@ -204,8 +215,6 @@ impl AgentBridgeCore {
             observed_sessions: BTreeMap::new(),
             observed_requests: BTreeMap::new(),
             pending_messages: BTreeMap::new(),
-            seen_request_ids: BTreeSet::new(),
-            seen_ack_ids: BTreeSet::new(),
             prepared_sessions: BTreeSet::new(),
             next_id: 0,
         })
@@ -571,25 +580,47 @@ impl AgentBridgeCore {
                 Ok(request) => request,
                 Err(_) => continue,
             };
+            if request.expires_at_ms < now_ms {
+                remove_private_file(&path);
+                if let Ok(session) = self.paths.session(&request.binding) {
+                    if let Ok(ack_path) = session.ack_path(&request.invocation_id) {
+                        remove_private_file(&ack_path);
+                    }
+                }
+                continue;
+            }
             if !self.request_allowed(&request, settings, now_ms)
-                || !self.seen_request_ids.insert(request.invocation_id.clone())
+                || self.observed_requests.contains_key(&request.invocation_id)
             {
                 continue;
             }
+            let awaits_response = request.event.awaits_response();
             self.observe_request(request, now_ms)?;
+            if !awaits_response {
+                remove_private_file(&path);
+            }
         }
         for path in files.acks {
             let ack: HookAck = match wire::read_json_bounded(&path, MAX_ACK_BYTES) {
                 Ok(ack) => ack,
                 Err(_) => continue,
             };
-            if ack.app_instance_id != self.app_instance_id
-                || ack.outcome != "response_emitted"
-                || !self.seen_ack_ids.insert(ack.invocation_id.clone())
-            {
+            if ack.app_instance_id != self.app_instance_id || ack.outcome != "response_emitted" {
                 continue;
             }
+            let binding = match self.observed_requests.get(&ack.invocation_id) {
+                Some(record) if record.request.binding == ack.binding => {
+                    record.request.binding.clone()
+                }
+                _ => continue,
+            };
             self.apply_ack(&ack);
+            remove_private_file(&path);
+            if let Ok(session) = self.paths.session(&binding) {
+                if let Ok(request_path) = session.request_path(&ack.invocation_id) {
+                    remove_private_file(&request_path);
+                }
+            }
         }
         Ok(())
     }
@@ -1364,13 +1395,10 @@ pub fn get_agent_bridge_hook_snippet(app: tauri::AppHandle) -> Result<String, St
     {
         return Err("packaged hook unavailable".to_string());
     }
-    let resource_dir = app
+    let omp_extension = app
         .path()
-        .resource_dir()
-        .map_err(|_| "packaged OMP extension unavailable".to_string())?;
-    let omp_extension = resource_dir
-        .join("agent-bridge")
-        .join("sona-omp-agent-bridge.mjs")
+        .resolve(OMP_EXTENSION_RESOURCE, tauri::path::BaseDirectory::Resource)
+        .map_err(|_| "packaged OMP extension unavailable".to_string())?
         .canonicalize()
         .map_err(|_| "packaged OMP extension unavailable".to_string())?;
     if !fs::metadata(&omp_extension)
@@ -1455,7 +1483,7 @@ fn shell_invocation(hook: &str, agent: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent_hook_wire::{CanonicalEvent, CanonicalTool, ASK_USER_QUESTION_TOOL};
+    use crate::agent_hook_wire::{CanonicalEvent, CanonicalTool};
     use crate::settings::{AgentBridgePermissionRule, AgentBridgeProjectScope};
     use serde_json::json;
     use std::error::Error;
@@ -1473,6 +1501,46 @@ mod tests {
         #[cfg(not(unix))]
         fs::create_dir(&root)?;
         Ok(root)
+    }
+
+    /// The setup snippet's one external dependency, checked against the tree
+    /// the bundler copies from.
+    ///
+    /// `tauri.conf.json` ships `resources/**/*` and preserves each match's
+    /// relative path, so the string the app resolves has to name the file from
+    /// `src-tauri` — the same repo-relative form `tray.rs` passes for its own
+    /// bundled icons. A leaf-only path resolves to nothing in a bundle, which
+    /// is not a visible failure anywhere: the command returns one error string
+    /// and the console prints "Setup code unavailable", so the hook
+    /// configuration for all four agents disappears over the one file that
+    /// belongs to the agent shipped disabled.
+    #[test]
+    fn the_omp_extension_is_named_where_the_bundle_copies_it_from() {
+        let declared = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(OMP_EXTENSION_RESOURCE);
+        assert!(
+            declared.is_file(),
+            "{OMP_EXTENSION_RESOURCE} does not name a bundled resource: {} is not a file",
+            declared.display()
+        );
+        let manifest =
+            fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tauri.conf.json"))
+                .expect("tauri.conf.json is readable");
+        let manifest: serde_json::Value =
+            serde_json::from_str(&manifest).expect("tauri.conf.json is JSON");
+        let resources = manifest["bundle"]["resources"]
+            .as_array()
+            .expect("the bundle declares resources");
+        let root = OMP_EXTENSION_RESOURCE
+            .split('/')
+            .next()
+            .expect("the resource path has a first segment");
+        assert!(
+            resources
+                .iter()
+                .filter_map(serde_json::Value::as_str)
+                .any(|pattern| pattern.starts_with(&format!("{root}/"))),
+            "no bundle resource pattern ships {root}/: {resources:?}"
+        );
     }
 
     fn enabled_settings(project_hash: String) -> AgentBridgeSettings {
@@ -1565,6 +1633,88 @@ mod tests {
         let request = HookRequest::new(app_id.to_string(), binding, &event, raw, now_ms)?;
         paths.session(&request.binding)?.persist_request(&request)?;
         Ok(request)
+    }
+
+    #[test]
+    fn observed_nonblocking_request_is_removed_from_wire() -> Result<(), Box<dyn Error>> {
+        let root = test_root("nonblocking-wire")?;
+        let paths = RuntimePaths::from_root(root.clone(), true)?;
+        let app_id = opaque_hash(&[b"nonblocking-wire-app"]);
+        let binding = binding(&root)?;
+        let settings = enabled_settings(binding.project_hash.clone());
+        let mut core = AgentBridgeCore::new(paths.clone(), app_id.clone())?;
+        core.start(&settings, 1_000)?;
+        let request = persist_event(
+            &paths,
+            &app_id,
+            binding,
+            event(CanonicalEventKind::UserPromptSubmit, &root, None),
+            b"nonblocking request",
+            1_001,
+        )?;
+        let session = paths.session(&request.binding)?;
+        core.tick(&settings, 1_002)?;
+        assert_eq!(core.requests().len(), 1);
+        assert!(!session.request_path(&request.invocation_id)?.exists());
+        core.stop();
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn emitted_ack_removes_its_request_and_ack() -> Result<(), Box<dyn Error>> {
+        let root = test_root("ack-wire")?;
+        let paths = RuntimePaths::from_root(root.clone(), true)?;
+        let app_id = opaque_hash(&[b"ack-wire-app"]);
+        let binding = binding(&root)?;
+        let settings = enabled_settings(binding.project_hash.clone());
+        let mut core = AgentBridgeCore::new(paths.clone(), app_id.clone())?;
+        core.start(&settings, 1_000)?;
+        let request = persist_event(
+            &paths,
+            &app_id,
+            binding,
+            event(CanonicalEventKind::Stop, &root, None),
+            b"acknowledged response",
+            1_001,
+        )?;
+        let session = paths.session(&request.binding)?;
+        core.tick(&settings, 1_002)?;
+        session.persist_ack(&HookAck::response_emitted(&request, 1_003))?;
+        core.tick(&settings, 1_004)?;
+        assert!(!session.request_path(&request.invocation_id)?.exists());
+        assert!(!session.ack_path(&request.invocation_id)?.exists());
+        core.stop();
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn expired_request_removes_its_matching_ack() -> Result<(), Box<dyn Error>> {
+        let root = test_root("expired-wire")?;
+        let paths = RuntimePaths::from_root(root.clone(), true)?;
+        let app_id = opaque_hash(&[b"expired-wire-app"]);
+        let binding = binding(&root)?;
+        let settings = enabled_settings(binding.project_hash.clone());
+        let mut core = AgentBridgeCore::new(paths.clone(), app_id.clone())?;
+        core.start(&settings, 1_000)?;
+        let request = persist_event(
+            &paths,
+            &app_id,
+            binding,
+            event(CanonicalEventKind::Stop, &root, None),
+            b"expired response",
+            1_001,
+        )?;
+        let session = paths.session(&request.binding)?;
+        session.persist_ack(&HookAck::response_emitted(&request, 1_002))?;
+        core.tick(&settings, request.expires_at_ms.saturating_add(1))?;
+        assert!(!session.request_path(&request.invocation_id)?.exists());
+        assert!(!session.ack_path(&request.invocation_id)?.exists());
+        assert!(core.requests().is_empty());
+        core.stop();
+        fs::remove_dir_all(root)?;
+        Ok(())
     }
 
     #[test]
@@ -2051,11 +2201,11 @@ mod tests {
             &app_id,
             binding,
             event(
-                CanonicalEventKind::PreToolUse,
+                CanonicalEventKind::PermissionRequest,
                 &root,
                 Some(CanonicalTool {
-                    name: ASK_USER_QUESTION_TOOL.to_string(),
-                    use_id: Some("tool-1".to_string()),
+                    name: "Bash".to_string(),
+                    use_id: None,
                     input: Some(tool_input),
                 }),
             ),
@@ -2063,11 +2213,15 @@ mod tests {
             1_001,
         )?;
         core.tick(&settings, 1_002)?;
+        assert_eq!(
+            request.expires_at_ms.saturating_sub(request.issued_at_ms),
+            REQUEST_TTL_MS
+        );
         settings.permission_rules.push(AgentBridgePermissionRule {
             id: "rule-1".to_string(),
             agent: AgentBridgeAgent::Claude,
             canonical_project_hash: request.binding.project_hash.clone(),
-            tool_name: ASK_USER_QUESTION_TOOL.to_string(),
+            tool_name: "Bash".to_string(),
             permission_mode: Some("default".to_string()),
             tool_input_hash: tool_hash,
             decision: AgentBridgePermissionDecision::Allow,
@@ -2078,7 +2232,7 @@ mod tests {
             "rule-1",
             AgentBridgePermissionDecision::Allow,
             &settings,
-            1_003,
+            request.expires_at_ms,
         )?;
         let response: HookResponse = wire::read_json_bounded(
             &paths

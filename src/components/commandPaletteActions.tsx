@@ -3,6 +3,7 @@ import {
   FolderOpen,
   MessageSquare,
   Sparkles,
+  MonitorUp,
   type LucideIcon,
 } from "lucide-react";
 import { destinationIcons } from "@/lib/navIcons";
@@ -22,6 +23,7 @@ export interface CommandPaletteAction {
  * importing a meeting shares the file glyph the dictation import already
  * uses — both bring a file in, and the label is what tells them apart. */
 export const commandActionIcons = {
+  recordScreen: MonitorUp,
   newMeeting: destinationIcons.meetings,
   importAudio: FileAudio,
   importMeeting: FileAudio,

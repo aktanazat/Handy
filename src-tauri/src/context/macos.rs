@@ -291,25 +291,29 @@ fn read_recent_clipboard(
     generation: clipboard_recency::Generation,
     preroll_ms: u64,
 ) -> SourceOutcome {
-    if !generation.is_fresh(super::now_ms(), preroll_ms) || !generation.matches_current() {
-        return SourceOutcome::Unavailable(ContextSourceStatus::Stale);
-    }
-    // This runs on the per-run capture worker, a thread with no pool of its own.
-    // Without one, every autoreleased AppKit return value here would live until
-    // the thread exits.
-    let text = objc2::rc::autoreleasepool(|_| {
-        let pasteboard = NSPasteboard::generalPasteboard();
-        // SAFETY: NSPasteboardTypeString is a read-only AppKit framework static.
-        let pasteboard_type = unsafe { NSPasteboardTypeString };
-        pasteboard
-            .stringForType(pasteboard_type)
-            .map(|text| text.to_string())
-    });
-    // Never race a later copy into a context snapshot frozen at run start.
-    if !generation.matches_current() {
-        return SourceOutcome::Unavailable(ContextSourceStatus::Stale);
-    }
-    SourceOutcome::read(text)
+    clipboard_recency::read_if_fresh(
+        generation,
+        super::now_ms(),
+        preroll_ms,
+        || {
+            objc2::rc::autoreleasepool(|_| {
+                i64::try_from(NSPasteboard::generalPasteboard().changeCount()).ok()
+            })
+        },
+        || {
+            // This runs on the per-run capture worker, a thread with no pool
+            // of its own. Without one, autoreleased AppKit values would live
+            // until the thread exits.
+            objc2::rc::autoreleasepool(|_| {
+                let pasteboard = NSPasteboard::generalPasteboard();
+                // SAFETY: NSPasteboardTypeString is a read-only AppKit framework static.
+                let pasteboard_type = unsafe { NSPasteboardTypeString };
+                pasteboard
+                    .stringForType(pasteboard_type)
+                    .map(|text| text.to_string())
+            })
+        },
+    )
 }
 
 fn focused_application(

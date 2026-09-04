@@ -1,5 +1,6 @@
 mod documents;
 mod people;
+pub(crate) mod voice_identity;
 
 use super::detection::machine::CalendarEventSummary;
 use super::learning::{no_inputs, AppLearningInputs};
@@ -464,8 +465,16 @@ fn dispatch_workflow_event(
         !dispatch.inserted,
         app.clone(),
     );
+    // Logged, not dropped, for the same reason the reconciliation scan logs it:
+    // a run that fails *before* it writes a receipt — the store refused a
+    // connection, the event row could not be read — leaves no `failed` row and
+    // is otherwise indistinguishable from an event that never ran. The scan
+    // picks the work back up at the next launch; this line is what says the
+    // first attempt happened at all.
     tauri::async_runtime::spawn(async move {
-        let _ = await_workflow_runner(runner, store, app, session_id).await;
+        if let Err(error) = await_workflow_runner(runner, store, app, session_id).await {
+            log::warn!("workflow run failed before it could write a receipt: {error:?}");
+        }
     });
     Ok(dispatch)
 }
@@ -489,7 +498,9 @@ fn dispatch_daily_workflow_event(
     }
     let runner = spawn_workflow_runner(Arc::clone(&store), dispatch.event_id, false, app.clone());
     tauri::async_runtime::spawn(async move {
-        let _ = await_workflow_runner(runner, store, app, None).await;
+        if let Err(error) = await_workflow_runner(runner, store, app, None).await {
+            log::warn!("daily workflow run failed before it could write a receipt: {error:?}");
+        }
     });
     Ok(dispatch)
 }
@@ -569,12 +580,26 @@ pub(crate) fn known_vocabulary(app: Option<&tauri::AppHandle>) -> Vec<String> {
 
 pub(crate) fn map_store_error(error: StoreError) -> MeetingCommandError {
     match error {
-        StoreError::NotFound => MeetingCommandError::NotFound,
+        StoreError::NotFound | StoreError::PersonNotFound | StoreError::SpeakerNotFound => {
+            MeetingCommandError::NotFound
+        }
         StoreError::ConsentStale => MeetingCommandError::ConsentStale,
-        StoreError::Conflict => MeetingCommandError::StaleRevision,
+        StoreError::ExplicitConsentRequired => MeetingCommandError::ConsentRequired,
+        StoreError::Conflict | StoreError::StaleRevision => MeetingCommandError::StaleRevision,
         StoreError::Invalid => MeetingCommandError::InvalidRequest,
+        StoreError::LocalModelUnavailable => MeetingCommandError::LocalModelUnavailable,
+        StoreError::LocalEvidenceUnavailable => MeetingCommandError::LocalEvidenceUnavailable,
+        StoreError::InsufficientEnrollmentEvidence => {
+            MeetingCommandError::InsufficientEnrollmentEvidence
+        }
+        StoreError::ProfileModelIncompatible => MeetingCommandError::ProfileModelIncompatible,
+        StoreError::ProfileMergeResolutionRequired => {
+            MeetingCommandError::ProfileMergeResolutionRequired
+        }
         StoreError::EncryptionUnavailable
+        | StoreError::StorageUnavailable
         | StoreError::Unavailable
+        | StoreError::VoiceInvariant
         | StoreError::Io
         | StoreError::Corrupt => MeetingCommandError::StorageUnavailable,
     }

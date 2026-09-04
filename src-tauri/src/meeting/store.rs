@@ -27,6 +27,9 @@ pub(crate) mod series;
 mod series_tests;
 #[cfg(test)]
 mod title_tests;
+pub(crate) mod voice_identity;
+#[cfg(test)]
+mod voice_identity_tests;
 /// The encrypted-store fixture, and the one place a test builds one. Reachable
 /// from the whole crate rather than just this module because the query plane
 /// spans this store and dictation history and so lives outside `meeting/`
@@ -1364,18 +1367,138 @@ static MIGRATIONS: &[M] = &[
             ON meeting_automation_runs(session_id, started_at_utc_ms DESC);
         ",
     ),
+    // Voice identity is local evidence inside the existing SQLCipher corpus. It
+    // deliberately has no cloud-facing projection or export path.
+    // The model-key columns hold revisioned tags the embedding module owns, so
+    // SQL only requires their presence. Rust compares the whole key before a
+    // profile is written or matched, and every centroid is rebuilt through
+    // `SpeakerEmbedding`, which is what actually enforces L2 normalization.
+    M::up(
+        "
+        CREATE TABLE voice_profiles (
+            person_id TEXT PRIMARY KEY NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+            model_id TEXT NOT NULL CHECK (length(trim(model_id)) > 0),
+            model_revision TEXT NOT NULL CHECK (length(trim(model_revision)) > 0),
+            model_sha256 TEXT NOT NULL CHECK (length(model_sha256) = 64),
+            embedding_dimensions INTEGER NOT NULL CHECK (embedding_dimensions = 256),
+            sample_rate_hz INTEGER NOT NULL CHECK (sample_rate_hz = 16000),
+            feature_bins INTEGER NOT NULL CHECK (feature_bins = 80),
+            feature_pipeline_revision TEXT NOT NULL CHECK (length(trim(feature_pipeline_revision)) > 0),
+            normalization TEXT NOT NULL CHECK (length(trim(normalization)) > 0),
+            centroid BLOB NOT NULL CHECK (length(centroid) = 1024),
+            sample_count INTEGER NOT NULL CHECK (sample_count > 0),
+            profile_revision INTEGER NOT NULL CHECK (profile_revision > 0),
+            consent_version INTEGER NOT NULL CHECK (consent_version > 0),
+            created_at_utc_ms INTEGER NOT NULL,
+            updated_at_utc_ms INTEGER NOT NULL
+        );
+        CREATE TABLE voice_profile_samples (
+            person_id TEXT NOT NULL REFERENCES voice_profiles(person_id) ON DELETE CASCADE,
+            source_session_id TEXT NOT NULL REFERENCES meeting_sessions(id) ON DELETE RESTRICT,
+            source_generation_id TEXT NOT NULL REFERENCES meeting_diarization_generations(generation_id) ON DELETE RESTRICT,
+            source_speaker_id TEXT NOT NULL REFERENCES meeting_speakers(speaker_id) ON DELETE RESTRICT,
+            source_track_id TEXT NOT NULL REFERENCES meeting_source_tracks(track_id) ON DELETE RESTRICT,
+            start_offset_ns INTEGER NOT NULL CHECK (start_offset_ns >= 0),
+            end_offset_ns INTEGER NOT NULL CHECK (end_offset_ns > start_offset_ns),
+            embedding BLOB NOT NULL CHECK (length(embedding) = 1024),
+            created_at_utc_ms INTEGER NOT NULL,
+            PRIMARY KEY (person_id, source_generation_id, source_speaker_id)
+        );
+        CREATE TABLE voice_speaker_matches (
+            speaker_id TEXT PRIMARY KEY NOT NULL REFERENCES meeting_speakers(speaker_id) ON DELETE CASCADE,
+            session_id TEXT NOT NULL REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            person_id TEXT NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+            profile_revision INTEGER NOT NULL CHECK (profile_revision > 0),
+            speaker_revision INTEGER NOT NULL CHECK (speaker_revision >= 0),
+            matched_at_utc_ms INTEGER NOT NULL
+        );
+        CREATE TABLE meeting_diarization_evidence_spans (
+            generation_id TEXT NOT NULL REFERENCES meeting_diarization_generations(generation_id) ON DELETE CASCADE,
+            speaker_id TEXT NOT NULL REFERENCES meeting_speakers(speaker_id) ON DELETE CASCADE,
+            track_id TEXT NOT NULL REFERENCES meeting_source_tracks(track_id) ON DELETE CASCADE,
+            start_offset_ns INTEGER NOT NULL CHECK (start_offset_ns >= 0),
+            end_offset_ns INTEGER NOT NULL CHECK (end_offset_ns > start_offset_ns),
+            evidence_kind TEXT NOT NULL CHECK (evidence_kind IN ('sortformer_exclusive', 'wespeaker_unambiguous_window')),
+            PRIMARY KEY (generation_id, speaker_id, start_offset_ns, end_offset_ns)
+        );
+        CREATE INDEX voice_profile_samples_session_idx
+            ON voice_profile_samples(source_session_id, person_id);
+        CREATE INDEX voice_profile_samples_speaker_idx
+            ON voice_profile_samples(source_speaker_id, person_id);
+        CREATE INDEX voice_speaker_matches_person_idx
+            ON voice_speaker_matches(person_id);
+        CREATE INDEX meeting_diarization_evidence_spans_generation_idx
+            ON meeting_diarization_evidence_spans(generation_id, speaker_id);
+        CREATE TRIGGER voice_profile_samples_source_session
+        BEFORE INSERT ON voice_profile_samples
+        WHEN NEW.source_session_id != (SELECT session_id FROM meeting_diarization_generations WHERE generation_id = NEW.source_generation_id)
+          OR NEW.source_session_id != (SELECT session_id FROM meeting_speakers WHERE speaker_id = NEW.source_speaker_id)
+          OR NEW.source_session_id != (SELECT session_id FROM meeting_source_tracks WHERE track_id = NEW.source_track_id)
+        BEGIN SELECT RAISE(ABORT, 'voice profile source session mismatch'); END;
+        ",
+    ),
+    // Manual voice decisions are separate from automatic profile overlays. The
+    // immutable operation key keeps an idempotent response available after a
+    // later correction replaces the current decision for the same speaker.
+    M::up(
+        "
+        CREATE TABLE meeting_voice_speaker_resolutions (
+            operation_id TEXT PRIMARY KEY NOT NULL,
+            speaker_id TEXT NOT NULL REFERENCES meeting_speakers(speaker_id) ON DELETE CASCADE,
+            resolution_kind TEXT NOT NULL CHECK (resolution_kind IN ('identified', 'unknown')),
+            resolved_person_id TEXT,
+            is_current INTEGER NOT NULL CHECK (is_current IN (0, 1)),
+            CHECK (
+                (resolution_kind = 'identified' AND resolved_person_id IS NOT NULL)
+                OR (resolution_kind = 'unknown' AND resolved_person_id IS NULL)
+            )
+        );
+        CREATE UNIQUE INDEX meeting_voice_speaker_resolutions_current_speaker_idx
+            ON meeting_voice_speaker_resolutions(speaker_id)
+            WHERE is_current = 1;
+        ",
+    ),
+    // A diarized source can train exactly one person. The store also checks
+    // this before inserting so callers receive Conflict rather than SQLite's
+    // generic constraint error.
+    M::up(
+        "
+        CREATE INDEX voice_profile_samples_enrollment_evidence_idx
+            ON voice_profile_samples(source_generation_id, source_speaker_id);
+        CREATE TRIGGER voice_profile_samples_unique_enrollment_evidence
+        BEFORE INSERT ON voice_profile_samples
+        WHEN EXISTS (
+            SELECT 1 FROM voice_profile_samples
+             WHERE source_generation_id = NEW.source_generation_id
+               AND source_speaker_id = NEW.source_speaker_id
+        )
+        BEGIN SELECT RAISE(ABORT, 'voice profile enrollment evidence already claimed'); END;
+        ",
+    ),
 ];
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StoreError {
     Unavailable,
+    StorageUnavailable,
     EncryptionUnavailable,
     Corrupt,
     NotFound,
     Conflict,
     Invalid,
     ConsentStale,
+    ExplicitConsentRequired,
+    StaleRevision,
+    PersonNotFound,
+    SpeakerNotFound,
+    LocalEvidenceUnavailable,
+    LocalModelUnavailable,
+    InsufficientEnrollmentEvidence,
+    ProfileModelIncompatible,
+    ProfileMergeResolutionRequired,
+    VoiceInvariant,
     Io,
 }
+
 /// The single durable Cloudflare vault cursor and clock state.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct CloudState {
@@ -3915,6 +4038,23 @@ impl MeetingStore {
         })
     }
 
+    /// The immutable origin selected when this session was created.
+    pub(crate) fn meeting_origin(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<MeetingOrigin, StoreError> {
+        let connection = self.connection()?;
+        let origin_json = connection
+            .query_row(
+                "SELECT origin_kind FROM meeting_sessions WHERE id = ?1",
+                params![id(session_id)],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .ok_or(StoreError::NotFound)?;
+        decode_json(&origin_json)
+    }
+
     /// What one session's recording disclosure is doing.
     ///
     /// An absent column is [`MeetingSessionDisclosure::NotAsked`], which is
@@ -4606,6 +4746,7 @@ impl MeetingStore {
                 if changed != 1 {
                     return Err(StoreError::NotFound);
                 }
+                voice_identity::clear_automatic_match_for_speaker_in(transaction, speaker_id)?;
                 mark_artifacts_out_of_date(transaction, session_id)
             },
         )
@@ -4640,6 +4781,17 @@ impl MeetingStore {
                 )?;
                 if changed != 1 {
                     return Err(StoreError::NotFound);
+                }
+                voice_identity::clear_automatic_matches_for_speakers_in(
+                    transaction,
+                    source_speaker_id,
+                    target_speaker_id,
+                )?;
+                if voice_identity::remove_profile_samples_for_speaker_in(
+                    transaction,
+                    source_speaker_id,
+                )? {
+                    people::bump_people_revision_in(transaction)?;
                 }
                 mark_artifacts_out_of_date(transaction, session_id)
             },
@@ -5984,11 +6136,14 @@ impl MeetingStore {
                 [&job.session_id],
                 |row| row.get(0),
             )?;
+            let session_id = MeetingSessionId::from_uuid(parse_uuid(&job.session_id)?);
+            let voice_change =
+                voice_identity::purge_session_voice_evidence_in(&transaction, session_id)?;
             transaction.execute(
                 "DELETE FROM meeting_sessions WHERE id = ?1",
                 params![job.session_id],
             )?;
-            let people_revision = if affected_people {
+            let people_revision = if affected_people || voice_change.people_changed() {
                 Some(people::bump_people_revision_in(&transaction)?)
             } else {
                 None

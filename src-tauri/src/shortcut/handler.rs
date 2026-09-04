@@ -12,13 +12,13 @@ use crate::TranscriptionCoordinator;
 /// The only shortcut behaviors that can reach the application. Start/stop
 /// resolution belongs to the coordinator because it owns recording state.
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum ShortcutIntent {
+pub(super) enum ShortcutIntent {
     StartStop(TranscriptionIntent),
     Cancel,
     SwitchMode(String),
 }
 
-fn shortcut_intent(binding_id: &str) -> Option<ShortcutIntent> {
+pub(super) fn shortcut_intent(binding_id: &str) -> Option<ShortcutIntent> {
     // The cancel key is registered once bare and once per modifier prefix a
     // recording can be held by, each under its own id, so that an Escape
     // struck mid-hold is still cancel. Every one of them means cancel.
@@ -32,16 +32,21 @@ fn shortcut_intent(binding_id: &str) -> Option<ShortcutIntent> {
 }
 
 /// Handle a shortcut event from either implementation.
-pub fn handle_shortcut_event(app: &AppHandle, binding_id: &str, shortcut: &str, is_pressed: bool) {
+pub(super) fn handle_shortcut_event(
+    app: &AppHandle,
+    binding_id: &str,
+    shortcut: &str,
+    is_pressed: bool,
+) -> Option<ShortcutIntent> {
     let Some(intent) = shortcut_intent(binding_id) else {
         warn!("No typed shortcut intent for '{binding_id}'");
-        return;
+        return None;
     };
 
-    match intent {
+    match &intent {
         ShortcutIntent::SwitchMode(mode_id) => {
             if is_pressed {
-                if let Err(error) = crate::modes::set_active_mode(app.clone(), mode_id) {
+                if let Err(error) = crate::modes::set_active_mode(app.clone(), mode_id.clone()) {
                     warn!("Could not activate mode from shortcut '{binding_id}': {error}");
                 }
             }
@@ -50,7 +55,7 @@ pub fn handle_shortcut_event(app: &AppHandle, binding_id: &str, shortcut: &str, 
             let settings = get_settings(app);
             if let Some(coordinator) = app.try_state::<TranscriptionCoordinator>() {
                 coordinator.send_shortcut_input(
-                    transcription_intent,
+                    transcription_intent.clone(),
                     shortcut,
                     is_pressed,
                     settings.push_to_talk,
@@ -66,6 +71,8 @@ pub fn handle_shortcut_event(app: &AppHandle, binding_id: &str, shortcut: &str, 
             }
         }
     }
+
+    Some(intent)
 }
 
 #[cfg(test)]
@@ -73,11 +80,38 @@ mod tests {
     use super::*;
 
     #[test]
-    fn only_typed_shortcut_intents_are_dispatched() {
-        assert_eq!(
-            shortcut_intent("transcribe"),
-            Some(ShortcutIntent::StartStop(TranscriptionIntent::ActiveMode))
-        );
+    fn start_shortcut_ids_select_their_coordinator_intents() {
+        for (binding_id, expected) in [
+            ("transcribe", TranscriptionIntent::ActiveMode),
+            ("command", TranscriptionIntent::Command),
+            (
+                "mode/email/transcribe",
+                TranscriptionIntent::Mode {
+                    mode_id: "email".to_string(),
+                },
+            ),
+            (
+                "mode/meeting/transcribe",
+                TranscriptionIntent::Mode {
+                    mode_id: "meeting".to_string(),
+                },
+            ),
+            (
+                "mode/notes/transcribe",
+                TranscriptionIntent::Mode {
+                    mode_id: "notes".to_string(),
+                },
+            ),
+        ] {
+            assert_eq!(
+                shortcut_intent(binding_id),
+                Some(ShortcutIntent::StartStop(expected))
+            );
+        }
+    }
+
+    #[test]
+    fn cancel_switch_and_unknown_ids_stay_outside_start_dispatch() {
         assert_eq!(
             shortcut_intent("mode/email/switch"),
             Some(ShortcutIntent::SwitchMode("email".to_string()))

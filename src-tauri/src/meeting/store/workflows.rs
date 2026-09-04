@@ -61,10 +61,12 @@ impl MeetingStore {
         Ok(WorkflowDispatchResult {
             inserted,
             event_id,
+            #[cfg(test)]
             receipts: Vec::new(),
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn record_and_run_workflow_event(
         &self,
         event: NewWorkflowEvent,

@@ -597,7 +597,7 @@ pub(crate) fn rows_from_seeds_in(
 /// what was captured on this machine's own input was said by whoever is
 /// sitting at it. Renaming that speaker to a real name keeps working, because
 /// the row is matched by the name it currently carries.
-fn microphone_speaker_labels_in(
+pub(in crate::meeting::store) fn microphone_speaker_labels_in(
     connection: &Connection,
     session_id: MeetingSessionId,
 ) -> Result<Vec<String>, StoreError> {
@@ -829,24 +829,43 @@ fn write_state_in(
     next_revision: u64,
     now_utc_ms: i64,
 ) -> Result<(), StoreError> {
-    let (status, owner_person_id, resolved_at_utc_ms, carried_into) = match change {
-        LoopChange::Resolve(status) => (status, state.owner_person_id, Some(now_utc_ms), None),
-        // Reopening undoes a resolution and a carry alike: the loop is live
-        // again, so it no longer has a successor.
-        LoopChange::Reopen => (MeetingLoopStatus::Open, state.owner_person_id, None, None),
-        LoopChange::Assign(owner) => (
-            state.status,
-            owner,
-            state.resolved_at_utc_ms,
-            state.carried_into_loop_id.clone(),
-        ),
-        LoopChange::Carry => (
-            MeetingLoopStatus::Carried,
-            state.owner_person_id,
-            Some(now_utc_ms),
-            successor.cloned(),
-        ),
-    };
+    // The resolving operation is the one that set resolved_at: a resolve or a
+    // carry writes its own id, a reopen clears both, and an assignment leaves
+    // both alone. Readers that replay a resolution look the receipt up by
+    // this id, so it cannot point at an assignment.
+    let (status, owner_person_id, resolved_at_utc_ms, resolving_operation_id, carried_into) =
+        match change {
+            LoopChange::Resolve(status) => (
+                status,
+                state.owner_person_id,
+                Some(now_utc_ms),
+                Some(id(operation_id)),
+                None,
+            ),
+            // Reopening undoes a resolution and a carry alike: the loop is live
+            // again, so it no longer has a successor.
+            LoopChange::Reopen => (
+                MeetingLoopStatus::Open,
+                state.owner_person_id,
+                None,
+                None,
+                None,
+            ),
+            LoopChange::Assign(owner) => (
+                state.status,
+                owner,
+                state.resolved_at_utc_ms,
+                state.resolving_operation_id.clone(),
+                state.carried_into_loop_id.clone(),
+            ),
+            LoopChange::Carry => (
+                MeetingLoopStatus::Carried,
+                state.owner_person_id,
+                Some(now_utc_ms),
+                Some(id(operation_id)),
+                successor.cloned(),
+            ),
+        };
     transaction.execute(
         "INSERT INTO meeting_loop_states (
             loop_id, session_id, kind, status, owner_person_id, resolved_at_utc_ms,
@@ -867,7 +886,7 @@ fn write_state_in(
             status.as_str(),
             owner_person_id.map(|person_id| person_id.uuid().to_string()),
             resolved_at_utc_ms,
-            id(operation_id),
+            resolving_operation_id,
             carried_into.as_ref().map(MeetingLoopId::as_str),
             to_i64(next_revision)?,
             now_utc_ms,

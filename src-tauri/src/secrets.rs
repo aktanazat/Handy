@@ -254,14 +254,12 @@ impl SecretState {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum SecretCommandError {
-    NotFound,
     Unavailable,
     Locked,
     Corrupt,
     Invalid,
     Busy,
     Backend,
-    ConsentRequired,
 }
 
 impl From<SecretStoreError> for SecretCommandError {

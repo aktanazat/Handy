@@ -142,6 +142,7 @@ impl CanonicalEvent {
     /// | Agent  | Event               | Channel                                     |
     /// | ------ | ------------------- | ------------------------------------------- |
     /// | all    | `Stop`              | `{"decision":"block","reason":…}`           |
+    /// | Claude | `PermissionRequest` | `decision.behavior` allow/deny              |
     /// | Claude | `PreToolUse`        | `permissionDecision` for the two ask tools  |
     /// | Codex  | `PermissionRequest` | `decision.behavior` allow/deny              |
     /// | Grok   | `PreToolUse`        | top-level `decision` allow/deny             |
@@ -157,10 +158,10 @@ impl CanonicalEvent {
             (Agent::Claude, CanonicalEventKind::PreToolUse) => self
                 .tool_name()
                 .is_some_and(|tool| tool == ASK_USER_QUESTION_TOOL || tool == EXIT_PLAN_MODE_TOOL),
-            // Codex asks before it prompts; Grok's only gate is the pre-tool
-            // one. Neither can be answered while permissions are bypassed,
-            // because no prompt appears to answer.
-            (Agent::Codex, CanonicalEventKind::PermissionRequest)
+            // Claude and Codex ask only when a prompt exists; Grok's only
+            // gate is the pre-tool one. None can be answered while permissions
+            // are bypassed, because no prompt appears to answer.
+            (Agent::Claude | Agent::Codex, CanonicalEventKind::PermissionRequest)
             | (Agent::Grok, CanonicalEventKind::PreToolUse) => !self.bypass_permissions,
             _ => false,
         }

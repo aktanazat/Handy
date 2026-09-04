@@ -29,6 +29,8 @@ import {
   SettingsSurface,
 } from "@/components/settings/rows";
 import { useOsType } from "@/hooks/useOsType";
+import { ModelField } from "../PostProcessingSettingsApi/ModelField";
+import { usePostProcessModelCatalog } from "../PostProcessingSettingsApi/usePostProcessModelCatalog";
 import { ShortcutInput } from "../ShortcutInput";
 import { SegmentedRadioGroup, type SegmentedOption } from "./ModeControls";
 import {
@@ -150,6 +152,17 @@ export const ModeAdvanced: React.FC<ModeAdvancedProps> = ({
   const selectedProviderLabel = providerOptions.find(
     (option) => option.value === selectedProviderValue,
   )?.label;
+  const explicitProvider = !llmDestination.inherited
+    ? providers.find((provider) => provider.id === llmDestination.providerId)
+    : undefined;
+  const isFixedExplicitProvider = explicitProvider?.id === "apple_intelligence";
+  const explicitModelCatalog = usePostProcessModelCatalog({
+    autoDiscover: false,
+    baseUrl: explicitProvider?.base_url ?? "",
+    enabled: explicitProvider !== undefined && !isFixedExplicitProvider,
+    providerId: llmDestination.providerId,
+    savedModelId: llmDestination.modelId,
+  });
 
   const ceilingLabel = t(
     `settings.modes.context.policy.values.${contextCeiling}`,
@@ -274,16 +287,42 @@ export const ModeAdvanced: React.FC<ModeAdvancedProps> = ({
             label={t("settings.modes.writing.model.label")}
             controlId="mode-llm-model"
           >
-            {/* An inherited destination is a pair: the model belongs to the
-             * global provider and lives beside it, so editing it here would
-             * write a value this mode's run never reads. */}
-            <Input
-              id="mode-llm-model"
-              value={llmDestination.modelId}
-              onChange={(event) => updateLlm("model_id", event.target.value)}
-              disabled={!llmEnabled || llmDestination.inherited}
-              className="w-full"
-            />
+            {llmDestination.inherited ? (
+              <Input
+                id="mode-llm-model"
+                value={llmDestination.modelId}
+                disabled
+                className="w-full"
+              />
+            ) : !explicitProvider ? (
+              <Input
+                id="mode-llm-model"
+                value={llmDestination.modelId}
+                onChange={(event) => updateLlm("model_id", event.target.value)}
+                disabled={!llmEnabled}
+                className="w-full"
+              />
+            ) : isFixedExplicitProvider ? (
+              <span className="text-sm text-gray-900">
+                {explicitProvider.label}
+              </span>
+            ) : (
+              <ModelField
+                id="mode-llm-model"
+                value={llmDestination.modelId}
+                options={explicitModelCatalog.modelOptions}
+                allowCustom={explicitModelCatalog.allowsManualModelId}
+                disabled={!llmEnabled}
+                isLoading={explicitModelCatalog.isLoading}
+                statusKeys={explicitModelCatalog.statusKeys}
+                onOpen={() => {
+                  void explicitModelCatalog.discoverIfNeeded();
+                }}
+                onSelect={(modelId) => updateLlm("model_id", modelId)}
+                onCreate={(modelId) => updateLlm("model_id", modelId)}
+                onRefresh={() => void explicitModelCatalog.discover()}
+              />
+            )}
           </SettingsField>
 
           <SettingsRow

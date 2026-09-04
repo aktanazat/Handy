@@ -34,6 +34,7 @@ import { LearningSuggestionCard } from "./LearningSuggestionCard";
 const RECORDING_POLL_MS = 1000;
 const NewMeetingIcon = commandActionIcons.newMeeting;
 const ImportAudioIcon = commandActionIcons.importAudio;
+const RecordScreenIcon = commandActionIcons.recordScreen;
 
 const subscribeToActivityUpdates = (reload: () => void): (() => void) => {
   const subscription = events.historyUpdatePayload.listen((event) => {
@@ -53,6 +54,7 @@ export interface CaptureHeroProps {
   importing: boolean;
   onNewMeeting: () => void;
   onImportAudio: () => void;
+  onRecordScreen: () => void;
   onChangeShortcut: () => void;
   /** Opens the Modes editor, from the mode chip's one footer line. */
   onOpenModes: () => void;
@@ -61,8 +63,8 @@ export interface CaptureHeroProps {
 /**
  * The page's one surface. Everything it draws is passed in, because the state
  * behind it is polled, dialog-driven or read from the settings store — none of
- * which is what this card is: the state word, the chord drawn once, and the two
- * actions.
+ * which is what this card is: the state word, the chord drawn once, and its
+ * direct actions.
  */
 export const CaptureHero: React.FC<CaptureHeroProps> = ({
   isRecording,
@@ -71,6 +73,7 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
   importing,
   onNewMeeting,
   onImportAudio,
+  onRecordScreen,
   onChangeShortcut,
   onOpenModes,
 }) => {
@@ -186,6 +189,12 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
           </TooltipTrigger>
           <TooltipContent>{assurance}</TooltipContent>
         </Tooltip>
+        {osType === "macos" ? (
+          <Button type="button" variant="outline" onClick={onRecordScreen}>
+            <RecordScreenIcon aria-hidden="true" className="size-4" />
+            {t("recorder.open")}
+          </Button>
+        ) : null}
         {/* The secondary capture action keeps a real hairline at rest so it
          * remains legible beside the filled primary action. */}
         <Button
@@ -207,11 +216,14 @@ interface OverviewProps {
   onOpenSection?: (section: "meetings" | "settings" | "modes") => void;
   /** Opens the retained meeting named by a workflow receipt or commitment. */
   onOpenMeeting?: (meetingId: string) => void;
+  /** Opens the native screen recorder without creating a second destination. */
+  onOpenRecorder: () => void;
 }
 
 export const Overview: React.FC<OverviewProps> = ({
   onOpenSection,
   onOpenMeeting,
+  onOpenRecorder,
 }) => {
   const { settings } = useSettings();
   const [isRecording, setIsRecording] = useState(false);
@@ -333,6 +345,7 @@ export const Overview: React.FC<OverviewProps> = ({
         importing={importing}
         onNewMeeting={() => onOpenSection?.("meetings")}
         onImportAudio={() => void startAudioImport()}
+        onRecordScreen={onOpenRecorder}
         onChangeShortcut={() => onOpenSection?.("settings")}
         onOpenModes={() => onOpenSection?.("modes")}
       />

@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { TooltipProvider } from "@/components/vg/tooltip";
 import { bootstrapWindow } from "@/lib/bootstrapWindow";
+import { followAppearanceMaterial } from "@/overlay/overlayEvents";
 import "./overlay-window.css";
 import "@/overlay/RecordingOverlay.css";
 
@@ -11,23 +13,13 @@ import "@/overlay/RecordingOverlay.css";
  * can run during the static export. */
 const RecordingOverlayWindow = dynamic(
   async () => {
-    const [{ default: RecordingOverlay }, { followAppearanceMaterial }] =
-      await Promise.all([
-        import("@/overlay/RecordingOverlay"),
-        import("@/overlay/overlayEvents"),
-        bootstrapWindow({
-          compatShims: true,
-          followThemeChanges: true,
-        }),
-      ]);
-
-    /* The overlay is a separate webview from the settings window, so it owns its
-     * own `data-material`: only the idle pill takes Glass, and every recording
-     * state stays solid so nothing bleeds through the level meter. This used to
-     * run before the theme steps; `data-material` and `data-theme` are separate
-     * attributes and this call is voided either way, so the order between them
-     * was never load-bearing. */
-    void followAppearanceMaterial();
+    const [{ default: RecordingOverlay }] = await Promise.all([
+      import("@/overlay/RecordingOverlay"),
+      bootstrapWindow({
+        compatShims: true,
+        followThemeChanges: true,
+      }),
+    ]);
 
     return RecordingOverlay;
   },
@@ -35,6 +27,12 @@ const RecordingOverlayWindow = dynamic(
 );
 
 export default function OverlayWindowRoute() {
+  useEffect(() => {
+    const subscription = followAppearanceMaterial();
+    return () => {
+      void subscription.then((unlisten) => unlisten());
+    };
+  }, []);
   /* One provider per window, like the other two roots. The settings primitives
    * this HUD shares render their hints through a Radix tooltip, which throws
    * without a provider above it — so this is load-bearing, not symmetry. */

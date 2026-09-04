@@ -930,165 +930,36 @@ impl AgentPanelManager {
         turn_id: &str,
         job: RelayJob,
     ) -> Result<JobFollowUp, AgentPanelCommandErrorV1> {
-        let RelayJob {
-            id: job_id,
-            state: relay_state,
-            response,
-            failure,
-        } = job;
         let auto_apply_enabled =
             crate::settings::get_settings(&self.app).agent_panel_safe_appearance_auto_apply;
-        let (existing_job_id, rejected) = {
-            let state = self.lock_state();
-            let active = state
-                .turn
-                .as_ref()
-                .filter(|active| active.turn_id == turn_id)
-                .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?;
-            (
-                active.job_id.clone(),
-                response.as_ref().is_some_and(|response| {
-                    response.validate(&active.request, &active.allowed).is_err()
-                }),
-            )
-        };
-        if existing_job_id
-            .as_deref()
-            .is_some_and(|existing| existing != job_id)
-        {
-            self.record_relay_error(turn_id, RelayError::OwnershipRejected, false);
-            return Err(AgentPanelCommandErrorV1::OwnershipRejected);
-        }
-        if rejected {
-            self.record_protocol_failure(turn_id);
-            return Err(match response {
-                Some(SonaAgentResponseV1::Proposal { .. }) => {
-                    AgentPanelCommandErrorV1::InvalidProposal
-                }
-                _ => AgentPanelCommandErrorV1::UntrustedResponse,
-            });
-        }
-
-        let (invalidation_id, turn_state, proposal_event, follow_up) = {
+        let accepted = {
             let mut state = self.lock_state();
-            let (cancel_requested, turn_state, allowed, tool_calls) = {
-                let active = state
-                    .turn
-                    .as_mut()
-                    .filter(|active| active.turn_id == turn_id)
-                    .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?;
-                if active
-                    .job_id
-                    .as_deref()
-                    .is_some_and(|existing| existing != job_id)
-                {
-                    return Err(AgentPanelCommandErrorV1::OwnershipRejected);
-                }
-                active.last_progress = Instant::now();
-                let lookups = match response.as_ref() {
-                    Some(SonaAgentResponseV1::ToolCalls { calls, .. })
-                        if relay_state == RelayJobStateV1::Succeeded =>
-                    {
-                        Some(calls)
-                    }
-                    _ => None,
-                };
-                match lookups {
-                    /* A finished job whose answer is a list of lookups has
-                     * not finished the turn, and the turn is done with the
-                     * job: nothing polls it again, and a cancel has nothing
-                     * left to send the relay, so one that already landed
-                     * ends the turn here. Otherwise the caller's tool round
-                     * is what carries the turn back to the relay, which is
-                     * what `submitting` says: it holds a second mover off
-                     * until the round has resubmitted. */
-                    Some(calls) => {
-                        active.job_id = None;
-                        active.pending_calls.clone_from(calls);
-                        if active.cancel_requested {
-                            active.submitting = false;
-                            active.set_state(AgentPanelTurnStateV1::Canceled);
-                        } else {
-                            active.submitting = true;
-                            active.set_state(AgentPanelTurnStateV1::Running);
-                        }
-                    }
-                    None => {
-                        active.job_id = Some(job_id);
-                        active.submitting = false;
-                        active.set_state(turn_state_for_job(&relay_state, active.cancel_requested));
-                    }
-                }
-                if let Some(failure) = failure {
-                    active.failure.get_or_insert(turn_failure_for_job(failure));
-                }
-                if let Some(response) = response.as_ref() {
-                    let elapsed_ms = active.elapsed_ms();
-                    merge_steps(&mut active.steps, response.steps(), elapsed_ms);
-                }
-                /* The offer arrives with the answer and belongs to it: the
-                 * pack these ids were checked against is this turn's, so the
-                 * cards live on the turn rather than beside the conversation. */
-                if let Some(SonaAgentResponseV1::Text { actions, .. }) = response.as_ref() {
-                    active.actions = actions.iter().cloned().map(StoredAction::pending).collect();
-                }
-                (
-                    active.cancel_requested,
-                    active.state,
-                    active.allowed.clone(),
-                    lookups.is_some(),
-                )
-            };
-            state.relay_status = AgentPanelRelayStatusV1::Ready;
-
-            let mut proposal_event = None;
-            let mut auto_apply = false;
-            match response {
-                /* An answer is just the next thing said in the conversation.
-                 * It has no card, nothing to apply and nothing to undo, which
-                 * is the whole difference between asking Sona something and
-                 * asking Sona to change something. */
-                Some(SonaAgentResponseV1::Text { message, .. }) => {
-                    state.push_conversation(SonaAgentChatTurnV1 {
-                        role: SonaAgentChatRoleV1::Assistant,
-                        message,
-                    });
-                }
-                Some(SonaAgentResponseV1::Proposal { proposal, .. }) => {
-                    let proposal_id = format!("proposal-{turn_id}");
-                    let summary = proposal.summary.clone();
-                    let all_safe_appearance = !proposal.actions.is_empty()
-                        && proposal
-                            .actions
-                            .iter()
-                            .all(SonaSettingChangeV1::is_auto_eligible);
-                    state.push_conversation(SonaAgentChatTurnV1 {
-                        role: SonaAgentChatRoleV1::Assistant,
-                        message: summary,
-                    });
-                    state.proposal = Some(StoredProposal {
-                        id: proposal_id.clone(),
-                        proposal,
-                        allowed,
-                        state: AgentPanelProposalStateV1::Pending,
-                        receipt: None,
-                    });
-                    proposal_event = Some((proposal_id, AgentPanelProposalStateV1::Pending));
-                    auto_apply = auto_apply_enabled && all_safe_appearance;
-                }
-                /* Nothing was said: the model asked for lookups, and the
-                 * caller runs them. */
-                Some(SonaAgentResponseV1::ToolCalls { .. }) | None => {}
+            accept_job_in_state(&mut state, turn_id, job, auto_apply_enabled)
+        };
+        let AcceptedRelayJob {
+            invalidation_id,
+            turn_state,
+            proposal_event,
+            follow_up,
+        } = match accepted {
+            Ok(accepted) => accepted,
+            /* Each refusal is recorded beside the return that carries it out,
+             * and the match names every one: a refusal added inside the
+             * extracted function does not compile until somebody has decided
+             * what it tells the reader. */
+            Err(RelayJobRefusal::UnknownTurn) => return Err(AgentPanelCommandErrorV1::UnknownTurn),
+            Err(RelayJobRefusal::OwnershipRejected) => {
+                self.record_relay_error(turn_id, RelayError::OwnershipRejected, false);
+                return Err(AgentPanelCommandErrorV1::OwnershipRejected);
             }
-            let invalidation_id = state.invalidate();
-            let follow_up = JobFollowUp {
-                proposal_id: proposal_event.as_ref().map(|event| event.0.clone()),
-                auto_apply,
-                cancel_requested,
-                terminal: turn_state.is_terminal(),
-                tool_calls,
-            };
-            (invalidation_id, turn_state, proposal_event, follow_up)
+            Err(RelayJobRefusal::InvalidProposal) => {
+                self.record_protocol_failure(turn_id);
+                return Err(AgentPanelCommandErrorV1::InvalidProposal);
+            }
+            Err(RelayJobRefusal::UntrustedResponse) => {
+                self.record_protocol_failure(turn_id);
+                return Err(AgentPanelCommandErrorV1::UntrustedResponse);
+            }
         };
         self.emit_status(invalidation_id, AgentPanelRelayStatusV1::Ready);
         self.remember_conversation();
@@ -1107,6 +978,7 @@ impl AgentPanelManager {
     /// mutation and one receipt behind.
     pub(crate) async fn apply_action(
         &self,
+        meetings: &MeetingSessionManager,
         request: AgentPanelActionRequestV1,
     ) -> Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1> {
         let to_run = {
@@ -1116,7 +988,7 @@ impl AgentPanelManager {
         let Some(action) = to_run else {
             return self.turn_status(&request.turn_id);
         };
-        let applied = actions::apply(&self.app, &action)
+        let applied = actions::apply(&self.app, meetings, &action)
             .await
             .map_err(|_| AgentPanelCommandErrorV1::ActionFailed)?;
         self.settle_action(&request, StoredActionState::Applied(applied))
@@ -1132,6 +1004,7 @@ impl AgentPanelManager {
     /// twice and the ledger says so.
     pub(crate) async fn dismiss_action(
         &self,
+        meetings: &MeetingSessionManager,
         request: AgentPanelActionRequestV1,
     ) -> Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1> {
         let undo = {
@@ -1143,7 +1016,7 @@ impl AgentPanelManager {
             }
         };
         if let Some(undo) = undo {
-            actions::undo(&self.app, &undo)
+            actions::undo(&self.app, meetings, &undo)
                 .await
                 .map_err(|_| AgentPanelCommandErrorV1::ActionFailed)?;
         }
@@ -1644,6 +1517,160 @@ struct JobFollowUp {
     tool_calls: bool,
 }
 
+struct AcceptedRelayJob {
+    invalidation_id: u64,
+    turn_state: AgentPanelTurnStateV1,
+    proposal_event: Option<(String, AgentPanelProposalStateV1)>,
+    follow_up: JobFollowUp,
+}
+
+/// Why one relay answer was not taken.
+///
+/// Its own enum rather than [`AgentPanelCommandErrorV1`], because each of
+/// these owes the reader something before the command returns — a relay error
+/// for one, the protocol failure behind
+/// [`AgentPanelRelayStatusV1::UntrustedResponse`] for two — and the caller
+/// matches every variant, so a refusal added here stops compiling until its
+/// recording is decided.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RelayJobRefusal {
+    /// The turn this answer belongs to is gone: no counter to move, and
+    /// nothing on screen to correct.
+    UnknownTurn,
+    OwnershipRejected,
+    InvalidProposal,
+    UntrustedResponse,
+}
+
+fn accept_job_in_state(
+    state: &mut PanelState,
+    turn_id: &str,
+    job: RelayJob,
+    auto_apply_enabled: bool,
+) -> Result<AcceptedRelayJob, RelayJobRefusal> {
+    let RelayJob {
+        id: job_id,
+        state: relay_state,
+        response,
+        failure,
+    } = job;
+    /* One visit to the turn: checking whose answer this is and writing what it
+     * said are the same lookup, and nothing can move the state between them. */
+    let (cancel_requested, turn_state, allowed, tool_calls) = {
+        let active = state
+            .turn
+            .as_mut()
+            .filter(|active| active.turn_id == turn_id)
+            .ok_or(RelayJobRefusal::UnknownTurn)?;
+        if active
+            .job_id
+            .as_deref()
+            .is_some_and(|existing| existing != job_id)
+        {
+            return Err(RelayJobRefusal::OwnershipRejected);
+        }
+        if response
+            .as_ref()
+            .is_some_and(|response| response.validate(&active.request, &active.allowed).is_err())
+        {
+            return Err(match response.as_ref() {
+                Some(SonaAgentResponseV1::Proposal { .. }) => RelayJobRefusal::InvalidProposal,
+                _ => RelayJobRefusal::UntrustedResponse,
+            });
+        }
+        active.last_progress = Instant::now();
+        let lookups = match response.as_ref() {
+            Some(SonaAgentResponseV1::ToolCalls { calls, .. })
+                if relay_state == RelayJobStateV1::Succeeded =>
+            {
+                Some(calls)
+            }
+            _ => None,
+        };
+        match lookups {
+            Some(calls) => {
+                active.job_id = None;
+                active.pending_calls.clone_from(calls);
+                if active.cancel_requested {
+                    active.submitting = false;
+                    active.set_state(AgentPanelTurnStateV1::Canceled);
+                } else {
+                    active.submitting = true;
+                    active.set_state(AgentPanelTurnStateV1::Running);
+                }
+            }
+            None => {
+                active.job_id = Some(job_id);
+                active.submitting = false;
+                active.set_state(turn_state_for_job(&relay_state, active.cancel_requested));
+            }
+        }
+        if let Some(failure) = failure {
+            active.failure.get_or_insert(turn_failure_for_job(failure));
+        }
+        if let Some(response) = response.as_ref() {
+            let elapsed_ms = active.elapsed_ms();
+            merge_steps(&mut active.steps, response.steps(), elapsed_ms);
+        }
+        if let Some(SonaAgentResponseV1::Text { actions, .. }) = response.as_ref() {
+            active.actions = actions.iter().cloned().map(StoredAction::pending).collect();
+        }
+        (
+            active.cancel_requested,
+            active.state,
+            active.allowed.clone(),
+            lookups.is_some(),
+        )
+    };
+    state.relay_status = AgentPanelRelayStatusV1::Ready;
+
+    let mut proposal_event = None;
+    let mut auto_apply = false;
+    match response {
+        Some(SonaAgentResponseV1::Text { message, .. }) => {
+            state.push_conversation(SonaAgentChatTurnV1 {
+                role: SonaAgentChatRoleV1::Assistant,
+                message,
+            });
+        }
+        Some(SonaAgentResponseV1::Proposal { proposal, .. }) => {
+            let proposal_id = format!("proposal-{turn_id}");
+            let summary = proposal.summary.clone();
+            let all_safe_appearance = !proposal.actions.is_empty()
+                && proposal
+                    .actions
+                    .iter()
+                    .all(SonaSettingChangeV1::is_auto_eligible);
+            state.push_conversation(SonaAgentChatTurnV1 {
+                role: SonaAgentChatRoleV1::Assistant,
+                message: summary,
+            });
+            state.proposal = Some(StoredProposal {
+                id: proposal_id.clone(),
+                proposal,
+                allowed,
+                state: AgentPanelProposalStateV1::Pending,
+                receipt: None,
+            });
+            proposal_event = Some((proposal_id, AgentPanelProposalStateV1::Pending));
+            auto_apply = auto_apply_enabled && all_safe_appearance;
+        }
+        Some(SonaAgentResponseV1::ToolCalls { .. }) | None => {}
+    }
+    let invalidation_id = state.invalidate();
+    Ok(AcceptedRelayJob {
+        invalidation_id,
+        turn_state,
+        proposal_event: proposal_event.clone(),
+        follow_up: JobFollowUp {
+            proposal_id: proposal_event.map(|event| event.0),
+            auto_apply,
+            cancel_requested,
+            terminal: turn_state.is_terminal(),
+            tool_calls,
+        },
+    })
+}
 /// The step id of one lookup: the round and the call's position in it. Not
 /// the model's call id, which the relay does not hold unique, so two calls
 /// that share one are still two rows.
@@ -2186,10 +2213,13 @@ pub fn agent_panel_undo_change(
 pub async fn agent_panel_apply_action(
     caller: WebviewWindow,
     manager: State<'_, AgentPanelManager>,
+    meetings: State<'_, Arc<MeetingSessionManager>>,
     request: AgentPanelActionRequestV1,
 ) -> Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1> {
     require_caller(&caller)?;
-    manager.apply_action(request).await
+    manager
+        .apply_action(meetings.inner().as_ref(), request)
+        .await
 }
 
 /// Refuse one of the answer's offered changes, or reverse it after the fact.
@@ -2198,10 +2228,13 @@ pub async fn agent_panel_apply_action(
 pub async fn agent_panel_dismiss_action(
     caller: WebviewWindow,
     manager: State<'_, AgentPanelManager>,
+    meetings: State<'_, Arc<MeetingSessionManager>>,
     request: AgentPanelActionRequestV1,
 ) -> Result<AgentPanelTurnStatusV1, AgentPanelCommandErrorV1> {
     require_caller(&caller)?;
-    manager.dismiss_action(request).await
+    manager
+        .dismiss_action(meetings.inner().as_ref(), request)
+        .await
 }
 
 /// The titles the history button lists, newest first.
@@ -2415,14 +2448,6 @@ mod tests {
         assert!(!AgentPanelTurnStateV1::Running.is_terminal());
     }
 
-    fn lookup(id: &str, tool: &str, args: serde_json::Value) -> ToolCall {
-        ToolCall {
-            id: id.to_string(),
-            tool: tool.to_string(),
-            args,
-        }
-    }
-
     fn outcome(id: &str, tool: &str, ok: bool, result: &str) -> ToolResult {
         ToolResult {
             id: id.to_string(),
@@ -2438,8 +2463,16 @@ mod tests {
     #[test]
     fn a_round_of_results_is_appended_the_way_the_prompt_describes() {
         let calls = vec![
-            lookup("c1", "word_stats", serde_json::json!({"days": 90})),
-            lookup("c2", "search", serde_json::json!({"query": "de\nck"})),
+            ToolCall {
+                id: "c1".to_string(),
+                tool: "word_stats".to_string(),
+                args: serde_json::json!({"days": 90}),
+            },
+            ToolCall {
+                id: "c2".to_string(),
+                tool: "search".to_string(),
+                args: serde_json::json!({"query": "de\nck"}),
+            },
         ];
         let results = vec![
             outcome("c1", "word_stats", true, r#"{"total_words":96410}"#),
@@ -2477,8 +2510,16 @@ mod tests {
     fn a_block_that_does_not_fit_is_cut_from_its_last_result_and_says_so() {
         let base = "x".repeat(MAX_CONTEXT_PACK_BYTES - 200);
         let calls = vec![
-            lookup("c1", "recent", serde_json::json!({})),
-            lookup("c2", "activity", serde_json::json!({})),
+            ToolCall {
+                id: "c1".to_string(),
+                tool: "recent".to_string(),
+                args: serde_json::json!({}),
+            },
+            ToolCall {
+                id: "c2".to_string(),
+                tool: "activity".to_string(),
+                args: serde_json::json!({}),
+            },
         ];
         let results = vec![
             outcome("c1", "recent", true, &"r".repeat(60)),
@@ -2662,71 +2703,5 @@ mod tests {
             turn_failure_for_job(RelayJobFailure::Failed),
             AgentPanelTurnFailureV1::Failed
         );
-    }
-
-    fn offered() -> StoredAction {
-        StoredAction::pending(SonaChatActionV1::ResolveLoop {
-            reason: "You said the deck went out.".to_string(),
-            loop_id: crate::meeting::loop_types::MeetingLoopId("l-1".to_string()),
-        })
-    }
-
-    fn committed() -> AppliedAction {
-        AppliedAction {
-            operation_id: Some("op-1".to_string()),
-            undo: ActionUndo::ReopenLoop {
-                loop_id: crate::meeting::loop_types::MeetingLoopId("l-1".to_string()),
-            },
-        }
-    }
-
-    /// The card reports the receipt the mutation minted, so the change can be
-    /// found in the ledger beside every other change to the same meeting.
-    #[test]
-    fn an_applied_card_carries_the_receipt_the_store_recorded() {
-        let mut action = offered();
-        assert_eq!(action.preview(0).state, AgentPanelActionStateV1::Pending);
-        assert_eq!(action.preview(0).operation_id, None);
-
-        action.state = StoredActionState::Applied(committed());
-        let preview = action.preview(3);
-
-        assert_eq!(preview.action_index, 3);
-        assert_eq!(preview.state, AgentPanelActionStateV1::Applied);
-        assert_eq!(preview.operation_id.as_deref(), Some("op-1"));
-    }
-
-    /// A double click, a reopened sheet, a retry after a slow round trip: the
-    /// second press must not reach the store, because the answer is already in
-    /// the ledger and running it twice would put it there twice.
-    #[test]
-    fn a_card_is_only_ever_applied_once() {
-        let mut action = offered();
-        assert!(action.to_run().is_some());
-
-        action.state = StoredActionState::Applied(committed());
-        assert!(action.to_run().is_none());
-
-        action.state = StoredActionState::Dismissed;
-        assert!(action.to_run().is_none());
-    }
-
-    /// Dismiss and Undo are one gesture with two labels. Refusing a change
-    /// that never happened runs nothing; putting back one that did runs its
-    /// inverse first, and both end in the same place.
-    #[test]
-    fn putting_a_card_back_only_reverses_what_actually_ran() {
-        let mut action = offered();
-        assert!(matches!(action.reversal(), Reversal::Unapplied));
-
-        action.state = StoredActionState::Applied(committed());
-        assert!(matches!(
-            action.reversal(),
-            Reversal::Undo(ActionUndo::ReopenLoop { .. })
-        ));
-
-        action.state = StoredActionState::Dismissed;
-        assert!(matches!(action.reversal(), Reversal::Settled));
-        assert_eq!(action.preview(0).state, AgentPanelActionStateV1::Dismissed);
     }
 }

@@ -139,7 +139,9 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
     useState<AgentPanelWorkspaceV1>("sona_chat");
   const { updateSetting } = useSettings();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<
+    AgentPanelCommandErrorV1 | "link_failed" | null
+  >(null);
   const [now, setNow] = useState(() => Date.now());
   const [searchedCorpus, setSearchedCorpus] = useState(false);
   const requestRef = useRef(0);
@@ -197,8 +199,7 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
   const run = useCallback(
     async (
       command: () => Promise<
-        | { status: "ok"; data: AgentPanelStatusV1 }
-        | { status: "error"; error: string }
+        Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>
       >,
     ): Promise<boolean> => {
       setBusy(true);
@@ -367,7 +368,11 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
       /* Routed through the backend, which owns what a `sona://` address means
        * and which surface it wakes — the same path an address arriving from
        * outside the app takes. */
-      onOpenLink={(link) => void commands.sonaOpenLink(link)}
+      onOpenLink={(link) =>
+        void commands.sonaOpenLink(link).then((opened) => {
+          if (!opened) setError("link_failed");
+        })
+      }
       onOpenSettings={onOpenSettings}
       onRetry={() => void refresh()}
       onRetryTurn={() => void retryTurn()}

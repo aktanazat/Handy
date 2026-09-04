@@ -21,12 +21,10 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::secrets::{SecretAccount, SecretCommandError, SecretManager, SecretRead};
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
 use crate::settings::{
     self, get_settings, AppSettings, AppearanceMaterial, EnglishSpelling, KeyboardImplementation,
-    LLMPrompt, OverlayPosition, OverlayStyle, ShortcutBinding, SoundTheme, Theme,
-    APPLE_INTELLIGENCE_PROVIDER_ID,
+    LLMPrompt, OverlayPosition, OverlayStyle, PostProcessCatalogSource, PostProcessModelCatalog,
+    PostProcessModelDiscovery, PostProcessModelOption, ShortcutBinding, SoundTheme, Theme,
 };
 use crate::tray;
 
@@ -1354,54 +1352,130 @@ fn custom_provider_can_fetch_without_secret(provider: &settings::PostProcessProv
             .is_ok_and(|endpoint| !endpoint.is_remote())
 }
 
+/// Assemble the typed catalog the command returns. Every discovery state
+/// carries only what the provider reported: a saved selection belongs to
+/// settings, and the caller merges it with the id for its own scope, which is
+/// the mode's model for a mode pane and the global one elsewhere.
+fn catalog_with_discovery(
+    provider_id: String,
+    allows_manual_model_id: bool,
+    discovery: PostProcessModelDiscovery,
+    models: Vec<PostProcessModelOption>,
+) -> PostProcessModelCatalog {
+    PostProcessModelCatalog {
+        provider_id,
+        models,
+        discovery,
+        allows_manual_model_id,
+    }
+}
+
+fn catalog_discovery_for_secret_error(error: SecretCommandError) -> PostProcessModelDiscovery {
+    match error {
+        SecretCommandError::Unavailable | SecretCommandError::Backend => {
+            PostProcessModelDiscovery::CredentialUnavailable
+        }
+        SecretCommandError::Locked => PostProcessModelDiscovery::CredentialLocked,
+        SecretCommandError::Corrupt => PostProcessModelDiscovery::CredentialCorrupt,
+        SecretCommandError::Invalid => PostProcessModelDiscovery::InvalidDestination,
+        SecretCommandError::Busy => PostProcessModelDiscovery::CredentialBusy,
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
-pub async fn fetch_post_process_models(
+pub async fn discover_post_process_model_catalog(
     app: AppHandle,
     provider_id: String,
-) -> Result<Vec<String>, SecretCommandError> {
+) -> PostProcessModelCatalog {
     let settings = settings::get_settings(&app);
-    let provider = settings
-        .post_process_provider(&provider_id)
-        .cloned()
-        .ok_or(SecretCommandError::Invalid)?;
-
-    if provider.id == APPLE_INTELLIGENCE_PROVIDER_ID {
-        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-        {
-            return Ok(vec![APPLE_INTELLIGENCE_DEFAULT_MODEL_ID.to_string()]);
+    let Some(provider) = settings.post_process_provider(&provider_id).cloned() else {
+        return PostProcessModelCatalog {
+            provider_id,
+            models: Vec::new(),
+            discovery: PostProcessModelDiscovery::InvalidDestination,
+            allows_manual_model_id: false,
+        };
+    };
+    let allows_manual_model_id = provider.allows_manual_model_id();
+    let endpoint = match provider.endpoint() {
+        Ok(endpoint) => endpoint,
+        Err(_) => {
+            return catalog_with_discovery(
+                provider_id,
+                allows_manual_model_id,
+                PostProcessModelDiscovery::InvalidDestination,
+                Vec::new(),
+            );
         }
+    };
 
-        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-        {
-            return Err(SecretCommandError::Unavailable);
-        }
+    if provider.catalog_source() == PostProcessCatalogSource::Unsupported {
+        return catalog_with_discovery(
+            provider_id,
+            allows_manual_model_id,
+            PostProcessModelDiscovery::Unsupported,
+            Vec::new(),
+        );
     }
-
-    let endpoint = provider
-        .endpoint()
-        .map_err(|_| SecretCommandError::Invalid)?;
     if endpoint.is_remote()
         && !settings.has_current_post_process_provider_consent(&provider, &endpoint)
     {
-        return Err(SecretCommandError::ConsentRequired);
+        return catalog_with_discovery(
+            provider_id,
+            allows_manual_model_id,
+            PostProcessModelDiscovery::RequiresConsent,
+            Vec::new(),
+        );
     }
 
     let secret = if custom_provider_can_fetch_without_secret(&provider) {
         None
     } else {
-        let account = SecretAccount::llm(&provider_id).map_err(SecretCommandError::from)?;
+        let account = match SecretAccount::llm(&provider_id) {
+            Ok(account) => account,
+            Err(error) => {
+                return catalog_with_discovery(
+                    provider_id,
+                    allows_manual_model_id,
+                    catalog_discovery_for_secret_error(SecretCommandError::from(error)),
+                    Vec::new(),
+                );
+            }
+        };
         let secrets = app.state::<Arc<SecretManager>>();
         match secrets.resolve_optional(account).await {
             Ok(SecretRead::Found(secret)) => Some(secret),
-            Ok(SecretRead::NotFound) => return Err(SecretCommandError::NotFound),
-            Err(error) => return Err(error.into()),
+            Ok(SecretRead::NotFound) => {
+                return catalog_with_discovery(
+                    provider_id,
+                    allows_manual_model_id,
+                    PostProcessModelDiscovery::MissingCredential,
+                    Vec::new(),
+                );
+            }
+            Err(error) => {
+                return catalog_with_discovery(
+                    provider_id,
+                    allows_manual_model_id,
+                    catalog_discovery_for_secret_error(error.into()),
+                    Vec::new(),
+                );
+            }
         }
     };
 
-    crate::llm_client::fetch_models(&provider, &endpoint, secret)
-        .await
-        .map_err(|_| SecretCommandError::Backend)
+    match crate::llm_client::discover_models(&provider, &endpoint, secret.as_ref()).await {
+        Ok(models) => catalog_with_discovery(
+            provider_id,
+            allows_manual_model_id,
+            PostProcessModelDiscovery::Ready,
+            models,
+        ),
+        Err(discovery) => {
+            catalog_with_discovery(provider_id, allows_manual_model_id, discovery, Vec::new())
+        }
+    }
 }
 
 #[tauri::command]
@@ -1558,7 +1632,39 @@ pub async fn get_available_accelerators() -> crate::managers::transcription::Ava
 mod tests {
     use super::*;
     use crate::modes::ensure_mode_settings;
+    #[test]
+    fn catalog_secret_errors_return_safe_discovery_states() {
+        let cases = [
+            (
+                SecretCommandError::Unavailable,
+                PostProcessModelDiscovery::CredentialUnavailable,
+            ),
+            (
+                SecretCommandError::Backend,
+                PostProcessModelDiscovery::CredentialUnavailable,
+            ),
+            (
+                SecretCommandError::Locked,
+                PostProcessModelDiscovery::CredentialLocked,
+            ),
+            (
+                SecretCommandError::Corrupt,
+                PostProcessModelDiscovery::CredentialCorrupt,
+            ),
+            (
+                SecretCommandError::Invalid,
+                PostProcessModelDiscovery::InvalidDestination,
+            ),
+            (
+                SecretCommandError::Busy,
+                PostProcessModelDiscovery::CredentialBusy,
+            ),
+        ];
 
+        for (error, expected) in cases {
+            assert_eq!(catalog_discovery_for_secret_error(error), expected);
+        }
+    }
     #[test]
     fn rebound_mode_chord_survives_reload_for_both_shortcut_backends() -> Result<(), String> {
         let mut settings = settings::get_default_settings();

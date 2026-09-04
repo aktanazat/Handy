@@ -3,7 +3,7 @@ use crate::meeting::store::StoreError;
 use crate::meeting::types::MeetingSessionId;
 use rusqlite::{params, Connection, OptionalExtension};
 
-pub(super) fn upsert_link_in(
+pub(in crate::meeting::store) fn upsert_link_in(
     connection: &Connection,
     meeting_id: MeetingSessionId,
     person_id: PersonId,

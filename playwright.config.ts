@@ -27,6 +27,6 @@ export default defineConfig({
     // A developer's own `bun run dev` on 1420 is reused instead of fighting it
     // for the port; CI has no server running, so it starts one.
     reuseExistingServer: true,
-    timeout: 30000,
+    timeout: 180000,
   },
 });

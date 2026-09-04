@@ -165,10 +165,44 @@ mod imp {
         /// Cannot fire at all while secure input is held
         uncovered: Vec<String>,
     }
+    /// The time-only portion of Secure Input monitoring. The monitor supplies
+    /// a monotonic duration, which keeps the threshold boundary independent of
+    /// its polling and Carbon I/O.
+    #[derive(Default)]
+    struct SustainedInput {
+        enabled_since: Option<Duration>,
+        active: bool,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum FallbackTransition {
+        Register,
+        Unregister,
+    }
+
+    impl SustainedInput {
+        fn observe(&mut self, enabled: bool, now: Duration) -> Option<FallbackTransition> {
+            if enabled {
+                let enabled_since = self.enabled_since.get_or_insert(now);
+                if !self.active && now.saturating_sub(*enabled_since) >= SUSTAIN_THRESHOLD {
+                    self.active = true;
+                    return Some(FallbackTransition::Register);
+                }
+                return None;
+            }
+
+            self.enabled_since = None;
+            if std::mem::replace(&mut self.active, false) {
+                Some(FallbackTransition::Unregister)
+            } else {
+                None
+            }
+        }
+    }
 
     #[derive(Clone, Copy, Debug)]
     enum SecureInputStateLock {
-        EnabledSince,
+        SustainedInput,
         Culprit,
         Fallback,
         FallbackOperation,
@@ -184,7 +218,8 @@ mod imp {
     pub struct SecureInputState {
         enabled: AtomicBool,
         sustained: AtomicBool,
-        enabled_since: Mutex<Option<Instant>>,
+        clock_origin: Instant,
+        sustained_input: Mutex<SustainedInput>,
         culprit: Mutex<Option<Culprit>>,
         fallback: Mutex<FallbackState>,
         /// Serializes fallback registration changes without requiring the
@@ -200,7 +235,8 @@ mod imp {
             Self {
                 enabled: AtomicBool::new(false),
                 sustained: AtomicBool::new(false),
-                enabled_since: Mutex::new(None),
+                clock_origin: Instant::now(),
+                sustained_input: Mutex::new(SustainedInput::default()),
                 culprit: Mutex::new(None),
                 fallback: Mutex::new(FallbackState::default()),
                 fallback_operation: Mutex::new(()),
@@ -231,6 +267,33 @@ mod imp {
                 }
             };
             !fallback.degraded.is_empty() || !fallback.uncovered.is_empty()
+        }
+    }
+    fn sample_sustained_input(
+        state: &SecureInputState,
+        enabled: bool,
+    ) -> Option<FallbackTransition> {
+        let now = state.clock_origin.elapsed();
+        match state_lock(&state.sustained_input, SecureInputStateLock::SustainedInput) {
+            Ok(mut sustained_input) => {
+                let transition = sustained_input.observe(enabled, now);
+                // Mirror the authority after every sample, not only when a
+                // transition is emitted. The tray and `warning_active` read
+                // this atomic, and tying the copy to which transitions exist
+                // is what would let the two drift apart without a signal.
+                state
+                    .sustained
+                    .store(sustained_input.active, Ordering::SeqCst);
+                transition
+            }
+            Err(lock) => {
+                error!("SecureInput {lock:?} lock poisoned while sampling duration");
+                if !enabled && state.sustained.swap(false, Ordering::SeqCst) {
+                    Some(FallbackTransition::Unregister)
+                } else {
+                    None
+                }
+            }
         }
     }
 
@@ -346,6 +409,7 @@ mod imp {
                 let state = app.state::<SecureInputState>();
                 let now_enabled = is_enabled();
                 let was_enabled = state.enabled.swap(now_enabled, Ordering::SeqCst);
+                let fallback_transition = sample_sustained_input(&state, now_enabled);
 
                 if now_enabled && !was_enabled {
                     let culprit = lookup_culprit();
@@ -354,10 +418,6 @@ mod imp {
                             info!("SecureInput ENABLED (held by pid {} '{}')", c.pid, c.name)
                         }
                         None => info!("SecureInput ENABLED (no visible holder)"),
-                    }
-                    match state_lock(&state.enabled_since, SecureInputStateLock::EnabledSince) {
-                        Ok(mut enabled_since) => *enabled_since = Some(Instant::now()),
-                        Err(lock) => error!("SecureInput {lock:?} lock poisoned while enabling"),
                     }
                     match state_lock(&state.culprit, SecureInputStateLock::Culprit) {
                         Ok(mut state_culprit) => *state_culprit = culprit,
@@ -372,12 +432,6 @@ mod imp {
                     let was_blocked = state.recorder_blocked.swap(false, Ordering::SeqCst);
                     if was_enabled {
                         info!("SecureInput DISABLED");
-                        match state_lock(&state.enabled_since, SecureInputStateLock::EnabledSince) {
-                            Ok(mut enabled_since) => *enabled_since = None,
-                            Err(lock) => {
-                                error!("SecureInput {lock:?} lock poisoned while disabling")
-                            }
-                        }
                         match state_lock(&state.culprit, SecureInputStateLock::Culprit) {
                             Ok(mut state_culprit) => *state_culprit = None,
                             Err(lock) => {
@@ -386,7 +440,7 @@ mod imp {
                         }
                     }
 
-                    if state.sustained.swap(false, Ordering::SeqCst) {
+                    if matches!(fallback_transition, Some(FallbackTransition::Unregister)) {
                         reconcile_fallback(&app);
                     } else if was_enabled || was_blocked {
                         refresh_tray(&app);
@@ -395,28 +449,12 @@ mod imp {
                     continue;
                 }
 
-                // Promote to "sustained" after the threshold.
-                if !state.sustained.load(Ordering::SeqCst) {
-                    let held_long_enough = match state_lock(
-                        &state.enabled_since,
-                        SecureInputStateLock::EnabledSince,
-                    ) {
-                        Ok(enabled_since) => enabled_since
-                            .map(|enabled_at| enabled_at.elapsed() >= SUSTAIN_THRESHOLD)
-                            .unwrap_or(false),
-                        Err(lock) => {
-                            error!("SecureInput {lock:?} lock poisoned while checking duration");
-                            false
-                        }
-                    };
-                    if held_long_enough {
-                        warn!(
-                            "SecureInput held for {}s — keyed shortcuts are blocked; activating fallback",
-                            SUSTAIN_THRESHOLD.as_secs()
-                        );
-                        state.sustained.store(true, Ordering::SeqCst);
-                        reconcile_fallback(&app);
-                    }
+                if matches!(fallback_transition, Some(FallbackTransition::Register)) {
+                    warn!(
+                        "SecureInput held for {}s — keyed shortcuts are blocked; activating fallback",
+                        SUSTAIN_THRESHOLD.as_secs()
+                    );
+                    reconcile_fallback(&app);
                 }
             }
         });
@@ -699,6 +737,111 @@ mod imp {
         })
         .await
         .map_err(|e| format!("Diagnostic task failed: {e}"))?
+    }
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[derive(Default)]
+        struct RecordingFallbackOwner {
+            active: bool,
+            registrations: usize,
+            unregistrations: usize,
+        }
+
+        impl RecordingFallbackOwner {
+            fn apply(&mut self, transition: Option<FallbackTransition>) {
+                match transition {
+                    Some(FallbackTransition::Register) => {
+                        self.active = true;
+                        self.registrations += 1;
+                    }
+                    Some(FallbackTransition::Unregister) => {
+                        self.active = false;
+                        self.unregistrations += 1;
+                    }
+                    None => {}
+                }
+            }
+        }
+
+        fn sample(
+            sustained_input: &mut SustainedInput,
+            owner: &mut RecordingFallbackOwner,
+            enabled: bool,
+            now: Duration,
+        ) {
+            owner.apply(sustained_input.observe(enabled, now));
+        }
+
+        #[test]
+        fn sustained_secure_input_registers_once_at_the_exact_threshold_and_releases_once() {
+            let mut sustained_input = SustainedInput::default();
+            let mut fallback = RecordingFallbackOwner::default();
+            let started_at = Duration::from_secs(10);
+
+            sample(&mut sustained_input, &mut fallback, true, started_at);
+            sample(
+                &mut sustained_input,
+                &mut fallback,
+                true,
+                started_at + SUSTAIN_THRESHOLD.saturating_sub(Duration::from_millis(1)),
+            );
+            assert_eq!(
+                fallback.registrations, 0,
+                "a short secure-input episode keeps normal shortcuts"
+            );
+            assert!(!fallback.active);
+
+            sample(
+                &mut sustained_input,
+                &mut fallback,
+                true,
+                started_at + SUSTAIN_THRESHOLD,
+            );
+            assert_eq!(
+                fallback.registrations, 1,
+                "the exact threshold registers the fallback"
+            );
+            assert!(fallback.active);
+
+            sample(
+                &mut sustained_input,
+                &mut fallback,
+                true,
+                started_at + SUSTAIN_THRESHOLD + Duration::from_secs(30),
+            );
+            assert_eq!(
+                fallback.registrations, 1,
+                "continued secure input does not duplicate fallback ownership"
+            );
+
+            sample(
+                &mut sustained_input,
+                &mut fallback,
+                false,
+                started_at + SUSTAIN_THRESHOLD + Duration::from_secs(31),
+            );
+            assert_eq!(
+                fallback.unregistrations, 1,
+                "release unregisters the fallback once"
+            );
+            assert!(
+                !fallback.active,
+                "release returns shortcut ownership to the normal backend"
+            );
+
+            sample(
+                &mut sustained_input,
+                &mut fallback,
+                false,
+                started_at + SUSTAIN_THRESHOLD + Duration::from_secs(32),
+            );
+            assert_eq!(
+                fallback.unregistrations, 1,
+                "a second disabled sample is idempotent"
+            );
+        }
     }
 }
 

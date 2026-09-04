@@ -81,8 +81,6 @@ pub(crate) struct TxState {
     /// the platform modules).
     pub cancelled: bool,
     /// The post-paste Enter (auto-submit) has been sent for this transaction.
-    /// (Read on Windows; the macOS path settles via `MacPending::settled`.)
-    #[allow(dead_code)]
     pub auto_submit_sent: bool,
     /// First post-injection receipt has been logged.
     pub logged_receipt: bool,
@@ -126,6 +124,22 @@ impl TxState {
     pub fn any_receipt_after_injection(&self) -> bool {
         self.last_receipt_after_injection().is_some()
     }
+}
+/// Takes the configured submit key exactly once, and only after a receipt
+/// proves the paste chord reached a reader after injection. Pressing Enter
+/// behind an unconfirmed paste could submit stale content, so each platform
+/// asks here instead of keeping its own copy of that rule.
+pub(crate) fn take_auto_submit_key(
+    state: &mut TxState,
+    enabled: bool,
+    key: crate::settings::AutoSubmitKey,
+) -> Option<crate::settings::AutoSubmitKey> {
+    if !enabled || state.auto_submit_sent || !state.any_receipt_after_injection() {
+        return None;
+    }
+
+    state.auto_submit_sent = true;
+    Some(key)
 }
 
 pub(crate) enum WaitDecision {
@@ -279,5 +293,40 @@ mod tests {
         let mut s = state_after_publish(Duration::from_millis(10));
         s.ownership_lost = true;
         assert!(matches!(evaluate(&s, Instant::now()), WaitDecision::Finish));
+    }
+    #[test]
+    fn confirmed_reliable_paste_takes_each_submit_key_once() {
+        for key in [
+            crate::settings::AutoSubmitKey::Enter,
+            crate::settings::AutoSubmitKey::CtrlEnter,
+            crate::settings::AutoSubmitKey::CmdEnter,
+        ] {
+            let mut state = TxState::new();
+            let injected = Instant::now();
+            state.injected_at = Some(injected);
+            state.record_receipt(injected);
+
+            assert_eq!(take_auto_submit_key(&mut state, true, key), Some(key));
+            assert_eq!(take_auto_submit_key(&mut state, true, key), None);
+        }
+    }
+
+    #[test]
+    fn unconfirmed_reliable_paste_never_takes_a_submit_key() {
+        let key = crate::settings::AutoSubmitKey::Enter;
+        let mut no_receipt = TxState::new();
+        no_receipt.injected_at = Some(Instant::now());
+        assert_eq!(take_auto_submit_key(&mut no_receipt, true, key), None);
+        assert!(!no_receipt.auto_submit_sent);
+
+        let mut pre_injection_receipt = TxState::new();
+        let injected = Instant::now();
+        pre_injection_receipt.injected_at = Some(injected);
+        pre_injection_receipt.record_receipt(injected - Duration::from_millis(1));
+        assert_eq!(
+            take_auto_submit_key(&mut pre_injection_receipt, true, key),
+            None
+        );
+        assert!(!pre_injection_receipt.auto_submit_sent);
     }
 }

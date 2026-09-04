@@ -3,7 +3,7 @@
 // production. Contract-only fields that the Rust side gained after the capture
 // (snippets, snippets_enabled, update_check_enabled) are appended by hand.
 
-export const APP_SETTINGS = {
+export const APP_SETTINGS: import("@/bindings").AppSettings = {
   active_mode_id: "message",
   agent_bridge: {
     allowed_projects: [],
@@ -112,7 +112,7 @@ export const APP_SETTINGS = {
       consent_version: 0,
       local_fallback_consent: false,
       privacy_consent: false,
-      provider: "deepgram_nova3",
+      provider: "deepgram_nova_3",
       secret_state: {
         configured: false,
         lastErrorKind: null,
@@ -161,7 +161,6 @@ export const APP_SETTINGS = {
     "com.tinyspeck.slackmacgap",
     "com.webex.meetingmanager",
   ],
-  detection_silence_stop_minutes: 15,
   emoji_replacements: [],
   emoji_replacements_enabled: false,
   english_spelling: "as_spoken",
@@ -411,7 +410,6 @@ export const APP_SETTINGS = {
       base_url: "https://api.openai.com/v1",
       id: "openai",
       label: "OpenAI",
-      models_endpoint: "/models",
       supports_structured_output: true,
     },
     {
@@ -419,7 +417,6 @@ export const APP_SETTINGS = {
       base_url: "https://api.z.ai/api/paas/v4",
       id: "zai",
       label: "Z.AI",
-      models_endpoint: "/models",
       supports_structured_output: true,
     },
     {
@@ -427,7 +424,6 @@ export const APP_SETTINGS = {
       base_url: "https://openrouter.ai/api/v1",
       id: "openrouter",
       label: "OpenRouter",
-      models_endpoint: "/models",
       supports_structured_output: true,
     },
     {
@@ -435,7 +431,6 @@ export const APP_SETTINGS = {
       base_url: "https://api.anthropic.com/v1",
       id: "anthropic",
       label: "Anthropic",
-      models_endpoint: "/models",
       supports_structured_output: false,
     },
     {
@@ -443,7 +438,6 @@ export const APP_SETTINGS = {
       base_url: "https://api.groq.com/openai/v1",
       id: "groq",
       label: "Groq",
-      models_endpoint: "/models",
       supports_structured_output: false,
     },
     {
@@ -451,7 +445,6 @@ export const APP_SETTINGS = {
       base_url: "https://api.cerebras.ai/v1",
       id: "cerebras",
       label: "Cerebras",
-      models_endpoint: "/models",
       supports_structured_output: true,
     },
     {
@@ -459,7 +452,6 @@ export const APP_SETTINGS = {
       base_url: "apple-intelligence://local",
       id: "apple_intelligence",
       label: "Apple Intelligence",
-      models_endpoint: null,
       supports_structured_output: true,
     },
     {
@@ -467,7 +459,6 @@ export const APP_SETTINGS = {
       base_url: "https://bedrock-mantle.us-east-1.api.aws/v1",
       id: "bedrock_mantle",
       label: "AWS Bedrock (Mantle)",
-      models_endpoint: "/models",
       supports_structured_output: true,
     },
     {
@@ -475,7 +466,6 @@ export const APP_SETTINGS = {
       base_url: "http://localhost:11434/v1",
       id: "custom",
       label: "Custom",
-      models_endpoint: "/models",
       supports_structured_output: false,
     },
   ],

@@ -222,12 +222,13 @@ async fn replay_stored_recording(
         .map(|count| count / u64::from(crate::audio_toolkit::constants::WHISPER_SAMPLE_RATE));
 
     transcription_manager.initiate_model_load(run.asr());
-    let tm = Arc::clone(transcription_manager);
+    let manager = Arc::clone(transcription_manager);
     let asr = run.asr().clone();
-    let decode = tauri::async_runtime::spawn_blocking(move || tm.transcribe_shared(&asr, &samples))
-        .await
-        .map_err(|error| format!("Transcription task panicked: {error}"))?
-        .map_err(|error| error.to_string())?;
+    let decode =
+        tauri::async_runtime::spawn_blocking(move || manager.transcribe_shared(&asr, &samples))
+            .await
+            .map_err(|error| format!("Transcription task panicked: {error}"))?
+            .map_err(|error| error.to_string())?;
     let transcription = decode.text;
     if transcription.is_empty() {
         return Err("Recording contains no speech".to_string());
@@ -346,14 +347,12 @@ pub async fn update_recording_retention_period(
 ) -> Result<(), String> {
     use crate::settings::RecordingRetentionPeriod;
 
-    let retention_period = match period.as_str() {
-        "never" => RecordingRetentionPeriod::Never,
-        "preserve_limit" => RecordingRetentionPeriod::PreserveLimit,
-        "days3" => RecordingRetentionPeriod::Days3,
-        "weeks2" => RecordingRetentionPeriod::Weeks2,
-        "months3" => RecordingRetentionPeriod::Months3,
-        _ => return Err(format!("Invalid retention period: {}", period)),
-    };
+    /* Parse through serde rather than a second hand-written table: the enum's
+     * own aliases already accept both the bindings spelling the UI sends and
+     * the older digit-attached one, and a table here would drift from them. */
+    let retention_period: RecordingRetentionPeriod =
+        serde_json::from_value(serde_json::Value::String(period.clone()))
+            .map_err(|_| format!("Invalid retention period: {}", period))?;
 
     crate::settings::update_settings(&app, |settings| {
         settings.recording_retention_period = retention_period;

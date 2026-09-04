@@ -734,6 +734,33 @@ pub fn start_capture(
     policy_ceiling: ContextPolicy,
     options: CaptureOptions,
 ) -> PendingContext {
+    start_capture_with_sources(
+        requested_policy,
+        policy_ceiling,
+        options,
+        clipboard_recency::observe_clipboard_generation,
+        read_start,
+        now_ms,
+    )
+}
+
+/// Shared capture boundary. Production supplies the platform readers; tests
+/// supply deterministic sources without reading a user's frontmost app.
+fn start_capture_with_sources<G, R, N>(
+    requested_policy: ContextPolicy,
+    policy_ceiling: ContextPolicy,
+    options: CaptureOptions,
+    observe_generation: G,
+    read_start: R,
+    now_ms: N,
+) -> PendingContext
+where
+    G: FnOnce() -> clipboard_recency::Generation,
+    R: FnOnce(ContextPolicy, CaptureOptions, clipboard_recency::Generation) -> StartCapture
+        + Send
+        + 'static,
+    N: FnOnce() -> u64 + Send + 'static,
+{
     let policy = requested_policy.clamp_to(policy_ceiling);
     if matches!(policy, ContextPolicy::None) {
         return PendingContext::resolved(ContextSnapshot::assemble(
@@ -748,7 +775,7 @@ pub fn start_capture(
     }
 
     let (tx, rx) = mpsc::sync_channel(1);
-    let generation = clipboard_recency::observe_clipboard_generation();
+    let generation = observe_generation();
     let spawned = std::thread::Builder::new()
         .name("sona-context-capture".to_string())
         .spawn(move || {
@@ -940,6 +967,116 @@ mod tests {
 
     fn snapshot(requested: ContextPolicy, ceiling: ContextPolicy) -> ContextSnapshot {
         ContextSnapshot::assemble(requested, ceiling, full_start(), full_application())
+    }
+    #[test]
+    fn full_capture_admits_only_the_frozen_fresh_preroll_in_stable_packet_order() {
+        let options = CaptureOptions {
+            url_capture_enabled: false,
+            clipboard_preroll_ms: DEFAULT_CLIPBOARD_PREROLL_MS,
+        };
+        let generation = clipboard_recency::generation_for_test(9, 2_000);
+        let reader_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let reader_calls_for_worker = reader_calls.clone();
+
+        let pending = start_capture_with_sources(
+            ContextPolicy::Full,
+            ContextPolicy::Full,
+            options,
+            || generation,
+            move |policy, frozen_options, _| {
+                reader_calls_for_worker.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                assert_eq!(policy, ContextPolicy::Full);
+                assert_eq!(
+                    frozen_options, options,
+                    "the worker receives the run-start options"
+                );
+                StartCapture {
+                    accessibility: AccessibilityAccess::Granted,
+                    selected_text: SourceOutcome::Captured("selected at record start".to_string()),
+                    clipboard: clipboard_recency::read_if_fresh(
+                        generation,
+                        5_000,
+                        frozen_options.clipboard_preroll_ms,
+                        || Some(9),
+                        || Some("copied inside the frozen pre-roll".to_string()),
+                    ),
+                    ..StartCapture::default()
+                }
+            },
+            || 5_000,
+        );
+        let start = pending
+            .join_start_capture()
+            .expect("controlled worker returns start capture");
+        let snapshot = ContextSnapshot::assemble(
+            ContextPolicy::Full,
+            ContextPolicy::Full,
+            start,
+            ApplicationCapture::default(),
+        );
+        let packet = snapshot.packet();
+
+        assert_eq!(reader_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+        assert_eq!(
+            packet.selected_text.as_deref(),
+            Some("selected at record start")
+        );
+        assert_eq!(
+            packet.clipboard_content.as_deref(),
+            Some("copied inside the frozen pre-roll")
+        );
+        assert_eq!(snapshot.receipt().captured_at_ms, 5_000);
+        let serialized = serde_json::to_string(packet).expect("context packet serializes");
+        assert!(
+            serialized
+                .find("\"selected_text\"")
+                .expect("selected-text field")
+                < serialized
+                    .find("\"clipboard_content\"")
+                    .expect("clipboard field"),
+            "packet ordering stays stable for prompt construction"
+        );
+    }
+
+    #[test]
+    fn a_none_ceiling_skips_generation_observation_and_the_context_worker() {
+        let options = CaptureOptions::default();
+        let generation_reads = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let reader_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let generation_reads_for_capture = generation_reads.clone();
+        let reader_calls_for_capture = reader_calls.clone();
+
+        let pending = start_capture_with_sources(
+            ContextPolicy::Full,
+            ContextPolicy::None,
+            options,
+            move || {
+                generation_reads_for_capture.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                clipboard_recency::Generation::default()
+            },
+            move |_, _, _| {
+                reader_calls_for_capture.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                StartCapture::default()
+            },
+            || 7_000,
+        );
+        let snapshot = pending.snapshot();
+
+        assert_eq!(
+            generation_reads.load(std::sync::atomic::Ordering::SeqCst),
+            0
+        );
+        assert_eq!(reader_calls.load(std::sync::atomic::Ordering::SeqCst), 0);
+        assert_eq!(snapshot.packet(), &ContextPacket::default());
+        assert_eq!(snapshot.receipt().captured_at_ms, 7_000);
+        assert_eq!(
+            snapshot.receipt().sources.clipboard,
+            ContextSourceStatus::DisabledByCeiling
+        );
+
+        let public_capture = start_capture(ContextPolicy::Full, ContextPolicy::None, options);
+        let public_snapshot = public_capture.snapshot();
+        assert_eq!(public_snapshot.packet(), &ContextPacket::default());
     }
 
     #[test]

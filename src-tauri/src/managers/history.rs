@@ -1174,58 +1174,18 @@ impl HistoryManager {
         // below takes the same single connection, and the emit after it must not
         // run while a database lock is held.
         let history_id = self.storage.with_connection(|conn| {
-            let transaction = conn.transaction()?;
-            let derived_from_run_id = derived_from_history_id
-                .map(|history_id| Self::latest_run_id(&transaction, history_id))
-                .transpose()?
-                .flatten();
-            let (duration_ms, word_count, source_kind, has_audio) = match receipt.as_ref() {
-                Some(receipt) => (
-                    receipt.duration_ms.map(as_sql_i64).transpose()?,
-                    receipt.word_count.map(as_sql_i64).transpose()?,
-                    Some(receipt.source_kind.as_str()),
-                    receipt.has_audio,
-                ),
-                None => (None, None, None, true),
-            };
-            transaction.execute(
-                "INSERT INTO transcription_history (
-                    file_name,
-                    timestamp,
-                    saved,
-                    title,
-                    transcription_text,
-                    post_processed_text,
-                    post_process_requested,
-                    duration_ms,
-                    word_count,
-                    source_kind,
-                    has_audio,
-                    parent_id
-                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-                params![
-                    &file_name,
-                    timestamp,
-                    false,
-                    &title,
-                    &transcription_text,
-                    &post_processed_text,
-                    post_process_requested,
-                    duration_ms,
-                    word_count,
-                    source_kind,
-                    has_audio,
-                    derived_from_history_id,
-                ],
-            )?;
-            let history_id = transaction.last_insert_rowid();
-            if let Some(receipt) = receipt.as_ref() {
-                Self::insert_run_receipt(&transaction, history_id, derived_from_run_id, receipt)?;
-            }
-            transaction.commit()?;
-            Ok(history_id)
+            Self::save_entry_with_receipt_with_connection(
+                conn,
+                &file_name,
+                timestamp,
+                &title,
+                &transcription_text,
+                post_process_requested,
+                post_processed_text.as_deref(),
+                derived_from_history_id,
+                receipt.as_ref(),
+            )
         })?;
-
         let entry = HistoryEntry {
             id: history_id,
             file_name,
@@ -1262,6 +1222,69 @@ impl HistoryManager {
         // day-bucketed on the other side, so this is cheap per dictation.
         crate::meeting::learning::notify_dictation_history_changed(&self.app_handle);
         Ok(entry)
+    }
+
+    fn save_entry_with_receipt_with_connection(
+        conn: &mut Connection,
+        file_name: &str,
+        timestamp: i64,
+        title: &str,
+        transcription_text: &str,
+        post_process_requested: bool,
+        post_processed_text: Option<&str>,
+        derived_from_history_id: Option<i64>,
+        receipt: Option<&NewRunReceipt>,
+    ) -> Result<i64> {
+        let transaction = conn.transaction()?;
+        let derived_from_run_id = derived_from_history_id
+            .map(|history_id| Self::latest_run_id(&transaction, history_id))
+            .transpose()?
+            .flatten();
+        let (duration_ms, word_count, source_kind, has_audio) = match receipt {
+            Some(receipt) => (
+                receipt.duration_ms.map(as_sql_i64).transpose()?,
+                receipt.word_count.map(as_sql_i64).transpose()?,
+                Some(receipt.source_kind.as_str()),
+                receipt.has_audio,
+            ),
+            None => (None, None, None, true),
+        };
+        transaction.execute(
+            "INSERT INTO transcription_history (
+                file_name,
+                timestamp,
+                saved,
+                title,
+                transcription_text,
+                post_processed_text,
+                post_process_requested,
+                duration_ms,
+                word_count,
+                source_kind,
+                has_audio,
+                parent_id
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+            params![
+                file_name,
+                timestamp,
+                false,
+                title,
+                transcription_text,
+                post_processed_text,
+                post_process_requested,
+                duration_ms,
+                word_count,
+                source_kind,
+                has_audio,
+                derived_from_history_id,
+            ],
+        )?;
+        let history_id = transaction.last_insert_rowid();
+        if let Some(receipt) = receipt {
+            Self::insert_run_receipt(&transaction, history_id, derived_from_run_id, receipt)?;
+        }
+        transaction.commit()?;
+        Ok(history_id)
     }
 
     /// Appends the one result of a delivery dispatch. It looks up the exact
@@ -1372,38 +1395,43 @@ impl HistoryManager {
     }
 
     pub async fn get_run_receipts(&self, history_id: i64) -> Result<Vec<HistoryRunReceipt>> {
-        self.storage.with_connection(|conn| {
-            let mut statement = conn.prepare(
-                "SELECT
-                    r.id,
-                    r.history_id,
-                    r.run_id,
-                    r.retry_of_run_id,
-                    r.started_at_ms,
-                    r.completed_at_ms,
-                    r.mode_receipt_json,
-                    r.context_receipt_json,
-                    h.duration_ms,
-                    h.word_count,
-                    h.source_kind,
-                    h.has_audio,
-                    r.capture_status
-                 FROM transcription_runs AS r
-                 JOIN transcription_history AS h ON h.id = r.history_id
-                 WHERE r.history_id = ?1
-                 ORDER BY r.id ASC",
-            )?;
-            let rows = statement.query_map(params![history_id], map_run_receipt)?;
-            let mut receipts = rows.collect::<std::result::Result<Vec<_>, _>>()?;
-            drop(statement);
-            for receipt in &mut receipts {
-                receipt.delivery_attempts =
-                    Self::get_delivery_attempts_with_connection(conn, receipt.id)?;
-            }
-            Ok(receipts)
-        })
+        self.storage
+            .with_connection(|conn| Self::get_run_receipts_with_connection(conn, history_id))
     }
 
+    fn get_run_receipts_with_connection(
+        conn: &Connection,
+        history_id: i64,
+    ) -> Result<Vec<HistoryRunReceipt>> {
+        let mut statement = conn.prepare(
+            "SELECT
+                r.id,
+                r.history_id,
+                r.run_id,
+                r.retry_of_run_id,
+                r.started_at_ms,
+                r.completed_at_ms,
+                r.mode_receipt_json,
+                r.context_receipt_json,
+                h.duration_ms,
+                h.word_count,
+                h.source_kind,
+                h.has_audio,
+                r.capture_status
+             FROM transcription_runs AS r
+             JOIN transcription_history AS h ON h.id = r.history_id
+             WHERE r.history_id = ?1
+             ORDER BY r.id ASC",
+        )?;
+        let rows = statement.query_map(params![history_id], map_run_receipt)?;
+        let mut receipts = rows.collect::<std::result::Result<Vec<_>, _>>()?;
+        drop(statement);
+        for receipt in &mut receipts {
+            receipt.delivery_attempts =
+                Self::get_delivery_attempts_with_connection(conn, receipt.id)?;
+        }
+        Ok(receipts)
+    }
     /// One bounded page of dictation runs newer than `after`, oldest first.
     ///
     /// This is the only way the local learning loops see dictation history, and
@@ -1461,22 +1489,14 @@ impl HistoryManager {
         let retention_period = crate::settings::get_recording_retention_period(&self.app_handle);
 
         match retention_period {
-            crate::settings::RecordingRetentionPeriod::Never => {
-                // Don't delete anything
-                Ok(())
-            }
+            crate::settings::RecordingRetentionPeriod::Never => Ok(()),
             crate::settings::RecordingRetentionPeriod::PreserveLimit => {
-                // Use the old count-based logic with history_limit
                 let limit = crate::settings::get_history_limit(&self.app_handle);
                 self.cleanup_by_count(limit)
             }
-            _ => {
-                // Use time-based logic
-                self.cleanup_by_time(retention_period)
-            }
+            _ => self.cleanup_by_time(retention_period),
         }
     }
-
     fn remove_recording_file(recordings_dir: &Path, file_name: &str) -> Result<()> {
         // A stored name that is not a bare file name references nothing this
         // app owns, so there is no file to delete and nothing outside the
@@ -1609,7 +1629,6 @@ impl HistoryManager {
 
         Ok(())
     }
-
     /// The rows a time sweep deletes, and their deletion, on one connection.
     /// Split out for the same reason as the count sweep's half.
     fn sweep_by_time_with_connection(
@@ -2990,7 +3009,13 @@ mod tests {
     #[test]
     fn history_trend_uses_local_calendar_boundaries() {
         let mut conn = setup_conn();
-        let now = Local::now();
+        let now = chrono::NaiveDate::from_ymd_opt(2026, 9, 3)
+            .expect("fixed local date")
+            .and_hms_opt(12, 0, 0)
+            .expect("fixed local noon")
+            .and_local_timezone(Local)
+            .earliest()
+            .expect("representable fixed local noon");
         let request = DashboardTrendRequest {
             range: DashboardTrendRange::Days7,
         };
@@ -3411,6 +3436,142 @@ mod tests {
         assert_eq!(parent_id, None);
     }
 
+    #[test]
+    fn replay_storage_reuses_parent_wav_and_keeps_retry_and_reprocess_receipts_queryable() {
+        let mut conn = setup_conn();
+        let recordings = tempfile::tempdir().expect("recordings directory");
+        let wav_path = recordings.path().join("reused.wav");
+        crate::audio_toolkit::save_wav_file(&wav_path, &[0.0; 1_600]).expect("write parent WAV");
+        assert_eq!(
+            crate::audio_toolkit::read_wav_samples(&wav_path)
+                .expect("read parent WAV")
+                .len(),
+            1_600
+        );
+        let parent_audio = std::fs::read(&wav_path).expect("read parent WAV bytes");
+        let parent_receipt = new_run_receipt(11);
+        let parent = HistoryManager::save_entry_with_receipt_with_connection(
+            &mut conn,
+            "reused.wav",
+            100,
+            "parent",
+            "parent raw text",
+            true,
+            Some("parent polished text"),
+            None,
+            Some(&parent_receipt),
+        )
+        .expect("save parent history entry");
+
+        let settings = crate::settings::AppSettings::default();
+        let retry = crate::modes::RunPlan::for_retry(&settings, true).expect("build retry plan");
+        let retry_receipt = NewRunReceipt {
+            run: retry.mode_receipt(),
+            context: retry.context().receipt().clone(),
+            started_at_ms: retry.run_started_at_ms,
+            completed_at_ms: retry.run_started_at_ms,
+            duration_ms: Some(100),
+            word_count: Some(2),
+            source_kind: HistorySourceKind::Microphone,
+            has_audio: true,
+            capture_status: None,
+        };
+        let retried = HistoryManager::save_entry_with_receipt_with_connection(
+            &mut conn,
+            "reused.wav",
+            200,
+            "retry",
+            "retry transcript",
+            retry.post_process_requested(),
+            None,
+            Some(parent),
+            Some(&retry_receipt),
+        )
+        .expect("save retry history entry");
+
+        let target_mode = settings
+            .modes
+            .first()
+            .expect("default reprocess mode")
+            .id
+            .clone();
+        let reprocess = crate::modes::RunPlan::for_reprocess(&settings, &target_mode)
+            .expect("build reprocess plan");
+        let reprocess_receipt = NewRunReceipt {
+            run: reprocess.mode_receipt(),
+            context: reprocess.context().receipt().clone(),
+            started_at_ms: reprocess.run_started_at_ms,
+            completed_at_ms: reprocess.run_started_at_ms,
+            duration_ms: Some(100),
+            word_count: Some(2),
+            source_kind: HistorySourceKind::Microphone,
+            has_audio: true,
+            capture_status: None,
+        };
+        let reprocessed = HistoryManager::save_entry_with_receipt_with_connection(
+            &mut conn,
+            "reused.wav",
+            300,
+            "reprocess",
+            "reprocessed transcript",
+            reprocess.post_process_requested(),
+            None,
+            Some(parent),
+            Some(&reprocess_receipt),
+        )
+        .expect("save reprocess history entry");
+
+        let parent_row: (String, String, Option<String>) = conn
+            .query_row(
+                "SELECT file_name, transcription_text, post_processed_text
+                 FROM transcription_history WHERE id = ?1",
+                params![parent],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("read preserved parent");
+        assert_eq!(parent_row.0, "reused.wav");
+        assert_eq!(parent_row.1, "parent raw text");
+        assert_eq!(parent_row.2.as_deref(), Some("parent polished text"));
+        assert_eq!(
+            std::fs::read(&wav_path).expect("read shared WAV bytes"),
+            parent_audio
+        );
+
+        for (child, expected_text) in [
+            (retried, "retry transcript"),
+            (reprocessed, "reprocessed transcript"),
+        ] {
+            let (file_name, text, parent_id): (String, String, Option<i64>) = conn
+                .query_row(
+                    "SELECT file_name, transcription_text, parent_id
+                     FROM transcription_history WHERE id = ?1",
+                    params![child],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .expect("read derived history entry");
+            assert_eq!(file_name, "reused.wav");
+            assert_eq!(text, expected_text);
+            assert_eq!(parent_id, Some(parent));
+        }
+
+        let retry_receipts = HistoryManager::get_run_receipts_with_connection(&conn, retried)
+            .expect("query retry receipt");
+        assert_eq!(retry_receipts.len(), 1);
+        assert_eq!(
+            retry_receipts[0].retry_of_run_id,
+            Some(parent_receipt.run.run_id)
+        );
+        let reprocess_receipts =
+            HistoryManager::get_run_receipts_with_connection(&conn, reprocessed)
+                .expect("query reprocess receipt");
+        assert_eq!(reprocess_receipts.len(), 1);
+        assert_eq!(
+            reprocess_receipts[0].retry_of_run_id,
+            Some(parent_receipt.run.run_id)
+        );
+        assert_eq!(reprocess_receipts[0].mode.mode_id, target_mode);
+    }
+
     /// Every period the setting offers, pinned in the unit the column stores.
     ///
     /// The arithmetic had no test, and a units mistake here is the difference
@@ -3541,6 +3702,179 @@ mod tests {
         .expect("read row existence")
     }
 
+    fn seed_wav_retention_entry(
+        conn: &Connection,
+        recordings_dir: &std::path::Path,
+        timestamp: i64,
+        file_name: &str,
+        text: &str,
+        saved: bool,
+        parent_id: Option<i64>,
+    ) -> i64 {
+        let wav_path = recordings_dir.join(file_name);
+        crate::audio_toolkit::save_wav_file(&wav_path, &[0.0; 1_600])
+            .expect("write history WAV fixture");
+        assert_eq!(
+            crate::audio_toolkit::read_wav_samples(&wav_path)
+                .expect("read history WAV fixture")
+                .len(),
+            1_600
+        );
+
+        let id = insert_base_entry(conn, timestamp, text);
+        conn.execute(
+            "UPDATE transcription_history
+             SET file_name = ?1, saved = ?2, parent_id = ?3
+             WHERE id = ?4",
+            params![file_name, saved, parent_id, id],
+        )
+        .expect("seed retained history entry");
+        id
+    }
+
+    #[test]
+    fn file_backed_count_retention_keeps_newest_unsaved_and_shared_parent_audio() {
+        let conn = setup_conn();
+        let recordings = tempfile::tempdir().expect("recordings directory");
+        let oldest = seed_wav_retention_entry(
+            &conn,
+            recordings.path(),
+            100,
+            "oldest.wav",
+            "oldest unsaved text",
+            false,
+            None,
+        );
+        let parent = seed_wav_retention_entry(
+            &conn,
+            recordings.path(),
+            200,
+            "shared.wav",
+            "expired parent text",
+            false,
+            None,
+        );
+        let retained_child = seed_wav_retention_entry(
+            &conn,
+            recordings.path(),
+            250,
+            "shared.wav",
+            "saved child text",
+            true,
+            Some(parent),
+        );
+        let newest = seed_wav_retention_entry(
+            &conn,
+            recordings.path(),
+            300,
+            "newest.wav",
+            "newest unsaved text",
+            false,
+            None,
+        );
+
+        let deleted = HistoryManager::sweep_by_count_with_connection(&conn, recordings.path(), 1)
+            .expect("run count retention");
+
+        assert_eq!(deleted, 2);
+        assert!(!row_exists(&conn, oldest));
+        assert!(!row_exists(&conn, parent));
+        assert!(row_exists(&conn, retained_child));
+        assert!(row_exists(&conn, newest));
+        assert_eq!(
+            conn.query_row(
+                "SELECT transcription_text FROM transcription_history WHERE id = ?1",
+                params![retained_child],
+                |row| row.get::<_, String>(0),
+            )
+            .expect("saved child remains"),
+            "saved child text"
+        );
+        assert!(!recordings.path().join("oldest.wav").exists());
+        assert!(recordings.path().join("shared.wav").exists());
+        assert!(recordings.path().join("newest.wav").exists());
+    }
+
+    #[test]
+    fn file_backed_time_retention_keeps_saved_boundary_and_shared_parent_audio() {
+        const NOW: i64 = 1_788_417_783;
+        let conn = setup_conn();
+        let recordings = tempfile::tempdir().expect("recordings directory");
+        let cutoff =
+            retention_cutoff_timestamp(crate::settings::RecordingRetentionPeriod::Days3, NOW);
+        let expired = seed_wav_retention_entry(
+            &conn,
+            recordings.path(),
+            cutoff - 1,
+            "expired.wav",
+            "expired unsaved text",
+            false,
+            None,
+        );
+        let saved = seed_wav_retention_entry(
+            &conn,
+            recordings.path(),
+            cutoff - 1,
+            "saved.wav",
+            "saved old text",
+            true,
+            None,
+        );
+        let boundary = seed_wav_retention_entry(
+            &conn,
+            recordings.path(),
+            cutoff,
+            "boundary.wav",
+            "boundary text",
+            false,
+            None,
+        );
+        let parent = seed_wav_retention_entry(
+            &conn,
+            recordings.path(),
+            cutoff - 1,
+            "shared.wav",
+            "expired parent text",
+            false,
+            None,
+        );
+        let shared_child = seed_wav_retention_entry(
+            &conn,
+            recordings.path(),
+            cutoff,
+            "shared.wav",
+            "recent child text",
+            false,
+            Some(parent),
+        );
+
+        let deleted =
+            HistoryManager::sweep_by_time_with_connection(&conn, recordings.path(), cutoff)
+                .expect("run controlled time retention");
+
+        assert_eq!(deleted, 2);
+        assert!(!row_exists(&conn, expired));
+        assert!(!row_exists(&conn, parent));
+        for (id, text) in [
+            (saved, "saved old text"),
+            (boundary, "boundary text"),
+            (shared_child, "recent child text"),
+        ] {
+            assert_eq!(
+                conn.query_row(
+                    "SELECT transcription_text FROM transcription_history WHERE id = ?1",
+                    params![id],
+                    |row| row.get::<_, String>(0),
+                )
+                .expect("retained history text"),
+                text
+            );
+        }
+        assert!(!recordings.path().join("expired.wav").exists());
+        assert!(recordings.path().join("saved.wav").exists());
+        assert!(recordings.path().join("boundary.wav").exists());
+        assert!(recordings.path().join("shared.wav").exists());
+    }
     #[test]
     fn every_prior_schema_version_migrates_to_the_current_head() {
         for applied in 0..=MIGRATIONS.len() {
@@ -3996,62 +4330,52 @@ mod tests {
         assert!(stale.entries.is_empty());
     }
 
+    #[cfg(unix)]
     #[test]
     fn failed_wav_deletion_keeps_history_entry_for_retry() {
+        use std::os::unix::fs::PermissionsExt;
+
         let conn = setup_conn();
         let entry_id = insert_entry(&conn, 100, "keep this entry", None);
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("current time")
-            .as_nanos();
-        let recordings_dir = std::env::temp_dir().join(format!(
-            "sona-history-delete-test-{}-{}",
-            std::process::id(),
-            timestamp
-        ));
-        std::fs::create_dir_all(&recordings_dir).expect("create recordings directory");
-
+        let recordings = tempfile::tempdir().expect("recordings directory");
         let file_name = "sona-100.wav".to_string();
-        std::fs::create_dir(recordings_dir.join(&file_name))
-            .expect("create undeletable WAV substitute");
-        let entries = vec![(entry_id, file_name.clone())];
-
-        let deleted = HistoryManager::delete_entries_and_files_with_connection(
-            &conn,
-            &recordings_dir,
-            &entries,
-        )
-        .expect("attempt cleanup");
-        assert_eq!(deleted, 0);
+        let wav_path = recordings.path().join(&file_name);
+        crate::audio_toolkit::save_wav_file(&wav_path, &[0.0; 1_600]).expect("write protected WAV");
         assert_eq!(
-            conn.query_row(
-                "SELECT COUNT(*) FROM transcription_history WHERE id = ?1",
-                params![entry_id],
-                |row| row.get::<_, i64>(0),
-            )
-            .expect("count retained history entry"),
-            1
+            crate::audio_toolkit::read_wav_samples(&wav_path)
+                .expect("read protected WAV")
+                .len(),
+            1_600
         );
+        let original_permissions = std::fs::metadata(recordings.path())
+            .expect("read recordings permissions")
+            .permissions();
+        let mut protected_permissions = original_permissions.clone();
+        protected_permissions.set_mode(0o500);
+        std::fs::set_permissions(recordings.path(), protected_permissions)
+            .expect("make recordings directory non-removable");
 
-        std::fs::remove_dir(recordings_dir.join(&file_name)).expect("remove WAV substitute");
+        let entries = vec![(entry_id, file_name.clone())];
+        let cleanup = HistoryManager::delete_entries_and_files_with_connection(
+            &conn,
+            recordings.path(),
+            &entries,
+        );
+        std::fs::set_permissions(recordings.path(), original_permissions)
+            .expect("restore recordings permissions");
+        assert_eq!(cleanup.expect("attempt cleanup"), 0);
+        assert!(row_exists(&conn, entry_id));
+        assert!(wav_path.exists());
+
         let deleted = HistoryManager::delete_entries_and_files_with_connection(
             &conn,
-            &recordings_dir,
+            recordings.path(),
             &entries,
         )
         .expect("retry cleanup");
         assert_eq!(deleted, 1);
-        assert_eq!(
-            conn.query_row(
-                "SELECT COUNT(*) FROM transcription_history WHERE id = ?1",
-                params![entry_id],
-                |row| row.get::<_, i64>(0),
-            )
-            .expect("count deleted history entry"),
-            0
-        );
-
-        std::fs::remove_dir_all(recordings_dir).expect("remove recordings directory");
+        assert!(!row_exists(&conn, entry_id));
+        assert!(!wav_path.exists());
     }
     #[test]
     fn shared_retry_audio_is_deleted_only_after_the_last_history_row() {
@@ -4065,22 +4389,19 @@ mod tests {
         )
         .expect("make retry rows share one recording");
 
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("current time")
-            .as_nanos();
-        let recordings_dir = std::env::temp_dir().join(format!(
-            "sona-history-shared-audio-test-{}-{}",
-            std::process::id(),
-            timestamp
-        ));
-        std::fs::create_dir_all(&recordings_dir).expect("create recordings directory");
-        let wav_path = recordings_dir.join(file_name);
-        std::fs::write(&wav_path, b"wav").expect("create shared recording");
+        let recordings = tempfile::tempdir().expect("recordings directory");
+        let wav_path = recordings.path().join(file_name);
+        crate::audio_toolkit::save_wav_file(&wav_path, &[0.0; 1_600]).expect("write shared WAV");
+        assert_eq!(
+            crate::audio_toolkit::read_wav_samples(&wav_path)
+                .expect("read shared WAV")
+                .len(),
+            1_600
+        );
 
         let deleted = HistoryManager::delete_entries_and_files_with_connection(
             &conn,
-            &recordings_dir,
+            recordings.path(),
             &[(original_id, file_name.to_string())],
         )
         .expect("delete original history row");
@@ -4089,14 +4410,12 @@ mod tests {
 
         let deleted = HistoryManager::delete_entries_and_files_with_connection(
             &conn,
-            &recordings_dir,
+            recordings.path(),
             &[(retry_id, file_name.to_string())],
         )
         .expect("delete final retry row");
         assert_eq!(deleted, 1);
         assert!(!wav_path.exists());
-
-        std::fs::remove_dir_all(recordings_dir).expect("remove recordings directory");
     }
 
     /// The pinned model, or `None` when it has not been fetched here.

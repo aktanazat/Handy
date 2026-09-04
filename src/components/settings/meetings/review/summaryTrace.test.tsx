@@ -303,6 +303,7 @@ const transcript = (jump: { segmentId: string; nonce: number } | null) =>
       onSegmentEdit={noop}
       onSpeakerRename={noop}
       onSpeakerMerge={noop}
+      onSpeakerCorrect={noop}
     />,
   );
 

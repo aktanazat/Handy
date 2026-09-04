@@ -8,6 +8,7 @@ import type {
 interface MeetingReviewScreenProps {
   model: MeetingReviewScreenModel;
   actions: MeetingReviewScreenActions;
+  onOpenSettings: () => void;
 }
 
 /** Review renders the current record. All writes have already been bound by
@@ -15,6 +16,7 @@ interface MeetingReviewScreenProps {
 export const MeetingReviewScreen: React.FC<MeetingReviewScreenProps> = ({
   model,
   actions,
+  onOpenSettings,
 }) => (
   <MeetingReview
     snapshot={model.snapshot}
@@ -33,5 +35,6 @@ export const MeetingReviewScreen: React.FC<MeetingReviewScreenProps> = ({
     onRemoteCancel={actions.onRemoteCancel}
     onDelete={actions.onDelete}
     onRefresh={actions.onRefresh}
+    onOpenSettings={onOpenSettings}
   />
 );

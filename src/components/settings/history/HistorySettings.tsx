@@ -10,7 +10,16 @@ import { HistoryToolbar } from "./HistoryToolbar";
 import { HistorySummary } from "./HistorySummary";
 import { useHistoryData } from "./useHistoryData";
 
-export const HistorySettings: React.FC = () => {
+/* The `sona://dictation/<id>` address the shell was asked to open. The shell
+ * holds one of these and this page consumes it, so the shape has one name. */
+export interface DictationRequest {
+  historyId: number;
+  nonce: number;
+}
+
+export const HistorySettings: React.FC<{
+  dictationRequest?: DictationRequest | null;
+}> = ({ dictationRequest = null }) => {
   const { t } = useTranslation();
   const {
     state,
@@ -100,6 +109,7 @@ export const HistorySettings: React.FC = () => {
           setQuery={setQuery}
           view={view}
           activeQuery={activeQuery}
+          focusRequest={dictationRequest}
           sentinelRef={sentinelRef}
           receiptsByHistoryId={receiptsByHistoryId}
           startingAudioImport={startingAudioImport}

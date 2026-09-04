@@ -16,16 +16,42 @@ pub(crate) enum DecodeError {
     Unsupported,
 }
 
+/// Claude's envelope is snake_case: a common core on every event plus the
+/// fields that event adds. The common core is `session_id`, `prompt_id`,
+/// `transcript_path`, `cwd`, `permission_mode`, `effort`, and
+/// `hook_event_name`, and the event list is longer than the set Sona bridges
+/// and still growing — `prompt_id` arrived in a point release.
+///
+/// So this decoder does not deny unknown fields, for the reason [`GrokInput`]
+/// does not: refusing an event over a sibling field Sona never reads takes the
+/// bridge down on a Claude release rather than on a Sona bug. That mattered
+/// here more than it does for Grok, because the fields at stake are not
+/// exotic. `cwd` and `permission_mode` ride every event, `prompt` rides
+/// `UserPromptSubmit`, and `last_assistant_message` and `stop_hook_active`
+/// ride only `Stop`. Each was required or forbidden in a way Claude
+/// contradicts, and any one of them on its own was enough to make every real
+/// Claude event pass through unseen.
+///
+/// `turn_id` is the exception, declared so it can be refused: it is Codex's
+/// mandatory turn key and Claude documents `prompt_id` in its place, so it is
+/// what keeps a Codex payload handed to this decoder from being half-read as a
+/// Claude one now that unknown fields are tolerated.
 #[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
 struct ClaudeInput {
     session_id: String,
-    transcript_path: String,
+    #[serde(default)]
+    transcript_path: Option<String>,
+    #[serde(default)]
     stop_hook_active: bool,
     hook_event_name: String,
-    last_assistant_message: String,
+    #[serde(default)]
+    last_assistant_message: Option<String>,
+    #[serde(default)]
+    prompt: Option<String>,
     #[serde(default)]
     tool_name: Option<String>,
+    #[serde(default)]
+    tool_use_id: Option<String>,
     #[serde(default)]
     tool_input: Option<Map<String, Value>>,
     #[serde(default)]
@@ -36,6 +62,8 @@ struct ClaudeInput {
     message: Option<String>,
     #[serde(default)]
     notification_type: Option<String>,
+    #[serde(default)]
+    turn_id: Option<Value>,
 }
 
 /// Codex sends snake_case keys and fully specifies each event's payload, so
@@ -159,63 +187,44 @@ fn decode_claude(raw: &[u8]) -> Result<CanonicalEvent, DecodeError> {
     Ok(canonical_from_claude(&input, kind))
 }
 
+/// What each event must carry, and only what Claude documents as belonging to
+/// exactly one of them.
+///
+/// `permission_mode` used to be part of this decision — required on
+/// `PermissionRequest`, forbidden everywhere else. It rides every Claude
+/// event, so it discriminated nothing and refused everything. The event name
+/// is the authority on which event this is; this checks that the payload
+/// carries the fields that event is answered from.
 fn validate_claude(input: &ClaudeInput, kind: CanonicalEventKind) -> Result<(), DecodeError> {
-    if input.session_id.is_empty() {
+    // Codex's turn key in a payload handed to the Claude decoder means the
+    // hook was wired to the wrong agent, and half-reading it would file the
+    // session under Claude in the console.
+    if input.session_id.is_empty() || input.turn_id.is_some() {
         return Err(DecodeError::Invalid);
     }
 
-    let no_tools_or_permissions = input.tool_name.is_none()
-        && input.tool_input.is_none()
-        && input.permission_suggestions.is_none()
-        && input.permission_mode.is_none();
+    let no_tool = input.tool_name.is_none() && input.tool_input.is_none();
+    let tool_call = input.tool_name.is_some() && input.tool_input.is_some();
     let no_notification = input.message.is_none() && input.notification_type.is_none();
+    let no_suggestions = input.permission_suggestions.is_none();
 
-    match kind {
+    let expected = match kind {
         CanonicalEventKind::UserPromptSubmit | CanonicalEventKind::Stop => {
-            if no_tools_or_permissions && no_notification {
-                Ok(())
-            } else {
-                Err(DecodeError::Invalid)
-            }
+            no_tool && no_suggestions && no_notification
         }
+        // A permission request names the tool but not the call: Claude has not
+        // dispatched one yet, and `permission_suggestions` — the dialog's own
+        // "always allow" options — is the only field unique to this event.
         CanonicalEventKind::PermissionRequest => {
-            if input.tool_name.is_some()
-                && input.tool_input.is_some()
-                && input.permission_suggestions.is_some()
-                && input.permission_mode.is_some()
-                && no_notification
-            {
-                Ok(())
-            } else {
-                Err(DecodeError::Invalid)
-            }
+            tool_call && input.tool_use_id.is_none() && no_notification
         }
-        CanonicalEventKind::PreToolUse => {
-            if input.tool_name.is_some()
-                && input.tool_input.is_some()
-                && input.permission_suggestions.is_none()
-                && input.permission_mode.is_none()
-                && no_notification
-            {
-                Ok(())
-            } else {
-                Err(DecodeError::Invalid)
-            }
-        }
-        CanonicalEventKind::Notification => {
-            if no_tools_or_permissions
-                && input.message.is_some()
-                && input.notification_type.is_some()
-            {
-                Ok(())
-            } else {
-                Err(DecodeError::Invalid)
-            }
-        }
+        CanonicalEventKind::PreToolUse => tool_call && no_suggestions && no_notification,
+        CanonicalEventKind::Notification => no_tool && no_suggestions && input.message.is_some(),
         CanonicalEventKind::SessionStart | CanonicalEventKind::PostToolUse => {
-            Err(DecodeError::Unsupported)
+            return Err(DecodeError::Unsupported)
         }
-    }
+    };
+    expected.then_some(()).ok_or(DecodeError::Invalid)
 }
 
 fn canonical_from_claude(input: &ClaudeInput, event: CanonicalEventKind) -> CanonicalEvent {
@@ -224,22 +233,25 @@ fn canonical_from_claude(input: &ClaudeInput, event: CanonicalEventKind) -> Cano
         agent: Agent::Claude,
         event,
         session_id: input.session_id.clone(),
-        transcript_path: Some(input.transcript_path.clone()),
+        transcript_path: input.transcript_path.clone(),
         stop_hook_active: input.stop_hook_active,
+        // Claude's `cwd` follows Claude — into a worktree, and after a `cd` —
+        // so it is not the project the session is bound to. The hook's own
+        // working directory is, which is what `prepare` falls back to.
         workspace_root: None,
         request_id: None,
         model: None,
         source: None,
-        prompt: None,
+        prompt: input.prompt.clone(),
         message: match event {
-            CanonicalEventKind::Stop => Some(input.last_assistant_message.clone()),
+            CanonicalEventKind::Stop => input.last_assistant_message.clone(),
             CanonicalEventKind::Notification => input.message.clone(),
             _ => None,
         },
         reason: None,
         tool: input.tool_name.as_ref().map(|name| CanonicalTool {
             name: name.clone(),
-            use_id: None,
+            use_id: input.tool_use_id.clone(),
             input: input.tool_input.clone().map(Value::Object),
         }),
         permission_mode: input.permission_mode.clone(),

@@ -468,10 +468,21 @@ fn error_code(error: StoreError) -> &'static str {
         StoreError::Conflict => "conflict",
         StoreError::Invalid => "invalid_event_payload",
         StoreError::EncryptionUnavailable => "encryption_unavailable",
+        StoreError::StorageUnavailable => "storage_unavailable",
         StoreError::Unavailable => "store_unavailable",
         StoreError::Corrupt => "store_corrupt",
         StoreError::Io => "io_error",
         StoreError::ConsentStale => "consent_stale",
+        StoreError::ExplicitConsentRequired => "explicit_consent_required",
+        StoreError::StaleRevision => "stale_revision",
+        StoreError::PersonNotFound => "person_not_found",
+        StoreError::SpeakerNotFound => "speaker_not_found",
+        StoreError::LocalEvidenceUnavailable => "local_evidence_unavailable",
+        StoreError::LocalModelUnavailable => "local_model_unavailable",
+        StoreError::InsufficientEnrollmentEvidence => "insufficient_enrollment_evidence",
+        StoreError::ProfileModelIncompatible => "profile_model_incompatible",
+        StoreError::ProfileMergeResolutionRequired => "profile_merge_resolution_required",
+        StoreError::VoiceInvariant => "voice_invariant",
     }
 }
 
@@ -613,6 +624,50 @@ mod tests {
                 .unwrap()
                 .contains(&sweep.event_id),
             "a sweep that finally succeeded is still pending"
+        );
+    }
+
+    /// A detection stop is readable through the events page, and the thing that
+    /// identifies it is the summary rather than the workflow name.
+    ///
+    /// Four agents' conclusions about the meeting self-stop rested on this and
+    /// it had to be re-derived from three files each time, because the shape is
+    /// counter-intuitive: twelve event kinds all run as `meeting_activity`, so
+    /// the `action` a reader sees is the same for all of them and the kind
+    /// arrives in the outcome summary. Reading `action` alone makes every one
+    /// of the twelve look absent from a store that holds them.
+    #[test]
+    fn a_detection_stop_reaches_the_events_page_named_in_its_summary() {
+        let (_directory, store) = store();
+        let session_id = MeetingSessionId::new();
+        let dispatch = store
+            .record_and_run_workflow_event(
+                event(
+                    WorkflowEventKind::MeetingAutoRecordStopped,
+                    serde_json::json!({
+                        "session_id": session_id.uuid().to_string(),
+                        "trigger": "call_ended",
+                    }),
+                    "auto-record-stopped:projection",
+                ),
+                &crate::meeting::learning::no_inputs(),
+            )
+            .unwrap();
+        assert!(dispatch.inserted);
+
+        let rows = store.query_events(None, 10).unwrap();
+        let events = rows
+            .into_iter()
+            .map(crate::query::event_from_row)
+            .collect::<Vec<_>>();
+
+        let run = events
+            .iter()
+            .find(|event| event.action == "meeting_activity")
+            .expect("a permanently-enabled workflow ran and the page shows it");
+        assert_eq!(
+            run.detail, "meeting_activity:decision=meeting_auto_record_stopped",
+            "the event kind is the discriminator and it lives in detail, not action"
         );
     }
 

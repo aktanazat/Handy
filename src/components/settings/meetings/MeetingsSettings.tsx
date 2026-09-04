@@ -37,6 +37,7 @@ const MeetingsSettingsPage: React.FC<MeetingsSettingsProps> = (props) => {
       <MeetingReviewScreen
         model={controller.model}
         actions={controller.actions}
+        onOpenSettings={props.onOpenSettings}
       />
     );
   }

@@ -86,7 +86,13 @@ const MEETING_ERROR_KEYS = {
   export_cancelled: "meetings.errors.export_cancelled",
   export_failed: "meetings.errors.export_failed",
   local_model_unavailable: "meetings.errors.local_model_unavailable",
+  local_evidence_unavailable: "meetings.review.rememberVoiceFailed",
+  insufficient_enrollment_evidence: "meetings.review.rememberVoiceFailed",
+  profile_model_incompatible: "meetings.review.rememberVoiceFailed",
+  profile_merge_resolution_required:
+    "meetings.errors.profile_merge_resolution_required",
   remote_unavailable: "meetings.errors.remote_unavailable",
+  engine_failure: "meetings.processing.failed.engine_failure",
   import_unreadable: "meetings.errors.import_unreadable",
 } as const satisfies Record<MeetingCommandError, string>;
 

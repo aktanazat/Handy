@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
   useSettingsStore,
+  type PostProcessModelCatalogState,
   type SettingsStore,
   type SettingValue,
 } from "../stores/settingsStore";
@@ -15,7 +16,7 @@ interface UseSettingsReturn {
   audioDevices: AudioDevice[];
   outputDevices: AudioDevice[];
   audioFeedbackEnabled: boolean;
-  postProcessModelOptions: Record<string, string[]>;
+  postProcessModelCatalogs: Record<string, PostProcessModelCatalogState>;
 
   // Actions
   updateSetting: <K extends keyof Settings>(
@@ -47,7 +48,10 @@ interface UseSettingsReturn {
   removePostProcessSecret: (providerId: string) => Promise<boolean>;
   refreshPostProcessSecretState: (providerId: string) => Promise<void>;
   updatePostProcessModel: (providerId: string, model: string) => Promise<void>;
-  fetchPostProcessModels: (providerId: string) => Promise<string[]>;
+  discoverPostProcessModelCatalog: (
+    providerId: string,
+  ) => Promise<import("@/bindings").PostProcessModelCatalog>;
+  invalidatePostProcessModelCatalog: (providerId: string) => void;
 }
 
 /* Exactly the slices this hook hands back, named one by one, so the list below
@@ -72,7 +76,7 @@ const selectExposed = (state: SettingsStore) => ({
   isUpdating: state.isUpdating,
   audioDevices: state.audioDevices,
   outputDevices: state.outputDevices,
-  postProcessModelOptions: state.postProcessModelOptions,
+  postProcessModelCatalogs: state.postProcessModelCatalogs,
   isUpdatingKey: state.isUpdatingKey,
   getSetting: state.getSetting,
   initialize: state.initialize,
@@ -89,7 +93,8 @@ const selectExposed = (state: SettingsStore) => ({
   removePostProcessSecret: state.removePostProcessSecret,
   refreshPostProcessSecretState: state.refreshPostProcessSecretState,
   updatePostProcessModel: state.updatePostProcessModel,
-  fetchPostProcessModels: state.fetchPostProcessModels,
+  discoverPostProcessModelCatalog: state.discoverPostProcessModelCatalog,
+  invalidatePostProcessModelCatalog: state.invalidatePostProcessModelCatalog,
 });
 
 export const useSettings = (): UseSettingsReturn => {
@@ -109,7 +114,7 @@ export const useSettings = (): UseSettingsReturn => {
     audioDevices: store.audioDevices,
     outputDevices: store.outputDevices,
     audioFeedbackEnabled: store.settings?.audio_feedback || false,
-    postProcessModelOptions: store.postProcessModelOptions,
+    postProcessModelCatalogs: store.postProcessModelCatalogs,
     updateSetting: store.updateSetting,
     resetSetting: store.resetSetting,
     refreshSettings: store.refreshSettings,
@@ -124,6 +129,7 @@ export const useSettings = (): UseSettingsReturn => {
     removePostProcessSecret: store.removePostProcessSecret,
     refreshPostProcessSecretState: store.refreshPostProcessSecretState,
     updatePostProcessModel: store.updatePostProcessModel,
-    fetchPostProcessModels: store.fetchPostProcessModels,
+    discoverPostProcessModelCatalog: store.discoverPostProcessModelCatalog,
+    invalidatePostProcessModelCatalog: store.invalidatePostProcessModelCatalog,
   };
 };

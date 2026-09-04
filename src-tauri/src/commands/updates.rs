@@ -173,6 +173,12 @@ fn result_for_release(release: GithubRelease) -> UpdateCheckResult {
 #[tauri::command]
 #[specta::specta]
 pub async fn check_for_updates(app: AppHandle) -> Result<UpdateCheckResult, String> {
+    check_for_updates_for_runtime(app).await
+}
+
+async fn check_for_updates_for_runtime<R: tauri::Runtime>(
+    app: AppHandle<R>,
+) -> Result<UpdateCheckResult, String> {
     let _span = crate::launch_trace::update_check_span();
     if !settings::get_settings(&app).update_check_enabled {
         return Ok(UpdateCheckResult::disabled());
@@ -245,6 +251,277 @@ pub fn change_update_check_enabled_setting(app: AppHandle, enabled: bool) -> Res
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{ffi::OsString, sync::Mutex};
+    use tauri_plugin_store::StoreExt;
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::TcpListener,
+        task::JoinHandle,
+        time::{timeout, Instant},
+    };
+
+    static UPDATE_CHECK_URL_LOCK: Mutex<()> = Mutex::new(());
+
+    /// Exclusive ownership of the process-wide endpoint override.
+    /// `RELEASES_URL_ENV` is one variable for the whole test binary, so a test
+    /// that installed the override without the lock would hand its own local
+    /// server to a neighbour. Taking the lock in the constructor and setting
+    /// the variable only through the guard is what makes that unwritable
+    /// rather than merely discouraged.
+    struct UpdateCheckEndpoint {
+        _lock: std::sync::MutexGuard<'static, ()>,
+        previous: Option<OsString>,
+    }
+
+    impl UpdateCheckEndpoint {
+        /// Acquire before binding a server: `serve_response` starts a bounded
+        /// accept window, and a server bound while a neighbour still owns the
+        /// endpoint can run that window out before this test gets to use it.
+        fn acquire() -> Self {
+            let lock = UPDATE_CHECK_URL_LOCK
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            Self {
+                _lock: lock,
+                previous: std::env::var_os(RELEASES_URL_ENV),
+            }
+        }
+
+        fn point_at(&self, url: &str) {
+            std::env::set_var(RELEASES_URL_ENV, url);
+        }
+    }
+
+    impl Drop for UpdateCheckEndpoint {
+        fn drop(&mut self) {
+            match self.previous.take() {
+                Some(previous) => std::env::set_var(RELEASES_URL_ENV, previous),
+                None => std::env::remove_var(RELEASES_URL_ENV),
+            }
+        }
+    }
+
+    /// One enabled update check against a local server that answers `status`
+    /// with `body`, then waits for that server to finish.
+    async fn check_against(status: &str, body: &str) -> UpdateCheckResult {
+        let endpoint = UpdateCheckEndpoint::acquire();
+        let (url, server) = serve_response(status, body).await;
+        endpoint.point_at(&url);
+        let (_data_dir, app) = update_test_app(true);
+
+        let result = check_for_updates_for_runtime(app.handle().clone())
+            .await
+            .expect("update check returns a result");
+        server.await.expect("update response server completed");
+        result
+    }
+
+    fn update_test_app(
+        update_check_enabled: bool,
+    ) -> (tempfile::TempDir, tauri::App<tauri::test::MockRuntime>) {
+        let data_dir = tempfile::tempdir().expect("create update test data directory");
+        // An absolute identifier keeps Tauri's app-data store under this temporary directory.
+        let mut context = tauri::test::mock_context(tauri::test::noop_assets());
+        context.config_mut().identifier = data_dir.path().to_string_lossy().into_owned();
+        let app = tauri::test::mock_builder()
+            .plugin(tauri_plugin_store::Builder::default().build())
+            .build(context)
+            .expect("build update test app");
+        app.handle()
+            .store(settings::SETTINGS_STORE_PATH)
+            .expect("open update test settings store")
+            .set(
+                "settings",
+                serde_json::json!({ "update_check_enabled": update_check_enabled }),
+            );
+        (data_dir, app)
+    }
+
+    async fn serve_response(status: &str, body: &str) -> (String, JoinHandle<()>) {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind update response server");
+        let address = listener.local_addr().expect("read update server address");
+        let response = format!(
+            "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        let task = tokio::spawn(async move {
+            let (mut stream, _) = timeout(Duration::from_secs(2), listener.accept())
+                .await
+                .expect("update client did not contact the local server")
+                .expect("accept update request");
+            let mut request = [0_u8; 2048];
+            assert!(
+                stream
+                    .read(&mut request)
+                    .await
+                    .expect("read update request")
+                    > 0,
+                "update request was empty"
+            );
+            stream
+                .write_all(response.as_bytes())
+                .await
+                .expect("write update response");
+        });
+        (format!("http://{address}"), task)
+    }
+
+    async fn serve_hanging_response() -> (String, JoinHandle<()>) {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind hanging update server");
+        let address = listener.local_addr().expect("read hanging server address");
+        let task = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.expect("accept update request");
+            let mut request = [0_u8; 2048];
+            assert!(
+                stream
+                    .read(&mut request)
+                    .await
+                    .expect("read update request")
+                    > 0,
+                "update request was empty"
+            );
+            let _ = stream.read(&mut [0_u8; 1]).await;
+        });
+        (format!("http://{address}"), task)
+    }
+
+    #[tokio::test]
+    async fn disabled_update_check_never_contacts_the_server() {
+        let endpoint = UpdateCheckEndpoint::acquire();
+        let disabled_listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind disabled update server");
+        let disabled_url = format!(
+            "http://{}",
+            disabled_listener
+                .local_addr()
+                .expect("read disabled server address")
+        );
+        endpoint.point_at(&disabled_url);
+        let (_data_dir, app) = update_test_app(false);
+
+        let result = tokio::select! {
+            result = check_for_updates_for_runtime(app.handle().clone()) => {
+                result.expect("disabled update check returns a result")
+            }
+            _ = disabled_listener.accept() => panic!("disabled update check contacted the server"),
+        };
+
+        assert_eq!(result.status, UpdateCheckStatus::Disabled);
+        assert_eq!(result.current_version, current_version());
+        assert!(!result.update_available);
+        assert!(result.latest_version.is_none());
+        assert!(result.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn current_release_is_reported_as_up_to_date() {
+        let result = check_against(
+            "200 OK",
+            &format!(r#"{{"tag_name":"{}"}}"#, current_version()),
+        )
+        .await;
+
+        assert_eq!(result.status, UpdateCheckStatus::UpToDate);
+        assert_eq!(result.latest_version.as_deref(), Some(current_version()));
+        assert!(!result.update_available);
+        assert!(result.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn newer_release_is_reported_as_available() {
+        let result = check_against(
+            "200 OK",
+            r#"{"tag_name":"v99.0.0","html_url":"https://example.test/sona-v99"}"#,
+        )
+        .await;
+
+        assert_eq!(result.status, UpdateCheckStatus::UpdateAvailable);
+        assert_eq!(result.latest_version.as_deref(), Some("v99.0.0"));
+        assert!(result.update_available);
+        assert_eq!(result.url.as_deref(), Some("https://example.test/sona-v99"));
+        assert!(result.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn malformed_release_response_fails_the_check() {
+        let result = check_against("200 OK", "not json").await;
+
+        assert_eq!(result.status, UpdateCheckStatus::CheckFailed);
+        assert_eq!(result.current_version, current_version());
+        assert_eq!(
+            result.error.as_deref(),
+            Some("The update service returned an unreadable response")
+        );
+        assert!(!result.update_available);
+    }
+
+    #[tokio::test]
+    async fn draft_release_is_not_an_update() {
+        let result = check_against("200 OK", r#"{"tag_name":"v99.0.0","draft":true}"#).await;
+
+        assert_eq!(result.status, UpdateCheckStatus::UpToDate);
+        assert_eq!(result.latest_version.as_deref(), Some("v99.0.0"));
+        assert!(!result.update_available);
+        assert!(result.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn prerelease_is_not_an_update() {
+        let result = check_against("200 OK", r#"{"tag_name":"v99.0.0","prerelease":true}"#).await;
+
+        assert_eq!(result.status, UpdateCheckStatus::UpToDate);
+        assert_eq!(result.latest_version.as_deref(), Some("v99.0.0"));
+        assert!(!result.update_available);
+        assert!(result.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn http_error_fails_the_update_check() {
+        let result = check_against("500 Internal Server Error", "{}").await;
+
+        assert_eq!(result.status, UpdateCheckStatus::CheckFailed);
+        assert_eq!(
+            result.error.as_deref(),
+            Some("The update service returned HTTP 500")
+        );
+        assert!(!result.update_available);
+    }
+
+    #[tokio::test]
+    async fn hanging_update_response_times_out() {
+        let endpoint = UpdateCheckEndpoint::acquire();
+        let (_data_dir, app) = update_test_app(true);
+        let (url, server) = serve_hanging_response().await;
+        endpoint.point_at(&url);
+        let started = Instant::now();
+
+        let result = timeout(
+            REQUEST_TIMEOUT + Duration::from_secs(2),
+            check_for_updates_for_runtime(app.handle().clone()),
+        )
+        .await
+        .expect("update request exceeded its timeout bound")
+        .expect("timed-out update check returns a result");
+
+        assert!(
+            started.elapsed() >= REQUEST_TIMEOUT,
+            "update check failed before its request timeout: {:?}",
+            started.elapsed()
+        );
+        assert_eq!(result.status, UpdateCheckStatus::CheckFailed);
+        assert_eq!(
+            result.error.as_deref(),
+            Some("Could not reach the update service")
+        );
+        assert!(!result.update_available);
+        server.abort();
+        let _ = server.await;
+    }
 
     #[test]
     fn newer_releases_are_detected() {

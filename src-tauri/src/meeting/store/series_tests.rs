@@ -787,6 +787,35 @@ fn one_digest_event_and_one_run_per_local_day() {
     assert!(tomorrow.inserted);
 }
 
+#[test]
+fn an_empty_day_records_a_zero_digest_receipt() {
+    let (_directory, store) = store();
+    let dispatch = store
+        .record_workflow_event(event(
+            WorkflowEventKind::DailyDigestDue,
+            serde_json::json!({
+                "local_day": "2026-08-31",
+                "day_start_utc_ms": 1_000,
+                "day_end_utc_ms": 2_000,
+            }),
+            "daily-digest:2026-08-31",
+        ))
+        .unwrap();
+
+    let receipts = store
+        .run_workflow_event(dispatch.event_id, false, &inputs())
+        .unwrap();
+
+    assert_eq!(receipts.len(), 1);
+    let receipt = &receipts[0];
+    assert_eq!(receipt.workflow_id, WorkflowId::DailyDigest);
+    assert_eq!(receipt.status, WorkflowRunStatus::Ok);
+    assert_eq!(receipt.outcome_counts.meetings, 0);
+    assert_eq!(receipt.outcome_counts.loops_closed, 0);
+    assert_eq!(receipt.outcome_counts.suggestions_waiting, 0);
+    assert_eq!(receipt.outcome_counts.waiting_on_stale, 0);
+}
+
 /// A digest run reports the day and writes nothing, so its counts have to
 /// survive the round trip through the summary string the receipt stores.
 #[test]

@@ -47,6 +47,7 @@ export interface PersonDetailViewProps {
   onOpenOrganization?: (organization: string) => void;
   /** Rewrites the relationship paragraph under the header. */
   onRegenerateSummary: () => void;
+  onRemoveVoiceProfile?: () => void;
 }
 
 export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
@@ -67,6 +68,7 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
   onOpenMeeting,
   onOpenOrganization,
   onRegenerateSummary,
+  onRemoveVoiceProfile,
 }) => {
   const { t } = useTranslation();
   const confirmedLinks = confirmedPersonLinks(detail.links);
@@ -109,6 +111,7 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
           onDelete={onDelete}
           onSplit={onSplit}
           onOpenOrganization={onOpenOrganization}
+          onRemoveVoiceProfile={onRemoveVoiceProfile}
         />
       }
     >

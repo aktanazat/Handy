@@ -241,6 +241,25 @@ pub fn is_call_app_bundle_id(bundle_id: &str) -> bool {
         .any(|candidate| bundle_id.eq_ignore_ascii_case(candidate))
 }
 
+/// Normalizes an operator-edited auto-record list, and drops every entry the
+/// decision table can never read.
+///
+/// A standing grant is only ever consulted for a `CallSignal`, which
+/// `call_signal` raises for `CALL_APP_BUNDLE_IDS` alone. A grant stored for
+/// Zoom therefore round-trips, reads back as held, and records nothing — and
+/// the picker knows it, so it draws no switch on that row: the entry is a
+/// standing consent the operator can neither see nor withdraw where grants
+/// are managed. Two of them are in the wild on this machine.
+///
+/// The predicate is `is_call_app_bundle_id` rather than a second list, so
+/// widening the set of apps that may hold a grant widens the reader and the
+/// writer in one edit instead of leaving the store ahead of the table.
+pub fn normalize_auto_record(entries: &[String]) -> Vec<String> {
+    let mut normalized = normalize_allowlist(entries);
+    normalized.retain(|bundle_id| is_call_app_bundle_id(bundle_id));
+    normalized
+}
+
 /// Whether the operator's auto-record list names `bundle_id`. The one owner of
 /// the case rule: `write_settings` normalizes the list on the way in, and this
 /// normalizes again on the way out so a hand-edited store cannot differ.
@@ -844,5 +863,39 @@ mod tests {
                 frontmost: true,
             }
         );
+    }
+
+    /* A standing grant is only ever consulted for a `CallSignal`, so a grant
+     * the call dimension can never raise is consent nothing reads, the picker
+     * draws no switch for, and the operator cannot withdraw where grants are
+     * managed. Stated against `call_signal` rather than against the predicate
+     * the writer uses, so a reverted filter fails here instead of agreeing
+     * with itself. */
+    #[test]
+    fn a_grant_the_call_dimension_can_never_raise_does_not_survive_the_write() {
+        // The two stale entries in the wild, plus the two that are real.
+        let requested = [
+            "us.zoom.xos".to_string(),
+            "com.tinyspeck.slackmacgap".to_string(),
+            "COM.APPLE.FACETIME".to_string(),
+            "  com.apple.mobilephone  ".to_string(),
+        ];
+        let allowlist = default_meeting_app_bundle_ids();
+        let stored = normalize_auto_record(&requested);
+
+        for bundle_id in normalize_allowlist(&requested) {
+            let running = [app(&bundle_id, "granted app", true)];
+            let readable = matches!(
+                call_signal(&running, &allowlist),
+                CallSignal::Running { .. }
+            );
+            assert_eq!(
+                stored.contains(&bundle_id),
+                readable,
+                "{bundle_id}: a stored grant and a grant the call dimension can \
+                 raise must be the same set"
+            );
+        }
+        assert_eq!(stored, ["com.apple.facetime", "com.apple.mobilephone"]);
     }
 }

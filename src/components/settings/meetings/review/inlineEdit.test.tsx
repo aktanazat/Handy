@@ -310,6 +310,7 @@ describe("a speaker chip being renamed", () => {
       onCommit={() => undefined}
       onCancel={() => undefined}
       onMerge={() => undefined}
+      onCorrect={() => undefined}
     />,
   );
 
@@ -334,11 +335,29 @@ describe("a speaker chip being renamed", () => {
         onCommit: () => undefined,
         onCancel: () => undefined,
         onMerge: (targetSpeakerId) => asked.push(targetSpeakerId),
+        onCorrect: () => undefined,
       }),
     );
 
     press(tree, "Same person as Amir");
     expect(asked).toEqual(["speaker-2"]);
+  });
+
+  test("correcting a speaker asks the review to label this speaker", () => {
+    const asked: string[] = [];
+    const tree = treeOf(() =>
+      SpeakerNameEditor({
+        speaker: DANA,
+        others: [AMIR],
+        onCommit: () => undefined,
+        onCancel: () => undefined,
+        onMerge: () => undefined,
+        onCorrect: () => asked.push(DANA.speaker_id),
+      }),
+    );
+
+    press(tree, "Correct speaker");
+    expect(asked).toEqual(["speaker-1"]);
   });
 
   test("the only speaker in the room is nobody else, so nothing to merge", () => {
@@ -349,6 +368,7 @@ describe("a speaker chip being renamed", () => {
         onCommit={() => undefined}
         onCancel={() => undefined}
         onMerge={() => undefined}
+        onCorrect={() => undefined}
       />,
     );
 

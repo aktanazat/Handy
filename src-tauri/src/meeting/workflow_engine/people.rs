@@ -76,10 +76,11 @@ impl MeetingSessionManager {
         let result = self
             .store()
             .await?
-            .merge_persons(
+            .merge_persons_with_voice_resolution(
                 request.source_person_id,
                 request.target_person_id,
                 request.expected_revision,
+                request.voice_profile_resolution,
                 now_utc_ms(),
             )
             .map_err(map_store_error)?;

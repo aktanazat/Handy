@@ -1,8 +1,14 @@
 use crate::secrets::SecretValue;
-use crate::settings::{PostProcessEndpoint, PostProcessProvider};
+use crate::settings::{
+    PostProcessCatalogSource, PostProcessEndpoint, PostProcessExecutionProtocol,
+    PostProcessModelDiscovery, PostProcessModelOption, PostProcessModelProvenance,
+    PostProcessProvider,
+};
+use futures_util::StreamExt;
 use log::{debug, error, info};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE, USER_AGENT};
 use reqwest::redirect::Policy;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock};
@@ -160,6 +166,29 @@ struct ChatMessageResponse {
     content: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+struct AnthropicMessageRequest {
+    model: String,
+    max_tokens: u32,
+    messages: Vec<ChatMessage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    system: Option<String>,
+    stream: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct AnthropicMessageResponse {
+    content: Vec<AnthropicContentBlock>,
+    stop_reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct AnthropicContentBlock {
+    #[serde(rename = "type")]
+    kind: String,
+    text: Option<String>,
+}
+
 /// Build headers for API requests based on provider type.
 fn build_headers(
     provider: &PostProcessProvider,
@@ -303,17 +332,21 @@ pub async fn send_chat_completion(
     .await
 }
 
-/// Send a chat completion request with structured output support.
-/// When json_schema is provided, uses structured outputs mode.
-/// system_prompt is used as the system message when provided.
-///
-/// When disable_reasoning is set, the request carries the reasoning-disable
-/// fields the endpoint is expected to understand. Not every OpenAI-compatible
-/// endpoint accepts them (DeepSeek, Gemini's compat layer, and some OpenRouter
-/// upstreams reject with 400), so a 400/422 answer to such a request triggers
-/// one retry without the fields, and the rejection is remembered per
-/// (base_url, model) so later requests skip the failing attempt entirely.
+/// Send a post-processing request through the protocol owned by its provider.
 pub(crate) async fn send_chat_completion_with_schema(
+    input: ChatCompletionInput<'_>,
+) -> Result<Option<String>, String> {
+    match input.provider.execution_protocol() {
+        PostProcessExecutionProtocol::OpenAiChatCompletions => {
+            send_openai_chat_completion_with_schema(input).await
+        }
+        PostProcessExecutionProtocol::AnthropicMessages => send_anthropic_message(input).await,
+    }
+}
+
+/// OpenAI-compatible execution with the existing one-time retry for unsupported
+/// reasoning controls.
+async fn send_openai_chat_completion_with_schema(
     input: ChatCompletionInput<'_>,
 ) -> Result<Option<String>, String> {
     let ChatCompletionInput {
@@ -331,28 +364,21 @@ pub(crate) async fn send_chat_completion_with_schema(
     }
     let url = endpoint.request_url("chat/completions");
 
-    debug!("Sending chat completion request");
+    debug!("Sending OpenAI-compatible chat completion request");
 
     let client = create_client(provider, secret)?;
-
-    // Build messages vector
     let mut messages = Vec::new();
-
-    // Add system prompt if provided
     if let Some(system) = system_prompt {
         messages.push(ChatMessage {
             role: "system".to_string(),
             content: system,
         });
     }
-
-    // Add user message
     messages.push(ChatMessage {
         role: "user".to_string(),
         content: user_content,
     });
 
-    // Build response_format if schema is provided
     let response_format = json_schema.map(|schema| ResponseFormat {
         format_type: "json_schema".to_string(),
         json_schema: JsonSchema {
@@ -390,8 +416,6 @@ pub(crate) async fn send_chat_completion_with_schema(
         response.version()
     );
 
-    // A 400/422 on a request carrying reasoning-disable fields is almost always
-    // the endpoint rejecting those fields — retry once without them.
     if !status.is_success()
         && matches!(status.as_u16(), 400 | 422)
         && !request_body.reasoning.is_empty()
@@ -441,69 +465,423 @@ pub(crate) async fn send_chat_completion_with_schema(
         .and_then(|choice| choice.message.content.clone()))
 }
 
-/// Fetch available models from an OpenAI-compatible API.
-pub async fn fetch_models(
-    provider: &PostProcessProvider,
-    endpoint: &PostProcessEndpoint,
-    secret: Option<SecretValue>,
-) -> Result<Vec<String>, String> {
+const ANTHROPIC_MAX_OUTPUT_TOKENS: u32 = 4096;
+
+/// Anthropic's Messages API has a different path, request body, and response
+/// envelope from the OpenAI-compatible providers.
+async fn send_anthropic_message(input: ChatCompletionInput<'_>) -> Result<Option<String>, String> {
+    let ChatCompletionInput {
+        provider,
+        endpoint,
+        secret,
+        model,
+        user_content,
+        system_prompt,
+        json_schema: _,
+        disable_reasoning: _,
+    } = input;
     if !endpoint_matches_provider(provider, endpoint) {
         return Err("Post-processing destination changed".to_string());
     }
-    let url = endpoint.request_url("models");
 
-    debug!("Fetching post-processing models");
-
-    let client = create_client(provider, secret.as_ref())?;
-
+    let client = create_client(provider, secret)?;
+    let request = AnthropicMessageRequest {
+        model: model.to_string(),
+        max_tokens: ANTHROPIC_MAX_OUTPUT_TOKENS,
+        messages: vec![ChatMessage {
+            role: "user".to_string(),
+            content: user_content,
+        }],
+        system: system_prompt,
+        stream: false,
+    };
     let response = client
-        .get(&url)
+        .post(endpoint.request_url("messages"))
+        .json(&request)
         .send()
         .await
-        .map_err(|error| report_reqwest_error("Failed to fetch models", &error))?;
-
+        .map_err(|error| report_reqwest_error("Anthropic Messages request failed", &error))?;
     let status = response.status();
     debug!(
-        "Model list response received with status {} over {:?}",
+        "Anthropic Messages response received with status {} over {:?}",
         status,
         response.version()
     );
     if !status.is_success() {
-        return Err(format!("Model list request failed ({status})"));
+        return Err(format!("API request failed with status {status}"));
     }
 
-    let parsed: serde_json::Value = response
+    let response: AnthropicMessageResponse = response
         .json()
         .await
-        .map_err(|error| report_reqwest_error("Failed to parse model list response", &error))?;
+        .map_err(|error| report_reqwest_error("Failed to parse Anthropic response", &error))?;
+    // A reply clipped at the ceiling is a partial rewrite, and
+    // `post_process_transcription` reads an error as "no rewrite" and delivers the
+    // raw transcript. Unpolished words beat a dictation missing its tail.
+    if response.stop_reason.as_deref() == Some("max_tokens") {
+        return Err("Anthropic stopped the reply at the output-token ceiling".to_string());
+    }
+    Ok(response
+        .content
+        .into_iter()
+        .find(|block| block.kind == "text")
+        .and_then(|block| block.text))
+}
 
+/// Cap decoded provider catalog bytes before JSON parsing. Reqwest's stream
+/// applies transparent gzip, brotli, and deflate decoding before this limit.
+const MAX_CATALOG_RESPONSE_BYTES: usize = 1024 * 1024;
+const MAX_CATALOG_MODEL_ID_BYTES: usize = 200;
+const MAX_CATALOG_MODELS: usize = 200;
+const MAX_ANTHROPIC_CATALOG_PAGES: usize = 20;
+
+#[derive(Debug, Deserialize)]
+struct OpenAiCatalogResponse {
+    data: Vec<OpenAiCatalogModel>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenAiCatalogModel {
+    id: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenRouterCatalogResponse {
+    data: Vec<OpenRouterCatalogModel>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenRouterCatalogModel {
+    id: String,
+    architecture: Option<OpenRouterArchitecture>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenRouterArchitecture {
+    #[serde(default)]
+    input_modalities: Vec<String>,
+    #[serde(default)]
+    output_modalities: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct AnthropicCatalogResponse {
+    data: Vec<AnthropicCatalogModel>,
+    has_more: bool,
+    last_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct AnthropicCatalogModel {
+    id: String,
+}
+
+/// Discover only through a provider-owned closed catalog strategy. The caller
+/// supplies a frozen, validated endpoint and an optional credential; neither
+/// is placed in the result or in an error string.
+pub(crate) async fn discover_models(
+    provider: &PostProcessProvider,
+    endpoint: &PostProcessEndpoint,
+    secret: Option<&SecretValue>,
+) -> Result<Vec<PostProcessModelOption>, PostProcessModelDiscovery> {
+    if !endpoint_matches_provider(provider, endpoint) {
+        return Err(PostProcessModelDiscovery::InvalidDestination);
+    }
+
+    match provider.catalog_source() {
+        PostProcessCatalogSource::OpenAi => {
+            discover_openai_compatible_catalog(provider, endpoint, secret, openai_model_is_eligible)
+                .await
+        }
+        PostProcessCatalogSource::OpenRouter => {
+            discover_openrouter_catalog(provider, endpoint, secret).await
+        }
+        PostProcessCatalogSource::Anthropic => {
+            discover_anthropic_catalog(provider, endpoint, secret).await
+        }
+        PostProcessCatalogSource::Groq => {
+            discover_openai_compatible_catalog(provider, endpoint, secret, groq_model_is_eligible)
+                .await
+        }
+        PostProcessCatalogSource::Cerebras => {
+            discover_openai_compatible_catalog(
+                provider,
+                endpoint,
+                secret,
+                cerebras_model_is_eligible,
+            )
+            .await
+        }
+        PostProcessCatalogSource::CustomOpenAiCompatible => {
+            discover_openai_compatible_catalog(provider, endpoint, secret, |_| true).await
+        }
+        PostProcessCatalogSource::Unsupported => Err(PostProcessModelDiscovery::Unsupported),
+    }
+}
+
+async fn discover_openai_compatible_catalog(
+    provider: &PostProcessProvider,
+    endpoint: &PostProcessEndpoint,
+    secret: Option<&SecretValue>,
+    is_eligible: fn(&str) -> bool,
+) -> Result<Vec<PostProcessModelOption>, PostProcessModelDiscovery> {
+    debug!("Fetching OpenAI-compatible post-processing model catalog");
+    let client = create_catalog_client(provider, secret)?;
+    let response: OpenAiCatalogResponse =
+        get_catalog_json(client.get(endpoint.request_url("models"))).await?;
     let mut models = Vec::new();
-
-    // Handle OpenAI format: { data: [ { id: "..." }, ... ] }
-    if let Some(data) = parsed.get("data").and_then(|data| data.as_array()) {
-        for entry in data {
-            if let Some(id) = entry.get("id").and_then(|id| id.as_str()) {
-                models.push(id.to_string());
-            } else if let Some(name) = entry.get("name").and_then(|name| name.as_str()) {
-                models.push(name.to_string());
-            }
+    let mut seen = HashSet::new();
+    for entry in response.data {
+        if is_eligible(&entry.id) && catalog_id_is_safe(&entry.id) {
+            append_provider_reported_model(&mut models, &mut seen, &entry.id);
         }
     }
-    // Handle array format: [ "model1", "model2", ... ]
-    else if let Some(array) = parsed.as_array() {
-        for entry in array {
-            if let Some(model) = entry.as_str() {
-                models.push(model.to_string());
-            }
-        }
-    }
-
     Ok(models)
+}
+
+async fn discover_openrouter_catalog(
+    provider: &PostProcessProvider,
+    endpoint: &PostProcessEndpoint,
+    secret: Option<&SecretValue>,
+) -> Result<Vec<PostProcessModelOption>, PostProcessModelDiscovery> {
+    debug!("Fetching OpenRouter post-processing model catalog");
+    let client = create_catalog_client(provider, secret)?;
+    let response: OpenRouterCatalogResponse =
+        get_catalog_json(client.get(endpoint.request_url("models"))).await?;
+    let mut models = Vec::new();
+    let mut seen = HashSet::new();
+    for entry in response.data {
+        if entry
+            .architecture
+            .as_ref()
+            .is_some_and(openrouter_architecture_supports_text_io)
+            && catalog_id_is_safe(&entry.id)
+        {
+            append_provider_reported_model(&mut models, &mut seen, &entry.id);
+        }
+    }
+    Ok(models)
+}
+
+async fn discover_anthropic_catalog(
+    provider: &PostProcessProvider,
+    endpoint: &PostProcessEndpoint,
+    secret: Option<&SecretValue>,
+) -> Result<Vec<PostProcessModelOption>, PostProcessModelDiscovery> {
+    debug!("Fetching Anthropic post-processing model catalog");
+    let client = create_catalog_client(provider, secret)?;
+    let url = endpoint.request_url("models");
+    let mut models = Vec::new();
+    let mut seen_models = HashSet::new();
+    let mut seen_cursors = HashSet::new();
+    let mut after_id = None;
+
+    for _ in 0..MAX_ANTHROPIC_CATALOG_PAGES {
+        let request = match after_id.as_deref() {
+            Some(cursor) => client.get(&url).query(&[("after_id", cursor)]),
+            None => client.get(&url),
+        };
+        let response: AnthropicCatalogResponse = get_catalog_json(request).await?;
+        for entry in response.data {
+            if anthropic_model_is_eligible(&entry.id) && catalog_id_is_safe(&entry.id) {
+                append_provider_reported_model(&mut models, &mut seen_models, &entry.id);
+            }
+        }
+        if !response.has_more || models.len() >= MAX_CATALOG_MODELS {
+            return Ok(models);
+        }
+
+        let Some(last_id) = response.last_id else {
+            return Err(PostProcessModelDiscovery::InvalidResponse);
+        };
+        // The cursor is handed back to Anthropic on the next request, so an
+        // unusable or repeated one ends the walk instead of being skipped.
+        if !catalog_id_is_safe(&last_id) || !seen_cursors.insert(last_id.clone()) {
+            return Err(PostProcessModelDiscovery::InvalidResponse);
+        }
+        after_id = Some(last_id);
+    }
+
+    Err(PostProcessModelDiscovery::InvalidResponse)
+}
+
+fn create_catalog_client(
+    provider: &PostProcessProvider,
+    secret: Option<&SecretValue>,
+) -> Result<reqwest::Client, PostProcessModelDiscovery> {
+    create_client(provider, secret).map_err(|_| {
+        if secret.is_some() {
+            PostProcessModelDiscovery::CredentialCorrupt
+        } else {
+            PostProcessModelDiscovery::InvalidResponse
+        }
+    })
+}
+
+async fn get_catalog_json<T: DeserializeOwned>(
+    request: reqwest::RequestBuilder,
+) -> Result<T, PostProcessModelDiscovery> {
+    let response = request.send().await.map_err(|error| {
+        let discovery = catalog_request_error(&error);
+        error!(
+            "Post-processing model discovery request failed (kind: {})",
+            reqwest_error_kinds(&error)
+        );
+        discovery
+    })?;
+    let status = response.status();
+    debug!(
+        "Post-processing model catalog response received with status {} over {:?}",
+        status,
+        response.version()
+    );
+    if !status.is_success() {
+        return Err(catalog_status_error(status));
+    }
+
+    let bytes = read_limited_catalog_response(response).await?;
+    serde_json::from_slice(&bytes).map_err(|_| {
+        error!("Failed to parse post-processing model catalog (kind: json)");
+        PostProcessModelDiscovery::InvalidResponse
+    })
+}
+
+async fn read_limited_catalog_response(
+    response: reqwest::Response,
+) -> Result<Vec<u8>, PostProcessModelDiscovery> {
+    let declared_length = response
+        .content_length()
+        .map(|length| {
+            usize::try_from(length).map_err(|_| PostProcessModelDiscovery::InvalidResponse)
+        })
+        .transpose()?;
+    if declared_length.is_some_and(|length| length > MAX_CATALOG_RESPONSE_BYTES) {
+        return Err(PostProcessModelDiscovery::InvalidResponse);
+    }
+
+    let mut bytes = Vec::with_capacity(declared_length.unwrap_or_default());
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|error| {
+            let discovery = catalog_request_error(&error);
+            error!(
+                "Post-processing model catalog body read failed (kind: {})",
+                reqwest_error_kinds(&error)
+            );
+            discovery
+        })?;
+        let next_length = bytes
+            .len()
+            .checked_add(chunk.len())
+            .ok_or(PostProcessModelDiscovery::InvalidResponse)?;
+        if next_length > MAX_CATALOG_RESPONSE_BYTES {
+            return Err(PostProcessModelDiscovery::InvalidResponse);
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
+}
+
+fn catalog_request_error(error: &reqwest::Error) -> PostProcessModelDiscovery {
+    if error.is_timeout() || error.is_connect() || error.is_request() || error.is_redirect() {
+        PostProcessModelDiscovery::Unreachable
+    } else {
+        PostProcessModelDiscovery::InvalidResponse
+    }
+}
+
+fn catalog_status_error(status: reqwest::StatusCode) -> PostProcessModelDiscovery {
+    match status.as_u16() {
+        401 => PostProcessModelDiscovery::Unauthorized,
+        403 => PostProcessModelDiscovery::Forbidden,
+        404 => PostProcessModelDiscovery::InvalidDestination,
+        408 | 425 | 500..=599 => PostProcessModelDiscovery::Unreachable,
+        429 => PostProcessModelDiscovery::RateLimited,
+        300..=399 => PostProcessModelDiscovery::Unreachable,
+        _ => PostProcessModelDiscovery::InvalidResponse,
+    }
+}
+
+/// Provider-reported ids reach settings, the model list, and later request
+/// bodies, so an empty, overlong, or non-printable-ASCII id is not offered.
+/// One unusable id costs its own row rather than the whole catalog.
+fn catalog_id_is_safe(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= MAX_CATALOG_MODEL_ID_BYTES
+        && id.bytes().all(|byte| byte.is_ascii_graphic())
+}
+
+/// Collect up to `MAX_CATALOG_MODELS` options, then stop. The bound keeps one
+/// endpoint from filling memory; truncating keeps that bound and still returns
+/// a usable list. OpenRouter alone publishes several hundred text models, and
+/// refusing the response would empty the picker for a shipped provider.
+fn append_provider_reported_model(
+    models: &mut Vec<PostProcessModelOption>,
+    seen: &mut HashSet<String>,
+    id: &str,
+) {
+    if models.len() >= MAX_CATALOG_MODELS || !seen.insert(id.to_string()) {
+        return;
+    }
+    models.push(PostProcessModelOption {
+        id: id.to_string(),
+        provenance: PostProcessModelProvenance::ProviderReported,
+    });
+}
+
+/// OpenAI's model list advertises availability, not a per-model capability
+/// contract. Keep only the documented GPT text-generation families; a newer
+/// or unknown ID remains manually enterable instead of being guessed at.
+fn openai_model_is_eligible(id: &str) -> bool {
+    id.starts_with("gpt-4o") || id.starts_with("gpt-4.1") || id.starts_with("gpt-5")
+}
+
+/// OpenRouter publishes modality metadata. Both text input and text output are
+/// required before a listed model is offered for transcript post-processing.
+fn openrouter_architecture_supports_text_io(architecture: &OpenRouterArchitecture) -> bool {
+    architecture
+        .input_modalities
+        .iter()
+        .any(|modality| modality.eq_ignore_ascii_case("text"))
+        && architecture
+            .output_modalities
+            .iter()
+            .any(|modality| modality.eq_ignore_ascii_case("text"))
+}
+
+/// Groq's list does not carry a modality contract, so this mirrors only its
+/// documented chat-capable model families. Guard models are deliberately out.
+fn groq_model_is_eligible(id: &str) -> bool {
+    !id.contains("guard")
+        && (id.starts_with("llama-")
+            || id.starts_with("meta-llama/")
+            || id.starts_with("qwen")
+            || id.starts_with("openai/gpt-oss-")
+            || id.starts_with("moonshotai/kimi-"))
+}
+
+/// Cerebras likewise lists availability rather than a negotiated capability;
+/// retain only its documented instruction/chat families and leave the rest
+/// available through manual entry.
+fn cerebras_model_is_eligible(id: &str) -> bool {
+    !id.contains("guard")
+        && (id.starts_with("llama")
+            || id.starts_with("qwen")
+            || id.starts_with("gpt-oss")
+            || id.starts_with("zai-glm"))
+}
+
+fn anthropic_model_is_eligible(id: &str) -> bool {
+    id.starts_with("claude-")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::secrets::{MemorySecretBackend, SecretAccount, SecretManager, SecretRead};
+    use flate2::{write::GzEncoder, Compression};
+    use std::io::Write;
+    use std::sync::Arc;
     use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -513,13 +891,36 @@ mod tests {
             label: id.to_string(),
             base_url: base_url.to_string(),
             allow_base_url_edit: true,
-            models_endpoint: None,
             supports_structured_output: false,
         }
     }
 
     fn endpoint(provider: &PostProcessProvider) -> PostProcessEndpoint {
         provider.endpoint().expect("test provider endpoint")
+    }
+
+    async fn test_secret(provider_id: &str, value: &str) -> SecretValue {
+        let backend = Arc::new(MemorySecretBackend::new());
+        backend.insert(&format!("llm/{provider_id}"), value);
+        let manager = SecretManager::with_backend(backend);
+        let account = SecretAccount::llm(provider_id).expect("valid test account");
+        match manager
+            .resolve_optional(account)
+            .await
+            .expect("test secret resolves")
+        {
+            SecretRead::Found(secret) => secret,
+            SecretRead::NotFound => panic!("test secret was not stored"),
+        }
+    }
+
+    fn reported_models(ids: &[&str]) -> Vec<PostProcessModelOption> {
+        ids.iter()
+            .map(|id| PostProcessModelOption {
+                id: (*id).to_string(),
+                provenance: PostProcessModelProvenance::ProviderReported,
+            })
+            .collect()
     }
 
     #[test]
@@ -573,6 +974,20 @@ mod tests {
             let mut request = [0_u8; 2048];
             let _ = stream.read(&mut request).await.unwrap();
             stream.write_all(response.as_bytes()).await.unwrap();
+        });
+
+        format!("http://{address}")
+    }
+
+    async fn serve_raw_response(response: Vec<u8>) -> String {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+
+        tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut request = [0_u8; 2048];
+            let _ = stream.read(&mut request).await;
+            let _ = stream.write_all(&response).await;
         });
 
         format!("http://{address}")
@@ -925,6 +1340,488 @@ mod tests {
         );
     }
 
+    /// Anthropic is not OpenAI-compatible at this boundary: the transport
+    /// route, request shape, and text response block are its native protocol.
+    #[tokio::test]
+    async fn anthropic_messages_use_native_path_and_text_response() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind Anthropic fixture");
+        let address = listener.local_addr().expect("Anthropic fixture address");
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.expect("Anthropic request");
+            let mut request = Vec::new();
+            let mut chunk = [0_u8; 1024];
+            loop {
+                let read = stream
+                    .read(&mut chunk)
+                    .await
+                    .expect("read Anthropic request");
+                request.extend_from_slice(&chunk[..read]);
+                if read == 0
+                    || serde_json::from_slice::<serde_json::Value>(request_body(&request)).is_ok()
+                {
+                    break;
+                }
+            }
+            let body = br#"{"content":[{"type":"text","text":"rewritten"}]}"#;
+            stream
+                .write_all(
+                    format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                        body.len()
+                    )
+                    .as_bytes(),
+                )
+                .await
+                .expect("write Anthropic headers");
+            stream.write_all(body).await.expect("write Anthropic body");
+            request
+        });
+
+        let provider = provider("anthropic", &format!("http://{address}/v1"));
+        let endpoint = endpoint(&provider);
+        let answer = send_chat_completion_with_schema(ChatCompletionInput {
+            provider: &provider,
+            endpoint: &endpoint,
+            secret: None,
+            model: "claude-test",
+            user_content: "rewrite this".to_string(),
+            system_prompt: Some("keep punctuation".to_string()),
+            json_schema: None,
+            disable_reasoning: true,
+        })
+        .await;
+
+        assert_eq!(answer, Ok(Some("rewritten".to_string())));
+        let request = server.await.expect("Anthropic fixture completed");
+        let request_text = String::from_utf8(request).expect("request is UTF-8");
+        assert!(request_text.starts_with("POST /v1/messages HTTP/1.1\r\n"));
+        let sent: serde_json::Value = serde_json::from_slice(request_body(request_text.as_bytes()))
+            .expect("Anthropic request body is JSON");
+        assert_eq!(sent["model"], "claude-test");
+        assert_eq!(sent["max_tokens"], 4096);
+        assert_eq!(sent["system"], "keep punctuation");
+        assert_eq!(sent["messages"][0]["role"], "user");
+        assert_eq!(sent["messages"][0]["content"], "rewrite this");
+    }
+
+    #[tokio::test]
+    async fn openai_catalog_keeps_documented_text_models_and_dedupes() {
+        let base_url = serve_one_response(
+            "200 OK",
+            r#"{"data":[{"id":"gpt-4o-mini"},{"id":"text-embedding-3-large"},{"id":"gpt-4o-mini"},{"id":"gpt-5-mini"},{"id":"whisper-1"}]}"#,
+        )
+        .await;
+        let provider = provider("openai", &base_url);
+
+        let models = discover_models(&provider, &endpoint(&provider), None)
+            .await
+            .expect("OpenAI catalog response");
+
+        assert_eq!(models, reported_models(&["gpt-4o-mini", "gpt-5-mini"]));
+    }
+
+    #[tokio::test]
+    async fn openrouter_catalog_requires_text_input_and_output_metadata() {
+        let base_url = serve_one_response(
+            "200 OK",
+            r#"{"data":[{"id":"vendor/text","architecture":{"input_modalities":["text"],"output_modalities":["text"]}},{"id":"vendor/image","architecture":{"input_modalities":["image"],"output_modalities":["text"]}},{"id":"vendor/unknown"}]}"#,
+        )
+        .await;
+        let provider = provider("openrouter", &base_url);
+
+        let models = discover_models(&provider, &endpoint(&provider), None)
+            .await
+            .expect("OpenRouter catalog response");
+
+        assert_eq!(models, reported_models(&["vendor/text"]));
+    }
+
+    #[tokio::test]
+    async fn groq_and_cerebras_catalogs_filter_unproven_models() {
+        let groq_base = serve_one_response(
+            "200 OK",
+            r#"{"data":[{"id":"llama-3.3-70b-versatile"},{"id":"llama-guard-4-12b"},{"id":"text-embedding-3-large"}]}"#,
+        )
+        .await;
+        let groq = provider("groq", &groq_base);
+        let groq_models = discover_models(&groq, &endpoint(&groq), None)
+            .await
+            .expect("Groq catalog response");
+        assert_eq!(groq_models, reported_models(&["llama-3.3-70b-versatile"]));
+
+        let cerebras_base = serve_one_response(
+            "200 OK",
+            r#"{"data":[{"id":"llama3.1-8b"},{"id":"qwen-3-235b-a22b-instruct-2507"},{"id":"text-embedding-3-large"}]}"#,
+        )
+        .await;
+        let cerebras = provider("cerebras", &cerebras_base);
+        let cerebras_models = discover_models(&cerebras, &endpoint(&cerebras), None)
+            .await
+            .expect("Cerebras catalog response");
+        assert_eq!(
+            cerebras_models,
+            reported_models(&["llama3.1-8b", "qwen-3-235b-a22b-instruct-2507"])
+        );
+    }
+
+    #[tokio::test]
+    async fn custom_catalog_exposes_only_server_reported_suggestions() {
+        let base_url = serve_one_response(
+            "200 OK",
+            r#"{"data":[{"id":"gemma3:12b"},{"id":"gemma3:12b"}]}"#,
+        )
+        .await;
+        let provider = provider("custom", &base_url);
+
+        let models = discover_models(&provider, &endpoint(&provider), None)
+            .await
+            .expect("custom catalog response");
+
+        assert_eq!(models, reported_models(&["gemma3:12b"]));
+    }
+
+    /// A self-hosted server can list one oddly named artefact beside its chat
+    /// models. That row is dropped; the rest of the catalog still reaches the
+    /// picker.
+    #[tokio::test]
+    async fn catalog_skips_an_unsafe_model_id_and_keeps_the_rest() {
+        const BODY_CANARY: &str = "MODEL-BODY-CANARY-9B88";
+        let body = format!(
+            r#"{{"data":[{{"id":"{}{}"}},{{"id":"café-13b"}},{{"id":""}},{{"id":"gemma3:12b"}}]}}"#,
+            "a".repeat(MAX_CATALOG_MODEL_ID_BYTES),
+            BODY_CANARY
+        );
+        let base_url = serve_one_response("200 OK", &body).await;
+        let provider = provider("custom", &base_url);
+
+        let models = discover_models(&provider, &endpoint(&provider), None)
+            .await
+            .expect("a catalog carrying one unusable id still resolves");
+
+        assert_eq!(models, reported_models(&["gemma3:12b"]));
+        assert!(!format!("{models:?}").contains(BODY_CANARY));
+    }
+
+    /// OpenRouter alone publishes several hundred text models. The cap bounds
+    /// what one endpoint can spend, so crossing it truncates instead of
+    /// throwing away a catalog the user would have picked from.
+    #[tokio::test]
+    async fn catalog_over_the_model_cap_is_truncated_not_refused() {
+        let entries: Vec<String> = (0..MAX_CATALOG_MODELS + 5)
+            .map(|index| format!(r#"{{"id":"model-{index:04}"}}"#))
+            .collect();
+        let body = format!(r#"{{"data":[{}]}}"#, entries.join(","));
+        let base_url = serve_one_response("200 OK", &body).await;
+        let provider = provider("custom", &base_url);
+
+        let models = discover_models(&provider, &endpoint(&provider), None)
+            .await
+            .expect("a catalog past the cap still resolves");
+
+        assert_eq!(models.len(), MAX_CATALOG_MODELS);
+        assert_eq!(models.first().expect("first option").id, "model-0000");
+        assert_eq!(
+            models.last().expect("last option").id,
+            format!("model-{:04}", MAX_CATALOG_MODELS - 1)
+        );
+    }
+
+    /// A reply Anthropic clipped at the output ceiling must not reach the user
+    /// as though it were whole: the caller reads an error as "no rewrite" and
+    /// keeps the raw transcript.
+    #[tokio::test]
+    async fn anthropic_reply_clipped_at_the_token_ceiling_is_refused() {
+        const CLIPPED: &str = "half a rewritten senten";
+        let base_url = serve_one_response(
+            "200 OK",
+            &format!(
+                r#"{{"content":[{{"type":"text","text":"{CLIPPED}"}}],"stop_reason":"max_tokens"}}"#
+            ),
+        )
+        .await;
+        let provider = provider("anthropic", &format!("{base_url}/v1"));
+        let endpoint = endpoint(&provider);
+
+        let answer = send_chat_completion_with_schema(ChatCompletionInput {
+            provider: &provider,
+            endpoint: &endpoint,
+            secret: None,
+            model: "claude-test",
+            user_content: "rewrite this".to_string(),
+            system_prompt: None,
+            json_schema: None,
+            disable_reasoning: true,
+        })
+        .await;
+
+        let error = answer.expect_err("a clipped reply is refused");
+        assert!(!error.contains(CLIPPED));
+    }
+
+    #[tokio::test]
+    async fn catalog_rejects_declared_response_over_byte_ceiling_without_waiting_for_body() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind oversized catalog fixture");
+        let address = listener
+            .local_addr()
+            .expect("oversized catalog fixture address");
+        let (release_sender, release_receiver) = tokio::sync::oneshot::channel::<()>();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.expect("catalog request");
+            let mut request = [0_u8; 2048];
+            stream
+                .read(&mut request)
+                .await
+                .expect("read catalog request");
+            let headers = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                MAX_CATALOG_RESPONSE_BYTES + 1
+            );
+            stream
+                .write_all(headers.as_bytes())
+                .await
+                .expect("write oversized catalog headers");
+            let _ = release_receiver.await;
+        });
+        let provider = provider("custom", &format!("http://{address}"));
+
+        let result = tokio::time::timeout(
+            Duration::from_secs(2),
+            discover_models(&provider, &endpoint(&provider), None),
+        )
+        .await
+        .expect("declared catalog limit rejects before reading the body");
+
+        assert_eq!(result, Err(PostProcessModelDiscovery::InvalidResponse));
+        drop(release_sender);
+        server.await.expect("oversized catalog fixture completed");
+    }
+
+    #[tokio::test]
+    async fn catalog_rejects_chunked_response_over_byte_ceiling() {
+        const BODY_CANARY: &str = "CHUNKED-CATALOG-BODY-CANARY-B2AF";
+        let metadata = format!(r#"{{"data":[],"padding":"{BODY_CANARY}"}}"#);
+        let body = vec![b' '; MAX_CATALOG_RESPONSE_BYTES];
+        let mut response =
+            b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n".to_vec();
+        for chunk in [metadata.as_bytes(), body.as_slice()] {
+            response.extend_from_slice(format!("{:X}\r\n", chunk.len()).as_bytes());
+            response.extend_from_slice(chunk);
+            response.extend_from_slice(b"\r\n");
+        }
+        response.extend_from_slice(b"0\r\n\r\n");
+        let base_url = serve_raw_response(response).await;
+        let provider = provider("custom", &base_url);
+
+        let result = discover_models(&provider, &endpoint(&provider), None).await;
+
+        assert_eq!(result, Err(PostProcessModelDiscovery::InvalidResponse));
+        assert!(!format!("{result:?}").contains(BODY_CANARY));
+    }
+
+    #[tokio::test]
+    async fn catalog_rejects_decompressed_response_over_byte_ceiling() {
+        const BODY_CANARY: &str = "COMPRESSED-CATALOG-BODY-CANARY-5FE2";
+        let mut decoded = format!(r#"{{"data":[],"padding":"{BODY_CANARY}"}}"#).into_bytes();
+        decoded.resize(MAX_CATALOG_RESPONSE_BYTES + 1, b' ');
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::fast());
+        encoder
+            .write_all(&decoded)
+            .expect("compress catalog response fixture");
+        let compressed = encoder.finish().expect("finish catalog response fixture");
+        assert!(compressed.len() < MAX_CATALOG_RESPONSE_BYTES);
+
+        let mut response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            compressed.len()
+        )
+        .into_bytes();
+        response.extend_from_slice(&compressed);
+        let base_url = serve_raw_response(response).await;
+        let provider = provider("custom", &base_url);
+
+        let result = discover_models(&provider, &endpoint(&provider), None).await;
+
+        assert_eq!(result, Err(PostProcessModelDiscovery::InvalidResponse));
+        assert!(!format!("{result:?}").contains(BODY_CANARY));
+    }
+    async fn catalog_status(
+        status: &str,
+    ) -> Result<Vec<PostProcessModelOption>, PostProcessModelDiscovery> {
+        let base_url = serve_one_response(status, "STATUS-BODY-CANARY").await;
+        let provider = provider("custom", &base_url);
+        discover_models(&provider, &endpoint(&provider), None).await
+    }
+
+    macro_rules! catalog_status_test {
+        ($name:ident, $status:literal, $expected:expr) => {
+            #[tokio::test]
+            async fn $name() {
+                assert_eq!(catalog_status($status).await, Err($expected));
+            }
+        };
+    }
+
+    catalog_status_test!(
+        catalog_classifies_unauthorized,
+        "401 Unauthorized",
+        PostProcessModelDiscovery::Unauthorized
+    );
+    catalog_status_test!(
+        catalog_classifies_forbidden,
+        "403 Forbidden",
+        PostProcessModelDiscovery::Forbidden
+    );
+    catalog_status_test!(
+        catalog_classifies_rate_limit,
+        "429 Too Many Requests",
+        PostProcessModelDiscovery::RateLimited
+    );
+    catalog_status_test!(
+        catalog_classifies_outage,
+        "503 Service Unavailable",
+        PostProcessModelDiscovery::Unreachable
+    );
+
+    #[tokio::test]
+    async fn anthropic_catalog_pages_with_native_headers_and_cursor() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind Anthropic catalog fixture");
+        let address = listener.local_addr().expect("Anthropic catalog address");
+        let server = tokio::spawn(async move {
+            let pages = [
+                r#"{"data":[{"id":"claude-3-5-haiku-latest"}],"has_more":true,"last_id":"claude-3-5-haiku-latest"}"#,
+                r#"{"data":[{"id":"claude-sonnet-4-20250514"}],"has_more":false,"last_id":"claude-sonnet-4-20250514"}"#,
+            ];
+            let mut requests = Vec::new();
+            for body in pages {
+                let (mut stream, _) =
+                    tokio::time::timeout(Duration::from_secs(2), listener.accept())
+                        .await
+                        .expect("Anthropic catalog client did not request next page")
+                        .expect("accept Anthropic catalog request");
+                let mut request = [0_u8; 4096];
+                let count = stream
+                    .read(&mut request)
+                    .await
+                    .expect("read Anthropic catalog request");
+                requests.push(request[..count].to_vec());
+                stream
+                    .write_all(
+                        format!(
+                            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                            body.len()
+                        )
+                        .as_bytes(),
+                    )
+                    .await
+                    .expect("write Anthropic catalog page");
+            }
+            requests
+        });
+
+        let provider = provider("anthropic", &format!("http://{address}/v1"));
+        let secret = test_secret("anthropic", "ANTHROPIC-KEY-CANARY").await;
+        let models = discover_models(&provider, &endpoint(&provider), Some(&secret))
+            .await
+            .expect("Anthropic paginated catalog");
+
+        assert_eq!(
+            models,
+            reported_models(&["claude-3-5-haiku-latest", "claude-sonnet-4-20250514"])
+        );
+        let requests = server.await.expect("Anthropic catalog fixture completed");
+        let first = String::from_utf8(requests[0].clone()).expect("first request is UTF-8");
+        let second = String::from_utf8(requests[1].clone()).expect("second request is UTF-8");
+        assert!(first.starts_with("GET /v1/models HTTP/1.1\r\n"));
+        assert!(first.contains("x-api-key: ANTHROPIC-KEY-CANARY\r\n"));
+        assert!(first.contains("anthropic-version: 2023-06-01\r\n"));
+        assert!(!first.contains("after_id="));
+        assert!(second.starts_with("GET /v1/models?after_id=claude-3-5-haiku-latest HTTP/1.1\r\n"));
+        assert!(second.contains("x-api-key: ANTHROPIC-KEY-CANARY\r\n"));
+        assert!(second.contains("anthropic-version: 2023-06-01\r\n"));
+    }
+
+    #[tokio::test]
+    async fn unsupported_catalog_sources_do_not_open_a_connection() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind no-connection fixture");
+        let address = listener
+            .local_addr()
+            .expect("no-connection fixture address");
+        for provider_id in ["zai", "bedrock_mantle"] {
+            let provider = provider(provider_id, &format!("http://{address}/v1"));
+            assert_eq!(
+                discover_models(&provider, &endpoint(&provider), None).await,
+                Err(PostProcessModelDiscovery::Unsupported)
+            );
+        }
+        let apple = provider("apple_intelligence", "apple-intelligence://local");
+        assert_eq!(
+            discover_models(&apple, &endpoint(&apple), None).await,
+            Err(PostProcessModelDiscovery::Unsupported)
+        );
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), listener.accept())
+                .await
+                .is_err(),
+            "unsupported discovery opened a network connection"
+        );
+    }
+
+    #[tokio::test]
+    async fn catalog_redirects_are_not_followed() {
+        let target = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind catalog redirect target");
+        let target_address = target
+            .local_addr()
+            .expect("catalog redirect target address");
+        let source = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind catalog redirect source");
+        let source_address = source
+            .local_addr()
+            .expect("catalog redirect source address");
+        let source_server = tokio::spawn(async move {
+            let (mut stream, _) = source.accept().await.expect("catalog redirect request");
+            let mut request = [0_u8; 2048];
+            let _ = stream
+                .read(&mut request)
+                .await
+                .expect("read catalog redirect request");
+            stream
+                .write_all(
+                    format!(
+                        "HTTP/1.1 302 Found\r\nLocation: http://{target_address}/models\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                    )
+                    .as_bytes(),
+                )
+                .await
+                .expect("write catalog redirect");
+        });
+
+        let provider = provider("custom", &format!("http://{source_address}"));
+        assert_eq!(
+            discover_models(&provider, &endpoint(&provider), None).await,
+            Err(PostProcessModelDiscovery::Unreachable)
+        );
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), target.accept())
+                .await
+                .is_err(),
+            "catalog client followed a redirect"
+        );
+        source_server
+            .await
+            .expect("catalog redirect source completed");
+    }
+
     /// Proves a keyless local endpoint end to end through this client, because
     /// no fixture can: every other test here serves its own canned bytes, so
     /// none of them can show that a real OpenAI-compatible server accepts what
@@ -949,7 +1846,6 @@ mod tests {
             label: "Custom".to_string(),
             base_url: "http://localhost:11434/v1".to_string(),
             allow_base_url_edit: true,
-            models_endpoint: Some("/models".to_string()),
             supports_structured_output: false,
         };
         let endpoint = endpoint(&provider);
@@ -957,14 +1853,16 @@ mod tests {
         // neither the consent gate nor the credential lookup applies.
         assert!(!endpoint.is_remote());
 
-        // The dropdown is keyless on the same terms: for a loopback `custom`
-        // route `fetch_post_process_models` passes no secret either, so an
-        // empty list here would mean typing the model name by hand.
-        let listed = fetch_models(&provider, &endpoint, None)
+        // The loopback catalog is keyless on the same terms as execution. Its
+        // entries are server-reported suggestions, not a compatibility claim.
+        let listed = discover_models(&provider, &endpoint, None)
             .await
             .expect("the local endpoint listed its models");
         println!("models: {listed:?}");
         assert!(!listed.is_empty());
+        assert!(listed
+            .iter()
+            .all(|model| { model.provenance == PostProcessModelProvenance::ProviderReported }));
 
         let model = std::env::var("SONA_LOCAL_MODEL").unwrap_or_else(|_| "gemma4:12b-mlx".into());
         let rendered = crate::prompt_renderer::render_instruction(

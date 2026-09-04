@@ -202,21 +202,33 @@ pub async fn cloud_share_import_file(
         .map_err(|error| error.kind())
 }
 
-/// Whether this installation actually has a cloud-sync service to talk to.
-/// Derived only from stored settings: this reads no network and starts no
-/// sync work, so the UI can hide destructive setup actions on a device that
-/// was never bootstrapped.
+/// What the privacy page says about cloud sync on this device. Derived from
+/// stored settings and the runtime's last access result: reads no network and
+/// acquires no credentials.
+///
+/// `configured` answers provisioning alone, meaning setup finished, the current
+/// disclosure accepted, and a remote endpoint stored. `error` is the only
+/// failure signal. A provisioned vault that cannot be opened right now stays
+/// configured and reports the failure in `error`, so a locked keychain never
+/// reads as a device that was never set up, which is the state destructive
+/// setup actions key off.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct CloudSyncServiceStatus {
     pub configured: bool,
     pub endpoint: Option<String>,
+    pub error: Option<CloudSyncErrorKind>,
     pub reason: String,
 }
 
-fn service_status(settings: &CloudSyncSettings, portable_mode: bool) -> CloudSyncServiceStatus {
+fn service_status(
+    settings: &CloudSyncSettings,
+    portable_mode: bool,
+    operational_error: Option<CloudSyncErrorKind>,
+) -> CloudSyncServiceStatus {
     let unconfigured = |endpoint: Option<String>, reason: &str| CloudSyncServiceStatus {
         configured: false,
         endpoint,
+        error: None,
         reason: reason.to_string(),
     };
 
@@ -250,19 +262,37 @@ fn service_status(settings: &CloudSyncSettings, portable_mode: bool) -> CloudSyn
             "Cloud sync is waiting for the current transfer disclosure to be accepted",
         );
     }
-
+    // Provisioning is settled by here. Whether a failure is worth showing is
+    // `CloudSyncRuntime::status_error_for`'s call, and it hands over `None`
+    // while sync is paused, off, unconsented, portable or mid-capture, so
+    // `Some` means a provisioned vault is failing right now. It never takes
+    // `configured` back.
+    let reason = if operational_error.is_some() {
+        "Cloud sync needs attention on this device"
+    } else {
+        "Cloud sync is set up for this device"
+    };
     CloudSyncServiceStatus {
         configured: true,
         endpoint: Some(endpoint),
-        reason: "Cloud sync is set up for this device".to_string(),
+        error: operational_error,
+        reason: reason.to_string(),
     }
 }
 
-#[tauri::command]
+/// `async` because `status_error_for` takes the meeting actor mutex, which a
+/// starting meeting holds across a system-audio device open. On the main
+/// thread that would stall the whole UI while Settings > Privacy opens.
+#[tauri::command(async)]
 #[specta::specta]
-pub fn cloud_sync_service_status(app: AppHandle) -> CloudSyncServiceStatus {
+pub fn cloud_sync_service_status(
+    app: AppHandle,
+    runtime: State<'_, Arc<CloudSyncRuntime>>,
+) -> CloudSyncServiceStatus {
     let settings = crate::settings::get_settings(&app).cloud_sync;
-    service_status(&settings, crate::portable::is_portable())
+    let portable_mode = crate::portable::is_portable();
+    let error = runtime.status_error_for(&settings, portable_mode);
+    service_status(&settings, portable_mode, error)
 }
 
 #[cfg(test)]
@@ -281,7 +311,7 @@ mod tests {
 
     #[test]
     fn a_bootstrapped_remote_endpoint_is_configured() {
-        let status = service_status(&bootstrapped("https://sync.example.test/v1"), false);
+        let status = service_status(&bootstrapped("https://sync.example.test/v1"), false, None);
 
         assert!(status.configured);
         assert_eq!(
@@ -292,7 +322,7 @@ mod tests {
 
     #[test]
     fn a_store_without_an_endpoint_is_not_configured() {
-        let status = service_status(&CloudSyncSettings::default(), false);
+        let status = service_status(&CloudSyncSettings::default(), false, None);
 
         assert!(!status.configured);
         assert!(status.endpoint.is_none());
@@ -302,7 +332,7 @@ mod tests {
     #[test]
     fn a_loopback_endpoint_is_not_a_cloud_service() {
         for endpoint in ["https://localhost/v1", "https://127.0.0.1/v1"] {
-            let status = service_status(&bootstrapped(endpoint), false);
+            let status = service_status(&bootstrapped(endpoint), false, None);
 
             assert!(!status.configured, "{endpoint} must not count as cloud");
             assert_eq!(status.endpoint.as_deref(), Some(endpoint));
@@ -314,7 +344,7 @@ mod tests {
         let mut settings = bootstrapped("https://sync.example.test/v1");
         settings.enabled = false;
 
-        let status = service_status(&settings, false);
+        let status = service_status(&settings, false, None);
 
         assert!(!status.configured);
         assert!(status.reason.contains("setup has not finished"));
@@ -325,7 +355,7 @@ mod tests {
         let mut settings = bootstrapped("https://sync.example.test/v1");
         settings.consent_version = None;
 
-        let status = service_status(&settings, false);
+        let status = service_status(&settings, false, None);
 
         assert!(!status.configured);
         assert!(status.reason.contains("disclosure"));
@@ -336,7 +366,7 @@ mod tests {
         let mut settings = bootstrapped("http://sync.example.test/v1");
         settings.enabled = true;
 
-        let status = service_status(&settings, false);
+        let status = service_status(&settings, false, None);
 
         assert!(!status.configured);
         assert!(status.endpoint.is_none());
@@ -345,9 +375,36 @@ mod tests {
 
     #[test]
     fn portable_installs_have_no_cloud_service() {
-        let status = service_status(&bootstrapped("https://sync.example.test/v1"), true);
+        let status = service_status(&bootstrapped("https://sync.example.test/v1"), true, None);
 
         assert!(!status.configured);
         assert!(status.reason.contains("portable"));
+    }
+
+    /// `configured` is provisioning, not health: the UI hides destructive setup
+    /// actions behind it, so a vault whose keychain is locked right now must not
+    /// read as one that was never set up.
+    #[test]
+    fn a_failing_provisioned_vault_stays_configured_and_names_the_error() {
+        for error in [
+            CloudSyncErrorKind::SecretUnavailable,
+            CloudSyncErrorKind::IntegrityFailure,
+        ] {
+            let status = service_status(
+                &bootstrapped("https://sync.example.test/v1"),
+                false,
+                Some(error),
+            );
+
+            assert!(
+                status.configured,
+                "{error:?} must not unprovision the vault"
+            );
+            assert_eq!(status.error, Some(error));
+            assert_eq!(
+                status.endpoint.as_deref(),
+                Some("https://sync.example.test/v1")
+            );
+        }
     }
 }

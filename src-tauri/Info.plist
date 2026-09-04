@@ -3,7 +3,9 @@
 <plist version="1.0">
 <dict>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Request microphone access to transcribe audio locally</string>
+  <string>Use the microphone to transcribe audio and record local screen videos on this Mac</string>
+  <key>NSCameraUsageDescription</key>
+  <string>Use the camera for a picture-in-picture screen recording on this Mac</string>
   <key>NSCalendarsFullAccessUsageDescription</key>
   <string>Read upcoming events on this Mac to offer local meeting notes before a call starts</string>
   <key>NSCalendarsUsageDescription</key>

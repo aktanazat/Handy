@@ -87,6 +87,7 @@ const hero = (overrides: Partial<CaptureHeroProps> = {}): string =>
       importing={false}
       onNewMeeting={() => {}}
       onImportAudio={() => {}}
+      onRecordScreen={() => {}}
       onChangeShortcut={() => {}}
       onOpenModes={() => {}}
       {...overrides}
@@ -152,11 +153,12 @@ describe("the Capture hero", () => {
     expect(markup.includes("tap to toggle")).toBe(false);
   });
 
-  test("carries both actions, with the promise wired to the one it is about", () => {
+  test("offers the native screen recorder beside Capture's existing actions", () => {
     const markup = hero();
 
     expect(markup).toContain("New meeting");
     expect(markup).toContain("Import audio");
+    expect(markup).toContain("Record screen");
     /* What is assertable here is the WIRING: New meeting is the tooltip's
      * trigger. The sentence itself is not, and must not be — a closed Radix
      * tooltip renders nothing, so the only way to see the copy in a static
@@ -175,12 +177,13 @@ describe("the Capture hero", () => {
    * fragment where it is the only control that fixes an unbound install. Every
    * secondary control on this card is bordered. */
   test("draws its secondary controls as buttons, never as borderless ghosts", () => {
-    for (const markup of [hero(), hero({ binding: null })]) {
-      expect(markup.includes('data-variant="ghost"')).toBe(false);
-    }
-    expect(occurrences(hero(), 'data-variant="outline"')).toBe(1);
+    expect(hero().includes('data-variant="ghost"')).toBe(false);
+    expect(hero({ binding: null }).includes('data-variant="ghost"')).toBe(
+      false,
+    );
+    expect(occurrences(hero(), 'data-variant="outline"')).toBe(2);
     expect(occurrences(hero({ binding: null }), 'data-variant="outline"')).toBe(
-      2,
+      3,
     );
   });
 
@@ -208,7 +211,7 @@ describe("the Capture hero", () => {
 /* The first paint contains the hero while the history trend loads. The
  * data-driven band is rendered separately below with the command's real shape. */
 describe("the Capture page", () => {
-  const markup = render(<Overview />);
+  const markup = render(<Overview onOpenRecorder={() => {}} />);
 
   test("uses the shared settings-page measure", () => {
     expect(markup).toContain("max-w-[760px]");

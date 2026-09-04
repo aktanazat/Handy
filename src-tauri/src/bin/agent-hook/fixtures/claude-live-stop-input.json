@@ -1,0 +1,15 @@
+{
+  "session_id": "abc123",
+  "prompt_id": "1f0e3dad-99ab-4d4a-9c62-7f0b1f9a5c11",
+  "transcript_path": "/Users/dev/.claude/projects/-Users-dev-app/abc123.jsonl",
+  "cwd": "/Users/dev/app",
+  "permission_mode": "default",
+  "effort": {
+    "level": "high"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "I've completed the refactoring. Here's a summary...",
+  "background_tasks": [],
+  "session_crons": []
+}

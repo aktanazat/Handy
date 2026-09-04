@@ -134,7 +134,7 @@ impl HandyKeysState {
                         binding_id, shortcut, event.state
                     );
                     let is_pressed = event.state == HotkeyState::Pressed;
-                    handle_shortcut_event(&app, binding_id, shortcut, is_pressed);
+                    let _ = handle_shortcut_event(&app, binding_id, shortcut, is_pressed);
                 }
             }
 

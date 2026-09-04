@@ -188,9 +188,9 @@ export const stepMs = (
  * Where the turn's activity belongs in the scrollback: above the answer it
  * produced, or at the end while there is no answer yet.
  *
- * A completed answer with no steps needs no row. A failed turn does: its only
- * visible reply is the error beneath the question. The optional corpus marker
- * takes that same row, so a fast answer can still say why it had evidence.
+ * A completed turn with recorded timing needs a row even without steps. A
+ * failed turn does too: its only visible reply is the error beneath the
+ * question. The optional corpus marker takes that same row.
  */
 export const workRowIndex = (
   conversation: readonly SonaAgentChatTurnV1[],
@@ -200,7 +200,7 @@ export const workRowIndex = (
   if (turn === null) return -1;
   const hasActivity =
     isTurnRunning(turn) ||
-    turn.steps.length > 0 ||
+    turn.completed_at_utc_ms !== null ||
     turnFailure(turn) !== null ||
     searchedCorpus;
   if (!hasActivity) return -1;

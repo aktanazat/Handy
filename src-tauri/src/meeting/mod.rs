@@ -33,5 +33,6 @@ pub mod suggestions;
 pub mod types;
 pub mod upcoming;
 pub mod upcoming_types;
+mod voice_identity;
 pub mod workflow_engine;
 pub mod workflow_types;

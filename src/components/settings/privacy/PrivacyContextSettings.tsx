@@ -6,6 +6,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/vg/toggle-group";
 import { Notice, SettingsField, SettingsRow } from "@/components/settings/rows";
 import { FailureNotice } from "./FailureNotice";
 import { useContextCapture } from "./useContextCapture";
+import { useSettings } from "@/hooks/useSettings";
 
 const CONTEXT_POLICIES = [
   "none",
@@ -31,6 +32,11 @@ export const PrivacyContextSettings: React.FC = () => {
     changeContextCeiling,
     changeContextUrlCaptureEnabled,
   } = useContextCapture();
+  const { getSetting } = useSettings();
+  const contextDescriptionKey =
+    contextCeiling === "none" && getSetting("command_mode_enabled")
+      ? "settings.general.commandMode.description"
+      : "settings.privacy.context.sources." + contextCeiling;
 
   return (
     <>
@@ -64,9 +70,7 @@ export const PrivacyContextSettings: React.FC = () => {
         </ToggleGroup>
         {/* What the selected level reads: a consequence of the choice above,
          * where the old four-row table restated all four labels. */}
-        <Notice className="mt-2">
-          {t("settings.privacy.context.sources." + contextCeiling)}
-        </Notice>
+        <Notice className="mt-2">{t(contextDescriptionKey)}</Notice>
       </SettingsField>
       {ceilingError ? (
         <FailureNotice className="px-4 py-2.5">

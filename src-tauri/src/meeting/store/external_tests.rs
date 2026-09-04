@@ -1,4 +1,4 @@
-//! The read-only external plane over a corpus that holds one of every noun.
+//! The external plane over a corpus that holds one of every noun.
 //!
 //! `crate::query::external::tests` owns the half that needs no store: which
 //! request a command line names, which flag combinations are refused, and the
@@ -15,21 +15,30 @@
 //! `done` row got there through the same `resolve_loop` the review screen
 //! calls, rather than a hand-written state row claiming to be the result.
 
-use super::workflow_core_tests::{event, inputs, person, store};
+use super::workflow_core_tests::{event, inputs, person};
 use super::MeetingStore;
+use crate::cli::CliArgs;
+use crate::meeting::detection::machine::CalendarEventSummary;
 use crate::meeting::loop_types::{
-    MeetingLoopId, MeetingLoopKind, MeetingLoopResolution, MeetingLoopResolveRequest,
+    MeetingLoopId, MeetingLoopKind, MeetingLoopReopenRequest, MeetingLoopResolution,
+    MeetingLoopResolveRequest, MeetingLoopRow, MeetingLoopStatus,
 };
 use crate::meeting::people_types::PersonId;
+use crate::meeting::session::{MeetingSessionManager, NoCaptureSources};
 use crate::meeting::types::{
-    ManualNote, ManualNoteId, MeetingOperationId, MeetingSessionId, SourceKind, SpeakerId,
+    ManualNote, ManualNoteId, MeetingCommandKind, MeetingOperationId, MeetingSessionId,
+    OperationResult, ProcessingFailure, ProcessingStatus, SourceKind, SpeakerId,
 };
 use crate::meeting::workflow_types::WorkflowEventKind;
 use crate::query::external::{
-    loops_page, meeting_detail, meetings_page, people_page, transcript as transcript_of,
-    ExternalErrorCode, ExternalLoopSide, ExternalLoopStatus, ExternalResponse,
+    loops_page, meeting_detail, meetings_page, people_page, resolve_loop,
+    transcript as transcript_of, AllowedRequest, ExternalConsent, ExternalErrorCode,
+    ExternalLoopSide, ExternalLoopStatus, ExternalRequest, ExternalResponse,
+    EXTERNAL_ACCESS_SETTING_PATH, EXTERNAL_MUTATIONS_SETTING_PATH,
 };
 use crate::query::{QueryEventsPage, QuerySearchPage, QUERY_SCHEMA_VERSION};
+use crate::secrets::{MemorySecretBackend, SecretManager};
+use clap::Parser;
 use rusqlite::params;
 use serde_json::json;
 use std::sync::Arc;
@@ -52,7 +61,8 @@ const COMMITMENT: &str = "Send the tier comparison";
 const ME: &str = "Speaker 1";
 
 struct Corpus {
-    _directory: TempDir,
+    directory: TempDir,
+    secrets: Arc<SecretManager>,
     store: Arc<MeetingStore>,
     session_id: MeetingSessionId,
     older_id: MeetingSessionId,
@@ -67,7 +77,12 @@ struct Corpus {
 }
 
 fn corpus() -> Corpus {
-    let (directory, store) = store();
+    let directory = TempDir::new().unwrap();
+    let secrets = Arc::new(SecretManager::with_backend(Arc::new(
+        MemorySecretBackend::new(),
+    )));
+    let key = tauri::async_runtime::block_on(secrets.meeting_storage_key()).unwrap();
+    let store = MeetingStore::open(directory.path().join("meetings"), key).unwrap();
     let session_id = meeting(&store, TITLE, NOW);
     transcript(&store, session_id, SEGMENT);
     // Before the artifact, deliberately: a note marks the current artifact out
@@ -103,7 +118,8 @@ fn corpus() -> Corpus {
         .expect("the commitment is ticked off");
 
     Corpus {
-        _directory: directory,
+        directory,
+        secrets,
         store,
         session_id,
         older_id,
@@ -339,6 +355,42 @@ fn value<T: serde::Serialize>(payload: &T) -> serde_json::Value {
     serde_json::to_value(payload).unwrap()
 }
 
+fn headless_manager(corpus: &Corpus) -> Arc<MeetingSessionManager> {
+    Arc::new(MeetingSessionManager::with_parts(
+        None,
+        Some(corpus.directory.path().join("meetings")),
+        Arc::clone(&corpus.secrets),
+        Arc::new(NoCaptureSources),
+    ))
+}
+
+fn loop_resolve_request(loop_id: &MeetingLoopId) -> ExternalRequest {
+    let args = CliArgs::try_parse_from(["sona", "--loop-resolve", loop_id.as_str()])
+        .expect("the loop flag parses");
+    ExternalRequest::from_args(&args).expect("the loop flag names an external request")
+}
+
+fn external_consent(reads: bool, mutations: bool) -> ExternalConsent {
+    let mut settings = crate::settings::get_default_settings();
+    settings.external_query_enabled = reads;
+    settings.external_mutations_enabled = mutations;
+    ExternalConsent::from_settings(&settings)
+}
+
+async fn loop_row(meetings: &MeetingSessionManager, loop_id: &MeetingLoopId) -> MeetingLoopRow {
+    let session_id = loop_id
+        .session_id()
+        .expect("the test loop id contains its session id");
+    meetings
+        .loops_list(session_id)
+        .await
+        .expect("read the test loop")
+        .rows
+        .into_iter()
+        .find(|row| &row.loop_id == loop_id)
+        .expect("the test loop remains in the ledger")
+}
+
 #[test]
 fn the_meetings_list_is_newest_first_and_says_what_each_one_left() {
     let corpus = corpus();
@@ -357,6 +409,7 @@ fn the_meetings_list_is_newest_first_and_says_what_each_one_left() {
                     "phase": "review_ready",
                     "when_utc_ms": NOW,
                     "recorded_duration_ms": null,
+                    "capture_completeness": "not_started",
                     "speakers": [ME],
                     "headline": {"kind": "ledger", "text": HEADLINE},
                     "link": format!("sona://meeting/{}", corpus.session_id.uuid()),
@@ -367,6 +420,7 @@ fn the_meetings_list_is_newest_first_and_says_what_each_one_left() {
                     "phase": "review_ready",
                     "when_utc_ms": EARLIER,
                     "recorded_duration_ms": null,
+                    "capture_completeness": "not_started",
                     "speakers": [],
                     // Nothing was said and nothing was written, so the row says
                     // so rather than inventing a line.
@@ -436,6 +490,7 @@ fn one_meeting_comes_back_with_its_summary_and_every_row_it_left() {
             "title": TITLE,
             "phase": "review_ready",
             "started_at_utc_ms": NOW,
+            "processing_status": {"kind": "succeeded"},
             "speakers": [ME],
             "summary": SUMMARY,
             "headline": HEADLINE,
@@ -472,6 +527,29 @@ fn one_meeting_comes_back_with_its_summary_and_every_row_it_left() {
             ],
             "link": format!("sona://meeting/{}", corpus.session_id.uuid()),
         })
+    );
+}
+
+#[test]
+fn an_artifactless_failed_meeting_names_its_processing_failure() {
+    let corpus = corpus();
+    corpus
+        .store
+        .set_processing_status(
+            corpus.older_id,
+            ProcessingStatus::Failed {
+                reason: ProcessingFailure::EngineFailure,
+            },
+        )
+        .unwrap();
+
+    let detail = meeting_detail(&corpus.store, corpus.older_id).unwrap();
+
+    assert_eq!(detail.summary, None, "there is no artifact to summarize");
+    assert_eq!(
+        value(&detail)["processing_status"],
+        json!({"kind": "failed", "reason": "engine_failure"}),
+        "a failed generation must not look like an unfinished empty meeting"
     );
 }
 
@@ -527,7 +605,7 @@ fn a_meeting_with_nothing_said_in_it_has_no_lines() {
 fn the_corpus_loop_list_carries_the_meeting_each_row_came_from() {
     let corpus = corpus();
 
-    let page = loops_page(&corpus.store, None, None, 25).unwrap();
+    let page = loops_page(&corpus.store, None, None, None, 25).unwrap();
 
     assert_eq!(
         page.entries
@@ -575,7 +653,7 @@ fn a_status_or_a_side_narrows_the_loop_list() {
     ];
 
     for (status, side, expected) in cases {
-        let page = loops_page(&corpus.store, status, side, 25).unwrap();
+        let page = loops_page(&corpus.store, status, side, None, 25).unwrap();
         assert_eq!(
             page.entries
                 .iter()
@@ -588,13 +666,30 @@ fn a_status_or_a_side_narrows_the_loop_list() {
 }
 
 #[test]
-fn a_bounded_loop_list_says_there_is_more() {
+fn a_bounded_loop_list_supplies_a_cursor_for_its_next_page() {
     let corpus = corpus();
 
-    let page = loops_page(&corpus.store, None, None, 1).unwrap();
+    let page = loops_page(&corpus.store, None, None, None, 1).unwrap();
 
     assert_eq!(page.entries.len(), 1);
     assert!(page.has_more);
+    assert_eq!(
+        value(&page)["next_cursor"],
+        json!(corpus.open_loop.as_str()),
+        "has_more must name the existing loop id to resume after"
+    );
+    let cursor = page
+        .next_cursor
+        .as_deref()
+        .expect("a bounded page has a cursor");
+    let next = loops_page(&corpus.store, None, None, Some(cursor), 1).unwrap();
+    assert_eq!(next.entries.len(), 1);
+    assert_eq!(next.entries[0].id.as_str(), corpus.done_commitment.as_str());
+    assert!(!next.has_more);
+    assert_eq!(next.next_cursor, None);
+
+    let stale = loops_page(&corpus.store, None, None, Some("missing"), 1).unwrap_err();
+    assert_eq!(stale.error, ExternalErrorCode::NotFound);
 }
 
 #[test]
@@ -666,4 +761,226 @@ fn the_plane_pages_are_passed_through_unchanged() {
         value(&ExternalResponse::Events(events.clone())),
         value(&events)
     );
+}
+
+#[test]
+fn an_external_loop_resolve_refuses_each_missing_consent_before_mutating() {
+    let corpus = corpus();
+    tauri::async_runtime::block_on(async {
+        let meetings = headless_manager(&corpus);
+
+        let before = loop_row(&meetings, &corpus.open_loop).await;
+
+        for (consent, settings_path) in [
+            (external_consent(false, true), EXTERNAL_ACCESS_SETTING_PATH),
+            (
+                external_consent(true, false),
+                EXTERNAL_MUTATIONS_SETTING_PATH,
+            ),
+        ] {
+            let refusal = AllowedRequest::new(consent, loop_resolve_request(&corpus.open_loop))
+                .expect_err("a missing grant stops the request before dispatch");
+
+            assert_eq!(refusal.error, ExternalErrorCode::ConsentRequired);
+            assert_eq!(refusal.settings_path, Some(settings_path));
+            assert_eq!(loop_row(&meetings, &corpus.open_loop).await, before);
+        }
+    });
+}
+
+#[test]
+fn an_external_loop_resolve_replays_the_receipt_and_closes_a_reopened_loop() {
+    let corpus = corpus();
+    tauri::async_runtime::block_on(async {
+        let meetings = headless_manager(&corpus);
+        let already_closed = loop_row(&meetings, &corpus.done_commitment).await;
+        let persisted_operation_id = MeetingOperationId::from_uuid(
+            Uuid::parse_str(
+                already_closed
+                    .resolving_operation_id
+                    .as_deref()
+                    .expect("the closed fixture loop records its receipt id"),
+            )
+            .expect("the fixture receipt id is a UUID"),
+        );
+        let persisted_receipt = corpus
+            .store
+            .operation_receipt(persisted_operation_id)
+            .expect("read the fixture receipt")
+            .expect("the closed fixture loop points to a receipt");
+        AllowedRequest::new(
+            external_consent(true, true),
+            loop_resolve_request(&corpus.done_commitment),
+        )
+        .expect("both grants allow a replay request");
+        let replayed_done = resolve_loop(&meetings, &corpus.done_commitment)
+            .await
+            .expect("the external request replays a non-external close");
+        assert_eq!(replayed_done.receipt, persisted_receipt);
+        assert_eq!(
+            loop_row(&meetings, &corpus.done_commitment).await,
+            already_closed
+        );
+
+        let initial = loop_row(&meetings, &corpus.open_loop).await;
+        assert_eq!(initial.status, MeetingLoopStatus::Open);
+
+        AllowedRequest::new(
+            external_consent(true, true),
+            loop_resolve_request(&corpus.open_loop),
+        )
+        .expect("both grants allow the parsed CLI request");
+        let first = resolve_loop(&meetings, &corpus.open_loop)
+            .await
+            .expect("the external request resolves the open loop");
+        let wire = value(&ExternalResponse::LoopResolve(first.clone()));
+        assert_eq!(wire["schema_version"], json!(QUERY_SCHEMA_VERSION));
+        assert_eq!(wire["receipt"]["command"], "loop_resolve");
+        assert_eq!(wire["receipt"]["result"], "committed");
+        assert_eq!(first.receipt.command, MeetingCommandKind::LoopResolve);
+        assert_eq!(first.receipt.result, OperationResult::Committed);
+        assert_eq!(first.receipt.expected_revision, initial.revision);
+        assert_eq!(first.receipt.new_revision, Some(initial.revision + 1));
+
+        let closed = loop_row(&meetings, &corpus.open_loop).await;
+        let first_operation_id = first.receipt.operation_id.uuid().to_string();
+        assert_eq!(closed.status, MeetingLoopStatus::Done);
+        assert_eq!(closed.revision, initial.revision + 1);
+        assert_eq!(
+            closed.resolving_operation_id.as_deref(),
+            Some(first_operation_id.as_str())
+        );
+
+        AllowedRequest::new(
+            external_consent(true, true),
+            loop_resolve_request(&corpus.open_loop),
+        )
+        .expect("the replay is still an allowed CLI request");
+        let replay = resolve_loop(&meetings, &corpus.open_loop)
+            .await
+            .expect("the closed loop replays its receipt");
+        assert_eq!(replay.receipt, first.receipt);
+        assert_eq!(loop_row(&meetings, &corpus.open_loop).await, closed);
+
+        let reopened = meetings
+            .loop_reopen(MeetingLoopReopenRequest {
+                operation_id: MeetingOperationId::new(),
+                loop_id: corpus.open_loop.clone(),
+                expected_revision: closed.revision,
+            })
+            .await
+            .expect("the real manager reopens the closed loop");
+        assert_eq!(reopened.receipt.result, OperationResult::Committed);
+        let reopened_row = loop_row(&meetings, &corpus.open_loop).await;
+        assert_eq!(reopened_row.status, MeetingLoopStatus::Open);
+        assert_eq!(reopened_row.revision, closed.revision + 1);
+
+        AllowedRequest::new(
+            external_consent(true, true),
+            loop_resolve_request(&corpus.open_loop),
+        )
+        .expect("the reopened loop is an allowed CLI request");
+        let second = resolve_loop(&meetings, &corpus.open_loop)
+            .await
+            .expect("the reopened loop resolves again");
+        assert_eq!(second.receipt.result, OperationResult::Committed);
+        assert_eq!(second.receipt.expected_revision, reopened_row.revision);
+        assert_eq!(second.receipt.new_revision, Some(reopened_row.revision + 1));
+        assert_ne!(second.receipt.operation_id, first.receipt.operation_id);
+
+        let closed_again = loop_row(&meetings, &corpus.open_loop).await;
+        assert_eq!(closed_again.status, MeetingLoopStatus::Done);
+        assert_eq!(closed_again.revision, reopened_row.revision + 1);
+    });
+}
+
+/// One occurrence of the weekly series both meetings sit in. A carry only
+/// looks at the previous session of the same series, so the series key is what
+/// makes one meeting the other's predecessor.
+fn series_event(start_utc_ms: i64) -> CalendarEventSummary {
+    CalendarEventSummary {
+        event_key: format!("weekly-pricing#{start_utc_ms}"),
+        series_key: "weekly-pricing".to_string(),
+        title: TITLE.to_string(),
+        attendee_count: 2,
+        start_utc_ms,
+        end_utc_ms: start_utc_ms + 30 * 60 * 1_000,
+        attendees: Vec::new(),
+        notes: None,
+        calendar_name: None,
+        url: None,
+    }
+}
+
+/// A loop the ledger pass carried forward is refused, not replayed.
+///
+/// `resolving_operation_id` names whichever operation closed the row, and a
+/// carry writes its own, so a carried row points at a `loop_carry` receipt.
+/// Replaying that answered `result: committed` and exit 0 for a subject the
+/// carry had left live in the next occurrence.
+#[test]
+fn an_external_loop_resolve_refuses_a_loop_that_was_carried_forward() {
+    let corpus = corpus();
+    let next_week = NOW + 7 * 24 * 60 * 60 * 1_000;
+    tauri::async_runtime::block_on(async {
+        let meetings = headless_manager(&corpus);
+        let successor_session = meeting(&corpus.store, TITLE, next_week);
+        transcript(&corpus.store, successor_session, SEGMENT);
+        artifact(&corpus.store, successor_session);
+        corpus
+            .store
+            .remember_calendar_facts(corpus.session_id, &series_event(NOW))
+            .unwrap();
+        corpus
+            .store
+            .remember_calendar_facts(successor_session, &series_event(next_week))
+            .unwrap();
+
+        let receipts = corpus
+            .store
+            .carry_loops_forward(successor_session)
+            .expect("the ledger pass runs over the next occurrence");
+        assert_eq!(
+            receipts.len(),
+            1,
+            "the open thread is the only loop with anywhere to go"
+        );
+
+        let successor = MeetingLoopId::derive(successor_session, MeetingLoopKind::Loop, THREAD);
+        let carried = loop_row(&meetings, &corpus.open_loop).await;
+        assert_eq!(carried.status, MeetingLoopStatus::Carried);
+        assert_eq!(carried.carried_into_loop_id.as_ref(), Some(&successor));
+        let stamped = MeetingOperationId::from_uuid(
+            Uuid::parse_str(
+                carried
+                    .resolving_operation_id
+                    .as_deref()
+                    .expect("the carry stamped its operation id"),
+            )
+            .expect("the carry operation id is a UUID"),
+        );
+        assert_eq!(
+            corpus
+                .store
+                .operation_receipt(stamped)
+                .expect("read the carry receipt")
+                .expect("the carried row points at a receipt")
+                .command,
+            MeetingCommandKind::LoopCarry,
+            "the row points at the carry, not at a resolution"
+        );
+
+        let refusal = resolve_loop(&meetings, &corpus.open_loop)
+            .await
+            .expect_err("a carry receipt is not a resolution to replay");
+
+        assert_eq!(refusal.error, ExternalErrorCode::InvalidRequest);
+        assert_eq!(refusal.settings_path, None, "this is not a consent problem");
+        assert!(
+            refusal.message.contains(successor.as_str()),
+            "the refusal names the loop that is still live: {}",
+            refusal.message
+        );
+        assert_eq!(loop_row(&meetings, &corpus.open_loop).await, carried);
+    });
 }

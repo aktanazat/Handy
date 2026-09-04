@@ -81,6 +81,7 @@ const POPULATED = {
           display_name: "Aleksandra Wojciechowska-Nowak",
           aliases: ["Ola"],
           calendar_emails: ["aleksandra.wojciechowska@example.com"],
+          organization: "example.com",
           created_at_utc_ms: 1_756_136_400_000,
           updated_at_utc_ms: 1_756_136_400_000,
         },

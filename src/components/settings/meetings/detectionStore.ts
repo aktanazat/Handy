@@ -48,20 +48,11 @@ export type DetectionSuppressReason =
   | "app_present_not_in_use"
   | "sona_mic_just_closed";
 
-export type DetectionStopTrigger =
-  | "sleep_boundary"
-  | "event_end"
-  | "trigger_app_exited"
-  | "input_device_idle"
-  | "call_ended"
-  | "silence";
-
 export interface DetectionSettings {
   enabled: boolean;
   calendarEnabled: boolean;
   anyMicActivity: boolean;
   autoStartOnOpenPane: boolean;
-  silenceStopMinutes: number;
   meetingApps: string[];
   /* Bundle IDs that record without a prompt. Empty until the operator turns a
    * switch on: this is the one setting that turns a notice into a recording. */
@@ -120,7 +111,6 @@ export interface DetectionStatus {
   suppressReason: DetectionSuppressReason | null;
   countdown: DetectionCountdown | null;
   runningMeetingApps: string[];
-  availableStopTriggers: DetectionStopTrigger[];
   inputDeviceReportingSuspect: boolean;
 }
 

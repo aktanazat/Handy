@@ -66,6 +66,7 @@ export interface TranscriptTabProps {
     sourceSpeakerId: SpeakerId,
     targetSpeakerId: SpeakerId,
   ) => void;
+  onSpeakerCorrect: (speakerId: SpeakerId) => void;
 }
 
 export const TranscriptTab: React.FC<TranscriptTabProps> = ({
@@ -80,6 +81,7 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
   onSegmentEdit,
   onSpeakerRename,
   onSpeakerMerge,
+  onSpeakerCorrect,
 }) => {
   const { t } = useTranslation();
   const disabled = busy || !editable;
@@ -149,6 +151,7 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
         disabled={disabled}
         onRename={onSpeakerRename}
         onMerge={onSpeakerMerge}
+        onCorrect={onSpeakerCorrect}
       />
 
       <SettingsSection

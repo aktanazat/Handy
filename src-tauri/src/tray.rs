@@ -26,6 +26,8 @@ use crate::meeting::types::{AllowedMeetingAction, MeetingPhase, MeetingSessionSn
 use crate::settings;
 use crate::tray_i18n::{get_tray_translations, TrayStrings};
 use log::{debug, error, info, trace, warn};
+use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -53,6 +55,20 @@ pub(crate) const OPEN_MEETING_NOTES_MENU_ID: &str = "open_meeting_notes";
 pub(crate) const STOP_MEETING_NOTES_MENU_ID: &str = "stop_meeting_notes";
 pub(crate) const CANCEL_MEETING_NOTES_MENU_ID: &str = "cancel_meeting_notes";
 pub(crate) const COPY_LAST_TRANSCRIPT_MENU_ID: &str = "copy_last_transcript";
+
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+pub struct TraySettingsRequestedEvent;
+
+impl tauri_specta::Event for TraySettingsRequestedEvent {
+    const NAME: &'static str = "tray:settings-requested";
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+pub struct TrayCopyFailedEvent;
+
+impl tauri_specta::Event for TrayCopyFailedEvent {
+    const NAME: &'static str = "tray:copy-failed";
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct MeetingMenuState {
@@ -936,12 +952,25 @@ pub fn recreate_tray_icon(app: &AppHandle) {
     }
 }
 
+pub(crate) fn open_settings<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    crate::show_main_window(app);
+    <TraySettingsRequestedEvent as tauri_specta::Event>::emit(&TraySettingsRequestedEvent, app)
+        .unwrap_or_else(|error| error!("Failed to request Settings from tray: {error}"));
+}
+
+fn show_tray_copy_failure<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    crate::show_main_window(app);
+    <TrayCopyFailedEvent as tauri_specta::Event>::emit(&TrayCopyFailedEvent, app)
+        .unwrap_or_else(|error| error!("Failed to report failed tray copy: {error}"));
+}
+
 pub fn copy_last_transcript(app: &AppHandle) {
     let history_manager = app.state::<Arc<HistoryManager>>();
     let entry = match history_manager.get_latest_completed_entry() {
         Ok(Some(entry)) => entry,
         Ok(None) => {
             warn!("No completed transcription history entries available for tray copy.");
+            show_tray_copy_failure(app);
             return;
         }
         Err(err) => {
@@ -949,6 +978,7 @@ pub fn copy_last_transcript(app: &AppHandle) {
                 "Failed to fetch last completed transcription entry: {}",
                 err
             );
+            show_tray_copy_failure(app);
             return;
         }
     };
@@ -956,11 +986,13 @@ pub fn copy_last_transcript(app: &AppHandle) {
     let text = last_transcript_text(&entry);
     if text.trim().is_empty() {
         warn!("Last completed transcription is empty; skipping tray copy.");
+        show_tray_copy_failure(app);
         return;
     }
 
     if let Err(err) = app.clipboard().write_text(text) {
         error!("Failed to copy last transcript to clipboard: {}", err);
+        show_tray_copy_failure(app);
         return;
     }
 
@@ -973,12 +1005,14 @@ mod tests {
     use super::recreate_tray_visibility_with;
     use super::{
         bundled_idle_tray_icon, last_transcript_text, load_tray_icon_from_path,
-        load_tray_icon_or_fallback, menu_rows, set_tray_visibility_with, MeetingMenuState,
-        MenuAction, MenuInputs, MenuRow, MenuStatus, TrayIconState, TrayState,
+        load_tray_icon_or_fallback, menu_rows, open_settings, set_tray_visibility_with,
+        show_tray_copy_failure, MeetingMenuState, MenuAction, MenuInputs, MenuRow, MenuStatus,
+        TrayIconState, TrayState,
     };
     use crate::managers::history::HistoryEntry;
     use crate::meeting::types::{AllowedMeetingAction, MeetingPhase};
-    use tauri::image::Image;
+    use std::sync::{Arc, Mutex};
+    use tauri::{image::Image, Listener};
 
     fn build_entry(transcription: &str, post_processed: Option<&str>) -> HistoryEntry {
         HistoryEntry {
@@ -1105,6 +1139,37 @@ mod tests {
         assert!(min_x >= 1 && min_y >= 3);
         assert!(max_x <= 34 && max_y <= 32);
         alpha
+    }
+
+    #[test]
+    fn tray_actions_emit_their_observable_frontend_events() {
+        use super::{TrayCopyFailedEvent, TraySettingsRequestedEvent};
+
+        let event_builder = tauri_specta::Builder::<tauri::test::MockRuntime>::new().events(
+            tauri_specta::collect_events![TraySettingsRequestedEvent, TrayCopyFailedEvent],
+        );
+        let app = tauri::test::mock_app();
+        event_builder.mount_events(&app);
+        let handle = app.handle();
+        let observed = Arc::new(Mutex::new(Vec::new()));
+
+        let settings_observed = Arc::clone(&observed);
+        handle.listen("tray:settings-requested", move |_| {
+            settings_observed.lock().unwrap().push("settings");
+        });
+        let copy_observed = Arc::clone(&observed);
+        handle.listen("tray:copy-failed", move |_| {
+            copy_observed.lock().unwrap().push("copy-failed");
+        });
+
+        open_settings(handle);
+        show_tray_copy_failure(handle);
+
+        assert_eq!(
+            observed.lock().unwrap().as_slice(),
+            ["settings", "copy-failed"],
+            "a tray action must reach the frontend event that makes its result visible"
+        );
     }
 
     #[test]

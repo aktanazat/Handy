@@ -11,10 +11,12 @@ use rustfft::num_traits::ToPrimitive;
 use rustfft::{Fft, FftPlanner};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::LazyLock;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -23,17 +25,24 @@ use transcribe_cpp::{
     SortformerPreset, SortformerStreamOptions, SpeakerSegment,
 };
 
-const SAMPLE_RATE_HZ: usize = 16_000;
+pub(crate) const SAMPLE_RATE_HZ: usize = 16_000;
 const FRAME_SAMPLES: usize = 400;
 const FRAME_HOP_SAMPLES: usize = 160;
 const FFT_SIZE: usize = 512;
 const MEL_BINS: usize = 80;
+pub(crate) const SPEAKER_EMBEDDING_DIMENSIONS: usize = 256;
 const MIN_WINDOW_SAMPLES: usize = SAMPLE_RATE_HZ;
 const SPEAKER_MATCH_THRESHOLD: f32 = 0.72;
 const OVERLAP_MARGIN: f32 = 0.04;
+const PROFILE_MATCH_THRESHOLD: f32 = 0.80;
+const PROFILE_MATCH_MARGIN: f32 = 0.08;
+const WESPEAKER_FEATURE_PIPELINE_REVISION: &str =
+    "log-mel-80-hamming-400-hop-160-fft-512-mean-center-v1";
+const WESPEAKER_NORMALIZATION: &str = "l2-v1";
+const NORMALIZED_EMBEDDING_NORM_SQUARED_TOLERANCE: f32 = 1e-3;
 
 /// Nanoseconds per second, for offset/sample conversions.
-const NS_PER_SECOND: u64 = 1_000_000_000;
+pub(crate) const NS_PER_SECOND: u64 = 1_000_000_000;
 
 /// Nanoseconds per sample at [`SAMPLE_RATE_HZ`]. One constant serves both
 /// conversions below, which are exact because 16 kHz divides a second evenly —
@@ -113,6 +122,33 @@ pub fn wespeaker_manifest() -> &'static DiarizationModelManifest {
     &WESPEAKER_MANIFEST
 }
 
+/// Every field that must agree before two WeSpeaker vectors can be compared.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) struct SpeakerEmbeddingModelKey {
+    pub model_id: &'static str,
+    pub model_revision: &'static str,
+    pub model_sha256: &'static str,
+    pub embedding_dimensions: usize,
+    pub sample_rate_hz: u32,
+    pub feature_bins: usize,
+    pub feature_pipeline_revision: &'static str,
+    pub normalization: &'static str,
+}
+
+pub(crate) fn wespeaker_embedding_model_key() -> SpeakerEmbeddingModelKey {
+    let manifest = wespeaker_manifest();
+    SpeakerEmbeddingModelKey {
+        model_id: manifest.id.as_str(),
+        model_revision: manifest.revision.as_str(),
+        model_sha256: manifest.sha256.as_str(),
+        embedding_dimensions: manifest.embedding_dimensions,
+        sample_rate_hz: manifest.sample_rate_hz,
+        feature_bins: manifest.feature_bins,
+        feature_pipeline_revision: WESPEAKER_FEATURE_PIPELINE_REVISION,
+        normalization: WESPEAKER_NORMALIZATION,
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DiarizationModelAvailability {
     Ready,
@@ -136,6 +172,8 @@ impl DiarizationModelAvailability {
 pub struct MeetingDiarizer {
     state: Arc<Mutex<DownloadState>>,
     allow_download: bool,
+    #[cfg(test)]
+    wespeaker_ensure_requests: Arc<AtomicUsize>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -153,18 +191,21 @@ impl Default for MeetingDiarizer {
 
 impl MeetingDiarizer {
     pub fn new() -> Self {
+        Self::with_download(true)
+    }
+
+    fn with_download(allow_download: bool) -> Self {
         Self {
             state: Arc::new(Mutex::new(DownloadState::Idle)),
-            allow_download: true,
+            allow_download,
+            #[cfg(test)]
+            wespeaker_ensure_requests: Arc::new(AtomicUsize::new(0)),
         }
     }
 
     #[cfg(test)]
     pub fn without_download() -> Self {
-        Self {
-            state: Arc::new(Mutex::new(DownloadState::Idle)),
-            allow_download: false,
-        }
+        Self::with_download(false)
     }
 
     pub fn availability(&self, model_directory: &Path) -> DiarizationModelAvailability {
@@ -208,6 +249,27 @@ impl MeetingDiarizer {
             }),
             None => Err(DiarizationError::ModelUnavailable),
         }
+    }
+
+    /// Ensure the separately pinned WeSpeaker asset for an explicit enrollment.
+    /// Ordinary diarization calls prepare and never reach this method.
+    pub(crate) async fn ensure_wespeaker(
+        &self,
+        model_directory: &Path,
+    ) -> Result<PreparedDiarizationModel, DiarizationError> {
+        #[cfg(test)]
+        self.wespeaker_ensure_requests
+            .fetch_add(1, Ordering::Relaxed);
+
+        if let Some(prepared) = self.wespeaker_fallback(model_directory) {
+            return Ok(prepared);
+        }
+        if !self.allow_download {
+            return Err(DiarizationError::ModelUnavailable);
+        }
+        download_asset(model_directory, wespeaker_manifest()).await?;
+        self.wespeaker_fallback(model_directory)
+            .ok_or(DiarizationError::ModelInvalid)
     }
 
     /// Start at most one background download of the primary asset. Already
@@ -352,6 +414,10 @@ async fn download_asset(
     install_verified_asset(&cached, model_directory, manifest)
 }
 
+/// Distinguishes two installs of one asset inside a process; the process id
+/// distinguishes processes.
+static INSTALL_ATTEMPTS: AtomicUsize = AtomicUsize::new(0);
+
 fn install_verified_asset(
     cached: &Path,
     model_directory: &Path,
@@ -359,14 +425,37 @@ fn install_verified_asset(
 ) -> Result<(), DiarizationError> {
     fs::create_dir_all(model_directory).map_err(|_| DiarizationError::DownloadFailed)?;
     let target = model_directory.join(&manifest.local_filename);
-    let temporary = model_directory.join(format!("{}.partial", manifest.local_filename));
-    let _ = fs::remove_file(&temporary);
+    // The staging name is unique per attempt. A fixed one lets two concurrent
+    // installs of the same asset unlink and recreate each other's partial
+    // file, after which each verifies bytes it did not write and both report a
+    // download that succeeded as an invalid model.
+    let temporary = model_directory.join(format!(
+        "{}.{}.{}.partial",
+        manifest.local_filename,
+        std::process::id(),
+        INSTALL_ATTEMPTS.fetch_add(1, Ordering::Relaxed)
+    ));
+    let staged = stage_verified_asset(cached, &temporary, manifest);
+    if staged.is_err() {
+        let _ = fs::remove_file(&temporary);
+        return staged;
+    }
+    fs::rename(&temporary, &target).map_err(|_| DiarizationError::DownloadFailed)?;
+    sync_parent(&target).map_err(|_| DiarizationError::DownloadFailed)
+}
 
+/// Copies the cached download to `temporary` and verifies it there. The caller
+/// owns the staging path, so a failure here has one cleanup site.
+fn stage_verified_asset(
+    cached: &Path,
+    temporary: &Path,
+    manifest: &DiarizationModelManifest,
+) -> Result<(), DiarizationError> {
     let mut source = File::open(cached).map_err(|_| DiarizationError::DownloadFailed)?;
     let mut destination = OpenOptions::new()
         .create_new(true)
         .write(true)
-        .open(&temporary)
+        .open(temporary)
         .map_err(|_| DiarizationError::DownloadFailed)?;
     io::copy(&mut source, &mut destination).map_err(|_| DiarizationError::DownloadFailed)?;
     destination
@@ -375,12 +464,10 @@ fn install_verified_asset(
         .map_err(|_| DiarizationError::DownloadFailed)?;
     drop(destination);
 
-    if !asset_is_verified(&temporary, manifest) {
-        let _ = fs::remove_file(&temporary);
+    if !asset_is_verified(temporary, manifest) {
         return Err(DiarizationError::ModelInvalid);
     }
-    fs::rename(&temporary, &target).map_err(|_| DiarizationError::DownloadFailed)?;
-    sync_parent(&target).map_err(|_| DiarizationError::DownloadFailed)
+    Ok(())
 }
 
 fn verified_asset_path(
@@ -431,24 +518,58 @@ pub struct DiarizedWindow {
     pub assignment: SpeakerAssignmentKind,
 }
 
-pub struct OnnxDiarizationSession {
+#[derive(Debug)]
+pub(crate) struct DiarizedWindowResult {
+    pub(crate) window: DiarizedWindow,
+    /// The fallback's one inference result, retained only for an unambiguous
+    /// system-speaker window.
+    pub(crate) embedding: Option<SpeakerEmbedding>,
+}
+
+/// A verified, L2-normalized WeSpeaker vector with the pinned 256-float width.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct SpeakerEmbedding {
+    values: [f32; SPEAKER_EMBEDDING_DIMENSIONS],
+}
+
+impl SpeakerEmbedding {
+    /// Reconstruct an embedding from durable bytes only when its shape and
+    /// normalization still meet the matching invariant.
+    pub(crate) fn from_normalized_slice(values: &[f32]) -> Option<Self> {
+        let values: [f32; SPEAKER_EMBEDDING_DIMENSIONS] = values.try_into().ok()?;
+        Self::from_normalized_array(values)
+    }
+
+    pub(crate) fn as_slice(&self) -> &[f32] {
+        &self.values
+    }
+
+    fn from_normalized_array(values: [f32; SPEAKER_EMBEDDING_DIMENSIONS]) -> Option<Self> {
+        is_normalized(&values).then_some(Self { values })
+    }
+}
+
+fn is_normalized(values: &[f32]) -> bool {
+    let norm_squared = values.iter().map(|value| value * value).sum::<f32>();
+    norm_squared.is_finite()
+        && (norm_squared - 1.0).abs() <= NORMALIZED_EMBEDDING_NORM_SQUARED_TOLERANCE
+}
+
+/// The reusable local WeSpeaker ONNX path. It has no clustering policy: callers
+/// receive one normalized vector for each inference.
+pub(crate) struct SpeakerEmbeddingSession {
     session: Session,
     fft: Arc<dyn Fft<f32>>,
     mel_filters: Vec<Vec<(usize, f32)>>,
-    clusters: Vec<SpeakerCluster>,
 }
 
-struct SpeakerCluster {
-    centroid: Vec<f32>,
-    count: u32,
-}
-
-impl OnnxDiarizationSession {
-    fn open(path: &Path) -> Result<Self, DiarizationError> {
+impl SpeakerEmbeddingSession {
+    pub(crate) fn open(path: &Path) -> Result<Self, DiarizationError> {
         let manifest = wespeaker_manifest();
         if !asset_is_verified(path, manifest)
             || manifest.sample_rate_hz != 16_000
             || manifest.feature_bins != MEL_BINS
+            || manifest.embedding_dimensions != SPEAKER_EMBEDDING_DIMENSIONS
         {
             return Err(DiarizationError::ModelInvalid);
         }
@@ -463,68 +584,10 @@ impl OnnxDiarizationSession {
             session,
             fft: planner.plan_fft_forward(FFT_SIZE),
             mel_filters: mel_filters()?,
-            clusters: Vec::new(),
         })
     }
 
-    pub fn diarize_window(
-        &mut self,
-        samples: &[f32],
-        start_offset_ns: u64,
-        end_offset_ns: u64,
-    ) -> Result<DiarizedWindow, DiarizationError> {
-        if samples.len() < MIN_WINDOW_SAMPLES || start_offset_ns >= end_offset_ns {
-            return Err(DiarizationError::InvalidAudio);
-        }
-        let embedding = self.embed(samples)?;
-        let mut ranked = self
-            .clusters
-            .iter()
-            .enumerate()
-            .map(|(index, cluster)| (index, cosine_similarity(&embedding, &cluster.centroid)))
-            .collect::<Vec<_>>();
-        ranked.sort_by(|left, right| right.1.total_cmp(&left.1));
-
-        if ranked.len() > 1
-            && ranked[0].1 >= SPEAKER_MATCH_THRESHOLD
-            && ranked[1].1 >= SPEAKER_MATCH_THRESHOLD
-            && ranked[0].1 - ranked[1].1 <= OVERLAP_MARGIN
-        {
-            return Ok(DiarizedWindow {
-                start_offset_ns,
-                end_offset_ns,
-                cluster: None,
-                assignment: SpeakerAssignmentKind::Overlap,
-            });
-        }
-
-        let cluster_index = ranked
-            .first()
-            .filter(|(_, score)| *score >= SPEAKER_MATCH_THRESHOLD)
-            .map(|(index, _)| *index)
-            .unwrap_or_else(|| {
-                self.clusters.push(SpeakerCluster {
-                    centroid: embedding.clone(),
-                    count: 0,
-                });
-                self.clusters.len() - 1
-            });
-        let cluster = self
-            .clusters
-            .get_mut(cluster_index)
-            .ok_or(DiarizationError::InferenceFailed)?;
-        update_centroid(cluster, &embedding)?;
-        Ok(DiarizedWindow {
-            start_offset_ns,
-            end_offset_ns,
-            cluster: Some(
-                u32::try_from(cluster_index).map_err(|_| DiarizationError::InferenceFailed)?,
-            ),
-            assignment: SpeakerAssignmentKind::SystemSpeaker,
-        })
-    }
-
-    fn embed(&mut self, samples: &[f32]) -> Result<Vec<f32>, DiarizationError> {
+    pub(crate) fn embed(&mut self, samples: &[f32]) -> Result<SpeakerEmbedding, DiarizationError> {
         let features = log_mel_features(samples, self.fft.as_ref(), &self.mel_filters)?;
         let frame_count = features.len() / MEL_BINS;
         let feature_array = Array3::from_shape_vec((1, frame_count, MEL_BINS), features)
@@ -539,12 +602,134 @@ impl OnnxDiarizationSession {
         let embedding = outputs[0]
             .try_extract_array::<f32>()
             .map_err(|_| DiarizationError::InferenceFailed)?;
-        let mut values = embedding.iter().copied().collect::<Vec<_>>();
-        if values.len() != wespeaker_manifest().embedding_dimensions {
+        if embedding.len() != SPEAKER_EMBEDDING_DIMENSIONS {
             return Err(DiarizationError::InferenceFailed);
         }
+        let mut values = [0.0_f32; SPEAKER_EMBEDDING_DIMENSIONS];
+        for (destination, source) in values.iter_mut().zip(embedding.iter()) {
+            *destination = *source;
+        }
         normalize(&mut values).ok_or(DiarizationError::InferenceFailed)?;
-        Ok(values)
+        SpeakerEmbedding::from_normalized_array(values).ok_or(DiarizationError::InferenceFailed)
+    }
+}
+
+pub struct OnnxDiarizationSession {
+    embedder: SpeakerEmbeddingSession,
+    clusters: Vec<SpeakerCluster>,
+}
+
+struct SpeakerCluster {
+    centroid: SpeakerEmbedding,
+    count: u32,
+}
+
+impl OnnxDiarizationSession {
+    fn open(path: &Path) -> Result<Self, DiarizationError> {
+        Ok(Self {
+            embedder: SpeakerEmbeddingSession::open(path)?,
+            clusters: Vec::new(),
+        })
+    }
+
+    fn diarize_window(
+        &mut self,
+        samples: &[f32],
+        start_offset_ns: u64,
+        end_offset_ns: u64,
+    ) -> Result<DiarizedWindowResult, DiarizationError> {
+        if samples.len() < MIN_WINDOW_SAMPLES || start_offset_ns >= end_offset_ns {
+            return Err(DiarizationError::InvalidAudio);
+        }
+        let (embedder, clusters) = (&mut self.embedder, &mut self.clusters);
+        diarize_fallback_window(
+            clusters,
+            || embedder.embed(samples),
+            start_offset_ns,
+            end_offset_ns,
+        )
+    }
+}
+
+fn diarize_fallback_window(
+    clusters: &mut Vec<SpeakerCluster>,
+    embed: impl FnOnce() -> Result<SpeakerEmbedding, DiarizationError>,
+    start_offset_ns: u64,
+    end_offset_ns: u64,
+) -> Result<DiarizedWindowResult, DiarizationError> {
+    let embedding = embed()?;
+    let mut best = None;
+    let mut runner_up = None;
+    for (index, cluster) in clusters.iter().enumerate() {
+        retain_top_two(
+            &mut best,
+            &mut runner_up,
+            (index, cosine_similarity(&embedding, &cluster.centroid)),
+        );
+    }
+
+    if let (Some((_, best_score)), Some((_, runner_up_score))) = (best, runner_up) {
+        if best_score >= SPEAKER_MATCH_THRESHOLD
+            && runner_up_score >= SPEAKER_MATCH_THRESHOLD
+            && best_score - runner_up_score <= OVERLAP_MARGIN
+        {
+            return Ok(DiarizedWindowResult {
+                window: DiarizedWindow {
+                    start_offset_ns,
+                    end_offset_ns,
+                    cluster: None,
+                    assignment: SpeakerAssignmentKind::Overlap,
+                },
+                embedding: None,
+            });
+        }
+    }
+
+    let cluster_index = best
+        .filter(|(_, score)| *score >= SPEAKER_MATCH_THRESHOLD)
+        .map(|(index, _)| index)
+        .unwrap_or_else(|| {
+            clusters.push(SpeakerCluster {
+                centroid: embedding.clone(),
+                count: 0,
+            });
+            clusters.len() - 1
+        });
+    let cluster = clusters
+        .get_mut(cluster_index)
+        .ok_or(DiarizationError::InferenceFailed)?;
+    update_centroid(cluster, &embedding)?;
+    Ok(DiarizedWindowResult {
+        window: DiarizedWindow {
+            start_offset_ns,
+            end_offset_ns,
+            cluster: Some(
+                u32::try_from(cluster_index).map_err(|_| DiarizationError::InferenceFailed)?,
+            ),
+            assignment: SpeakerAssignmentKind::SystemSpeaker,
+        },
+        embedding: Some(embedding),
+    })
+}
+
+fn retain_top_two(
+    best: &mut Option<(usize, f32)>,
+    runner_up: &mut Option<(usize, f32)>,
+    candidate: (usize, f32),
+) {
+    if best
+        .map(|(_, score)| candidate.1.total_cmp(&score).is_gt())
+        .unwrap_or(true)
+    {
+        *runner_up = *best;
+        *best = Some(candidate);
+        return;
+    }
+    if runner_up
+        .map(|(_, score)| candidate.1.total_cmp(&score).is_gt())
+        .unwrap_or(true)
+    {
+        *runner_up = Some(candidate);
     }
 }
 
@@ -555,6 +740,14 @@ struct SpeakerTurn {
     start_ns: u64,
     end_ns: u64,
     speaker: u32,
+}
+
+/// An exact singleton portion of the primed Sortformer timeline.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct DiarizationSpeakerSpan {
+    pub(crate) cluster: u32,
+    pub(crate) start_offset_ns: u64,
+    pub(crate) end_offset_ns: u64,
 }
 
 /// NVIDIA Streaming Sortformer, end to end: a FastConformer encoder and an
@@ -571,6 +764,7 @@ pub struct SortformerDiarizationSession {
     session: SortformerRunSession,
     buffer: PrimingBuffer,
     timeline: Vec<SpeakerTurn>,
+    exclusive_spans: Vec<DiarizationSpeakerSpan>,
     primed: bool,
 }
 
@@ -634,6 +828,7 @@ impl SortformerDiarizationSession {
             session,
             buffer: PrimingBuffer::default(),
             timeline: Vec::new(),
+            exclusive_spans: Vec::new(),
             primed: false,
         })
     }
@@ -672,8 +867,13 @@ impl SortformerDiarizationSession {
             .run(&pcm, &options)
             .map_err(|_| DiarizationError::InferenceFailed)?;
         self.timeline = timeline_from_segments(&transcript.speaker_segments, base);
+        self.exclusive_spans = exclusive_spans_from_timeline(&self.timeline);
         self.primed = true;
         Ok(())
+    }
+
+    pub(crate) fn exclusive_spans(&self) -> &[DiarizationSpeakerSpan] {
+        &self.exclusive_spans
     }
 
     /// Resolve one window against the primed timeline. `samples` is unused:
@@ -720,6 +920,73 @@ fn timeline_from_segments(segments: &[SpeakerSegment], base_offset_ns: u64) -> V
         .collect::<Vec<_>>();
     turns.sort_unstable_by_key(|turn| (turn.start_ns, turn.speaker));
     turns
+}
+
+/// Sweep every start/end edge and retain only intervals with one active
+/// arrival-order cluster. Adjacent intervals for that cluster remain one span.
+fn exclusive_spans_from_timeline(timeline: &[SpeakerTurn]) -> Vec<DiarizationSpeakerSpan> {
+    let mut edges = Vec::with_capacity(timeline.len().saturating_mul(2));
+    for turn in timeline.iter().filter(|turn| turn.end_ns > turn.start_ns) {
+        edges.push((turn.start_ns, turn.speaker, true));
+        edges.push((turn.end_ns, turn.speaker, false));
+    }
+    edges.sort_unstable_by_key(|edge| edge.0);
+
+    let mut spans = Vec::new();
+    let mut active = BTreeMap::<u32, u32>::new();
+    let mut previous = None;
+    let mut index = 0;
+    while index < edges.len() {
+        let boundary = edges[index].0;
+        if active.len() == 1 {
+            if let (Some(start_offset_ns), Some((&cluster, _))) = (previous, active.iter().next()) {
+                append_exclusive_span(&mut spans, cluster, start_offset_ns, boundary);
+            }
+        }
+
+        while index < edges.len() && edges[index].0 == boundary {
+            let (_, cluster, is_start) = edges[index];
+            if is_start {
+                let count = active.entry(cluster).or_insert(0);
+                *count = count.saturating_add(1);
+            } else {
+                let remove = if let Some(count) = active.get_mut(&cluster) {
+                    *count = count.saturating_sub(1);
+                    *count == 0
+                } else {
+                    false
+                };
+                if remove {
+                    active.remove(&cluster);
+                }
+            }
+            index += 1;
+        }
+        previous = Some(boundary);
+    }
+    spans
+}
+
+fn append_exclusive_span(
+    spans: &mut Vec<DiarizationSpeakerSpan>,
+    cluster: u32,
+    start_offset_ns: u64,
+    end_offset_ns: u64,
+) {
+    if start_offset_ns >= end_offset_ns {
+        return;
+    }
+    if let Some(last) = spans.last_mut() {
+        if last.cluster == cluster && last.end_offset_ns == start_offset_ns {
+            last.end_offset_ns = end_offset_ns;
+            return;
+        }
+    }
+    spans.push(DiarizationSpeakerSpan {
+        cluster,
+        start_offset_ns,
+        end_offset_ns,
+    });
 }
 
 /// Attribute `[start, end)` from the timeline. Two speakers audible at once for
@@ -862,16 +1129,27 @@ impl MeetingDiarizationSession {
         }
     }
 
-    pub fn diarize_window(
+    /// Exact singleton activity exists only after a Sortformer prime pass.
+    pub(crate) fn exclusive_spans(&self) -> &[DiarizationSpeakerSpan] {
+        match self {
+            Self::Sortformer(session) => session.exclusive_spans(),
+            Self::WeSpeaker(_) => &[],
+        }
+    }
+
+    pub(crate) fn diarize_window(
         &mut self,
         samples: &[f32],
         start_offset_ns: u64,
         end_offset_ns: u64,
-    ) -> Result<DiarizedWindow, DiarizationError> {
+    ) -> Result<DiarizedWindowResult, DiarizationError> {
         match self {
-            Self::Sortformer(session) => {
-                session.diarize_window(samples, start_offset_ns, end_offset_ns)
-            }
+            Self::Sortformer(session) => session
+                .diarize_window(samples, start_offset_ns, end_offset_ns)
+                .map(|window| DiarizedWindowResult {
+                    window,
+                    embedding: None,
+                }),
             Self::WeSpeaker(session) => {
                 session.diarize_window(samples, start_offset_ns, end_offset_ns)
             }
@@ -881,22 +1159,64 @@ impl MeetingDiarizationSession {
 
 fn update_centroid(
     cluster: &mut SpeakerCluster,
-    embedding: &[f32],
+    embedding: &SpeakerEmbedding,
 ) -> Result<(), DiarizationError> {
     let previous = cluster
         .count
         .to_f32()
         .ok_or(DiarizationError::InferenceFailed)?;
     let next = previous + 1.0;
-    for (centroid, value) in cluster.centroid.iter_mut().zip(embedding) {
+    for (centroid, value) in cluster.centroid.values.iter_mut().zip(embedding.as_slice()) {
         *centroid = (*centroid * previous + *value) / next;
     }
     cluster.count = cluster.count.saturating_add(1);
-    normalize(&mut cluster.centroid).ok_or(DiarizationError::InferenceFailed)
+    normalize(&mut cluster.centroid.values).ok_or(DiarizationError::InferenceFailed)
 }
 
-fn cosine_similarity(left: &[f32], right: &[f32]) -> f32 {
-    left.iter().zip(right).map(|(a, b)| a * b).sum()
+fn cosine_similarity(left: &SpeakerEmbedding, right: &SpeakerEmbedding) -> f32 {
+    left.as_slice()
+        .iter()
+        .zip(right.as_slice())
+        .map(|(a, b)| a * b)
+        .sum()
+}
+
+/// Return the id of the unique profile above the fixed raw-cosine threshold
+/// and runner-up margin.
+///
+/// Model compatibility belongs to the caller, which selects the stored profiles
+/// that were computed by the running model and hands over an id for each. That
+/// leaves one owner for eligibility instead of a filter here that a caller has
+/// already applied, and the id comes back rather than a position, so nothing
+/// has to keep a parallel vector aligned.
+pub(crate) fn match_speaker_profile<'a, Id>(
+    candidate: &SpeakerEmbedding,
+    profiles: impl IntoIterator<Item = (Id, &'a SpeakerEmbedding)>,
+) -> Option<Id> {
+    let mut best: Option<(Id, f32)> = None;
+    let mut runner_up_score = f32::NEG_INFINITY;
+    for (id, profile) in profiles {
+        let score = cosine_similarity(candidate, profile);
+        match &best {
+            Some((_, best_score)) if score <= *best_score => {
+                runner_up_score = runner_up_score.max(score);
+            }
+            Some((_, best_score)) => {
+                runner_up_score = runner_up_score.max(*best_score);
+                best = Some((id, score));
+            }
+            None => best = Some((id, score)),
+        }
+    }
+
+    let (id, best_score) = best?;
+    if best_score < PROFILE_MATCH_THRESHOLD {
+        return None;
+    }
+    if best_score - runner_up_score < PROFILE_MATCH_MARGIN {
+        return None;
+    }
+    Some(id)
 }
 
 fn normalize(values: &mut [f32]) -> Option<()> {
@@ -1062,14 +1382,26 @@ mod tests {
     }
 
     #[test]
-    fn ambiguous_cluster_match_marks_overlap() -> Result<(), DiarizationError> {
-        let mut cluster = SpeakerCluster {
-            centroid: vec![1.0, 0.0],
-            count: 1,
-        };
-        update_centroid(&mut cluster, &[1.0, 0.0])?;
-        assert_eq!(cosine_similarity(&cluster.centroid, &[1.0, 0.0]), 1.0);
-        assert!(OVERLAP_MARGIN > 0.0);
+    fn wespeaker_ensure_is_explicit_only() -> Result<(), Box<dyn std::error::Error>> {
+        let directory = tempfile::tempdir()?;
+        let diarizer = MeetingDiarizer::without_download();
+
+        assert_eq!(
+            diarizer.prepare(directory.path()),
+            Err(DiarizationError::ModelUnavailable)
+        );
+        assert_eq!(
+            diarizer.wespeaker_ensure_requests.load(Ordering::Relaxed),
+            0
+        );
+        assert_eq!(
+            tauri::async_runtime::block_on(diarizer.ensure_wespeaker(directory.path())),
+            Err(DiarizationError::ModelUnavailable)
+        );
+        assert_eq!(
+            diarizer.wespeaker_ensure_requests.load(Ordering::Relaxed),
+            1
+        );
         Ok(())
     }
 
@@ -1081,6 +1413,22 @@ mod tests {
         }
     }
 
+    fn span(cluster: u32, start_ms: u64, end_ms: u64) -> DiarizationSpeakerSpan {
+        DiarizationSpeakerSpan {
+            cluster,
+            start_offset_ns: start_ms * 1_000_000,
+            end_offset_ns: end_ms * 1_000_000,
+        }
+    }
+
+    fn embedding_with_cosine(cosine: f32) -> SpeakerEmbedding {
+        let mut values = [0.0_f32; SPEAKER_EMBEDDING_DIMENSIONS];
+        values[0] = cosine;
+        values[1] = (1.0 - cosine * cosine).sqrt();
+        normalize(&mut values).expect("test vector has a finite norm");
+        SpeakerEmbedding::from_normalized_array(values).expect("test vector is normalized")
+    }
+
     fn segment(speaker_id: i32, t0_ms: i64, t1_ms: i64) -> SpeakerSegment {
         SpeakerSegment {
             t0_ms,
@@ -1088,6 +1436,114 @@ mod tests {
             speaker_id,
             p: 0.9,
         }
+    }
+
+    #[test]
+    fn exclusive_spans_drop_every_overlap_and_coalesce_one_speaker() {
+        let spans = exclusive_spans_from_timeline(&[
+            turn(0, 0, 300),
+            turn(1, 100, 200),
+            turn(0, 300, 400),
+            turn(2, 450, 500),
+        ]);
+
+        assert_eq!(
+            spans,
+            vec![span(0, 0, 100), span(0, 200, 400), span(2, 450, 500)]
+        );
+    }
+
+    #[test]
+    fn profile_match_requires_the_raw_cosine_threshold() {
+        let candidate = embedding_with_cosine(1.0);
+        let at_threshold = embedding_with_cosine(0.80);
+        let below_threshold = embedding_with_cosine(0.79);
+
+        assert_eq!(
+            match_speaker_profile(&candidate, [(0, &at_threshold)]),
+            Some(0)
+        );
+        assert_eq!(
+            match_speaker_profile(&candidate, [(0, &below_threshold)]),
+            None
+        );
+    }
+
+    #[test]
+    fn profile_match_requires_a_runner_up_margin() {
+        let candidate = embedding_with_cosine(1.0);
+        let best = embedding_with_cosine(0.85);
+        let separated_runner_up = embedding_with_cosine(0.76);
+        let close_runner_up = embedding_with_cosine(0.80);
+        let tied_runner_up = embedding_with_cosine(0.85);
+
+        assert_eq!(
+            match_speaker_profile(&candidate, [(0, &best), (1, &separated_runner_up)],),
+            Some(0)
+        );
+        assert_eq!(
+            match_speaker_profile(&candidate, [(0, &best), (1, &close_runner_up)]),
+            None
+        );
+        assert_eq!(
+            match_speaker_profile(&candidate, [(0, &best), (1, &tied_runner_up)]),
+            None
+        );
+    }
+
+    #[test]
+    fn profile_match_rejects_unnormalized_embeddings() {
+        let mut values = [0.0_f32; SPEAKER_EMBEDDING_DIMENSIONS];
+        values[0] = 2.0;
+
+        assert!(SpeakerEmbedding::from_normalized_slice(&values).is_none());
+    }
+
+    #[test]
+    fn fallback_result_carries_its_existing_embedding_once() -> Result<(), DiarizationError> {
+        let embedding = embedding_with_cosine(1.0);
+        let mut clusters = Vec::new();
+        let mut embed_calls = 0;
+
+        let result = diarize_fallback_window(
+            &mut clusters,
+            || {
+                embed_calls += 1;
+                Ok(embedding.clone())
+            },
+            0,
+            NS_PER_SECOND,
+        )?;
+
+        assert_eq!(embed_calls, 1);
+        assert_eq!(result.window.cluster, Some(0));
+        assert_eq!(
+            result.window.assignment,
+            SpeakerAssignmentKind::SystemSpeaker
+        );
+        assert_eq!(result.embedding.as_ref(), Some(&embedding));
+        Ok(())
+    }
+
+    #[test]
+    fn fallback_overlap_drops_the_transient_embedding() -> Result<(), DiarizationError> {
+        let embedding = embedding_with_cosine(1.0);
+        let mut clusters = vec![
+            SpeakerCluster {
+                centroid: embedding_with_cosine(0.90),
+                count: 1,
+            },
+            SpeakerCluster {
+                centroid: embedding_with_cosine(0.88),
+                count: 1,
+            },
+        ];
+
+        let result = diarize_fallback_window(&mut clusters, || Ok(embedding), 0, NS_PER_SECOND)?;
+
+        assert_eq!(result.window.assignment, SpeakerAssignmentKind::Overlap);
+        assert_eq!(result.embedding, None);
+        Ok(())
     }
 
     #[test]
@@ -1101,6 +1557,31 @@ mod tests {
         // The fallback stays a distinct, separately pinned asset.
         assert_ne!(manifest.id, wespeaker_manifest().id);
         assert_eq!(wespeaker_manifest().feature_bins, MEL_BINS);
+    }
+
+    #[test]
+    fn wespeaker_compatibility_key_captures_the_pinned_pipeline() {
+        let manifest = wespeaker_manifest();
+        let key = wespeaker_embedding_model_key();
+        // The revision string is what the store compares before it matches a
+        // stored centroid, so it has to name the pipeline this build runs.
+        let pipeline = format!(
+            "log-mel-{MEL_BINS}-hamming-{FRAME_SAMPLES}-hop-{FRAME_HOP_SAMPLES}\
+             -fft-{FFT_SIZE}-mean-center-v1"
+        );
+        assert_eq!(key.feature_pipeline_revision, pipeline);
+
+        assert_eq!(key.model_id, manifest.id.as_str());
+        assert_eq!(key.model_revision, manifest.revision.as_str());
+        assert_eq!(key.model_sha256, manifest.sha256.as_str());
+        assert_eq!(key.embedding_dimensions, SPEAKER_EMBEDDING_DIMENSIONS);
+        assert_eq!(key.sample_rate_hz, 16_000);
+        assert_eq!(key.feature_bins, MEL_BINS);
+        assert_eq!(
+            key.feature_pipeline_revision,
+            WESPEAKER_FEATURE_PIPELINE_REVISION
+        );
+        assert_eq!(key.normalization, WESPEAKER_NORMALIZATION);
     }
 
     #[test]

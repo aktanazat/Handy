@@ -18,6 +18,9 @@ export const KeyboardDiagnostic: React.FC = () => {
   const osType = useOsType();
   const [running, setRunning] = useState(false);
   const [report, setReport] = useState<KeyboardDiagnosticReport | null>(null);
+  /* The backend's reason, not a sentence. Sona ships 23 catalogs, and a
+   * message translated when it is stored would stay in the old language after
+   * a language switch until the operator re-runs the diagnostic. */
   const [error, setError] = useState<string | null>(null);
 
   if (osType !== "macos") {
@@ -35,13 +38,15 @@ export const KeyboardDiagnostic: React.FC = () => {
       } else {
         setError(result.error);
       }
-    } catch (e) {
-      setError(String(e));
+    } catch (thrown) {
+      /* Same shape as the command's own reason, so both paths reach the same
+       * branch at render: a rejected Error would otherwise arrive as
+       * "Error: permission_denied" and fall through to the generic message. */
+      setError(thrown instanceof Error ? thrown.message : String(thrown));
     } finally {
       setRunning(false);
     }
   };
-
   /* Blocked and suspicious both mean "your keys are not reaching Sona", which
    * is the whole reason someone opens this row, so they read as failures. A
    * healthy result is the unremarkable one and stays in the grey ladder — this
@@ -119,7 +124,9 @@ export const KeyboardDiagnostic: React.FC = () => {
       {error === null ? null : (
         <div className="flex items-center justify-between gap-6 px-4 py-3">
           <Notice tone="danger" className="min-w-0">
-            {t("settings.debug.keyboardDiagnostic.failed", { error })}
+            {error === "permission_denied"
+              ? t("settings.debug.keyboardDiagnostic.inputMonitoringDenied")
+              : t("settings.debug.keyboardDiagnostic.failed", { error })}
           </Notice>
           <Button
             variant="outline"

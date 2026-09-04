@@ -1,11 +1,11 @@
 /* Read-only backend status the Privacy tab reports honestly: how dictation
- * history is stored at rest, and whether cloud sync is actually reachable.
- * Shapes come from the generated bindings; these hooks own only the fetch
- * lifecycle. */
+ * history is stored at rest, and whether cloud sync can use its local
+ * prerequisites. Shapes come from the generated bindings; these hooks own only
+ * the fetch lifecycle. */
 
 import { useCallback, useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { commands } from "../../../bindings";
+import { commands, events } from "../../../bindings";
 import type {
   CloudSyncServiceStatus,
   HistoryStorageStatus,
@@ -73,8 +73,8 @@ export const useHistoryStorageStatus =
     return { phase, value, error, reload };
   };
 
-/** Availability only. Never a toggle: the answer is derived from stored
- * settings plus portable mode, and the user cannot flip it from here. */
+/** Availability only. Never a toggle: the answer combines stored settings with
+ * observed runtime health, and the user cannot flip it from here. */
 export const useCloudSyncServiceStatus =
   (): StatusResource<CloudSyncServiceStatus> => {
     const [value, setValue] = useState<CloudSyncServiceStatus | null>(null);
@@ -103,8 +103,22 @@ export const useCloudSyncServiceStatus =
       };
 
       void read();
+
+      let unlisten: (() => void) | undefined;
+      const subscription = events.cloudSyncChanged.listen(() => {
+        if (!cancelled) void read();
+      });
+      void subscription.then(
+        (dispose) => {
+          if (cancelled) dispose();
+          else unlisten = dispose;
+        },
+        () => undefined,
+      );
+
       return () => {
         cancelled = true;
+        unlisten?.();
       };
     }, [attempt]);
 

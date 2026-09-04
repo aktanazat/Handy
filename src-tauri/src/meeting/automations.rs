@@ -1,10 +1,11 @@
 //! D22: what happens after a meeting, on this machine, because a series was
 //! told to.
 //!
-//! Three effects, all local by construction: reminders go into Apple's own
-//! database, a Shortcut is a program the operator wrote, and a webhook is
-//! refused unless its host is on their own tailnet — the same
-//! [`crate::net_policy`] rule the relay client uses, not a second, looser one.
+//! Four effects, all local by construction: reminders go into Apple's own
+//! database, a Shortcut is a program the operator wrote, a saved prompt asks
+//! whichever engine D14 already allows this meeting, and a webhook is refused
+//! unless its host is on their own tailnet — the same [`crate::net_policy`]
+//! rule the relay client uses, not a second, looser one.
 //!
 //! ## One bounded attempt
 //!
@@ -645,7 +646,7 @@ mod shortcut {
         if !std::path::Path::new(SHORTCUTS_BINARY).exists() {
             return EffectOutcome::failed(MeetingAutomationFailure::Unavailable, None);
         }
-        let mut child = match Command::new(SHORTCUTS_BINARY)
+        let child = match Command::new(SHORTCUTS_BINARY)
             .arg("run")
             .arg(name)
             .stdin(Stdio::piped())
@@ -656,14 +657,34 @@ mod shortcut {
             Ok(child) => child,
             Err(_) => return EffectOutcome::failed(MeetingAutomationFailure::Unavailable, None),
         };
-        // Writing before waiting, and dropping the pipe afterwards, so a
-        // Shortcut that reads all of stdin sees EOF and one that reads none does
-        // not deadlock this thread against a full pipe buffer.
-        if let Some(pipe) = child.stdin.as_mut() {
-            let _ = pipe.write_all(stdin);
+        run_child(child, stdin.to_vec(), EFFECT_TIMEOUT)
+    }
+
+    /// Feed the child its stdin and wait for it, both inside one bound.
+    ///
+    /// The write runs on its own thread because it is exactly as unbounded as
+    /// the wait. A Shortcut that never reads stdin and never exits — the dialog
+    /// case `wait_bounded` exists for — fills the pipe buffer, and `write_all`
+    /// then blocks forever *before* the bound is ever consulted. Writing first
+    /// and dropping the pipe afterwards handles a Shortcut that reads nothing
+    /// and *exits*, which closes the read end; it does nothing for one that
+    /// reads nothing and stays. Killing the child at the deadline closes that
+    /// read end, which is what lets the writer finish rather than leak.
+    pub(super) fn run_child(
+        mut child: std::process::Child,
+        stdin: Vec<u8>,
+        bound: std::time::Duration,
+    ) -> EffectOutcome {
+        let writer = child.stdin.take().map(|mut pipe| {
+            std::thread::spawn(move || {
+                let _ = pipe.write_all(&stdin);
+            })
+        });
+        let waited = wait_bounded(&mut child, bound);
+        if let Some(writer) = writer {
+            let _ = writer.join();
         }
-        drop(child.stdin.take());
-        match wait_bounded(&mut child) {
+        match waited {
             Some(status) if status.success() => EffectOutcome::committed(1, None),
             Some(status) => EffectOutcome::failed(
                 MeetingAutomationFailure::Rejected,
@@ -683,8 +704,11 @@ mod shortcut {
     /// polling and then killing. The poll interval is coarse on purpose: this is
     /// a background pass, and a tenth of a second of latency on a thirty-second
     /// bound costs nothing while a tight loop would burn a core.
-    fn wait_bounded(child: &mut std::process::Child) -> Option<std::process::ExitStatus> {
-        let deadline = std::time::Instant::now() + EFFECT_TIMEOUT;
+    fn wait_bounded(
+        child: &mut std::process::Child,
+        bound: std::time::Duration,
+    ) -> Option<std::process::ExitStatus> {
+        let deadline = std::time::Instant::now() + bound;
         loop {
             match child.try_wait() {
                 Ok(Some(status)) => return Some(status),
@@ -952,8 +976,10 @@ pub fn request_reminders_access() -> super::detection::calendar::CalendarAccess 
 
 #[cfg(test)]
 mod tests {
-    use super::{due_day, next_weekday};
+    use super::{due_day, next_weekday, shortcut, EffectOutcome, MeetingAutomationFailure};
     use chrono::{NaiveDate, Weekday};
+    use std::process::{Command, Stdio};
+    use std::time::{Duration, Instant};
 
     /// A Wednesday, so "friday" is two days out and "monday" is five.
     fn meeting_day() -> NaiveDate {
@@ -1001,5 +1027,42 @@ mod tests {
         ] {
             assert_eq!(due_day(text, meeting_day()), None, "due text {text:?}");
         }
+    }
+
+    /// `EFFECT_TIMEOUT` is the bound on the whole effect, not on the wait
+    /// alone. A Shortcut that never reads its stdin and never exits is the
+    /// exact case `wait_bounded` was written for, and it is also the case that
+    /// fills the pipe buffer: before the fix the pass blocked in `write_all`
+    /// and the bound was never reached, leaving the run row on `started`
+    /// forever and a blocking worker thread parked for the life of the app.
+    ///
+    /// `/bin/sleep` stands in for that Shortcut because it is the same shape —
+    /// a child that outlives the bound and reads nothing — and unlike
+    /// `/usr/bin/shortcuts` it runs nothing of the operator's.
+    #[test]
+    fn a_shortcut_that_never_reads_its_stdin_still_stops_at_the_bound() {
+        let child = Command::new("/bin/sleep")
+            .arg("30")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("/bin/sleep is spawnable");
+        // Past any buffer a pipe on this platform will grow to, so the write
+        // cannot complete until something reads, and nothing will.
+        let payload = vec![b'x'; 4 << 20];
+
+        let started = Instant::now();
+        let outcome = shortcut::run_child(child, payload, Duration::from_secs(1));
+        let elapsed = started.elapsed();
+
+        assert_eq!(
+            outcome,
+            EffectOutcome::failed(MeetingAutomationFailure::TimedOut, None)
+        );
+        assert!(
+            elapsed < Duration::from_secs(10),
+            "the bound was one second; the effect took {elapsed:?}"
+        );
     }
 }

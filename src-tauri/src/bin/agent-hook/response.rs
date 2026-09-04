@@ -22,8 +22,9 @@ const BLOCK_DECISION: &str = "block";
 const APPROVE_DECISION: &str = "Approve";
 const REJECT_DECISION: &str = "Reject";
 const DONT_ASK_DECISION: &str = "dontAsk";
-/// Codex answers a permission request with a behavior, and Grok answers a
-/// pre-tool gate with a lowercase decision. Neither spells them Claude's way.
+/// Claude and Codex answer a permission request with the same documented
+/// `decision.behavior` shape. Grok answers a pre-tool gate with a lowercase
+/// top-level decision.
 const ALLOW_BEHAVIOR: &str = "allow";
 const DENY_BEHAVIOR: &str = "deny";
 
@@ -58,8 +59,8 @@ impl Outcome {
         }
     }
 
-    /// The allow/deny spelling Codex and Grok share. Neither has an equivalent
-    /// of "stop asking about this", which stays a Sona-side permission rule.
+    /// The bare allow/deny spelling emitted for Claude, Codex, and Grok.
+    /// Sona keeps "stop asking about this" as a local permission rule.
     fn allow_or_deny(self) -> Option<&'static str> {
         match self {
             Self::Approve => Some(ALLOW_BEHAVIOR),
@@ -91,21 +92,21 @@ struct ClaudePreToolUseDecision<'a> {
 }
 
 #[derive(Serialize)]
-struct CodexPermissionBehavior<'a> {
+struct PermissionBehavior<'a> {
     behavior: &'a str,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct CodexPermissionOutput<'a> {
+struct PermissionOutput<'a> {
     hook_event_name: &'a str,
-    decision: CodexPermissionBehavior<'a>,
+    decision: PermissionBehavior<'a>,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct CodexPermissionDecision<'a> {
-    hook_specific_output: CodexPermissionOutput<'a>,
+struct PermissionDecision<'a> {
+    hook_specific_output: PermissionOutput<'a>,
 }
 
 /// Grok's pre-tool gate answers at the top level. `allow` only means "this hook
@@ -208,12 +209,12 @@ fn encode_outcome(
                 },
             })
         }
-        (Agent::Codex, CanonicalEventKind::PermissionRequest) => {
+        (Agent::Claude | Agent::Codex, CanonicalEventKind::PermissionRequest) => {
             let behavior = plain_decision(response, outcome)?;
-            serialize(&CodexPermissionDecision {
-                hook_specific_output: CodexPermissionOutput {
+            serialize(&PermissionDecision {
+                hook_specific_output: PermissionOutput {
                     hook_event_name: PERMISSION_REQUEST_HOOK_EVENT,
-                    decision: CodexPermissionBehavior { behavior },
+                    decision: PermissionBehavior { behavior },
                 },
             })
         }
@@ -225,9 +226,8 @@ fn encode_outcome(
     }
 }
 
-/// An allow/deny answer carries nothing else. Codex and Grok both accept a
-/// message with a denial, but the app never writes one for a permission
-/// decision, so no fixture pins those bytes and they are refused.
+/// An allow/deny answer carries nothing else. The app does not write a denial
+/// message, so no fixture pins those bytes and they are refused.
 fn plain_decision(response: &AppResponse, outcome: Outcome) -> Result<&'static str, Diagnostic> {
     if response.reason.is_some() || response.answers.is_some() {
         return Err(Diagnostic::ResponseOutcomeUnsupported);

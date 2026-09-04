@@ -8,6 +8,24 @@ import { PrepCard, RecordingCard, WrapCard } from "./ConsentPanel";
 const i18n = createInstance();
 void i18n.init({ lng: "en", resources: { en: { translation: en } } });
 const noop = () => undefined;
+const wrapMarkup = (unresolvedSpeakerCount: number | null) =>
+  renderToStaticMarkup(
+    <WrapCard
+      card={{
+        sessionId: "00000000-0000-0000-0000-000000000021",
+        title: "Weekly product review",
+        headline: "The launch plan is ready for review.",
+        unresolvedSpeakerCount,
+        followUpCount: 0,
+        waitingOnCount: 0,
+        waitingOnNames: [],
+      }}
+      copied={false}
+      onAction={noop}
+      onCopy={noop}
+      t={i18n.t}
+    />,
+  );
 
 describe("meeting ritual cards", () => {
   test("PREP renders the prior headline, exact top two loops, counts, and actions", () => {
@@ -54,6 +72,7 @@ describe("meeting ritual cards", () => {
           followUpCount: 2,
           waitingOnCount: 1,
           waitingOnNames: ["Maya"],
+          unresolvedSpeakerCount: 2,
         }}
         copied={false}
         onAction={noop}
@@ -64,10 +83,21 @@ describe("meeting ritual cards", () => {
 
     expect(markup).toContain("Weekly product review — saved");
     expect(markup).toContain("The launch plan is ready for review.");
-    expect(markup).toContain("2 follow-ups · 1 waiting on Maya");
+    /* One delta line carries every count the card has: follow-ups, who it is
+     * waiting on, and the speakers still to label. */
+    expect(markup).toContain(
+      "2 follow-ups · 1 waiting on Maya · 2 speakers to label",
+    );
     expect(markup).toContain("Open notes");
     expect(markup).toContain("Copy follow-up");
     expect(markup).toContain("Done");
+  });
+
+  test("WRAP prompts for speakers only when the durable count is positive", () => {
+    expect(wrapMarkup(2)).toContain("2 speakers to label");
+    expect(wrapMarkup(2)).toContain("Open notes");
+    expect(wrapMarkup(0)).not.toContain("speaker to label");
+    expect(wrapMarkup(null)).not.toContain("speaker to label");
   });
 
   /* The disclosure the panel pastes into the meeting's chat is a catalog line

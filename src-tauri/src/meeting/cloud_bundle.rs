@@ -731,3 +731,161 @@ fn validate_citation(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The smallest bundle the export path can legitimately produce: a review-ready
+    /// session with no transcript yet. Every cross-reference set is empty, so the only
+    /// invariants left are the ones this module owns at its byte boundary.
+    fn review_ready_bundle() -> CloudMeetingBundleV1 {
+        let session_id = MeetingSessionId::new();
+        CloudMeetingBundleV1 {
+            format_version: CLOUD_MEETING_BUNDLE_VERSION,
+            audio_included: false,
+            session: CloudBundleSession {
+                session_id,
+                phase: MeetingPhase::ReviewReady,
+                revision: 3,
+                title: "Design sync".to_owned(),
+                origin: MeetingOrigin::Manual,
+                preflight: MeetingPreflightSnapshot {
+                    session_id,
+                    revision: 0,
+                    proposed_title: "Design sync".to_owned(),
+                    origin: MeetingOrigin::Manual,
+                    sources: Vec::new(),
+                    storage: StorageAvailability::Available,
+                    local_processing: SourceAvailability::Available,
+                    destination: ProcessingDestination::Local,
+                    microphone_device_uid: None,
+                    frozen_system_audio_application_bundle_ids: Vec::new(),
+                    accepted_known_missing_sources: Vec::new(),
+                    degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+                    required_acknowledgements: Vec::new(),
+                    allowed_actions: Vec::new(),
+                },
+                created_at_utc_ms: 1,
+                started_at_utc_ms: Some(2),
+                ended_at_utc_ms: Some(3),
+                recovered_at_utc_ms: None,
+                successful_plan_id: None,
+                processing_status: ProcessingStatus::Succeeded,
+                retention_policy: MeetingRetentionPolicy::Forever,
+                delete_after_utc_ms: None,
+                current_transcript_revision_id: None,
+                current_diarization_generation_id: None,
+                diarization_status: DiarizationStatus::NotRequested,
+                diarization_model_id: None,
+                diarization_model_version: None,
+            },
+            run_plans: Vec::new(),
+            consents: Vec::new(),
+            source_tracks: Vec::new(),
+            source_clock_epochs: Vec::new(),
+            capture_windows: Vec::new(),
+            source_gaps: Vec::new(),
+            speakers: Vec::new(),
+            transcript_revisions: Vec::new(),
+            transcript_segments: Vec::new(),
+            segment_edits: Vec::new(),
+            notes: Vec::new(),
+            artifacts: Vec::new(),
+            artifact_revisions: Vec::new(),
+            questions: Vec::new(),
+            diarization_generations: Vec::new(),
+            diarization_assignments: Vec::new(),
+        }
+    }
+
+    fn tampered(
+        bundle: &CloudMeetingBundleV1,
+        edit: impl FnOnce(&mut serde_json::Value),
+    ) -> Vec<u8> {
+        let mut document: serde_json::Value =
+            serde_json::from_slice(&bundle.to_json_bytes().expect("valid bundle serializes"))
+                .expect("bundle bytes are JSON");
+        edit(&mut document);
+        serde_json::to_vec(&document).expect("tampered document serializes")
+    }
+
+    #[test]
+    fn a_bundle_survives_its_own_bytes() {
+        let bundle = review_ready_bundle();
+        let bytes = bundle.to_json_bytes().expect("valid bundle serializes");
+
+        assert_eq!(
+            CloudMeetingBundleV1::from_json_bytes(&bytes).expect("own bytes parse"),
+            bundle
+        );
+    }
+
+    #[test]
+    fn a_bundle_claiming_audio_is_refused_at_the_byte_boundary() {
+        let bytes = tampered(&review_ready_bundle(), |document| {
+            document["audio_included"] = serde_json::Value::Bool(true);
+        });
+
+        assert_eq!(
+            CloudMeetingBundleV1::from_json_bytes(&bytes),
+            Err(StoreError::Invalid)
+        );
+    }
+
+    #[test]
+    fn a_bundle_whose_preflight_names_another_session_is_refused() {
+        let bytes = tampered(&review_ready_bundle(), |document| {
+            document["session"]["preflight"]["session_id"] =
+                serde_json::Value::String(Uuid::new_v4().to_string());
+        });
+
+        assert_eq!(
+            CloudMeetingBundleV1::from_json_bytes(&bytes),
+            Err(StoreError::Invalid)
+        );
+    }
+
+    #[test]
+    fn a_bundle_still_capturing_is_refused_as_a_conflict() {
+        let bytes = tampered(&review_ready_bundle(), |document| {
+            document["session"]["phase"] = serde_json::json!("capturing_recording");
+        });
+
+        assert_eq!(
+            CloudMeetingBundleV1::from_json_bytes(&bytes),
+            Err(StoreError::Conflict)
+        );
+    }
+
+    #[test]
+    fn a_truncated_or_empty_bundle_is_refused_at_every_length() {
+        let bytes = review_ready_bundle()
+            .to_json_bytes()
+            .expect("valid bundle serializes");
+
+        assert_eq!(
+            CloudMeetingBundleV1::from_json_bytes(&[]),
+            Err(StoreError::Invalid)
+        );
+        for length in 1..bytes.len() {
+            assert_eq!(
+                CloudMeetingBundleV1::from_json_bytes(&bytes[..length]),
+                Err(StoreError::Invalid),
+                "a {length}-byte prefix of a bundle must not parse"
+            );
+        }
+    }
+
+    #[test]
+    fn a_bundle_carrying_an_unknown_field_is_refused() {
+        let bytes = tampered(&review_ready_bundle(), |document| {
+            document["audio_relative_path"] = serde_json::json!("audio/track.wav");
+        });
+
+        assert_eq!(
+            CloudMeetingBundleV1::from_json_bytes(&bytes),
+            Err(StoreError::Invalid)
+        );
+    }
+}
