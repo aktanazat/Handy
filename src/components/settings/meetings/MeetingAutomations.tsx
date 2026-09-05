@@ -162,7 +162,7 @@ export const MeetingAutomations: React.FC = () => {
 
   return (
     <SettingsSection label={t("settings.meetings.automations.title")}>
-      <div className="px-4 py-3">
+      <div className="px-6 py-3">
         <Microlabel>
           {t("settings.meetings.automations.description")}
         </Microlabel>
@@ -201,14 +201,14 @@ export const MeetingAutomations: React.FC = () => {
         </SettingsDisclosure>
       ))}
       {remindersDenied ? (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice tone="warning">
             {t("settings.meetings.automations.remindersDenied")}
           </Notice>
         </div>
       ) : null}
       {error ? (
-        <div role="alert" className="px-4 py-2.5">
+        <div role="alert" className="px-6 py-2.5">
           <Notice tone="danger" live={false}>
             {error}
           </Notice>

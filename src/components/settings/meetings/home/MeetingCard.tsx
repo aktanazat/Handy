@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/vg/dropdown-menu";
 import { cn } from "@/lib/cn";
-import { formatDurationShort } from "@/lib/utils/format";
+import { formatDurationShort, formatRelativeTime } from "@/lib/utils/format";
 import { formatTimeOfDay } from "@/lib/utils/localDay";
 import { processingStatusKey } from "../meetingUtils";
 import { MeetingStatusChip, meetingCardStatus } from "./MeetingStatusChip";
@@ -74,13 +74,13 @@ export const MeetingSummaryRow: React.FC<MeetingSummaryRowProps> = ({
   const content = (
     <>
       <span className="flex min-w-0 items-start justify-between gap-3">
-        <span className="truncate text-[14px] leading-5 font-medium text-gray-1000">
+        <span className="truncate text-[14px] leading-[21px] font-medium text-gray-1000">
           {title}
         </span>
         {titleAside}
       </span>
       {headline === null ? null : (
-        <span className="w-full truncate text-[13px] leading-[18px] text-gray-900">
+        <span className="w-full truncate text-[14px] leading-[21px] text-gray-900">
           {headline}
         </span>
       )}
@@ -90,13 +90,13 @@ export const MeetingSummaryRow: React.FC<MeetingSummaryRowProps> = ({
           {metadata.length === 0 ? null : (
             <span
               data-slot="meeting-facts"
-              className="ms-auto flex flex-none items-center text-[11px] text-gray-900 tabular-nums"
+              className="snap-measured ms-auto flex flex-none items-center text-[13px] leading-[18px] text-gray-900 tabular-nums"
             >
               {metadata.map((fact, index) => (
                 <React.Fragment key={index}>
                   {index === 0 ? null : (
                     <span aria-hidden="true" className="px-1.5 text-gray-700">
-                      /
+                      ·
                     </span>
                   )}
                   {fact}
@@ -109,7 +109,7 @@ export const MeetingSummaryRow: React.FC<MeetingSummaryRowProps> = ({
     </>
   );
   const contentClass = cn(
-    "flex min-w-0 flex-1 flex-col gap-2 text-start",
+    "flex min-w-0 flex-1 flex-col gap-1 text-start",
     contentClassName,
   );
 
@@ -173,42 +173,61 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
     headline.kind === "ledger" || headline.kind === "summary"
       ? `${meeting.title} — ${headline.text}`
       : meeting.title;
+  /* One line under the title, in the order a person asks: when, how long, who
+   * was in it. Each part appears only when the meeting reported it, so a
+   * capture with nothing to report says the time and stops rather than
+   * printing a zero and an empty list. */
+  const speakers = meeting.speaker_labels ?? [];
+  const measured = [
+    formatTimeOfDay(meeting.created_at_utc_ms),
+    recordedMs === null ? null : formatDurationShort(recordedMs / 1000),
+    speakers.length === 0 ? null : speakers.join(", "),
+  ]
+    .filter((fact): fact is string => fact !== null)
+    .join(" · ");
 
   return (
     <li
       data-slot="meeting-entry"
       data-headline={headline.kind}
-      className="flex items-center gap-1 pe-2"
+      className="flex items-center gap-1 pe-4"
     >
       <button
         type="button"
         onClick={onOpen}
         title={openTitle}
-        className="hover-fast flex min-w-0 flex-1 items-center gap-3 px-4 py-2.5 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
+        className="hover-fast flex min-w-0 flex-1 items-start gap-4 px-6 py-3.5 text-start hover:bg-background-200"
       >
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="truncate text-[13px] leading-[19px] text-gray-1000">
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="truncate text-[14px] leading-[21px] font-medium text-gray-1000">
             {meeting.title}
           </span>
-          {status === "needs_attention" ? (
-            <span className="truncate text-[12px] leading-4 text-red-900">
-              {t(processingStatusKey(meeting.processing_status))}
+          <span className="flex min-w-0 items-baseline gap-2 text-[13px] leading-[18px] text-gray-900">
+            <span className="snap-measured truncate tabular-nums">
+              {measured}
             </span>
-          ) : null}
-        </span>
-        {status === "ready" ? null : (
-          <MeetingStatusChip
-            phase={meeting.phase}
-            processing={meeting.processing_status}
-          />
-        )}
-        {recordedMs === null ? null : (
-          <span className="snap-measured flex-none text-[11px] text-gray-900 tabular-nums">
-            {formatDurationShort(recordedMs / 1000)}
+            {status === "ready" ? null : (
+              <MeetingStatusChip
+                phase={meeting.phase}
+                processing={meeting.processing_status}
+              />
+            )}
+            {/* The state word carries the colour; its explanation is ordinary
+             * type beside it, because two red phrases on one line read as one
+             * long alarm rather than a state and its reason. */}
+            {status === "needs_attention" ? (
+              <span className="truncate">
+                {t(processingStatusKey(meeting.processing_status))}
+              </span>
+            ) : null}
           </span>
-        )}
-        <span className="snap-measured w-[52px] flex-none text-end text-[11px] text-gray-900 tabular-nums">
-          {formatTimeOfDay(meeting.created_at_utc_ms)}
+        </span>
+        {/* How long ago, on the title's line at the row's end. The day
+         * heading above the group says which day and the line below the title
+         * says the clock time; neither answers "recent or not" at a glance,
+         * which is what somebody scanning a log of meetings is asking. */}
+        <span className="snap-measured flex-none text-end text-[13px] leading-[21px] text-gray-900 tabular-nums">
+          {formatRelativeTime(meeting.created_at_utc_ms)}
         </span>
       </button>
 

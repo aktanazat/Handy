@@ -47,40 +47,32 @@ export const PersonDocuments: React.FC<PersonDocumentsProps> = ({
       }
     >
       {loadFailed ? (
-        <div className="px-4 py-3">
+        <div className="px-6 py-3.5">
           <Notice tone="danger">{t("people.detail.documentsLoadError")}</Notice>
         </div>
       ) : documents.length === 0 ? (
-        <EmptyStateRow icon={FileText}>
-          {t("people.detail.noDocuments")}
-        </EmptyStateRow>
+        <EmptyStateRow>{t("people.detail.noDocuments")}</EmptyStateRow>
       ) : (
         <ul className="divide-y divide-gray-alpha-400">
           {documents.map((document) => (
             <li
               key={document.summary.id}
               data-slot="person-document"
-              className="px-4 py-3"
+              className="px-6 py-3.5"
             >
               {/* The whole row is the disclosure now. Delete lives under the
                * text it deletes rather than on the closed line: a catalogue of
                * imported context reads as a catalogue, and the one control
                * that can destroy an entry waits inside the entry you opened. */}
               <details className="group min-w-0">
-                <summary className="flex cursor-pointer list-none items-start gap-2 rounded-md focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
-                  <FileText
-                    aria-hidden="true"
-                    className="mt-0.5 size-4 flex-none text-gray-700"
-                  />
+                <summary className="flex cursor-pointer list-none items-start gap-4 rounded-md focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium text-gray-1000">
+                    <span className="block truncate text-[14px] leading-[21px] font-medium text-gray-1000">
                       {document.summary.title}
                     </span>
                     <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <Microlabel className="normal-case">
-                        {document.summary.source_name}
-                      </Microlabel>
-                      <Microlabel className="normal-case tabular-nums">
+                      <Microlabel>{document.summary.source_name}</Microlabel>
+                      <Microlabel className="tabular-nums">
                         {formatEntryTimestamp(
                           document.summary.created_at_utc_ms,
                         )}
@@ -89,10 +81,10 @@ export const PersonDocuments: React.FC<PersonDocumentsProps> = ({
                   </span>
                   <ChevronDown
                     aria-hidden="true"
-                    className="mt-0.5 size-4 flex-none text-gray-700 transition-transform group-open:rotate-180"
+                    className="mt-0.5 size-4 flex-none text-gray-700 transition-transform motion-reduce:transition-none group-open:rotate-180"
                   />
                 </summary>
-                <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap border-t border-gray-alpha-400 pt-3 text-[11px] leading-5 text-gray-900 select-text">
+                <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap border-t border-gray-alpha-400 pt-3 text-[13px] leading-[20px] text-gray-900 select-text">
                   {document.content}
                 </pre>
                 <div className="mt-2 flex justify-end">

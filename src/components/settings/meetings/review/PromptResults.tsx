@@ -113,13 +113,13 @@ const PromptRunRow: React.FC<PromptRunRowProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div data-slot="prompt-run" className="flex flex-col gap-3 px-4 py-3">
+    <div data-slot="prompt-run" className="flex flex-col gap-3 px-6 py-3.5">
       <div className="flex items-center justify-between gap-4">
-        <span className="truncate text-[13px] text-gray-1000">
+        <span className="truncate text-[14px] leading-[21px] font-medium text-gray-1000">
           {name ?? t("prompts.results.deleted")}
         </span>
         <span className="flex flex-none items-center gap-2">
-          <span className="text-[11px] text-gray-800 tabular-nums">
+          <span className="text-[13px] leading-[18px] tabular-nums text-gray-900">
             {formatRelativeTime(run.produced_at_utc_ms, now)}
           </span>
           {name === undefined ? null : (
@@ -172,10 +172,10 @@ const PromptRunJson: React.FC<{ json: string }> = ({ json }) => {
     <dl data-slot="prompt-run-json" className="flex flex-col gap-1.5">
       {entries.map(([key, value]) => (
         <div key={key} className="flex items-baseline gap-3">
-          <dt className="w-40 flex-none truncate text-[12px] text-gray-900">
+          <dt className="w-40 flex-none truncate text-[13px] text-gray-900">
             {key}
           </dt>
-          <dd className="min-w-0 flex-1 text-[13px] text-gray-1000">{value}</dd>
+          <dd className="min-w-0 flex-1 text-[14px] text-gray-1000">{value}</dd>
         </div>
       ))}
     </dl>

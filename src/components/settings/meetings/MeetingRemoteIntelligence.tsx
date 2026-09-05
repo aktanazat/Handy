@@ -143,7 +143,7 @@ export const MeetingRemoteIntelligence: React.FC = () => {
           }
         />
       </SettingsRow>
-      <div className="flex flex-col gap-2 px-4 py-3">
+      <div className="flex flex-col gap-2 px-6 py-3">
         <Notice live={false}>
           {t("settings.meetings.remoteIntelligence.consent")}
         </Notice>
@@ -165,13 +165,13 @@ export const MeetingRemoteIntelligence: React.FC = () => {
             hint={t("settings.meetings.remoteIntelligence.seriesHint")}
           />
           {rows === null ? (
-            <div className="px-4 py-3">
+            <div className="px-6 py-3">
               <Notice>
                 {t("settings.meetings.remoteIntelligence.loading")}
               </Notice>
             </div>
           ) : rows.length === 0 ? (
-            <div className="px-4 py-3">
+            <div className="px-6 py-3">
               <Notice live={false}>
                 {t("settings.meetings.remoteIntelligence.seriesEmpty")}
               </Notice>

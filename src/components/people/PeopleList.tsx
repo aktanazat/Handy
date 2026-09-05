@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertCircle, ChevronRight, LoaderCircle, Users } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PersonListEntry } from "@/bindings";
 import {
@@ -9,7 +9,7 @@ import {
   SettingsSurface,
 } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
-import { formatEntryTimestamp } from "@/lib/utils/format";
+import { formatRelativeTime } from "@/lib/utils/format";
 import { EmptyStateRow } from "./EmptyStateRow";
 import { organizationsFromEntries } from "./peopleModel";
 
@@ -38,9 +38,9 @@ const OrganizationStrip: React.FC<{
 
   return (
     <SettingsSurface data-slot="organizations-strip">
-      <div className="flex flex-col gap-2 px-4 py-3">
+      <div className="flex flex-col gap-2 px-6 py-4">
         <Microlabel>{t("organizations.title")}</Microlabel>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {organizations.map((organization) => (
             <Button
               key={organization.name}
@@ -62,54 +62,58 @@ const OrganizationStrip: React.FC<{
   );
 };
 
-/* One person, one line: who they are, how many meetings you have had, and
- * when the last one was. Everything else about them — the meetings
- * themselves, what is still open, and how Sona connected them — is on their
- * own page, which is what this row opens. */
+/* One person, one row: the name, one line of relationship facts — where they
+ * are and how many meetings you have had — and, at the row's end, how long
+ * ago the last one was. The elapsed phrasing is the fact somebody scans a
+ * list of people for; the exact date is on the person's own page, which is
+ * what the row opens, along with everything else about them. */
 const PersonRow: React.FC<{
   entry: PersonListEntry;
   onOpen: () => void;
 }> = ({ entry, onOpen }) => {
   const { t } = useTranslation();
   const lastMeeting = entry.last_meeting;
+  const meetings = t("people.list.meetings", {
+    count: entry.confirmed_count,
+  });
+  const lastMet =
+    lastMeeting === null
+      ? null
+      : t("peopleV2.list.lastMet", {
+          date: formatRelativeTime(lastMeeting.at_ms),
+        });
 
   return (
     <li data-slot="person-card">
       <button
         type="button"
         onClick={onOpen}
-        className="hover-fast flex w-full min-w-0 items-center gap-3 px-4 py-2.5 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
+        className="hover-fast flex w-full min-w-0 items-center gap-4 px-6 py-3.5 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-inset focus-visible:outline-none"
       >
-        <span className="flex min-w-0 flex-1 items-baseline gap-2">
-          <span className="min-w-0 truncate text-[13px] leading-[19px] text-gray-1000">
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="min-w-0 truncate text-[14px] leading-[21px] font-medium text-gray-1000">
             {entry.person.display_name}
           </span>
-          {entry.person.organization === null ? null : (
-            <span
-              data-slot="person-organization"
-              className="flex-none text-[11px] leading-4 text-gray-800"
-            >
-              {entry.person.organization}
-            </span>
-          )}
-        </span>
-        <span className="snap-measured flex flex-none items-center gap-1.5 text-[11px] text-gray-900 tabular-nums">
-          <span>
-            {t("people.list.meetings", { count: entry.confirmed_count })}
+          {/* One line, in the order it is read: the place, then the count.
+           * Interpuncts join it rather than separate cells, because it is a
+           * sentence about a person and not a table of them. */}
+          <span className="snap-measured min-w-0 truncate text-[13px] leading-[18px] text-gray-900 tabular-nums">
+            {entry.person.organization === null ? null : (
+              <>
+                <span data-slot="person-organization">
+                  {entry.person.organization}
+                </span>
+                {" · "}
+              </>
+            )}
+            {meetings}
           </span>
-          {lastMeeting === null ? null : (
-            <>
-              <span aria-hidden="true" className="text-gray-800">
-                ·
-              </span>
-              <span>
-                {t("peopleV2.list.lastMet", {
-                  date: formatEntryTimestamp(lastMeeting.at_ms),
-                })}
-              </span>
-            </>
-          )}
         </span>
+        {lastMet === null ? null : (
+          <span className="snap-measured flex-none text-end text-[13px] leading-[18px] text-gray-900 tabular-nums">
+            {lastMet}
+          </span>
+        )}
         <ChevronRight
           aria-hidden="true"
           className="size-3.5 flex-none text-gray-700 rtl:rotate-180"
@@ -133,7 +137,6 @@ export const PeopleListView: React.FC<PeopleListViewProps> = ({
       {error ? (
         <SettingsSurface>
           <EmptyStateRow
-            icon={AlertCircle}
             action={
               <Button
                 type="button"
@@ -150,13 +153,11 @@ export const PeopleListView: React.FC<PeopleListViewProps> = ({
         </SettingsSurface>
       ) : entries === null ? (
         <SettingsSurface>
-          <EmptyStateRow icon={LoaderCircle}>
-            {t("common.loading")}
-          </EmptyStateRow>
+          <EmptyStateRow>{t("common.loading")}</EmptyStateRow>
         </SettingsSurface>
       ) : entries.length === 0 ? (
         <SettingsSurface>
-          <EmptyStateRow icon={Users}>{t("people.list.empty")}</EmptyStateRow>
+          <EmptyStateRow>{t("people.list.empty")}</EmptyStateRow>
         </SettingsSurface>
       ) : (
         <>

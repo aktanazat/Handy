@@ -8,7 +8,10 @@
   color: var(--color-text-primary);
   background-color: var(--color-canvas);
   font-size: 14px;
-  line-height: 20px;
+  /* 14/21 is the body pair every page writes explicitly, so the inherited
+     line box matches it: a `text-[14px]` with no leading of its own lands on
+     the same rhythm as one that names it. */
+  line-height: 21px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

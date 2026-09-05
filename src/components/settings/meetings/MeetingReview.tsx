@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, FileJson, FileText, Trash2 } from "lucide-react";
+import { ArrowLeft, FileJson, FileText, MoreHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   commands,
@@ -27,6 +27,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/vg/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/vg/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/vg/tabs";
 import { CloudMeetingActions } from "../../cloud-sync/CloudMeetingActions";
 import type { SegmentJump } from "./review/Citations";
@@ -97,13 +103,17 @@ export const nextReviewTab = (
       ? "insights"
       : null);
 
-/* The kit's own `line` variant draws the mark; this only quiets the type and
- * moves the focus ring onto the accent. */
+/* One row of text tabs. The kit's `line` variant draws the mark; this quiets
+ * the type to the page's own 14px, weights the open one, and replaces the kit's
+ * 2px black rule with the 1px accent the rest of the app underlines with. The
+ * `group-data` prefix on the bar is not decoration: a plain `after:h-px` loses
+ * to the kit's own variant selector. */
 const TAB_TRIGGER_CLASSES =
-  "flex-none px-0 text-sm font-normal text-gray-900 hover:text-gray-1000 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none data-[state=active]:text-gray-1000 after:bg-gray-1000";
+  "flex-none px-0 text-[14px] leading-[21px] font-normal text-gray-900 transition-colors hover:text-gray-1000 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none data-[state=active]:font-medium data-[state=active]:text-gray-1000 after:bg-primary group-data-[orientation=horizontal]/tabs:after:h-px";
 
-/** Every review panel is a column of sections on the page's own rhythm. */
-const TAB_PANEL_CLASSES = "flex flex-col gap-10";
+/** Every review panel is a column of sections on the page's own rhythm, set
+ * off from the tab strip it opened under. */
+const TAB_PANEL_CLASSES = "mt-6 flex flex-col gap-8";
 
 /** How long typing settles before the store is asked for its own answer.
  * Short enough that a finished word is answered, long enough that a typed
@@ -449,7 +459,7 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
         </div>
       ) : null}
 
-      <Tabs value={tab} onValueChange={selectTab} className="gap-8">
+      <Tabs value={tab} onValueChange={selectTab} className="gap-0">
         <div className="-mx-8 border-b border-gray-alpha-400 px-8">
           <TabsList
             variant="line"
@@ -611,61 +621,67 @@ const MeetingReviewHeader: React.FC<MeetingReviewHeaderProps> = ({
         <ArrowLeft aria-hidden="true" className="size-3.5" />
         {t("meetings.actions.back")}
       </Button>
-      <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <MeetingTitleEditor
-            key={
-              snapshot.session.session_id +
-              ":" +
-              snapshot.session.revision +
-              ":" +
-              snapshot.session.title
-            }
-            title={snapshot.session.title}
-            disabled={busy || !editable}
-            onTitleSet={onTitleSet}
-          />
-        </div>
-        {unresolvedSpeakerCount !== null && unresolvedSpeakerCount > 0 ? (
-          <div className="flex flex-none items-center gap-2">
-            <span className="max-w-28 truncate text-end text-[11px] leading-4 text-gray-800">
-              {t("meetings.review.unresolvedSpeakers", {
-                count: unresolvedSpeakerCount,
-              })}
-            </span>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={busy || !editable}
-              onClick={onLabelSpeaker}
-            >
-              {t("meetings.review.labelSpeaker")}
-            </Button>
-          </div>
-        ) : null}
-      </div>
-      {/* One line of facts about the recording, and the state it is in. The
-       * completeness word only appears when it changes what the record can be
-       * trusted for: "Complete" beside "Ready for review" says nothing twice,
-       * and a partial recording has to say so in words. */}
-      <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <MeetingPhaseText phase={snapshot.session.phase} />
-        {snapshot.session.capture_completeness === "partial" ? (
-          /* `StatusWord`'s warning tone; the copy is this surface's own. */
-          <span className="text-[12px] leading-4 text-amber-900">
-            {t("meetings.review.partialRecording")}
+      {/* The title and the facts under it are one block, set tight: a
+       * document's name and its date are read together. */}
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <MeetingTitleEditor
+          key={
+            snapshot.session.session_id +
+            ":" +
+            snapshot.session.revision +
+            ":" +
+            snapshot.session.title
+          }
+          title={snapshot.session.title}
+          disabled={busy || !editable}
+          onTitleSet={onTitleSet}
+        />
+        {/* One line of facts about the recording, and the state it is in, all
+         * in the page's meta type. The completeness word only appears when it
+         * changes what the record can be trusted for: "Complete" beside
+         * "Ready for review" says nothing twice, and a partial recording has
+         * to say so in words. */}
+        <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="text-[13px] leading-[18px] tabular-nums text-gray-900">
+            {metadata}
           </span>
-        ) : null}
-        <span className="text-[13px] leading-5 text-gray-700">{metadata}</span>
-      </p>
+          <MeetingPhaseText phase={snapshot.session.phase} />
+          {snapshot.session.capture_completeness === "partial" ? (
+            /* `StatusWord`'s warning tone; the copy is this surface's own. */
+            <span className="text-[13px] leading-[18px] text-amber-900">
+              {t("meetings.review.partialRecording")}
+            </span>
+          ) : null}
+        </p>
+      </div>
       {/* Talk share sits under the facts line, not among them: it is a shape,
-       * and the chips beside it are single values. */}
+       * and the facts beside it are single values. */}
       <TalkTimeRow
         diarization={snapshot.diarization}
         analytics={analytics}
         speakerNames={speakerNames}
       />
+      {/* Voices nobody has named yet: one quiet line and the one press that
+       * answers it. It used to sit beside the title, where it competed with
+       * the page's own name for the top-right corner. */}
+      {unresolvedSpeakerCount !== null && unresolvedSpeakerCount > 0 ? (
+        <p className="flex flex-wrap items-center gap-3">
+          <span className="text-[13px] leading-[18px] text-gray-900">
+            {t("meetings.review.unresolvedSpeakers", {
+              count: unresolvedSpeakerCount,
+            })}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy || !editable}
+            onClick={onLabelSpeaker}
+          >
+            {t("meetings.review.labelSpeaker")}
+          </Button>
+        </p>
+      ) : null}
       {lastReceipt?.session_id === snapshot.session.session_id ? (
         <MeetingReceipt receipt={lastReceipt} />
       ) : null}
@@ -707,7 +723,7 @@ const MeetingTitleEditor: React.FC<MeetingTitleEditorProps> = ({
         aria-label={t("meetings.review.meetingTitle")}
         onBlur={(event) => commit(event.target.value)}
         onKeyDown={inlineEditKeys(commit, () => setEditing(false))}
-        className="w-full border-0 border-b border-blue-700 bg-transparent pb-px text-[24px] leading-[30px] font-medium tracking-tight text-gray-1000 outline-none"
+        className="w-full border-0 border-b border-ring bg-transparent pb-px text-[24px] leading-[30px] font-semibold tracking-[-0.01em] text-gray-1000 outline-none"
       />
     );
   }
@@ -721,7 +737,7 @@ const MeetingTitleEditor: React.FC<MeetingTitleEditorProps> = ({
           type="button"
           title={t("meetings.review.editTitle")}
           onClick={() => setEditing(true)}
-          className="cursor-pointer rounded-md text-start transition-colors hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+          className="cursor-pointer rounded-md text-start transition-colors hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none"
         >
           {title}
         </button>
@@ -741,8 +757,12 @@ const MeetingReceipt: React.FC<MeetingReceiptProps> = ({ receipt }) => {
     .join(" · ");
 
   return (
-    <p aria-live="polite" className="text-sm text-gray-700">
-      <span className="text-gray-900">{t("meetings.receipts.title")}</span>{" "}
+    /* What the store wrote, in the words a person would use for it. The
+     * "Correction receipt" label over it named the machinery, not the fact. */
+    <p
+      aria-live="polite"
+      className="text-[13px] leading-[18px] tabular-nums text-gray-900"
+    >
       {receipt.new_revision === null
         ? t("meetings.receipts.saved")
         : t("meetings.receipts.savedRevision", {
@@ -775,7 +795,7 @@ const MeetingExportBar: React.FC<MeetingExportBarProps> = ({
 
   return (
     <SettingsSection label={t("meetings.review.export")}>
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2 px-6 py-3.5">
         <Button
           type="button"
           variant="outline"
@@ -796,19 +816,35 @@ const MeetingExportBar: React.FC<MeetingExportBarProps> = ({
           <FileJson aria-hidden="true" className="size-3.5" />
           {t("meetings.review.exportJson")}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="ms-auto text-red-900 hover:text-red-900"
-          onClick={() => setDeleteOpen(true)}
-          disabled={busy || !canDelete}
-        >
-          <Trash2 aria-hidden="true" className="size-3.5" />
-          {t("meetings.actions.delete")}
-        </Button>
+        {/* Deleting a meeting is not something a reader should be able to do
+         * by mis-aiming at Export. It keeps its confirmation, and it now
+         * keeps a menu in front of that: one press to find it, and the
+         * reading surface carries no red button of its own. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="ms-auto"
+              aria-label={t("meetings.list.rowActions")}
+              disabled={busy || !canDelete}
+            >
+              <MoreHorizontal aria-hidden="true" className="size-3.5" />
+              {t("meetings.review.moreActions")}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => setDeleteOpen(true)}
+            >
+              {t("meetings.actions.delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-      <div className="px-4 py-3">
+      <div className="px-6 py-3.5">
         <CloudMeetingActions sessionId={snapshot.session.session_id} />
       </div>
 

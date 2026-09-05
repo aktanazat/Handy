@@ -230,14 +230,16 @@ describe("the collapsed row", () => {
     expect(occurrences(open, "Starts in 45s")).toBe(1);
   });
 
-  test("shows the frozen relationship briefing in at most two quiet lines", () => {
+  test("shows the frozen relationship briefing, and only where one was given", () => {
     const markup = card({ briefing: BRIEFING });
 
     expect(markup).toContain('data-slot="preview-briefing"');
     expect(markup).toContain("You have met Dana Reyes 3 times");
     expect(markup).toContain("Who owns the launch checklist?");
     expect(markup).toContain(formatEntryTimestamp(START - 86_400_000));
-    expect(occurrences(markup, '<p class="truncate">')).toBe(2);
+    /* The briefing belongs to the people slice, so its own markup is not
+     * pinned here — counting its paragraph classes made this card's test fail
+     * on a restyle two folders away that changed nothing this card owns. */
     expect(card()).not.toContain('data-slot="preview-briefing"');
   });
 

@@ -24,13 +24,19 @@ const ROW_COLLAPSE_MS = 180;
 /* The whole collapsed row is the disclosure. Nothing else in it is clickable,
  * which is the point: a quiet log shows text, a count and a time, and grows the
  * controls only for the one row you asked about. */
+/* `ring-inset`, not the default outset ring: the day's surface clips its own
+ * overflow (that is what rounds the first and last row), so an outset ring on
+ * a full-width row button is drawn outside the surface and disappears. Focus
+ * was invisible on every Library row until the ring moved inside. */
 const ROW_BUTTON =
-  "flex w-full items-center gap-3 px-4 py-2.5 text-start transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none";
+  "flex w-full items-baseline gap-4 px-6 py-3.5 text-start transition-colors motion-reduce:transition-none hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-inset focus-visible:outline-none";
 
-/* The row's two measured cells. `snap-measured` because a count and a clock
- * time are measurements: tweening either displays a value nothing reported. */
+/* The row's two measured cells, in the Meta tier. `snap-measured` because a
+ * count and a clock time are measurements: tweening either displays a value
+ * nothing reported. They share one gutter at the row's end, each cell a fixed
+ * width, so counts and clocks line up down the whole log. */
 const ROW_MEASURE =
-  "snap-measured flex-none text-[11px] tabular-nums text-gray-800";
+  "snap-measured flex-none text-end text-[13px] leading-[18px] tabular-nums text-gray-900";
 
 interface HistoryEntryComponentProps {
   entry: HistoryEntry;
@@ -251,12 +257,11 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
           data-testid="history-entry-toggle"
         >
           <span
-            /* 13px explicitly, not `text-sm`. This app sets
+            /* 14px explicitly, not `text-sm`. This app sets
              * `:root { font-size: 14px }`, so text-sm renders 12.25px — the
              * legacy SECONDARY tier — and the transcript is the row's content,
-             * not help text. 13px/19px is the row tier this list has always
-             * used. */
-            className="min-w-0 flex-1 text-pretty line-clamp-2 text-[13px] leading-[19px] text-gray-1000 select-text data-[expanded=true]:line-clamp-none data-[expanded=true]:overflow-visible data-[expanded=true]:break-words data-[expanded=true]:whitespace-pre-wrap data-[tone=stated]:text-gray-900"
+             * not help text. 14px/21px is the round's body tier. */
+            className="min-w-0 flex-1 text-pretty line-clamp-2 text-[14px] leading-[21px] text-gray-1000 select-text data-[expanded=true]:line-clamp-none data-[expanded=true]:overflow-visible data-[expanded=true]:break-words data-[expanded=true]:whitespace-pre-wrap data-[tone=stated]:text-gray-900"
             data-tone={lineTone}
             data-expanded={expanded ? "true" : undefined}
             data-testid="history-entry-transcript"
@@ -269,13 +274,20 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
            * row's own words do NOT contain the query and it is here because its
            * meaning does. Outside a search `match_kind` is null. */}
           {entry.match_kind === "semantic" ? (
-            <span className="flex-none text-[11px] text-gray-800">
+            <span className="flex-none text-[13px] leading-[18px] text-gray-800">
               {t("libraryV2.byMeaning")}
             </span>
           ) : null}
 
+          {/* One gutter for both measurements, at fixed widths: a count column
+           * and a clock column that line up down the day, whatever a row's
+           * text does. A locale that spells the time longer ("12:00 a.m.")
+           * grows its own cell rather than colliding with the count. */}
           {wordCount !== null ? (
-            <span className={ROW_MEASURE} data-testid="history-entry-words">
+            <span
+              className={`${ROW_MEASURE} min-w-[58px]`}
+              data-testid="history-entry-words"
+            >
               {t("libraryV2.words", { count: wordCount })}
             </span>
           ) : null}
@@ -283,10 +295,7 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
           {/* The clock only. The day heading above the group owns the date, so
            * the row printing it again would be the same fact twice. */}
           <span
-            /* A floor, not a width: 62px lines every row's clock up in one
-             * column, and a locale that spells the time longer ("12:00 a.m.")
-             * widens its own cell instead of colliding with the word count. */
-            className={`${ROW_MEASURE} min-w-[62px] text-end`}
+            className={`${ROW_MEASURE} min-w-[62px]`}
             data-testid="history-entry-time"
           >
             {formatTimeOfDay(entry.timestamp * 1000)}
@@ -296,11 +305,14 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
         {expanded ? (
           <div
             id={detailsId}
-            className="flex flex-col gap-3 px-4 pb-3"
+            /* A hairline, not a box: the transcript above stays the row's
+             * content and everything the row can do about it reads underneath
+             * the rule, on the same surface. */
+            className="mx-6 flex flex-col gap-4 border-t border-gray-alpha-400 py-4"
             data-testid="history-entry-details"
           >
             {processedTextMissing && !retrying ? (
-              <p className="text-sm text-gray-900">
+              <p className="text-[13px] leading-[18px] text-gray-900">
                 {t("settings.history.postProcessEmpty")}
               </p>
             ) : null}

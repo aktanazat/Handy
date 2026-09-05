@@ -1,5 +1,4 @@
 import React, { useRef, useState } from "react";
-import { User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MeetingReviewSnapshot, SpeakerId } from "@/bindings";
 import { cn } from "@/lib/cn";
@@ -48,7 +47,7 @@ export const SpeakerRoster: React.FC<SpeakerRosterProps> = ({
 
   return (
     <SettingsSection label={t("meetings.review.speakers")}>
-      <div className="flex flex-col gap-2 px-4 py-3">
+      <div className="flex flex-col gap-2 px-6 py-3.5">
         {speakers.length === 0 ? (
           <Notice tone="muted" live={false}>
             {t("meetings.review.noSpeakers")}
@@ -88,9 +87,8 @@ export const SpeakerRoster: React.FC<SpeakerRosterProps> = ({
                     disabled={disabled}
                     title={t("meetings.review.renameSpeaker")}
                     onClick={() => setEditingSpeakerId(speaker.speaker_id)}
-                    className="inline-flex h-6 items-center gap-1.5 rounded-md border border-gray-alpha-400 px-2 text-[13px] text-gray-1000 transition-colors hover:bg-gray-alpha-200 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none disabled:pointer-events-none disabled:text-gray-700"
+                    className="inline-flex h-6 cursor-pointer items-center rounded-md border border-gray-alpha-400 px-2 text-[14px] leading-[21px] text-gray-1000 transition-colors hover:bg-gray-alpha-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:text-gray-800 motion-reduce:transition-none"
                   >
-                    <User aria-hidden="true" className="size-3 text-gray-700" />
                     {speaker.display_name}
                   </button>
                 )}
@@ -99,7 +97,7 @@ export const SpeakerRoster: React.FC<SpeakerRosterProps> = ({
           </ul>
         )}
         {separated ? null : (
-          <p className="text-[11px] text-gray-700">
+          <p className="text-[13px] leading-[18px] text-gray-900">
             {t(`meetings.diarization.${diarization.status}`)}
           </p>
         )}
@@ -136,8 +134,7 @@ export const SpeakerNameEditor: React.FC<SpeakerNameEditorProps> = ({
 
   return (
     <div ref={container} className="flex flex-col gap-1">
-      <span className="inline-flex h-6 items-center gap-1.5 rounded-md border border-blue-700 ps-2 pe-1">
-        <User aria-hidden="true" className="size-3 flex-none text-gray-700" />
+      <span className="inline-flex h-6 items-center rounded-md border border-ring px-2">
         <Input
           autoFocus
           defaultValue={speaker.display_name}
@@ -151,7 +148,7 @@ export const SpeakerNameEditor: React.FC<SpeakerNameEditorProps> = ({
           }}
           onKeyDown={inlineEditKeys(onCommit, onCancel)}
           className={cn(
-            "h-5 w-28 rounded-none border-0 px-0 text-[13px] text-gray-1000 md:text-[13px]",
+            "h-5 w-28 rounded-none border-0 px-0 text-[14px] leading-[21px] text-gray-1000 md:text-[14px]",
             "focus-visible:border-0 focus-visible:ring-0",
           )}
         />
@@ -162,7 +159,7 @@ export const SpeakerNameEditor: React.FC<SpeakerNameEditorProps> = ({
           data-slot="speaker-correct"
           onMouseDown={(event) => event.preventDefault()}
           onClick={onCorrect}
-          className="cursor-pointer text-[11px] text-gray-700 underline-offset-2 transition-colors hover:text-gray-1000 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+          className="cursor-pointer text-[13px] leading-[18px] text-gray-900 underline-offset-2 transition-colors hover:text-gray-1000 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none"
         >
           {t("meetings.review.correctSpeaker")}
         </button>
@@ -173,7 +170,7 @@ export const SpeakerNameEditor: React.FC<SpeakerNameEditorProps> = ({
             data-slot="speaker-merge"
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => onMerge(other.speaker_id)}
-            className="cursor-pointer text-[11px] text-gray-700 underline-offset-2 transition-colors hover:text-gray-1000 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+            className="cursor-pointer text-[13px] leading-[18px] text-gray-900 underline-offset-2 transition-colors hover:text-gray-1000 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none"
           >
             {t("meetings.review.samePersonAs", { name: other.display_name })}
           </button>

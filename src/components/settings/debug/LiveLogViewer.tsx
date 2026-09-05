@@ -234,7 +234,7 @@ export const LiveLogViewer: React.FC = () => {
         ref={attachRoot}
         className="h-72 rounded-md border border-gray-alpha-400 bg-background-200"
       >
-        <div className="select-text p-2 text-[11px] leading-[18px] tabular-nums">
+        <div className="select-text p-2 text-[12px] leading-[18px] tabular-nums">
           {logs.length === 0 ? (
             <span className="text-gray-700 select-none">
               {t("settings.debug.liveLogs.empty")}

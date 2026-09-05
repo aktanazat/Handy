@@ -5,6 +5,7 @@ import type {
   MeetingCitation,
   SummaryLineTrace,
 } from "@/bindings";
+import { cn } from "@/lib/cn";
 import { formatMeetingOffset } from "../meetingUtils";
 import { summaryLines } from "./summaryTrace";
 
@@ -20,24 +21,50 @@ export interface CitationJumpProps {
   onJump: (segmentId: string) => void;
 }
 
-/* A citation is a jump, so it looks like the thing that jumps: the accent
- * colour with a tabular timestamp. It degrades to plain text when it points
- * at a manual note or the title, which have no transcript
- * row to scroll to. */
+/**
+ * The one shape a timestamp jump has anywhere in Sona: a footnote mark.
+ * Exported so a transcript row, a loop, or a person's ledger sets the same
+ * object instead of a second style that drifts away from this one.
+ */
+export const CITATION_MARK =
+  "inline-flex h-[18px] items-center rounded-[5px] border border-gray-alpha-300 px-1 text-[12px] leading-none tabular-nums whitespace-nowrap text-gray-900 transition-colors hover:border-gray-alpha-500 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none";
+
+/** The same mark with nothing to press: no border, no hover. */
+const CITATION_MARK_PLAIN =
+  "inline-flex h-[18px] items-center px-1 text-[12px] leading-none tabular-nums whitespace-nowrap text-gray-900";
+
+/**
+ * Marks belonging to one sentence: inline, after its last word, on the same
+ * line. They used to be a flex row under the text, which printed the word
+ * "Transcript" above and below every sentence on the page.
+ */
+const MARKS_ROW = "ms-1 inline-flex items-center gap-1 align-[0.05em]";
+
+/** A document's opening paragraph — the summary, and nothing else. */
+const LEDE_TEXT = "text-[16px] leading-[25px] text-pretty text-gray-1000";
+
+/** Everything else a generated artifact says. */
+const BODY_TEXT = "text-[14px] leading-[21px] text-pretty text-gray-1000";
+
+/* A citation is a footnote: the time it points at, small, at the end of the
+ * sentence it supports. The word "Transcript" is what it does, not what it
+ * is, so it moves to the accessible name and the tooltip — fifteen marks on
+ * one page said it fifteen times. It degrades to the same mark without a
+ * border and without a button when it points at a manual note or the title,
+ * which have no transcript row to scroll to. */
 export const CitationJump: React.FC<CitationJumpProps> = ({
   startOffsetNs,
   segmentId,
   onJump,
 }) => {
   const { t } = useTranslation();
-  const label = t("meetings.review.citation", {
-    time: formatMeetingOffset(startOffsetNs),
-  });
+  const time = formatMeetingOffset(startOffsetNs);
+  const label = t("meetings.review.citation", { time });
 
   if (segmentId === null) {
     return (
-      <span className="px-1.5 py-0.5 text-[11px] tabular-nums text-gray-700">
-        {label}
+      <span className={CITATION_MARK_PLAIN} title={label}>
+        {time}
       </span>
     );
   }
@@ -46,9 +73,11 @@ export const CitationJump: React.FC<CitationJumpProps> = ({
     <button
       type="button"
       onClick={() => onJump(segmentId)}
-      className="rounded-md px-1.5 py-0.5 text-[11px] tabular-nums text-blue-900 transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+      aria-label={label}
+      title={label}
+      className={CITATION_MARK}
     >
-      {label}
+      {time}
     </button>
   );
 };
@@ -56,15 +85,20 @@ export const CitationJump: React.FC<CitationJumpProps> = ({
 interface CitedTextProps {
   value: CitedArtifactText;
   onJump: (segmentId: string) => void;
+  /** The type this text is set in. Body unless the document asks for the
+   * lede or a topic's title. */
+  className?: string;
 }
 
-export const CitedText: React.FC<CitedTextProps> = ({ value, onJump }) => (
-  <div className="flex flex-col gap-1">
-    <p className="text-[13px] leading-5 text-pretty text-gray-1000">
-      {value.text}
-    </p>
-    {value.citations.length > 0 ? (
-      <div className="-ms-1.5 flex flex-wrap items-center gap-1">
+export const CitedText: React.FC<CitedTextProps> = ({
+  value,
+  onJump,
+  className,
+}) => (
+  <p className={cn(BODY_TEXT, className)}>
+    {value.text}
+    {value.citations.length === 0 ? null : (
+      <span className={MARKS_ROW}>
         {value.citations.map((citation) => (
           <CitationJump
             key={citation.segment_id}
@@ -73,9 +107,9 @@ export const CitedText: React.FC<CitedTextProps> = ({ value, onJump }) => (
             onJump={onJump}
           />
         ))}
-      </div>
-    ) : null}
-  </div>
+      </span>
+    )}
+  </p>
 );
 
 interface TracedSummaryProps {
@@ -86,9 +120,11 @@ interface TracedSummaryProps {
 
 /* The Granola move: a summary line is itself the way back to the moment it
  * came from. Quiet by default — the line reads as the sentence it is, and only
- * hover, focus, and its timestamp say it is pressable — so the summary stays a
- * summary and does not turn into a wall of links. A summary with no line
- * provenance renders exactly as it did before, chips and all. */
+ * hover, focus, and the mark at its end say it is pressable — so the summary
+ * stays a summary and does not turn into a wall of links. The mark sits after
+ * the last word; it used to float against the right edge of the card, where it
+ * belonged to no sentence at all. A summary with no line provenance renders as
+ * one paragraph, marks and all. */
 export const TracedSummary: React.FC<TracedSummaryProps> = ({
   summary,
   trace,
@@ -98,7 +134,7 @@ export const TracedSummary: React.FC<TracedSummaryProps> = ({
   const lines = summaryLines(summary, trace);
 
   if (lines === null) {
-    return <CitedText value={summary} onJump={onJump} />;
+    return <CitedText value={summary} onJump={onJump} className={LEDE_TEXT} />;
   }
 
   return (
@@ -110,7 +146,7 @@ export const TracedSummary: React.FC<TracedSummaryProps> = ({
             <li
               key={`line:${index}`}
               data-slot="summary-line"
-              className="px-1.5 text-[13px] leading-5 text-pretty text-gray-1000"
+              className={LEDE_TEXT}
             >
               {line.text}
             </li>
@@ -126,12 +162,18 @@ export const TracedSummary: React.FC<TracedSummaryProps> = ({
               onClick={() => onJump(segmentId)}
               title={t("meetings.transcript.trace.tooltip")}
               aria-label={label}
-              className="group -ms-1.5 flex w-full cursor-pointer items-baseline justify-between gap-3 rounded-md px-1.5 text-start transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+              className={cn(
+                LEDE_TEXT,
+                "group -mx-1.5 block cursor-pointer rounded-md px-1.5 text-start transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none",
+              )}
             >
-              <span className="text-[13px] leading-5 text-pretty text-gray-1000">
-                {line.text}
-              </span>
-              <span className="flex-none text-[11px] tabular-nums text-gray-700 group-hover:text-blue-900">
+              {line.text}
+              <span
+                className={cn(
+                  CITATION_MARK,
+                  "ms-1 align-[0.05em] group-hover:border-gray-alpha-500 group-hover:text-gray-1000",
+                )}
+              >
                 {time}
               </span>
             </button>
@@ -147,11 +189,12 @@ interface AnswerCitationsProps {
   onJump: (segmentId: string) => void;
 }
 
+/** The marks for a generated answer, set the same way a sentence's are. */
 export const AnswerCitations: React.FC<AnswerCitationsProps> = ({
   citations,
   onJump,
 }) => (
-  <div className="-ms-1.5 flex flex-wrap items-center gap-1">
+  <span className={MARKS_ROW}>
     {citations.map((citation) => (
       <CitationJump
         key={`${citation.kind}:${citation.entity_id}`}
@@ -160,5 +203,5 @@ export const AnswerCitations: React.FC<AnswerCitationsProps> = ({
         onJump={onJump}
       />
     ))}
-  </div>
+  </span>
 );

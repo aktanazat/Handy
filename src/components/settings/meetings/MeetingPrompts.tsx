@@ -182,7 +182,7 @@ export const MeetingPrompts: React.FC = () => {
   if (loading && list === null) {
     return (
       <SettingsSection label={t("prompts.title")}>
-        <div className="px-4 py-3">
+        <div className="px-6 py-3">
           <Microlabel>{t("prompts.loading")}</Microlabel>
         </div>
       </SettingsSection>
@@ -203,11 +203,11 @@ export const MeetingPrompts: React.FC = () => {
         </Button>
       }
     >
-      <div className="px-4 py-3">
+      <div className="px-6 py-3">
         <Microlabel>{t("prompts.description")}</Microlabel>
       </div>
       {list?.prompts.length === 0 ? (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Microlabel>{t("prompts.empty")}</Microlabel>
         </div>
       ) : null}
@@ -223,9 +223,9 @@ export const MeetingPrompts: React.FC = () => {
         >
           <div
             data-slot="prompt-body"
-            className="flex items-start gap-3 px-4 py-2.5"
+            className="flex items-start gap-3 px-6 py-2.5"
           >
-            <p className="min-w-0 flex-1 whitespace-pre-wrap text-[13px] leading-5 text-gray-900">
+            <p className="min-w-0 flex-1 whitespace-pre-wrap text-[14px] leading-[21px] text-gray-900">
               {prompt.body}
             </p>
             <RowActions>
@@ -255,7 +255,7 @@ export const MeetingPrompts: React.FC = () => {
         </SettingsDisclosure>
       ))}
       {error ? (
-        <div role="alert" className="px-4 py-2.5">
+        <div role="alert" className="px-6 py-2.5">
           <Notice tone="danger" live={false}>
             {error}
           </Notice>
@@ -362,7 +362,7 @@ const PromptEditor: React.FC<PromptEditorProps> = ({
                 value={draft.schema}
                 disabled={saving}
                 placeholder={t("prompts.schemaPlaceholder")}
-                className="font-mono text-[12px]"
+                className="font-mono text-[13px]"
                 onChange={(event) =>
                   onChange({ ...draft, schema: event.target.value })
                 }
@@ -415,7 +415,7 @@ const Field: React.FC<{
   children: React.ReactNode;
 }> = ({ id, label, children }) => (
   <div className="flex flex-col gap-2">
-    <label htmlFor={id} className="text-[13px] text-gray-1000">
+    <label htmlFor={id} className="text-[14px] text-gray-1000">
       {label}
     </label>
     {children}

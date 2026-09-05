@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ChevronRight, ListChecks, Users } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { OrganizationDetail } from "@/bindings";
 import {
@@ -17,6 +17,19 @@ export interface OrganizationViewProps {
   onOpenPerson: (personId: string) => void;
   onOpenMeeting: (meetingId: string) => void;
 }
+
+/* The row every list on this page is written in: one hairline-separated button,
+ * a title in the row tier over one Meta line. The people list reads across
+ * instead of down — a name and a count on one line — so it takes the same
+ * padding with a row axis. */
+/* `ring-inset` because a settings surface clips its overflow: an outset ring
+ * on a full-width row is drawn outside the surface and never seen. */
+const ROW_BUTTON =
+  "hover-fast flex w-full min-w-0 px-6 py-3.5 text-start transition-colors motion-reduce:transition-none hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-inset focus-visible:outline-none";
+const ROW_STACK = `${ROW_BUTTON} flex-col gap-1`;
+const ROW_LINE = `${ROW_BUTTON} items-center gap-4`;
+const ROW_TITLE = "text-[14px] leading-[21px] font-medium text-gray-1000";
+const ROW_META = "text-[13px] leading-[18px] text-gray-900 tabular-nums";
 
 /* One organization, read across its people.
  *
@@ -37,8 +50,9 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({
   return (
     <SettingsPage
       data-slot="organization-detail"
+      className="gap-6"
       header={
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           <Button
             type="button"
             variant="ghost"
@@ -49,9 +63,9 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({
             <ArrowLeft aria-hidden="true" />
             {t("meetings.actions.back")}
           </Button>
-          <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <PageTitle className="truncate">{detail.name}</PageTitle>
-            <p className="text-[11px] leading-4 text-gray-800 tabular-nums">
+            <p className={ROW_META}>
               {t("organizations.detail.people", {
                 count: detail.people.length,
               })}
@@ -62,9 +76,7 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({
     >
       <SettingsSection label={t("organizations.detail.peopleHere")}>
         {detail.people.length === 0 ? (
-          <EmptyStateRow icon={Users}>
-            {t("organizations.detail.noPeople")}
-          </EmptyStateRow>
+          <EmptyStateRow>{t("organizations.detail.noPeople")}</EmptyStateRow>
         ) : (
           <ul role="list" className="divide-y divide-gray-alpha-400">
             {detail.people.map((entry) => (
@@ -72,12 +84,12 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenPerson(entry.person.id)}
-                  className="hover-fast flex w-full min-w-0 items-center gap-3 px-4 py-2.5 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
+                  className={ROW_LINE}
                 >
-                  <span className="min-w-0 flex-1 truncate text-[13px] leading-[19px] text-gray-1000">
+                  <span className={`min-w-0 flex-1 truncate ${ROW_TITLE}`}>
                     {entry.person.display_name}
                   </span>
-                  <span className="flex-none text-[11px] text-gray-900 tabular-nums">
+                  <span className={`flex-none ${ROW_META}`}>
                     {t("people.list.meetings", {
                       count: entry.confirmed_count,
                     })}
@@ -95,9 +107,7 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({
 
       <SettingsSection label={t("organizations.detail.recentMeetings")}>
         {detail.recent_meetings.length === 0 ? (
-          <EmptyStateRow icon={Users}>
-            {t("people.detail.noMeetings")}
-          </EmptyStateRow>
+          <EmptyStateRow>{t("people.detail.noMeetings")}</EmptyStateRow>
         ) : (
           <ul className="divide-y divide-gray-alpha-400">
             {detail.recent_meetings.map((meeting) => (
@@ -105,12 +115,10 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenMeeting(meeting.id)}
-                  className="hover-fast flex w-full min-w-0 flex-col gap-0.5 px-4 py-3 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
+                  className={ROW_STACK}
                 >
-                  <span className="text-[13px] leading-[19px] text-gray-1000">
-                    {meeting.title}
-                  </span>
-                  <span className="text-[11px] leading-4 text-gray-800 tabular-nums">
+                  <span className={ROW_TITLE}>{meeting.title}</span>
+                  <span className={ROW_META}>
                     {meeting.headline === null
                       ? formatEntryTimestamp(meeting.at_utc_ms)
                       : `${meeting.headline} · ${formatEntryTimestamp(meeting.at_utc_ms)}`}
@@ -124,9 +132,7 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({
 
       <SettingsSection label={t("peopleV2.detail.openLoops")}>
         {detail.open_loops.length === 0 ? (
-          <EmptyStateRow icon={ListChecks}>
-            {t("people.detail.noOpenLoops")}
-          </EmptyStateRow>
+          <EmptyStateRow>{t("people.detail.noOpenLoops")}</EmptyStateRow>
         ) : (
           <ul className="divide-y divide-gray-alpha-400">
             {detail.open_loops.map((openLoop) => (
@@ -134,12 +140,12 @@ export const OrganizationView: React.FC<OrganizationViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenMeeting(openLoop.meeting_id)}
-                  className="hover-fast flex w-full min-w-0 flex-col gap-0.5 px-4 py-3 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
+                  className={ROW_STACK}
                 >
-                  <span className="text-[13px] leading-[19px] text-gray-1000">
+                  <span className="text-[14px] leading-[21px] text-gray-1000 text-pretty">
                     {openLoop.text}
                   </span>
-                  <span className="text-[11px] leading-4 text-gray-800 tabular-nums">
+                  <span className={ROW_META}>
                     {`${openLoop.title} · ${formatEntryTimestamp(openLoop.at_utc_ms)}`}
                   </span>
                 </button>

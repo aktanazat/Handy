@@ -50,7 +50,7 @@ export const AgentPanelToggle: React.FC = () => {
         />
       </SettingsRow>
       {error === null ? null : (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice tone="danger">
             {`${t("settings.agents.panel.error", "The agent panel setting could not be saved.")} ${error}`}
           </Notice>

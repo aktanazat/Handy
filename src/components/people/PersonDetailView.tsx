@@ -97,6 +97,10 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
   return (
     <SettingsPage
       data-slot="person-detail"
+      /* Tighter than the page's eight-point section gap: this is seven
+       * labelled blocks about one person, and at gap-8 the catalogue reads as
+       * a stack of unrelated pages. */
+      className="gap-6"
       header={
         <PersonHeader
           key={`${detail.person.id}:${detail.person.display_name}`}

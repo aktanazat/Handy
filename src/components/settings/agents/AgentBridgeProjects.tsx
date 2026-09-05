@@ -52,14 +52,14 @@ export const AgentBridgeProjects: React.FC<AgentBridgeProjectsProps> = ({
       }
     >
       {bridge.allowed_projects.length === 0 ? (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice>{t("settings.agents.projects.empty")}</Notice>
         </div>
       ) : (
         bridge.allowed_projects.map((project) => (
           <div
             key={project.canonical_project_hash}
-            className="flex min-h-[52px] min-w-0 items-center justify-between gap-4 px-4 py-2.5"
+            className="flex min-h-[52px] min-w-0 items-center justify-between gap-4 px-6 py-2.5"
           >
             <code className="min-w-0 text-xs break-all text-gray-1000 tabular-nums">
               {project.canonical_project_hash}

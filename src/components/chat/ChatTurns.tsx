@@ -36,7 +36,7 @@ const AssistantText: React.FC<AssistantTextProps> = ({
   onOpenLink,
 }) => {
   return (
-    <p className="text-[13px] leading-[19px] whitespace-pre-wrap text-gray-1000 [overflow-wrap:anywhere]">
+    <p className="text-[14px] leading-[21px] whitespace-pre-wrap text-gray-1000 [overflow-wrap:anywhere]">
       {linkifySona(message).map((segment, index) =>
         "link" in segment ? (
           <button
@@ -69,7 +69,7 @@ interface TurnWorkProps {
 }
 
 const WORK_LINE =
-  "inline-flex items-center gap-1 text-[12px] leading-4 text-gray-900";
+  "inline-flex items-center gap-1 text-[13px] leading-[18px] text-gray-900";
 
 /**
  * The activity that belongs below a turn's question.
@@ -149,7 +149,7 @@ const TurnWork: React.FC<TurnWorkProps> = ({
                 <li
                   key={step.id}
                   data-slot="chat-step"
-                  className="flex items-center gap-2 text-[12px] leading-4"
+                  className="flex items-center gap-2 text-[13px] leading-[18px]"
                 >
                   {/* A tool's name is a machine's name, so it reads as one: a
                       mono uppercase chip in a hairline pill with no fill, the
@@ -173,7 +173,7 @@ const TurnWork: React.FC<TurnWorkProps> = ({
                     <span
                       data-slot="chat-tool"
                       className={cn(
-                        "min-w-0 flex-1 truncate rounded-full border px-1.5 font-mono text-[11px] leading-4 tracking-[0.08em] uppercase",
+                        "min-w-0 flex-1 truncate rounded-full border px-1.5 font-mono text-[12px] leading-4 tracking-[0.08em] uppercase",
                         step.state === "failed"
                           ? "border-red-400 text-red-900"
                           : "border-gray-alpha-400 text-gray-900",
@@ -197,7 +197,7 @@ const TurnWork: React.FC<TurnWorkProps> = ({
       {searchedCorpus && (
         <p
           data-slot="chat-searched-corpus"
-          className="text-[11px] leading-4 text-gray-900"
+          className="text-[12px] leading-4 text-gray-900"
         >
           {t("chat.working.searchedCorpus")}
         </p>
@@ -206,7 +206,7 @@ const TurnWork: React.FC<TurnWorkProps> = ({
         <p
           data-slot="chat-still-waiting"
           role="status"
-          className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] leading-4 text-gray-900"
+          className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] leading-[18px] text-gray-900"
         >
           {t("chat.working.stillWaiting")}
           <Button variant="link" size="xs" onClick={onStop} disabled={busy}>
@@ -218,7 +218,7 @@ const TurnWork: React.FC<TurnWorkProps> = ({
         <p
           data-slot="chat-turn-error"
           role="status"
-          className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] leading-4 text-red-900"
+          className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] leading-[18px] text-red-900"
         >
           {t(`chat.error.${failure}`)}
           <Button variant="link" size="xs" onClick={onRetry} disabled={busy}>
@@ -276,7 +276,7 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
         </span>
         {/* Action keys stay verbatim: they are identifiers, and naming the set
             is what makes one Apply honest about what it moves. */}
-        <span className="truncate text-[11px] leading-4 text-gray-900">
+        <span className="truncate text-[12px] leading-4 text-gray-900">
           {proposal.actions.map((action) => action.key).join(", ")}
         </span>
       </span>
@@ -293,7 +293,7 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
       )}
       {proposal.state === "applied" && (
         <span className="flex flex-none items-center gap-1.5">
-          <span className="text-[12px] leading-4 text-gray-900">
+          <span className="text-[13px] leading-[18px] text-gray-900">
             {t("chat.proposal.applied")}
           </span>
           <Button variant="ghost" size="sm" onClick={onUndo} disabled={busy}>
@@ -302,7 +302,7 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
         </span>
       )}
       {(proposal.state === "undone" || proposal.state === "rejected") && (
-        <span className="flex-none text-[12px] leading-4 text-gray-900">
+        <span className="flex-none text-[13px] leading-[18px] text-gray-900">
           {t(`chat.proposal.${proposal.state}`)}
         </span>
       )}
@@ -350,7 +350,7 @@ const ChatActionCard: React.FC<ChatActionCardProps> = ({
         <span className="text-[13px] leading-[18px] text-gray-1000 [overflow-wrap:anywhere]">
           {t(line.key, line.values)}
         </span>
-        <span className="text-[11px] leading-4 text-gray-900 [overflow-wrap:anywhere]">
+        <span className="text-[12px] leading-4 text-gray-900 [overflow-wrap:anywhere]">
           {action.action.reason}
         </span>
       </span>
@@ -366,7 +366,7 @@ const ChatActionCard: React.FC<ChatActionCardProps> = ({
       )}
       {action.state === "applied" && (
         <span className="flex flex-none items-center gap-1.5">
-          <span className="text-[12px] leading-4 text-gray-900">
+          <span className="text-[13px] leading-[18px] text-gray-900">
             {t("chat.action.applied")}
           </span>
           <Button variant="ghost" size="sm" onClick={onDismiss} disabled={busy}>
@@ -375,7 +375,7 @@ const ChatActionCard: React.FC<ChatActionCardProps> = ({
         </span>
       )}
       {action.state === "dismissed" && (
-        <span className="flex-none text-[12px] leading-4 text-gray-900">
+        <span className="flex-none text-[13px] leading-[18px] text-gray-900">
           {t("chat.action.dismissed")}
         </span>
       )}
@@ -409,7 +409,7 @@ export interface ChatTurnsProps {
  * and it is the same object in both materials. Flat: a bubble inside a 340pt
  * column is not floating, so it takes no shadow. */
 const USER_BUBBLE =
-  "max-w-[85%] self-end rounded-card border border-gray-alpha-400 bg-surface-raised px-3 py-2 text-[13px] leading-[19px] whitespace-pre-wrap text-gray-1000 [overflow-wrap:anywhere]";
+  "max-w-[85%] self-end rounded-card border border-gray-alpha-400 bg-surface-raised px-3 py-2 text-[14px] leading-[21px] whitespace-pre-wrap text-gray-1000 [overflow-wrap:anywhere]";
 
 /**
  * The scrollback: what was said, what the turn did on the way, the one card a

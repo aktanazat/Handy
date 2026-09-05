@@ -3,13 +3,11 @@
  * The window shell, the left sidebar and the command palette are Tailwind
  * utilities on their own components now (App.tsx, Sidebar.tsx,
  * CommandPalette.tsx), so their rules are gone from here rather than
- * duplicated. Four things could not become utilities and stayed:
+ * duplicated. Three things could not become utilities and stayed:
  *
  *  - the Glass material overrides, which key off a root attribute Rust writes
  *    and therefore cannot be read by a class on the element;
  *  - the onboarding shell, whose components are not part of this migration;
- *  - the route skeleton's own layout, since `RouteSkeleton` lives in the
- *    frozen legacy primitives;
  *  - the View Transitions pseudo-elements, which have no element to carry a
  *    class at all.
  *
@@ -201,15 +199,6 @@
   .app-shell {
     transition-property: none;
   }
-}
-/* --------------------------------------------------------- route loading */
-
-.app-route-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  inline-size: 100%;
-  padding-block-start: var(--space-1);
 }
 
 /* ------------------------------------------------------ view transitions */

@@ -59,30 +59,30 @@ const isSafeImageSrc = (src: string) => {
  * tint, which lets the desktop behind the window show through the letters
  * themselves. Every step of the ramp is opaque.
  *
- * Sizes follow theme.css's ladder: a heading is 13-14 semibold, body is 13,
- * code and notes are 12. The kit's `text-base`/`text-[15px]` pair put release
- * notes a step above the type on every other page in the app. */
+ * Sizes follow the app's ladder: the sheet's own head is 16/25 semibold, the
+ * headings under it 14/21, body 14/21, code and notes 13. The kit's
+ * `text-base` pair put release notes a step above every other page. */
 const components: Components = {
   h1: ({ children }) => (
-    <h3 className="text-[14px] leading-5 font-semibold text-gray-1000">
+    <h3 className="text-[16px] leading-[25px] font-semibold text-gray-1000">
       {children}
     </h3>
   ),
   h2: ({ children }) => (
-    <h3 className="text-[13px] leading-5 font-semibold text-gray-1000">
+    <h3 className="text-[14px] leading-[21px] font-semibold text-gray-1000">
       {children}
     </h3>
   ),
   h3: ({ children }) => (
-    <h3 className="text-[13px] leading-5 font-medium text-gray-1000">
+    <h3 className="text-[14px] leading-[21px] font-medium text-gray-1000">
       {children}
     </h3>
   ),
   p: ({ children }) => (
-    <p className="text-[13px] leading-5 text-gray-900">{children}</p>
+    <p className="text-[14px] leading-[21px] text-gray-900">{children}</p>
   ),
   ul: ({ children }) => (
-    <ul className="list-disc space-y-1 ps-5 text-[13px] leading-5 text-gray-900">
+    <ul className="list-disc space-y-1 ps-5 text-[14px] leading-[21px] text-gray-900">
       {children}
     </ul>
   ),
@@ -90,7 +90,7 @@ const components: Components = {
     <li className="ps-1 marker:text-gray-800">{children}</li>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal space-y-1 ps-5 text-[13px] leading-5 text-gray-900">
+    <ol className="list-decimal space-y-1 ps-5 text-[14px] leading-[21px] text-gray-900">
       {children}
     </ol>
   ),
@@ -117,7 +117,7 @@ const components: Components = {
     );
   },
   blockquote: ({ children }) => (
-    <blockquote className="border-s border-gray-alpha-500 ps-3 text-[13px] leading-5 text-gray-900">
+    <blockquote className="border-s border-gray-alpha-500 ps-3 text-[14px] leading-[21px] text-gray-900">
       {children}
     </blockquote>
   ),
@@ -126,7 +126,7 @@ const components: Components = {
 
     if (isBlock) {
       return (
-        <code className="block text-[12px] whitespace-pre">{children}</code>
+        <code className="block text-[13px] whitespace-pre">{children}</code>
       );
     }
 
@@ -137,7 +137,7 @@ const components: Components = {
     );
   },
   pre: ({ children }) => (
-    <pre className="overflow-x-auto rounded-control bg-gray-alpha-100 p-3 text-[12px] leading-5 text-gray-900">
+    <pre className="overflow-x-auto rounded-control bg-gray-alpha-100 p-3 text-[13px] leading-[20px] text-gray-900">
       {children}
     </pre>
   ),

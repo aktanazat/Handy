@@ -190,7 +190,7 @@ export const UpdateRows: React.FC<UpdateRowsProps> = ({ version }) => {
        * whether there is a newer one. */}
       <SettingsRow label={t("settings.about.version.title")}>
         {displayVersion !== null ? (
-          <span className="text-[13px] tabular-nums text-gray-1000">
+          <span className="text-[14px] tabular-nums text-gray-1000">
             {`v${displayVersion}`}
           </span>
         ) : (
@@ -229,7 +229,7 @@ export const UpdateRows: React.FC<UpdateRowsProps> = ({ version }) => {
       </SettingsRow>
 
       {status === null ? null : (
-        <div className="flex min-h-[52px] items-center justify-between gap-6 px-4 py-2.5">
+        <div className="flex min-h-[52px] items-center justify-between gap-6 px-6 py-2.5">
           <Notice tone={status.tone} className="min-w-0">
             {status.text}
           </Notice>

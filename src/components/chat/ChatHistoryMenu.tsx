@@ -32,7 +32,7 @@ export const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
 
   if (conversations.length === 0) {
     return (
-      <p className="px-2 py-3 text-center text-[12px] leading-4 text-gray-900">
+      <p className="px-2 py-3 text-center text-[13px] leading-[18px] text-gray-900">
         {t("chat.historyEmpty")}
       </p>
     );
@@ -49,7 +49,7 @@ export const ChatHistoryList: React.FC<ChatHistoryListProps> = ({
             }
             onClick={() => onSelect(conversation.conversation_id)}
             className={cn(
-              "w-full truncate rounded-control px-2 py-1.5 text-start text-[13px] leading-5 transition-colors hover:bg-gray-alpha-200 motion-reduce:transition-none",
+              "w-full truncate rounded-control px-2 py-1.5 text-start text-[14px] leading-[21px] transition-colors hover:bg-gray-alpha-200 motion-reduce:transition-none",
               conversation.conversation_id === currentId
                 ? "bg-gray-alpha-100 text-gray-1000"
                 : "text-gray-900 hover:text-gray-1000",

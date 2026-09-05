@@ -93,13 +93,16 @@
   --color-card-foreground: var(--color-gray-1000);
   --color-popover: var(--color-raised);
   --color-popover-foreground: var(--color-gray-1000);
-  /* The primary button, the checked switch track and the selection highlight
-     are the one scarce accent, not an inverted ink slab: `bg-primary` reads
-     bronze and `text-primary-foreground` the ink or paper that sits on it.
-     The semantic names are used rather than the --color-* aliases because
-     this @theme block redefines --color-accent as shadcn's hover wash. */
-  --color-primary: var(--accent);
-  --color-primary-foreground: var(--on-accent);
+  /* The primary button, the checked switch track, the checked checkbox and the
+     selection highlight are the inverted pair — black on Porcelain, white on
+     Ink, as the reference's dialogs are. Bronze stays the focus ring, the
+     aurora and the one accent mark; a bronze slab and an ink slab on the same
+     surface read as two competing firsts. Hover and press come from
+     styles/theme.css, which mixes each skin's own pair. */
+  --color-primary: var(--invert-bg);
+  --color-primary-foreground: var(--invert-fg);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-pressed: var(--color-primary-pressed);
   --color-secondary: var(--color-background-100);
   --color-secondary-foreground: var(--color-gray-1000);
   --color-muted: var(--color-gray-100);

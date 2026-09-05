@@ -244,7 +244,7 @@ export const SonaAgentPairing: React.FC = () => {
         hint={t("settings.agents.sonaAgent.identityHint")}
       >
         <div className="flex items-center gap-2">
-          <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-gray-900">
+          <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-gray-900">
             {identity ?? t("settings.agents.sonaAgent.identityUnavailable")}
           </span>
           <Button
@@ -261,7 +261,7 @@ export const SonaAgentPairing: React.FC = () => {
       </SettingsField>
 
       {(error !== null || reached) && (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice
             tone={error === null ? "muted" : "danger"}
             assertive={error !== null}

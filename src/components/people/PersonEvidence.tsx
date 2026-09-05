@@ -1,5 +1,4 @@
 import React from "react";
-import { CircleDashed } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PersonLinkSource, PersonMeetingLink } from "@/bindings";
 import { SettingsSection } from "@/components/settings/rows";
@@ -45,19 +44,17 @@ export const PersonEvidence: React.FC<{ links: PersonMeetingLink[] }> = ({
   return (
     <SettingsSection label={t("peopleV2.detail.howSonaKnows")}>
       {sources.length === 0 ? (
-        <EmptyStateRow icon={CircleDashed}>
-          {t("peopleV2.detail.noEvidence")}
-        </EmptyStateRow>
+        <EmptyStateRow>{t("peopleV2.detail.noEvidence")}</EmptyStateRow>
       ) : (
         <ul className="divide-y divide-gray-alpha-400">
           {sources.map((source) => (
             <li
               key={source}
               data-slot="person-evidence-row"
-              className="flex min-h-11 items-center justify-between gap-3 px-4 py-2.5"
+              className="flex items-center justify-between gap-4 px-6 py-3.5"
             >
               <EvidenceChip source={source} />
-              <span className="snap-measured flex-none text-[11px] text-gray-800 tabular-nums">
+              <span className="snap-measured flex-none text-[13px] leading-[18px] text-gray-900 tabular-nums">
                 {t("people.list.meetings", { count: counts[source] })}
               </span>
             </li>

@@ -56,7 +56,7 @@ export const HistoryAudioPlayer: React.FC<HistoryAudioPlayerProps> = ({
        * the transcript above it. At 420px it reads as a control under the text
        * instead of a rule through the row, and the tabular total sits beside
        * the scrubber instead of floating at the row's far edge. */
-      className="w-full max-w-[420px] [&_button]:text-gray-900 [&_span]:text-gray-800 [&_span]:tabular-nums"
+      className="w-full max-w-[420px] [&_button]:text-gray-900 [&_span]:text-[13px] [&_span]:leading-[18px] [&_span]:tabular-nums [&_span]:text-gray-900"
     />
   );
 };

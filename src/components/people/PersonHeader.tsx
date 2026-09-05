@@ -109,7 +109,7 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-4" data-slot="person-header">
+    <div className="flex flex-col gap-3" data-slot="person-header">
       <Button
         type="button"
         variant="ghost"
@@ -122,7 +122,7 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
       </Button>
 
       <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1.5">
           {editing ? (
             <Input
               autoFocus
@@ -137,7 +137,7 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
                 }
               }}
               aria-label={t("people.detail.nameLabel")}
-              className="h-9 min-w-0 flex-1 sm:max-w-[360px] text-[18px] font-medium"
+              className="h-10 min-w-0 flex-1 sm:max-w-[360px] text-[24px] leading-[30px] font-semibold tracking-[-0.01em]"
             />
           ) : (
             /* The title is the control. A bare button so the name keeps the page
@@ -156,7 +156,7 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
               <PageTitle className="truncate">{person.display_name}</PageTitle>
             </button>
           )}
-          <p className="text-[11px] leading-4 text-gray-800 tabular-nums">
+          <p className="text-[13px] leading-[18px] text-gray-900 tabular-nums">
             {person.organization === null ? (
               meetingsLabel
             ) : onOpenOrganization === undefined ? (
@@ -180,6 +180,26 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
               </>
             )}
           </p>
+          {/* Who else this person is called, and the addresses an invite
+           * reaches them at. Both read with the name rather than as sections:
+           * they identify the person the title just named. */}
+          {person.aliases.length === 0 ? null : (
+            <p className="text-[13px] leading-[18px] text-gray-900">
+              {t("people.detail.aliases", {
+                aliases: person.aliases.join(" · "),
+              })}
+            </p>
+          )}
+          {person.calendar_emails.length === 0 ? null : (
+            <p
+              data-slot="person-addresses"
+              className="text-[13px] leading-[18px] text-gray-900"
+            >
+              {t("people.detail.addresses", {
+                addresses: person.calendar_emails.join(" · "),
+              })}
+            </p>
+          )}
         </div>
 
         <DropdownMenu>
@@ -231,12 +251,6 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
-      {person.aliases.length === 0 ? null : (
-        <p className="text-[11px] text-gray-800">
-          {t("people.detail.aliases", { aliases: person.aliases.join(" · ") })}
-        </p>
-      )}
 
       <PersonSplitDialog
         open={splitting}

@@ -47,15 +47,13 @@ const OUTCOME_CLASSES = {
   dropped: "text-red-900",
 } as const satisfies Record<LedgerOutcome, string>;
 
-/** Upstream's glyphs. Colour is the second channel, never the only one. */
-const OUTCOME_GLYPHS = {
-  landed: "\u25CF",
-  open: "\u25CB",
-  dropped: "\u2715",
-} as const satisfies Record<LedgerOutcome, string>;
+/* Upstream drew a filled, hollow or crossed circle beside every state. Three
+ * circles down the end of a reading list is a status dot per row, and the word
+ * beside each one already said it — in a colour, and in words, and in the two
+ * channels that survive greyscale. */
 
 const COLUMN_CLASSES =
-  "pb-1.5 pe-3 text-start text-[13px] leading-5 font-normal text-gray-900";
+  "pb-1.5 pe-3 text-start text-[13px] leading-[18px] font-normal text-gray-900";
 
 const CELL_CLASSES = "py-1.5 pe-3 align-top";
 
@@ -91,8 +89,8 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
   if (found === null) {
     return (
       <SettingsSection label={t("meetings.ledger.title")}>
-        <div className="flex flex-col gap-1 px-4 py-6">
-          <h3 className="text-[13px] leading-5 text-gray-1000">
+        <div className="flex flex-col gap-1 px-6 py-6">
+          <h3 className="text-[14px] leading-[21px] text-gray-1000">
             {t("meetings.ledger.emptyTitle")}
           </h3>
           <Notice tone="muted" live={false}>
@@ -135,7 +133,7 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
         </div>
       }
     >
-      <div className="flex flex-col gap-2 px-4 py-3">
+      <div className="flex flex-col gap-2 px-6 py-5">
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1.5">
           <FactChip
             label={t("meetings.ledger.statThreads")}
@@ -157,7 +155,9 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
             }
           />
         </div>
-        <p className="text-[13px] leading-5 text-pretty text-gray-1000">
+        {/* The headline is what this document says, so it is set as its first
+         * paragraph rather than as another row of body text. */}
+        <p className="text-[16px] leading-[25px] text-pretty text-gray-1000">
           {ledger.headline}
         </p>
       </div>
@@ -166,7 +166,7 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
         <ul
           role="list"
           aria-label={t("meetings.ledger.threads")}
-          className="flex flex-col gap-3"
+          className="flex flex-col gap-4"
         >
           {ledger.threads.map((thread, index) => {
             const outcome = LEDGER_OUTCOME[thread.state];
@@ -174,14 +174,11 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
               <li key={`thread:${index}`} className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                   <span className="flex min-w-0 items-baseline gap-2">
-                    <span className="text-[11px] tabular-nums text-gray-700">
-                      {`T${String(index + 1).padStart(2, "0")}`}
-                    </span>
-                    <span className="text-[13px] leading-5 font-medium text-gray-1000">
+                    <span className="text-[14px] leading-[21px] font-medium text-gray-1000">
                       {thread.topic}
                     </span>
                     {thread.owner ? (
-                      <span className="text-[11px] text-gray-800">
+                      <span className="text-[13px] leading-[18px] text-gray-900">
                         {thread.owner}
                       </span>
                     ) : null}
@@ -192,9 +189,9 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
                     )}
                   </span>
                   <span
-                    className={`flex-none text-[11px] whitespace-nowrap ${OUTCOME_CLASSES[outcome]}`}
+                    className={`flex-none text-[13px] leading-[18px] whitespace-nowrap ${OUTCOME_CLASSES[outcome]}`}
                   >
-                    {`${OUTCOME_GLYPHS[outcome]} ${t(`meetings.ledger.states.${thread.state}`)}`}
+                    {t(`meetings.ledger.states.${thread.state}`)}
                   </span>
                 </div>
                 <LedgerReceiptRow
@@ -248,7 +245,7 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
             {t("meetings.ledger.noStances")}
           </Notice>
         ) : (
-          <table className="w-full text-[13px] leading-5 text-gray-900">
+          <table className="w-full text-[14px] leading-[21px] text-gray-900">
             <thead>
               <tr>
                 <th scope="col" className={COLUMN_CLASSES}>
@@ -269,7 +266,7 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
               {ledger.stances.map((stance, index) => (
                 <tr key={`stance:${index}`}>
                   <td
-                    className={`${CELL_CLASSES} text-[11px] tabular-nums whitespace-nowrap text-gray-700`}
+                    className={`${CELL_CLASSES} text-[13px] leading-[18px] tabular-nums whitespace-nowrap text-gray-900`}
                   >
                     {offsetOf(stance.at_ms)}
                   </td>
@@ -291,13 +288,13 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
 
       <LedgerBlock label={t("meetings.ledger.trust")}>
         <ul role="list" className="flex flex-col gap-1.5">
-          <li className="text-[13px] leading-5 text-pretty text-gray-900">
+          <li className="text-[14px] leading-[21px] text-pretty text-gray-900">
             {t("meetings.ledger.trustMeasured")}
           </li>
           {ledger.caveats.map((caveat, index) => (
             <li
               key={`caveat:${index}`}
-              className="text-[13px] leading-5 text-pretty text-gray-900"
+              className="text-[14px] leading-[21px] text-pretty text-gray-900"
             >
               {caveat}
             </li>
@@ -315,7 +312,7 @@ interface LedgerBlockProps {
 
 /** One register of the ledger: a microlabel over its rows, on a hairline. */
 const LedgerBlock: React.FC<LedgerBlockProps> = ({ label, children }) => (
-  <div className="flex flex-col gap-2 px-4 py-3">
+  <div className="flex flex-col gap-2 px-6 py-4">
     <h3>
       <Microlabel>{label}</Microlabel>
     </h3>

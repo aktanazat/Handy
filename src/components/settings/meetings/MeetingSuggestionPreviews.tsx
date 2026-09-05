@@ -71,7 +71,11 @@ export const MeetingSuggestionPreviews: React.FC<
        * something had been skipped was unreadable in the common case of a
        * single offer. */
       footer={
-        <Notice tone="muted" live={false}>
+        <Notice
+          tone="muted"
+          live={false}
+          className="text-[13px] leading-[18px] text-gray-900"
+        >
           {t(
             "meetings.preview.skippedNote",
             "Skipping hides an offer here. Sona keeps seeing the call until the offer expires.",

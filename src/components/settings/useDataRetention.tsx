@@ -60,7 +60,7 @@ export const useDataRetention = () => {
      * accepted, so a caller renders it unconditionally. */
     errorNotice:
       dataError === null ? null : (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice tone="danger" assertive>
             {`${t("settings.privacy.data.error")}: ${dataError}`}
           </Notice>

@@ -298,23 +298,35 @@ describe("library row, no-speech capture", () => {
 describe("library row, opened", () => {
   const markup = row({ expanded: true });
 
-  test("reveals playback, copy, transcribe again and delete", () => {
+  test("reveals playback, copy and transcribe again", () => {
     expect(markup).toContain('data-testid="history-entry-details"');
     expect(markup).toContain('data-testid="audio-player-toggle"');
     expect(markup).toContain('data-testid="history-entry-copy"');
     expect(markup).toContain('data-testid="history-entry-retry"');
-    expect(markup).toContain('data-testid="history-entry-delete"');
     expect(markup).toContain("Copy");
     expect(markup).toContain("Transcribe again");
-    expect(markup).toContain("Delete");
   });
 
-  test("the three named actions carry a hairline, and only the menu is a ghost", () => {
+  /* Reading-first doctrine: a log is a reading surface, so nothing standing on
+   * it may throw a recording away in one press. Delete is a destructive item
+   * in the row's menu now, and Radix keeps menu content in a portal a static
+   * render never mounts — so what is pinned here is that the opened row shows
+   * no destructive control at all. */
+  test("keeps no destructive control on the opened row", () => {
     const bar = markup.slice(
       markup.indexOf('data-testid="history-entry-controls"'),
       markup.indexOf('data-testid="history-receipts"'),
     );
-    expect(occurrences(bar, 'data-variant="outline"')).toBe(3);
+    expect(bar).not.toContain("text-red-900");
+    expect(bar).not.toContain(">Delete<");
+  });
+
+  test("the two named actions carry a hairline, and only the menu is a ghost", () => {
+    const bar = markup.slice(
+      markup.indexOf('data-testid="history-entry-controls"'),
+      markup.indexOf('data-testid="history-receipts"'),
+    );
+    expect(occurrences(bar, 'data-variant="outline"')).toBe(2);
     expect(occurrences(bar, 'data-variant="ghost"')).toBe(1);
     // The one ghost is the icon-only menu trigger.
     expect(bar).toContain('data-testid="history-entry-actions"');
@@ -416,13 +428,10 @@ describe("library row, the action bar", () => {
 
   test("a row mid-retry or mid-delete offers no operation at all", () => {
     const busy = controls({ busy: true });
-    for (const id of ["copy", "retry", "delete"]) {
+    for (const id of ["copy", "retry"]) {
       expect(isDisabled(busy, id)).toBe(true);
     }
-    const idle = controls();
-    for (const id of ["retry", "delete"]) {
-      expect(isDisabled(idle, id)).toBe(false);
-    }
+    expect(isDisabled(controls(), "retry")).toBe(false);
   });
 
   test("copy confirms itself in place instead of raising a toast", () => {
@@ -430,11 +439,16 @@ describe("library row, the action bar", () => {
     expect(controls()).not.toContain("Copied");
   });
 
-  test("delete is the only action coloured as destructive", () => {
+  /* The bar is what the row shows at rest once it is open, and none of it can
+   * destroy the entry: deleting one lives with correcting and reprocessing it,
+   * behind the menu trigger. */
+  test("the bar carries two named actions and no destructive one", () => {
     const markup = controls();
-    expect(buttonFor(markup, "delete")).toContain("text-red-900");
-    expect(buttonFor(markup, "copy")).not.toContain("text-red-900");
-    expect(buttonFor(markup, "retry")).not.toContain("text-red-900");
+    expect(markup).toContain('data-testid="history-entry-copy"');
+    expect(markup).toContain('data-testid="history-entry-retry"');
+    expect(markup).not.toContain("text-red-900");
+    expect(markup).not.toContain(">Delete<");
+    expect(markup).toContain('data-testid="history-entry-actions"');
   });
 });
 
@@ -906,11 +920,9 @@ describe("library page chrome", () => {
     expect(header).toContain('data-testid="history-summary-loading"');
   });
 
-  /* The page's own name is chrome. 14px semibold in px rather than `text-sm`,
-   * which is 12.25px at this app's 14px root. */
-  test("the page title is 14px semibold", () => {
-    expect(markup).toContain("text-[14px] leading-[20px] font-semibold");
-  });
+  /* The page title's own size belongs to `PageTitle` in settings/rows.tsx and
+   * is asserted where that primitive lives; pinning its class string from the
+   * Library's test made a type-scale change fail in the wrong file. */
 
   test("no text action is left invisible at rest", () => {
     /* Secondary actions now carry a shared hairline. These standing text
@@ -967,6 +979,7 @@ describe("library page chrome", () => {
       markup.indexOf('data-testid="history-loading"'),
       markup.length,
     );
-    expect(occurrences(skeletons, "px-4 py-2.5")).toBe(5);
+    // Five rows, two bars each: a transcript line and its measurement.
+    expect(occurrences(skeletons, 'data-slot="skeleton"')).toBe(10);
   });
 });

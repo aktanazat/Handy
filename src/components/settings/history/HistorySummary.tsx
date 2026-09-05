@@ -12,11 +12,11 @@ interface HistorySummaryProps {
   onRetry: () => void;
 }
 
-/* The line every metadata readout on this page is written in: 11px, tabular,
- * secondary. `snap-measured` because these are measurements — a tweened count
- * displays a number the backend never reported. */
+/* The line every metadata readout on this page is written in: the brief's Meta
+ * tier, tabular, secondary. `snap-measured` because these are measurements — a
+ * tweened count displays a number the backend never reported. */
 const SUMMARY_LINE =
-  "snap-measured min-h-5 text-[11px] tabular-nums text-gray-800";
+  "snap-measured min-h-5 text-[13px] leading-[18px] text-gray-900 tabular-nums";
 
 /* All-time totals as one sentence: "5 recordings · 3m 39s · 587 words".
  *
@@ -39,7 +39,7 @@ export const HistorySummary: React.FC<HistorySummaryProps> = ({
   if (error) {
     return (
       <div className="flex min-h-5 flex-wrap items-center gap-3">
-        <p className="text-sm text-red-900">
+        <p className="text-[13px] leading-[18px] text-red-900">
           {t("settings.history.stats.unavailable")}
         </p>
         {/* Bordered, not a text ghost: this line has no banner surface of its

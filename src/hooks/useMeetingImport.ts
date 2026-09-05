@@ -1,27 +1,37 @@
-import { useCallback, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { open } from "@tauri-apps/plugin-dialog";
-import { toast } from "sonner";
-import { commands } from "@/bindings";
-import { meetingErrorKey } from "@/components/settings/meetings/meetingUtils";
+import { useCallback } from "react";
+import {
+  commands,
+  type MeetingCommandError,
+  type MeetingSessionSnapshot,
+  type Result,
+} from "@/bindings";
+import { useImportDialogStore } from "@/components/import/importDialogStore";
+import { importFileExtension } from "@/components/import/importQueue";
+import { MEDIA_IMPORT_EXTENSIONS } from "./useAudioImport";
 
-/* Everything the meeting importer accepts, split the way the file picker asks
- * for it. A recording is decoded and transcribed; a transcript export is read
- * as-is. One list each, because the picker's filters and the routing below are
- * the only readers and two copies of either is how a format becomes importable
- * from the picker and refused by the backend. */
-const RECORDING_EXTENSIONS = [
-  "wav",
-  "mp3",
-  "m4a",
-  "aac",
-  "flac",
-  "ogg",
-  "mov",
-  "mp4",
-  "m4v",
+/* A transcript export is read as-is; everything else is decoded and
+ * transcribed, so a meeting accepts every recording dictation does plus these.
+ * One list, because the picker filter, the drop filter and the routing below
+ * are its only readers and two copies of either is how a format becomes
+ * choosable from the picker and refused by the backend. */
+export const MEETING_TRANSCRIPT_EXTENSIONS = ["txt", "srt", "json", "md"];
+export const MEETING_IMPORT_EXTENSIONS = [
+  ...MEDIA_IMPORT_EXTENSIONS,
+  ...MEETING_TRANSCRIPT_EXTENSIONS,
 ];
-const TRANSCRIPT_EXTENSIONS = ["txt", "srt", "json", "md"];
+
+/** Hand one file to the owner that matches it. */
+export const importMeetingPath = async (
+  path: string,
+): Promise<Result<MeetingSessionSnapshot, MeetingCommandError>> =>
+  MEETING_TRANSCRIPT_EXTENSIONS.includes(importFileExtension(path))
+    ? commands.meetingImportTranscript(path)
+    : commands.meetingImportRecording({
+        path,
+        title: null,
+        recorded_at_utc_ms: null,
+        origin: { kind: "local_file" },
+      });
 
 export interface MeetingImportOptions {
   /** The imported meeting, to show once it exists. */
@@ -29,72 +39,29 @@ export interface MeetingImportOptions {
 }
 
 export interface MeetingImport {
-  start: () => Promise<void>;
+  start: () => void;
   importing: boolean;
 }
 
 /**
- * Import a recording or a transcript export as a meeting: pick a file, hand it
- * to the owner that matches it, show the meeting that came back.
+ * Offer to import recordings or transcript exports as meetings.
  *
  * Two surfaces offer this one action — the Meetings home and the command
- * palette — so the busy flag and the failure report live here rather than being
- * reimplemented, and diverging, at each of them.
+ * palette — so `start` raises the app's one import dialog for both, and the
+ * dialog runs `importMeetingPath` per file. `importing` is that dialog being
+ * open on a meeting import, which is what both callers wanted the flag for.
  */
 export const useMeetingImport = ({
   onImported,
 }: MeetingImportOptions): MeetingImport => {
-  const { t } = useTranslation();
-  const [importing, setImporting] = useState(false);
-  /* The re-entrancy guard has to be readable in the same tick it is written —
-   * two clicks inside one frame both see the state from the last render, so the
-   * state below is the render signal and this is the lock. */
-  const running = useRef(false);
+  const openImport = useImportDialogStore((state) => state.openImport);
+  const importing = useImportDialogStore(
+    (state) => state.open && state.request?.kind === "meeting",
+  );
 
-  const start = useCallback(async () => {
-    if (running.current) return;
-    running.current = true;
-    setImporting(true);
-    try {
-      const selectedPath = await open({
-        directory: false,
-        multiple: false,
-        filters: [
-          {
-            name: t("meetings.import.recordingFilter"),
-            extensions: RECORDING_EXTENSIONS,
-          },
-          {
-            name: t("meetings.import.transcriptFilter"),
-            extensions: TRANSCRIPT_EXTENSIONS,
-          },
-        ],
-      });
-      // A dismissed dialog is the person changing their mind, not a failure,
-      // and `multiple: false` means an array can only be a plugin change.
-      if (selectedPath === null || Array.isArray(selectedPath)) return;
-
-      const extension = selectedPath.split(".").pop()?.toLowerCase() ?? "";
-      const result = TRANSCRIPT_EXTENSIONS.includes(extension)
-        ? await commands.meetingImportTranscript(selectedPath)
-        : await commands.meetingImportRecording({
-            path: selectedPath,
-            title: null,
-            recorded_at_utc_ms: null,
-            origin: { kind: "local_file" },
-          });
-      if (result.status === "error") {
-        toast.error(t(meetingErrorKey(result.error)));
-        return;
-      }
-      onImported(result.data.session_id);
-    } catch {
-      toast.error(t("meetings.errors.operation"));
-    } finally {
-      running.current = false;
-      setImporting(false);
-    }
-  }, [onImported, t]);
+  const start = useCallback(() => {
+    openImport({ kind: "meeting", onImported });
+  }, [onImported, openImport]);
 
   return { start, importing };
 };

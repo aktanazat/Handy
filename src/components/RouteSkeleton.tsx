@@ -17,12 +17,19 @@ export interface RouteSkeletonProps {
   label: string;
 }
 
-/* Shape of a page before its chunk arrives: title block, then rows. Sized to
- * the real page rhythm so the swap does not jump. */
+/* Shape of a page before its chunk arrives: the title block, then the sections
+ * under it, on the page's own rhythm — a 26px title line and `gap-8` between
+ * sections, which is what `SettingsPage` lays out. The layout used to live in
+ * shell.css as `.app-route-skeleton`, from when this file was frozen legacy;
+ * it is four utilities, so it says them here and the rule is gone. */
 export const RouteSkeleton: React.FC<RouteSkeletonProps> = ({ label }) => (
-  <div className="app-route-skeleton" role="status" aria-label={label}>
+  <div
+    className="flex w-full flex-col gap-8 pt-1"
+    role="status"
+    aria-label={label}
+  >
     <div className="space-y-2">
-      <Skeleton className="h-7 w-56" />
+      <Skeleton className="h-[26px] w-56" />
       <Skeleton className="h-4 w-80" />
     </div>
     <div className="space-y-2">

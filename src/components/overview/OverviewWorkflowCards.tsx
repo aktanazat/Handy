@@ -63,6 +63,45 @@ type OverviewCardState<T> =
 const isLoadedEmpty = <T,>(state: OverviewCardState<T>): boolean =>
   state.status === "loaded" && state.entries.length === 0;
 
+/* The round-6 list grammar, in one place because both lists are written in it:
+ * a row is a line of text with one meta line under it, and the surface around
+ * it draws the only border. */
+const ROW_TITLE = "block text-[14px] leading-[21px] font-medium text-gray-1000";
+const ROW_META = "mt-1 block text-[13px] leading-[18px] text-gray-900";
+const ROW_BOX = "px-6 py-3.5";
+const ROW_LINK =
+  "hover-fast w-full px-6 py-3.5 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none";
+
+/* The source and the time, as one meta line with a tabular clock. */
+const RowMeta: React.FC<{
+  source: React.ReactNode;
+  time: string;
+  className?: string;
+}> = ({ source, time, className }) => (
+  <span className={cn(ROW_META, className)}>
+    {source}
+    <span aria-hidden="true"> · </span>
+    <span className="snap-measured tabular-nums">{time}</span>
+  </span>
+);
+
+/* A named list: the label sits above the surface, the way every section label
+ * on every other page does, so the first row inside is a row and not a header. */
+const FeedList: React.FC<{
+  labelId: string;
+  label: string;
+  children: React.ReactNode;
+}> = ({ labelId, label, children }) => (
+  <div className="flex min-w-0 flex-col gap-2">
+    <h2 id={labelId}>
+      <Microlabel>{label}</Microlabel>
+    </h2>
+    <SettingsCard aria-labelledby={labelId} className="overflow-hidden">
+      {children}
+    </SettingsCard>
+  </div>
+);
+
 const OverviewCardStateRow: React.FC<{
   status: "loading" | "error";
   onRetry: () => void;
@@ -71,7 +110,10 @@ const OverviewCardStateRow: React.FC<{
 
   if (status === "loading") {
     return (
-      <div role="status" className="px-4 py-3 text-[13px] text-gray-900">
+      <div
+        role="status"
+        className={cn(ROW_BOX, "text-[14px] leading-[21px] text-gray-900")}
+      >
         {t("common.loading")}
       </div>
     );
@@ -80,7 +122,10 @@ const OverviewCardStateRow: React.FC<{
   return (
     <div
       role="alert"
-      className="flex min-h-11 items-center justify-between gap-3 px-4 py-2.5 text-[13px] text-gray-800"
+      className={cn(
+        ROW_BOX,
+        "flex items-center justify-between gap-3 text-[14px] leading-[21px] text-gray-900",
+      )}
     >
       <span>{t("settings.workflows.overview.loadError")}</span>
       <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
@@ -136,14 +181,12 @@ export const OverviewWorkflowCardsView: React.FC<
       )}
     >
       {hideReceipts ? null : (
-        <SettingsCard aria-labelledby="overview-workflow-receipts">
-          <h2 id="overview-workflow-receipts" className="px-4 pt-4 pb-2">
-            <Microlabel>
-              {t("settings.workflows.overview.whatSonaDid")}
-            </Microlabel>
-          </h2>
+        <FeedList
+          labelId="overview-workflow-receipts"
+          label={t("settings.workflows.overview.whatSonaDid")}
+        >
           {receipts.status === "loaded" ? (
-            <ul role="list" className="divide-y divide-gray-alpha-500">
+            <ul role="list" className="divide-y divide-gray-alpha-400">
               {feedReceipts.map((receipt) => {
                 const meetingId =
                   receipt.jump_target?.kind === "meeting"
@@ -151,16 +194,16 @@ export const OverviewWorkflowCardsView: React.FC<
                     : null;
                 const line = (
                   <>
-                    <span className="block text-[13px] leading-5 text-gray-1000">
+                    <span className={ROW_TITLE}>
                       {formatWorkflowOutcome(receipt, t)}
                     </span>
-                    <span className="mt-1 block text-[11px] text-gray-900">
-                      {t(WORKFLOW_NAME_KEY[receipt.workflow_id])}
-                      <span aria-hidden="true"> · </span>
-                      <span className="snap-measured tabular-nums">
-                        {formatRelativeTime(receipt.finished_at_utc_ms, nowMs)}
-                      </span>
-                    </span>
+                    <RowMeta
+                      source={t(WORKFLOW_NAME_KEY[receipt.workflow_id])}
+                      time={formatRelativeTime(
+                        receipt.finished_at_utc_ms,
+                        nowMs,
+                      )}
+                    />
                   </>
                 );
 
@@ -172,7 +215,7 @@ export const OverviewWorkflowCardsView: React.FC<
                     {meetingId === null ? (
                       <div
                         data-testid="overview-workflow-receipt"
-                        className="px-4 py-3"
+                        className={ROW_BOX}
                       >
                         {line}
                       </div>
@@ -182,7 +225,7 @@ export const OverviewWorkflowCardsView: React.FC<
                         data-testid="overview-workflow-receipt"
                         data-meeting-id={meetingId}
                         onClick={() => onOpenMeeting(meetingId)}
-                        className="hover-fast w-full px-4 py-3 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
+                        className={ROW_LINK}
                       >
                         {line}
                       </button>
@@ -197,45 +240,56 @@ export const OverviewWorkflowCardsView: React.FC<
               onRetry={onRetryReceipts}
             />
           )}
-        </SettingsCard>
+        </FeedList>
       )}
 
       {hideOpenLoops ? null : (
-        <SettingsCard aria-labelledby="overview-open-loops">
-          <h2 id="overview-open-loops" className="px-4 pt-4 pb-2">
-            <Microlabel>
-              {t("settings.workflows.overview.openLoops")}
-            </Microlabel>
-          </h2>
+        <FeedList
+          labelId="overview-open-loops"
+          label={t("settings.workflows.overview.openLoops")}
+        >
           {openLoops.status === "loaded" ? (
-            <ul role="list" className="divide-y divide-gray-alpha-500">
-              {openLoops.entries.map((openLoop) => (
-                <li
-                  key={`${openLoop.meeting_id}:${openLoop.at_utc_ms}:${openLoop.text}`}
-                >
-                  <button
-                    type="button"
-                    data-testid="overview-open-loop"
-                    data-meeting-id={openLoop.meeting_id}
-                    aria-label={t("settings.workflows.overview.openMeeting", {
-                      title: openLoop.title,
-                    })}
-                    onClick={() => onOpenMeeting(openLoop.meeting_id)}
-                    className="hover-fast w-full px-4 py-3 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
+            <ul role="list" className="divide-y divide-gray-alpha-400">
+              {openLoops.entries.map((openLoop) => {
+                const line = (
+                  <>
+                    <span className={ROW_TITLE}>{openLoop.text}</span>
+                    <RowMeta
+                      className="truncate"
+                      source={openLoop.title}
+                      time={formatRelativeTime(openLoop.at_utc_ms, nowMs)}
+                    />
+                  </>
+                );
+
+                return (
+                  <li
+                    key={`${openLoop.meeting_id}:${openLoop.at_utc_ms}:${openLoop.text}`}
                   >
-                    <span className="block text-[13px] leading-5 text-gray-1000">
-                      {openLoop.text}
-                    </span>
-                    <span className="mt-1 block truncate text-[11px] text-gray-900">
-                      {openLoop.title}
-                      <span aria-hidden="true"> · </span>
-                      <span className="snap-measured tabular-nums">
-                        {formatRelativeTime(openLoop.at_utc_ms, nowMs)}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
+                    {/* A promise whose meeting is gone still has to be read;
+                     * it just has nothing to open. */}
+                    {openLoop.meeting_id === "" ? (
+                      <div data-testid="overview-open-loop" className={ROW_BOX}>
+                        {line}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        data-testid="overview-open-loop"
+                        data-meeting-id={openLoop.meeting_id}
+                        aria-label={t(
+                          "settings.workflows.overview.openMeeting",
+                          { title: openLoop.title },
+                        )}
+                        onClick={() => onOpenMeeting(openLoop.meeting_id)}
+                        className={ROW_LINK}
+                      >
+                        {line}
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <OverviewCardStateRow
@@ -243,7 +297,7 @@ export const OverviewWorkflowCardsView: React.FC<
               onRetry={onRetryOpenLoops}
             />
           )}
-        </SettingsCard>
+        </FeedList>
       )}
     </div>
   );

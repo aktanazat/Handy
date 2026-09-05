@@ -60,7 +60,7 @@ export const PrivacyUpstreamImport: React.FC = () => {
           </div>
         }
       >
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice live={false}>
             {t("settings.privacy.upstreamImport.scope")}
           </Notice>
@@ -150,7 +150,7 @@ export const PrivacyUpstreamImport: React.FC = () => {
             </SettingsRow>
           </div>
         </fieldset>
-        <div className="flex flex-col gap-1.5 px-4 py-2.5 empty:hidden">
+        <div className="flex flex-col gap-1.5 px-6 py-2.5 empty:hidden">
           {status.app_state === "running" ? (
             <Notice tone="danger">
               {t("settings.privacy.upstreamImport.appRunning")}
@@ -209,7 +209,7 @@ export const PrivacyUpstreamImport: React.FC = () => {
     return (
       <SettingsSection label={t("settings.privacy.upstreamImport.title")}>
         <FailureNotice
-          className="px-4 py-2.5"
+          className="px-6 py-2.5"
           onRetry={() => void refreshUpstreamStatus()}
           retryDisabled={loadingUpstreamStatus}
         >

@@ -6,7 +6,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { useOsType } from "@/hooks/useOsType";
 import { formatKeyCombination, keyCapParts } from "@/lib/utils/keyboard";
 import { cn } from "@/lib/cn";
-import { SettingsCard } from "@/components/settings/rows";
+import { PAGE_COLUMN, SettingsCard } from "@/components/settings/rows";
 import { Aurora } from "@/components/Aurora";
 import { Button } from "@/components/vg/button";
 import { commandActionIcons } from "@/components/commandPaletteActions";
@@ -94,118 +94,129 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
   return (
     <SettingsCard
       aria-labelledby="overview-status"
-      className="relative space-y-8 overflow-hidden p-8"
+      className="relative overflow-hidden px-6 py-5"
     >
       <Aurora isRecording={isRecording} />
-      <div className="relative space-y-4">
-        <h1
-          id="overview-status"
-          aria-live="polite"
-          data-recording={isRecording ? "true" : undefined}
-          /* Explicit px, matching SettingsPage's h1 in settings/rows.tsx. This
-           * app sets `:root { font-size: 14px }` (styles/base.css), so every rem
-           * utility renders at 87.5% of its name and `text-2xl` would be 21px —
-           * smaller than every other page's title, on the app's default route,
-           * for the one word this page exists to say. The old hero shouted it at
-           * 40px/700; 24px/500 is the intended restraint, not a demotion. */
-          className={cn(
-            "text-[24px] leading-[30px] font-medium tracking-tight",
-            isRecording ? "text-accent-strong" : "text-gray-1000",
-          )}
-        >
-          {t(isRecording ? "overview.hero.recording" : "overview.hero.ready")}
-        </h1>
+      <div className="relative flex flex-col gap-5">
+        <div className="flex flex-col gap-2">
+          <h1
+            id="overview-status"
+            aria-live="polite"
+            data-recording={isRecording ? "true" : undefined}
+            /* The document-title size from the round-6 type scale, in explicit
+             * px: this app sets `:root { font-size: 14px }` (styles/base.css),
+             * so every rem utility renders at 87.5% of its name. One word, at
+             * the same size a meeting's title is set in, so the page does not
+             * shout a state that every other page states quietly. */
+            className={cn(
+              "text-[24px] leading-[30px] font-semibold tracking-[-0.01em] text-balance",
+              isRecording ? "text-accent-strong" : "text-gray-1000",
+            )}
+          >
+            {t(isRecording ? "overview.hero.recording" : "overview.hero.ready")}
+          </h1>
 
-        {/* The chord is drawn once, as the keys themselves — and the keys are
-         * also the control that changes them, rather than a sentence pointing
-         * at a settings page. Nothing bound means no keycaps and no gesture:
-         * printing either would claim a capability this install lacks. */}
-        {keys.length === 0 ? (
-          /* Bordered, not ghost: a ghost button at rest has no border and no
-           * fill, so this read as a sentence fragment rather than as the one
-           * control that fixes an install with no chord bound. Its box aligns
-           * to the card's content edge — the text sits inside the padding,
-           * which is what a bordered control is supposed to do. */
+          {/* One meta line under the state word: the chord that starts a
+           * dictation, the gesture it answers to, and the mode the next one
+           * runs in. Three sentence fragments stacked as three paragraphs read
+           * as three unrelated announcements; they are one sentence about the
+           * next dictation. Nothing bound means no keycaps and no gesture —
+           * printing either would claim a capability this install lacks. */}
+          <div className="flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1 text-[13px] leading-[18px] text-gray-900">
+            {keys.length === 0 ? (
+              /* Bordered, not ghost: a ghost button at rest has no border and
+               * no fill, so this read as a sentence fragment where it is the
+               * one control that fixes an install with no chord bound. */
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={onChangeShortcut}
+                data-testid="overview-shortcut"
+              >
+                {t("overview.hero.setShortcutAction", "Set a shortcut")}
+              </Button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onChangeShortcut}
+                  /* The left/right qualifier the caps drop, one hover away. */
+                  title={formatKeyCombination(binding ?? "", osType)}
+                  aria-label={t(
+                    "overview.hero.shortcutAction",
+                    "Change dictation shortcut",
+                  )}
+                  data-testid="overview-shortcut"
+                  className="hover-fast -mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
+                >
+                  {keys.map((key, index) => (
+                    <Kbd key={`${key}-${index}`}>{key}</Kbd>
+                  ))}
+                </button>
+                <span>
+                  {t(
+                    pushToTalk
+                      ? "overview.hero.gestureTapHold"
+                      : "overview.hero.gestureTapOnly",
+                    pushToTalk
+                      ? "tap to toggle · hold to talk"
+                      : "tap to toggle",
+                  )}
+                </span>
+              </>
+            )}
+            <span aria-hidden="true" className="text-gray-700">
+              ·
+            </span>
+            {/* Modes left the rail, so this is where one gets picked: the name
+             * of the mode the next dictation runs in, one click from the list. */}
+            <span>{t("modesV2.chip.lead")}</span>
+            <CaptureModeChip onOpenModes={onOpenModes} />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* The promise lives in the tooltip and nowhere else. Radix opens the
+           * tooltip on focus and points the trigger's aria-describedby at the
+           * content while it is open, so a keyboard or screen-reader user reaches
+           * this sentence by tabbing to the button — the primitive already does
+           * the job a second permanent copy of the sentence was doing here, and
+           * that copy also displaced Radix's own wiring (a child's
+           * aria-describedby wins the Slot merge). One datum, one place. */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button type="button" size="sm" onClick={onNewMeeting}>
+                <NewMeetingIcon aria-hidden="true" className="size-4" />
+                {t("overview.hero.newMeeting")}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{assurance}</TooltipContent>
+          </Tooltip>
+          {osType === "macos" ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onRecordScreen}
+            >
+              <RecordScreenIcon aria-hidden="true" className="size-4" />
+              {t("recorder.open")}
+            </Button>
+          ) : null}
+          {/* The secondary capture actions keep a real hairline at rest so they
+           * remain legible beside the one filled primary action. */}
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={onChangeShortcut}
-            data-testid="overview-shortcut"
+            disabled={importing}
+            onClick={onImportAudio}
           >
-            {t("overview.hero.setShortcutAction", "Set a shortcut")}
+            <ImportAudioIcon aria-hidden="true" className="size-4" />
+            {t("overview.hero.importAudio")}
           </Button>
-        ) : (
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-900">
-            <button
-              type="button"
-              onClick={onChangeShortcut}
-              /* The left/right qualifier the caps drop, one hover away. */
-              title={formatKeyCombination(binding ?? "", osType)}
-              aria-label={t(
-                "overview.hero.shortcutAction",
-                "Change dictation shortcut",
-              )}
-              data-testid="overview-shortcut"
-              className="-mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
-            >
-              {keys.map((key, index) => (
-                <Kbd key={`${key}-${index}`}>{key}</Kbd>
-              ))}
-            </button>
-            <span>
-              {t(
-                pushToTalk
-                  ? "overview.hero.gestureTapHold"
-                  : "overview.hero.gestureTapOnly",
-                pushToTalk ? "tap to toggle · hold to talk" : "tap to toggle",
-              )}
-            </span>
-          </p>
-        )}
-
-        {/* Modes left the rail, so this is where one gets picked: the name of
-         * the mode the next dictation runs in, one click from the list. */}
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-900">
-          <span>{t("modesV2.chip.lead")}</span>
-          <CaptureModeChip onOpenModes={onOpenModes} />
-        </p>
-      </div>
-
-      <div className="relative flex flex-wrap items-center gap-3">
-        {/* The promise lives in the tooltip and nowhere else. Radix opens the
-         * tooltip on focus and points the trigger's aria-describedby at the
-         * content while it is open, so a keyboard or screen-reader user reaches
-         * this sentence by tabbing to the button — the primitive already does
-         * the job a second permanent copy of the sentence was doing here, and
-         * that copy also displaced Radix's own wiring (a child's
-         * aria-describedby wins the Slot merge). One datum, one place. */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button type="button" onClick={onNewMeeting}>
-              <NewMeetingIcon aria-hidden="true" className="size-4" />
-              {t("overview.hero.newMeeting")}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{assurance}</TooltipContent>
-        </Tooltip>
-        {osType === "macos" ? (
-          <Button type="button" variant="outline" onClick={onRecordScreen}>
-            <RecordScreenIcon aria-hidden="true" className="size-4" />
-            {t("recorder.open")}
-          </Button>
-        ) : null}
-        {/* The secondary capture action keeps a real hairline at rest so it
-         * remains legible beside the filled primary action. */}
-        <Button
-          type="button"
-          variant="outline"
-          disabled={importing}
-          onClick={onImportAudio}
-        >
-          <ImportAudioIcon aria-hidden="true" className="size-4" />
-          {t("overview.hero.importAudio")}
-        </Button>
+        </div>
       </div>
     </SettingsCard>
   );
@@ -326,7 +337,12 @@ export const Overview: React.FC<OverviewProps> = ({
      * this page you read without scrolling was the one part you had to scroll
      * for. The feed is a list that grows; the band is three fixed cards, so
      * the band is what can be promised above the fold. */
-    <div className="mx-auto flex min-h-full w-full max-w-[760px] flex-col justify-center gap-6 px-8 py-12">
+    <div
+      className={cn(
+        PAGE_COLUMN,
+        "flex min-h-full flex-col justify-center gap-8 py-8",
+      )}
+    >
       {updateResult !== null &&
         updateResult.status === "update_available" &&
         !updateDismissed && (

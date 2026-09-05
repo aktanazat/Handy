@@ -152,7 +152,7 @@ export const MeetingRetentionSettings: React.FC = () => {
          * and the way out are announced as one thing. */
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5"
+          className="flex flex-wrap items-center justify-between gap-2 px-6 py-2.5"
         >
           <Notice tone="danger" live={false}>
             {error}

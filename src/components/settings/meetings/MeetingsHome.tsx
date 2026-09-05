@@ -79,9 +79,9 @@ const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
   return (
     <SettingsCard
       aria-label={t("meetings.start.label", "Start a meeting")}
-      className="flex flex-col gap-3 p-4"
+      className="flex flex-col gap-4 px-6 py-5"
     >
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <Button
           type="button"
           id={START_BUTTON_ID}
@@ -95,7 +95,11 @@ const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
         </Button>
         {/* The other way a meeting begins: audio that was already recorded, or
          * a transcript another note-taker wrote. Beside the press that records
-         * one, because it produces the same thing. */}
+         * one, because it produces the same thing.
+         *
+         * `importing` is the import dialog standing open in front of this
+         * button, not work in flight, so the label holds still: the dialog
+         * itself reports what each file is doing. */}
         <Button
           type="button"
           variant="outline"
@@ -105,16 +109,17 @@ const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
           data-testid="meeting-import"
         >
           <FileAudio aria-hidden="true" className="size-4" />
-          {importing
-            ? t("meetings.import.importing")
-            : t("meetings.import.action")}
+          {t("meetings.import.action")}
         </Button>
+        {/* What the press will listen to, in the quietest register on the
+         * card: these are two words with a tick, not a third and fourth
+         * button. The group's name is its accessible label — printed, it was
+         * a machinery word sitting where a person reads. */}
         <span
           role="group"
           aria-label={t("meetings.start.capture", "Capture")}
-          className="flex items-center gap-2"
+          className="ms-auto flex items-center gap-1"
         >
-          <Microlabel>{t("meetings.start.capture", "Capture")}</Microlabel>
           {MEETING_SOURCES.map((source) => (
             <MeetingSourceChip
               key={source}
@@ -126,37 +131,38 @@ const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
           ))}
         </span>
       </div>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-        <p className="text-[13px] leading-5 text-gray-800">
+      {/* Two quiet lines, not two blocks: what the press does, then what
+       * happens to what it records. */}
+      <div className="flex flex-col gap-1">
+        <Microlabel>
           {t(
             "meetings.start.assurance",
             "Records your Mac's audio locally. Nothing joins the call.",
           )}
-        </p>
-        <span className="flex flex-none items-baseline gap-4">
-          <Microlabel>{t("meetings.start.localOnly", "Local only")}</Microlabel>
-          {retention === null ? null : (
-            <span className="text-[13px] leading-5 text-gray-800">
-              {retention.kind === "forever"
-                ? t("meetingsV2.retention.keptForever")
-                : t("meetingsV2.retention.keptDays", {
-                    days: retention.days,
-                  })}
-              {onOpenSettings === undefined ? null : (
-                <>
-                  <span aria-hidden="true"> · </span>
-                  <button
-                    type="button"
-                    onClick={onOpenSettings}
-                    className="rounded-md text-blue-900 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
-                  >
-                    {t("meetingsV2.retention.change")}
-                  </button>
-                </>
-              )}
-            </span>
-          )}
-        </span>
+        </Microlabel>
+        {retention === null ? null : (
+          <Microlabel>
+            {t("meetings.start.localOnly", "Local only")}
+            <span aria-hidden="true"> · </span>
+            {retention.kind === "forever"
+              ? t("meetingsV2.retention.keptForever")
+              : t("meetingsV2.retention.keptDays", {
+                  days: retention.days,
+                })}
+            {onOpenSettings === undefined ? null : (
+              <>
+                <span aria-hidden="true"> · </span>
+                <button
+                  type="button"
+                  onClick={onOpenSettings}
+                  className="rounded-md text-accent-strong hover:underline"
+                >
+                  {t("meetingsV2.retention.change")}
+                </button>
+              </>
+            )}
+          </Microlabel>
+        )}
       </div>
       {sources.length === 0 ? (
         <Notice tone="warning">
@@ -245,13 +251,13 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
             {recovery.map((meeting) => (
               <li
                 key={meeting.session_id}
-                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-3.5"
               >
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="truncate text-[13px] text-gray-1000">
+                <span className="flex min-w-0 flex-col gap-1">
+                  <span className="truncate text-[14px] leading-[21px] font-medium text-gray-1000">
                     {meeting.title}
                   </span>
-                  <Microlabel className="normal-case text-gray-800 tabular-nums">
+                  <Microlabel className="snap-measured tabular-nums">
                     {formatEntryTimestamp(meeting.created_at_utc_ms)}
                   </Microlabel>
                 </span>

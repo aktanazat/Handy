@@ -364,7 +364,7 @@ export const ModesSettings: React.FC = () => {
         >
           <SettingsSurface>
             {SKELETON_ROWS.map((row) => (
-              <div key={row} className="px-4 py-3">
+              <div key={row} className="px-6 py-3">
                 <Skeleton className="h-5 w-full" />
               </div>
             ))}

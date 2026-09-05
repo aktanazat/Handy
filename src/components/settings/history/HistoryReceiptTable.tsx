@@ -17,7 +17,7 @@ export const HistoryReceiptTable: React.FC<{
             scope="col"
             /* `font-normal` stays on the cell: a <th> is bold by default and
              * the label voice inside it inherits that weight. */
-            className="py-1 pr-3 font-normal"
+            className="py-1.5 pr-3 font-normal"
           >
             <Microlabel>{column}</Microlabel>
           </th>
@@ -32,11 +32,11 @@ export const HistoryReceiptTable: React.FC<{
         >
           <th
             scope="row"
-            className="py-1 pr-3 text-[11px] font-normal text-gray-900"
+            className="py-1.5 pr-3 text-[13px] leading-[18px] font-normal text-gray-900"
           >
             {row.header}
           </th>
-          <td className="py-1 pr-3 text-[11px] text-gray-900 tabular-nums">
+          <td className="py-1.5 pr-3 text-[13px] leading-[18px] text-gray-900 tabular-nums">
             {row.value}
           </td>
         </tr>

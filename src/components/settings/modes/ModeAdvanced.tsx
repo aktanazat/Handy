@@ -212,7 +212,7 @@ export const ModeAdvanced: React.FC<ModeAdvancedProps> = ({
            * assign, so a new mode arrives unbound. That is the one thing this
            * list cannot show, and only past nine modes. */}
           {modeCount > 9 ? (
-            <div className="px-4 py-3">
+            <div className="px-6 py-3">
               <Notice live={false}>
                 {t("settings.modes.shortcuts.manyModes")}
               </Notice>

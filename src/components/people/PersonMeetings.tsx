@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PersonMeetingLink } from "@/bindings";
 import { Microlabel, SettingsSection } from "@/components/settings/rows";
@@ -29,9 +28,7 @@ export const PersonMeetings: React.FC<PersonMeetingsProps> = ({
   return (
     <SettingsSection label={t("people.detail.meetingsTogether")}>
       {links.length === 0 ? (
-        <EmptyStateRow icon={Users}>
-          {t("people.detail.noMeetings")}
-        </EmptyStateRow>
+        <EmptyStateRow>{t("people.detail.noMeetings")}</EmptyStateRow>
       ) : (
         <ul className="divide-y divide-gray-alpha-400">
           {links.map((link) => {
@@ -40,16 +37,13 @@ export const PersonMeetings: React.FC<PersonMeetingsProps> = ({
               ...(link.meeting.series_number < 2
                 ? []
                 : [
-                    <Microlabel
-                      key="series"
-                      className="normal-case tabular-nums"
-                    >
+                    <Microlabel key="series" className="tabular-nums">
                       {t("people.detail.series", {
                         number: link.meeting.series_number,
                       })}
                     </Microlabel>,
                   ]),
-              <span key="timestamp">
+              <span key="timestamp" className="tabular-nums">
                 {formatEntryTimestamp(link.meeting.at_utc_ms)}
               </span>,
             ];
@@ -58,11 +52,11 @@ export const PersonMeetings: React.FC<PersonMeetingsProps> = ({
               <MeetingSummaryRow
                 key={link.meeting.id}
                 data-slot="person-meeting"
-                className="px-4 py-3"
+                className="px-6 py-3.5"
                 title={link.meeting.title}
                 headline={link.meeting.headline}
                 footerLeading={
-                  <span className="flex flex-wrap items-center gap-1.5">
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <EvidenceChip source={link.source} />
                     {suggested ? <SuggestedChip /> : null}
                   </span>

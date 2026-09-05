@@ -40,18 +40,19 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         /* A tooltip is text, so it stays solid and dense: no `glass-surface`
-         * here. One line of 11px on the inverted plate at --radius-control —
-         * the control step, because a tooltip is the size of a control rather
-         * than of a panel — with 8/4 padding instead of the kit's 10.5/5.25.
-         * Blur behind a two-word label buys nothing and costs legibility, and
-         * `text-xs` rendered at 10.5px against this app's 14px root.
+         * here. One line of meta type (13/18) on the inverted plate at
+         * --radius-control — the control step, because a tooltip is the size
+         * of a control rather than of a panel — with 8/4 padding instead of
+         * the kit's 10.5/5.25. Blur behind a two-word label buys nothing and
+         * costs legibility, and `text-xs` rendered at 10.5px against this
+         * app's 14px root.
          *
          * `popup-motion` (styles/popups.css) is the app's one popup shape. The
          * kit ran `animate-in` unconditionally here rather than on
          * `data-[state=open]`, so a tooltip re-ran its entrance on any style
          * recalculation that re-applied the class. */
         className={cn(
-          "popup-motion z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-control bg-foreground px-2 py-1 text-[11px] leading-4 text-balance text-background",
+          "popup-motion z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-control bg-foreground px-2 py-1 text-[13px] leading-[18px] text-balance text-background",
           className,
         )}
         {...props}

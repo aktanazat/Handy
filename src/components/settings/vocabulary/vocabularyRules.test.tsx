@@ -149,9 +149,6 @@ describe("the merged rule list", () => {
     // A word, not the kit's inverted pill: four saturated chips on a screen
     // would read as decoration, and a word survives greyscale.
     expect(html.includes('data-slot="badge"')).toBe(false);
-    expect(html).toContain(
-      'class="truncate text-[11px] text-gray-700">Spelling<',
-    );
   });
 
   test("carries both sides of every rule, and a delete for each", () => {

@@ -93,7 +93,7 @@ export const VocabularyRules: React.FC<VocabularyRulesProps> = ({ state }) => {
           {/* The kind is a word, not a coloured pill: it has to survive
            * greyscale, and this list is long enough that four saturated
            * chips per screen would read as decoration. */}
-          <span className="truncate text-[11px] text-gray-700">
+          <span className="truncate text-[12px] text-gray-700">
             {t(`modesV2.rules.kinds.${rule.kind}`)}
           </span>
           <Input
@@ -256,7 +256,7 @@ export const VocabularyRules: React.FC<VocabularyRulesProps> = ({ state }) => {
       )}
 
       {state.failure ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
           <Notice tone="danger">{state.failure.message}</Notice>
           <Button
             variant="outline"
@@ -269,7 +269,7 @@ export const VocabularyRules: React.FC<VocabularyRulesProps> = ({ state }) => {
         </div>
       ) : null}
 
-      <Notice live={false} className="px-4 py-3">
+      <Notice live={false} className="px-6 py-3">
         {t("modesV2.rules.matching")}
       </Notice>
     </div>

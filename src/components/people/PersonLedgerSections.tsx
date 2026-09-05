@@ -1,16 +1,49 @@
 import React from "react";
-import { CheckCheck, CircleDashed, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type {
   MeetingLoopStatus,
   PersonCommitment,
   PersonOpenLoop,
 } from "@/bindings";
+import { CITATION_MARK } from "@/components/settings/meetings/review/Citations";
 import { LoopStatusChip } from "@/components/settings/meetings/review/LoopRows";
 import { Microlabel, SettingsSection } from "@/components/settings/rows";
+import { cn } from "@/lib/cn";
 import { formatEntryTimestamp } from "@/lib/utils/format";
 import { EmptyStateRow } from "./EmptyStateRow";
 import { groupByDirection } from "./loopDirection";
+
+/* The mark that carries a ledger line back to the meeting it was said in.
+ *
+ * It is the citation mark NotesDocument owns — the same class string every
+ * timestamp jump in the app renders in — because a jump back to a moment
+ * should look the same everywhere. It cannot be `CitationJump` itself: a
+ * person's ledger row carries a meeting id and a wall-clock time, never a
+ * transcript segment or an in-meeting offset, so that component's props could
+ * only be filled with nulls, which renders an unpressable dash. The meeting's
+ * own name is in the row's Meta line below, and it is also this mark's
+ * accessible name, so pressing it is never a guess. */
+const MeetingMark: React.FC<{
+  title: string;
+  atUtcMs: number;
+  onOpen: () => void;
+}> = ({ title, atUtcMs, onOpen }) => {
+  const { t } = useTranslation();
+  const when = formatEntryTimestamp(atUtcMs);
+
+  return (
+    <button
+      type="button"
+      data-slot="ledger-jump"
+      onClick={onOpen}
+      aria-label={t("people.detail.openMeetingAt", { title, date: when })}
+      title={t("people.detail.openMeetingAt", { title, date: when })}
+      className={cn(CITATION_MARK, "ms-1 align-[0.05em]")}
+    >
+      {when}
+    </button>
+  );
+};
 
 /* One thing said in one meeting, in the shape both ledgers keep it.
  *
@@ -34,9 +67,9 @@ interface LedgerRow {
   stale: boolean;
 }
 
-/* The sentence first, then the meeting it came from. The meeting is a link,
- * not a caption — reading "who owns the launch checklist?" is the moment you
- * want to be back in the room where it was asked.
+/* The sentence first, with the mark that goes back to the room it was said in,
+ * then one Meta line: which meeting, where the loop stands, and how long it
+ * has been standing there.
  *
  * Two groups inside one section, not two sections: "I owe" and "waiting on
  * them" are the same register read from opposite ends, and splitting the card
@@ -45,27 +78,18 @@ interface LedgerRow {
  * where neither has anything. */
 const LedgerSection: React.FC<{
   label: string;
-  emptyIcon: LucideIcon;
   emptyText: string;
   mine: LedgerRow[];
   waitingOn: LedgerRow[];
   waitingOnLabel: string;
   onOpenMeeting: (meetingId: string) => void;
-}> = ({
-  label,
-  emptyIcon,
-  emptyText,
-  mine,
-  waitingOn,
-  waitingOnLabel,
-  onOpenMeeting,
-}) => {
+}> = ({ label, emptyText, mine, waitingOn, waitingOnLabel, onOpenMeeting }) => {
   const { t } = useTranslation();
 
   if (mine.length === 0 && waitingOn.length === 0) {
     return (
       <SettingsSection label={label}>
-        <EmptyStateRow icon={emptyIcon}>{emptyText}</EmptyStateRow>
+        <EmptyStateRow>{emptyText}</EmptyStateRow>
       </SettingsSection>
     );
   }
@@ -79,37 +103,33 @@ const LedgerSection: React.FC<{
     <SettingsSection label={label}>
       {groups.map((group) => (
         <div key={group.key} className="flex flex-col">
-          <h3 className="px-4 pt-3 pb-1">
+          <h3 className="px-6 pt-3.5 pb-2">
             <Microlabel>{group.heading}</Microlabel>
           </h3>
           <ul className="divide-y divide-gray-alpha-400 border-t border-gray-alpha-400">
             {group.rows.map((row) => (
-              <li key={row.key} className="flex flex-col gap-1.5 px-4 py-3">
-                <p className="text-[13px] leading-5 text-gray-1000 text-pretty">
+              <li key={row.key} className="flex flex-col gap-1.5 px-6 py-3.5">
+                <p className="text-[14px] leading-[21px] text-gray-1000 text-pretty">
                   {row.text}
+                  <MeetingMark
+                    title={row.title}
+                    atUtcMs={row.atUtcMs}
+                    onOpen={() => onOpenMeeting(row.meetingId)}
+                  />
                 </p>
-                <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <button
-                    type="button"
-                    onClick={() => onOpenMeeting(row.meetingId)}
-                    className="rounded-md text-[13px] leading-5 text-accent-strong hover:underline focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
-                  >
-                    {row.title}
-                  </button>
-                  <span className="snap-measured text-[11px] text-gray-800 tabular-nums">
-                    {formatEntryTimestamp(row.atUtcMs)}
-                  </span>
+                <span className="snap-measured flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px] leading-[18px] text-gray-900 tabular-nums">
+                  <span className="min-w-0 truncate">{row.title}</span>
                   <LoopStatusChip status={row.status} />
                   {row.stale ? (
                     <span
                       data-slot="loop-stale"
-                      className="text-[11px] whitespace-nowrap text-red-900"
+                      className="whitespace-nowrap text-red-900"
                     >
                       {t("people.waitingOn.stale")}
                     </span>
                   ) : null}
                   {row.carriedSinceUtcMs === null ? null : (
-                    <span className="snap-measured text-[11px] text-gray-800 tabular-nums">
+                    <span>
                       {t("people.detail.carriedSince", {
                         date: formatEntryTimestamp(row.carriedSinceUtcMs),
                       })}
@@ -147,7 +167,6 @@ export const PersonOpenLoops: React.FC<{
   return (
     <LedgerSection
       label={t("peopleV2.detail.openLoops")}
-      emptyIcon={CircleDashed}
       emptyText={t("people.detail.noOpenLoops")}
       mine={grouped.mine.map(asRow)}
       waitingOn={grouped.waitingOn.map(asRow)}
@@ -178,7 +197,6 @@ export const PersonCommitments: React.FC<{
   return (
     <LedgerSection
       label={t("people.detail.commitments")}
-      emptyIcon={CheckCheck}
       emptyText={t("people.detail.noCommitments")}
       mine={grouped.mine.map(asRow)}
       waitingOn={grouped.waitingOn.map(asRow)}

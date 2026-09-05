@@ -38,7 +38,7 @@ export const AgentBridgeWorkspace: React.FC = () => {
   ] as const;
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4">
+    <div className="flex flex-col gap-6 px-6 py-4">
       <div className="flex items-center justify-between gap-4">
         {error ? <Notice tone="danger">{error}</Notice> : <span />}
         <Button
@@ -69,11 +69,13 @@ export const AgentBridgeWorkspace: React.FC = () => {
             className="w-full justify-start gap-6 px-0"
           >
             {tabs.map((tab) => (
-              <TabsTrigger
-                key={tab.id}
-                value={tab.id}
-                className="flex-none px-0 text-sm font-normal text-gray-900 hover:text-gray-1000 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none data-[state=active]:text-gray-1000 after:bg-gray-1000"
-              >
+              /* No className: the text-tab recipe this used to restate is the
+                 kit's default now (vg/tabs.tsx). Its copy had drifted anyway —
+                 `text-sm` is 12.25px at this app's 14px root, and the
+                 `focus-visible:ring-blue-700` it carried was the last blue
+                 focus ring in the app, where every other control draws the
+                 bronze outline base.css paints. */
+              <TabsTrigger key={tab.id} value={tab.id}>
                 {tab.label}
               </TabsTrigger>
             ))}

@@ -88,6 +88,11 @@ export function installMockedRuntime(payload: MockPayload): void {
   localStorage.setItem("detection-panel-ack", "");
   localStorage.setItem("detection-prompt-response", "");
   const callbacks = new Map<number, (value: MockEventEnvelope) => void>();
+  /* Which callbacks are listening to which backend event, so a spec can push
+   * an update after the page has already asked for it — the `events` option
+   * only replays at the moment a listener registers, which cannot reach a
+   * job that did not exist yet. */
+  const listeners = new Map<string, Set<number>>();
   const pendingCommands = new Set(payload.pending);
   let nextCallbackId = 1;
 
@@ -101,6 +106,11 @@ export function installMockedRuntime(payload: MockPayload): void {
     value instanceof Object && !Array.isArray(value) ? value : null;
   const isJsonString = (value: JsonValue | undefined): value is string =>
     value === String(value ?? "");
+
+  /* The backend opens one job per imported file and the frontend follows each
+   * of them by id, so a mock that answered every `import_audio_file` with the
+   * same id would let three rows share one job's status. */
+  let audioImportJobs = 0;
 
   const recorder: RecorderMockState = {
     phase: "idle",
@@ -367,6 +377,20 @@ export function installMockedRuntime(payload: MockPayload): void {
     ["get_microphone_channels", 1],
     ["list_vocabulary_entries", []],
     ["list_audio_import_jobs", []],
+    /* The native file picker. Unanswered it falls through to null, which the
+     * import dialog reads as a dismissed picker, so a spec that clicks
+     * "Choose file" would see nothing happen. A spec that wants a dismissal —
+     * or different files — overrides `plugin:dialog|open` through `responses`.
+     * `multiple: true` means an array, which is what the callers with
+     * `multiple: false` already guard against. */
+    [
+      "plugin:dialog|open",
+      [
+        "/Users/sona/Recordings/standup-2026-01-12.m4a",
+        "/Users/sona/Recordings/design-review-part-two.wav",
+        "/Users/sona/Recordings/customer-call.mp3",
+      ],
+    ],
     ["list_snippets", []],
     [
       "check_for_updates",
@@ -606,6 +630,9 @@ export function installMockedRuntime(payload: MockPayload): void {
       const callbackId = Number(args?.handler);
       const callback = callbacks.get(callbackId);
       if (callback !== undefined) {
+        const live = listeners.get(eventName) ?? new Set<number>();
+        live.add(callbackId);
+        listeners.set(eventName, live);
         window.setTimeout(() => {
           for (const eventPayload of payload.events[eventName] ?? []) {
             callback({
@@ -623,6 +650,21 @@ export function installMockedRuntime(payload: MockPayload): void {
     }
     if (Object.prototype.hasOwnProperty.call(payload.responses, command)) {
       return payload.responses[command];
+    }
+    /* A queued job named after the file it will decode, one per call, as
+     * `AudioImportJob` in src/bindings.ts. A spec drives it forward by
+     * emitting `audio-import-update-event` payloads carrying the same id. */
+    if (command === "import_audio_file") {
+      const path = String(args?.path ?? "");
+      audioImportJobs += 1;
+      return {
+        id: audioImportJobs,
+        file_name: path.slice(path.lastIndexOf("/") + 1),
+        status: "queued",
+        decoded_samples: 0,
+        cancel_requested: false,
+        result: null,
+      };
     }
     if (command === "recorder_preflight") return recorderPreflight();
     if (command === "recorder_preview_start") {
@@ -858,6 +900,8 @@ export function installMockedRuntime(payload: MockPayload): void {
     };
     __TAURI_OS_PLUGIN_INTERNALS__: Record<string, string>;
     __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener: () => void };
+    /** Pushes one backend event to whoever is listening for it right now. */
+    sonaMockEmit: (event: string, eventPayload: JsonValue) => void;
   };
   // SAFETY: the mock plants the Tauri globals the runtime reads at startup;
   // Window does not declare them, so the intersection assertion is the way in.
@@ -883,4 +927,9 @@ export function installMockedRuntime(payload: MockPayload): void {
     eol: "\n",
   };
   target.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
+  target.sonaMockEmit = (event, eventPayload) => {
+    for (const id of listeners.get(event) ?? []) {
+      callbacks.get(id)?.({ event, id, payload: eventPayload });
+    }
+  };
 }

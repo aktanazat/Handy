@@ -132,12 +132,12 @@ export const SpeakerIdentityDialogForm: React.FC<
          * carried, and neither comes back. The snapshot says nothing about
          * which speakers have a saved sample, so the question is asked every
          * time rather than guessed at. */
-        <p className="text-[13px] leading-5 text-gray-1000" role="alert">
+        <p className="text-[14px] leading-[21px] text-gray-1000" role="alert">
           {t("meetings.review.markUnknownDescription", { speaker })}
         </p>
       ) : peopleLoadFailed ? (
         <div className="flex items-center justify-between gap-3" role="alert">
-          <p className="text-[13px] leading-5 text-gray-900">
+          <p className="text-[14px] leading-[21px] text-gray-900">
             {t("people.list.loadError")}
           </p>
           <Button
@@ -150,13 +150,13 @@ export const SpeakerIdentityDialogForm: React.FC<
           </Button>
         </div>
       ) : peopleLoading || people === null ? (
-        <p className="text-[13px] leading-5 text-gray-900">
+        <p className="text-[14px] leading-[21px] text-gray-900">
           {t("common.loading")}
         </p>
       ) : (
         <div className="space-y-4">
           <div className="space-y-2">
-            <span className="text-[13px] text-gray-1000">
+            <span className="text-[14px] text-gray-1000">
               {t("meetings.review.identityPerson")}
             </span>
             <Select value={targetValue} onValueChange={setTargetValue}>
@@ -196,7 +196,7 @@ export const SpeakerIdentityDialogForm: React.FC<
             <div className="space-y-2">
               <label
                 htmlFor={nameInputId}
-                className="text-[13px] text-gray-1000"
+                className="text-[14px] text-gray-1000"
               >
                 {t("meetings.review.identityNewPersonName")}
               </label>
@@ -210,7 +210,7 @@ export const SpeakerIdentityDialogForm: React.FC<
 
           <label
             htmlFor={rememberId}
-            className="flex cursor-pointer items-center gap-3 text-[13px] text-gray-1000"
+            className="flex cursor-pointer items-center gap-3 text-[14px] text-gray-1000"
           >
             <Checkbox
               id={rememberId}

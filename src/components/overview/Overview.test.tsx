@@ -109,9 +109,10 @@ describe("the Capture hero", () => {
     expect(markup.match(/data-recording/g)?.length).toBe(1);
     expect(markup).toContain('data-recording="false"');
     /* Written in px on purpose: `:root { font-size: 14px }` makes `text-2xl`
-     * 21px here, which would leave the app's default route with a smaller
-     * headline than every other page's h1 (settings/rows.tsx uses 24px). */
-    expect(markup).toContain("text-[24px]");
+     * 21px here. 24px/30px semibold is the round-6 document-title size, the
+     * one a meeting's own title is set in, so the app's default route states
+     * its state at the same weight every other page states its subject. */
+    expect(markup).toContain("text-[24px] leading-[30px] font-semibold");
     expect(markup.includes("text-2xl")).toBe(false);
   });
 
@@ -336,13 +337,17 @@ const activityTrend: HistoryTrendProjection = {
 describe("the Overview activity band", () => {
   const markup = render(<ActivityBand trend={activityTrend} />);
 
-  test("renders the three ChartCard measurements from the trend", () => {
+  test("names its three measurements on one shared surface", () => {
     expect(markup).toContain("Activity");
     expect(markup).toContain("Dictations");
     expect(markup).toContain("Words");
     expect(markup).toContain("Streak");
     expect(markup).toContain("Aug 24–Aug 30");
-    expect(occurrences(markup, "rounded-card")).toBe(3);
+    /* One week, one reading: three separate cards drew three borders and three
+     * radii around numbers a reader takes in at once, so the eye counted boxes
+     * before it read the figures. Hairlines divide the columns instead. */
+    expect(occurrences(markup, "rounded-card")).toBe(1);
+    expect(markup).toContain("divide-x");
   });
 
   test("pages backward through the retained trend in seven-day ranges", () => {

@@ -116,13 +116,13 @@ export const KeyboardDiagnostic: React.FC = () => {
       </SettingsRow>
 
       {running ? (
-        <div className="px-4 py-3">
+        <div className="px-6 py-3">
           <Notice>{t("settings.debug.keyboardDiagnostic.running")}</Notice>
         </div>
       ) : null}
 
       {error === null ? null : (
-        <div className="flex items-center justify-between gap-6 px-4 py-3">
+        <div className="flex items-center justify-between gap-6 px-6 py-3">
           <Notice tone="danger" className="min-w-0">
             {error === "permission_denied"
               ? t("settings.debug.keyboardDiagnostic.inputMonitoringDenied")
@@ -139,7 +139,7 @@ export const KeyboardDiagnostic: React.FC = () => {
       )}
 
       {report === null || currentVerdict === null ? null : (
-        <div className="flex flex-col gap-2 px-4 py-3">
+        <div className="flex flex-col gap-2 px-6 py-3">
           <Notice tone={currentVerdict.tone}>{currentVerdict.text}</Notice>
           {/* The raw counts are the reading; the sentence above is only the
            * interpretation of them. */}

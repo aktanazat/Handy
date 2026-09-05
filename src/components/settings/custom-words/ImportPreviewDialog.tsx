@@ -136,7 +136,7 @@ export const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
                 )}
               </>
             ) : (
-              <p className="text-[13px] leading-[19px] text-pretty text-gray-900">
+              <p className="text-[14px] leading-[21px] text-pretty text-gray-900">
                 {t(
                   "settings.advanced.customWords.importPreview.replaceSummary",
                   {

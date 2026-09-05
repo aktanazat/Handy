@@ -81,7 +81,7 @@ export const SegmentedRadioGroup = <Value extends string>({
         />
         <span
           className={cn(
-            "flex h-7 items-center justify-center overflow-hidden rounded-[4px] border border-transparent px-3 text-center text-[13px] whitespace-nowrap text-ellipsis text-gray-900",
+            "flex h-7 items-center justify-center overflow-hidden rounded-[4px] border border-transparent px-3 text-center text-[14px] whitespace-nowrap text-ellipsis text-gray-900",
             "peer-enabled:hover:bg-gray-alpha-100 peer-enabled:hover:text-gray-1000",
             "peer-checked:border-gray-alpha-400 peer-checked:bg-background-100 peer-checked:font-medium peer-checked:text-gray-1000",
             "peer-disabled:text-gray-700",
@@ -176,7 +176,7 @@ export const ActivationRuleList: React.FC<ActivationRuleListProps> = ({
     return (
       <div role="status" className="flex flex-col items-start gap-2">
         <p className="text-sm text-gray-1000">{emptyTitle}</p>
-        <p className="text-[13px] leading-5 text-gray-800">
+        <p className="text-[14px] leading-[21px] text-gray-800">
           {emptyDescription}
         </p>
         {action}
@@ -200,7 +200,7 @@ export const ActivationRuleList: React.FC<ActivationRuleListProps> = ({
                 {item.target}
               </code>
               {item.detail ? (
-                <span className="block text-[12px] leading-4 text-gray-800">
+                <span className="block text-[13px] leading-[18px] text-gray-800">
                   {item.detail}
                 </span>
               ) : null}

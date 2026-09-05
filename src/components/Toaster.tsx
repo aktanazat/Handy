@@ -45,10 +45,10 @@ export const Toaster: React.FC = () => {
              in the scarce accent, and the brief's rule for a glass tint under
              type is to take the dense step when in doubt. */
           toast:
-            "glass-surface toast-surface flex items-center gap-3 rounded-panel border border-gray-alpha-400 bg-surface-raised px-4 py-3 text-[13px] leading-[19px] shadow-[var(--shadow-popover)] [--glass-tint:var(--glass-tint-dense)]",
+            "glass-surface toast-surface flex items-center gap-3 rounded-panel border border-gray-alpha-400 bg-surface-raised px-4 py-3 text-[14px] leading-[21px] shadow-[var(--shadow-popover)] [--glass-tint:var(--glass-tint-dense)]",
           title: "font-medium text-text-primary",
           /* A second line is a note, so it takes the note size. */
-          description: "text-[12px] leading-4 text-text-secondary",
+          description: "text-[13px] leading-[18px] text-text-secondary",
           /* Ghost text buttons, not filled ones. A toast is one line that
              leaves on its own; a filled bronze button on it competes with
              whatever the reader was actually doing, and two filled buttons
@@ -63,9 +63,9 @@ export const Toaster: React.FC = () => {
              surface shipped `bg-accent text-on-accent`, which was white type
              on a 6% ink wash: an invisible label on an invisible fill. */
           actionButton:
-            "min-h-7 cursor-pointer rounded-control px-2 text-[13px] font-medium whitespace-nowrap text-accent-strong transition-colors hover:bg-accent-soft",
+            "min-h-7 cursor-pointer rounded-control px-2 text-[14px] font-medium whitespace-nowrap text-accent-strong transition-colors hover:bg-accent-soft",
           cancelButton:
-            "min-h-7 cursor-pointer rounded-control px-2 text-[13px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-200 hover:text-gray-1000",
+            "min-h-7 cursor-pointer rounded-control px-2 text-[14px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-200 hover:text-gray-1000",
         },
       }}
     />

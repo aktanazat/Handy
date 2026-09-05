@@ -1,3 +1,11 @@
+import type {
+  AudioImportJob,
+  AudioImportResult,
+  AudioImportStatus,
+  EffectiveTranscriptSegment,
+  MeetingReviewSnapshot,
+} from "@/bindings";
+
 // Backend response fixtures for the browser-only Playwright runs, captured from
 // a real Sona debug build so the app mounts against the same shapes it sees in
 // production. Contract-only fields that the Rust side gained after the capture
@@ -1116,3 +1124,242 @@ export const CAPTURE_AT_FULL_HEIGHT = {
     ],
   },
 };
+
+/**
+ * One finished meeting, as the review screen reads it.
+ *
+ * Shaped for the transcript: three voices, fourteen sentences, and the runs of
+ * one-word answers ("Mm-", "Okay.", "But") that used to get a bordered row and
+ * a repeated speaker name each. System audio carries a real-world gap count so
+ * the capture rows have a problem to state in words.
+ */
+const reviewSegment = (
+  ordinal: number,
+  speaker: 1 | 2 | 3,
+  startSeconds: number,
+  text: string,
+): EffectiveTranscriptSegment => ({
+  base: {
+    segment_id: `segment-${ordinal}`,
+    transcript_revision_id: "revision-1",
+    track_id: speaker === 1 ? "track-mic" : "track-system",
+    ordinal,
+    start_offset_ns: startSeconds * 1_000_000_000,
+    end_offset_ns: (startSeconds + 3) * 1_000_000_000,
+    speaker_id: `speaker-${speaker}`,
+    text,
+    confidence_milli: 930,
+  },
+  replacement_text: null,
+  removed: false,
+  edit_revision: null,
+  assigned_speaker_id: `speaker-${speaker}`,
+  speaker_assignment: speaker === 1 ? "local_speaker" : "system_speaker",
+});
+
+export const MEETING_REVIEW: MeetingReviewSnapshot = {
+  session: {
+    session_id: "meeting-1",
+    phase: "review_ready",
+    revision: 4,
+    title: "Pricing review with Northwind",
+    started_at_utc_ms: Date.UTC(2026, 8, 2, 9, 32),
+    elapsed_offset_ns: 1_845_000_000_000,
+    sources: [
+      {
+        track_id: "track-mic",
+        source_kind: "microphone",
+        required: true,
+        availability: "available",
+        health: "stopped",
+        format: null,
+        last_durable_offset_ns: 1_845_000_000_000,
+        gap_count: 0,
+      },
+      {
+        track_id: "track-system",
+        source_kind: "system_audio",
+        required: false,
+        availability: "available",
+        health: "stopped",
+        format: null,
+        last_durable_offset_ns: 1_802_000_000_000,
+        gap_count: 28_106,
+      },
+    ],
+    open_capture_window_started_at_ns: null,
+    capture_completeness: "partial",
+    storage: "available",
+    processing_status: { kind: "succeeded" },
+    preflight_local_processing: "available",
+    retention_deadline_utc_ms: null,
+    allowed_actions: ["edit", "regenerate", "export", "delete"],
+  },
+  tracks: [],
+  gaps: [
+    {
+      track_id: "track-system",
+      epoch: 0,
+      start_offset_ns: 612_000_000_000,
+      end_offset_ns: 620_400_000_000,
+      reason: "packet_dropped",
+      dropped_frames: 402,
+    },
+    {
+      track_id: "track-system",
+      epoch: 0,
+      start_offset_ns: null,
+      end_offset_ns: null,
+      reason: "timestamp_discontinuity",
+      dropped_frames: 128,
+    },
+  ],
+  speakers: [
+    {
+      speaker_id: "speaker-1",
+      session_id: "meeting-1",
+      source_kind: "microphone",
+      display_name: "Aktan",
+      revision: 2,
+    },
+    {
+      speaker_id: "speaker-2",
+      session_id: "meeting-1",
+      source_kind: "system_audio",
+      display_name: "Dana Reyes",
+      revision: 2,
+    },
+    {
+      speaker_id: "speaker-3",
+      session_id: "meeting-1",
+      source_kind: "system_audio",
+      display_name: "Priya Raman",
+      revision: 2,
+    },
+  ],
+  transcript: [
+    reviewSegment(
+      0,
+      2,
+      12,
+      "So the number we landed on last time was ten dollars a seat.",
+    ),
+    reviewSegment(
+      1,
+      2,
+      18,
+      "That was before the annual discount, and I think that is where we got stuck.",
+    ),
+    reviewSegment(2, 1, 27, "Okay, ten dollars."),
+    reviewSegment(3, 1, 31, "Mm-"),
+    reviewSegment(4, 1, 33, "I'm not sure if I can do it at that number."),
+    reviewSegment(
+      5,
+      3,
+      41,
+      "We can do ten if the contract runs a full year and support stays at the standard tier.",
+    ),
+    reviewSegment(6, 1, 52, "Yeah."),
+    reviewSegment(7, 1, 54, "Mm-"),
+    reviewSegment(8, 1, 56, "Okay."),
+    reviewSegment(9, 1, 58, "But"),
+    reviewSegment(
+      10,
+      1,
+      60,
+      "I want the renewal price written into the same document, not a side letter.",
+    ),
+    reviewSegment(11, 2, 71, "That is fair."),
+    reviewSegment(
+      12,
+      2,
+      74,
+      "I will send the tier comparison and the redlined agreement tomorrow morning.",
+    ),
+    reviewSegment(13, 3, 84, "Works for me."),
+  ],
+  notes: [],
+  artifacts: [],
+  questions: [],
+  diarization: {
+    status: "succeeded",
+    model_id: "diarizer",
+    model_version: "1",
+    generation_id: "generation-1",
+    assigned_segment_count: 14,
+  },
+  can_export: true,
+  remote_cancellation_pending: false,
+};
+
+/** The talk-share read the review header draws its one quiet row from. */
+export const MEETING_REVIEW_ANALYTICS = {
+  session_id: "meeting-1",
+  input_revision: 4,
+  computed_at_utc_ms: Date.UTC(2026, 8, 2, 10, 5),
+  analytics: {
+    talk: {
+      segment_count: 14,
+      turn_count: 6,
+      interaction_count: 5,
+      total_speaking_ns: 1_640_000_000_000,
+      speakers: [
+        {
+          speaker_id: "speaker-1",
+          speaking_ns: 742_000_000_000,
+          share_permille: 452,
+          turn_count: 3,
+          longest_monologue_ns: 96_000_000_000,
+        },
+        {
+          speaker_id: "speaker-2",
+          speaking_ns: 611_000_000_000,
+          share_permille: 373,
+          turn_count: 2,
+          longest_monologue_ns: 88_000_000_000,
+        },
+        {
+          speaker_id: "speaker-3",
+          speaking_ns: 287_000_000_000,
+          share_permille: 175,
+          turn_count: 2,
+          longest_monologue_ns: 41_000_000_000,
+        },
+      ],
+      longest_monologue_ns: 96_000_000_000,
+      longest_monologue_speaker_id: "speaker-1",
+      median_switch_gap_ms: 1_400,
+    },
+    trackers: [],
+  },
+  action_items: [],
+  notes: {
+    session_id: "meeting-1",
+    body: "",
+    template: "general",
+    revision: 0,
+    updated_at_utc_ms: Date.UTC(2026, 8, 2, 10, 5),
+  },
+};
+
+/**
+ * One `AudioImportJob`, as `import_audio_file` returns it and as
+ * `audio-import-update-event` carries it afterwards.
+ *
+ * The mock answers the command itself with a fresh queued job per file; this
+ * is how a spec drives one of those jobs forward, or plants a job the page
+ * already had before it opened.
+ */
+export const audioImportJob = (
+  id: number,
+  fileName: string,
+  status: AudioImportStatus,
+  result: AudioImportResult | null = null,
+): AudioImportJob => ({
+  id,
+  file_name: fileName,
+  status,
+  decoded_samples: status === "queued" ? 0 : 480_000,
+  cancel_requested: false,
+  result,
+});

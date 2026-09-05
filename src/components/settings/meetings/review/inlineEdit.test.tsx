@@ -13,7 +13,11 @@ import {
   type InlineEditKeyEvent,
 } from "./inlineEdit";
 import { SpeakerNameEditor } from "./SpeakerRoster";
-import { TranscriptTurn, type TranscriptTurnProps } from "./TranscriptTab";
+import {
+  TranscriptTurn,
+  type TranscriptTurnProps,
+  type TranscriptTurnSegment,
+} from "./TranscriptTab";
 
 /* Editing on demand, from both sides.
  *
@@ -71,6 +75,8 @@ const treeOf = (
 interface ControlProps {
   onClick?: () => void;
   "aria-label"?: string;
+  /** What a hovered control says it does, when its own words are the text. */
+  title?: string;
   children?: React.ReactNode;
 }
 
@@ -102,7 +108,9 @@ const controls = (node: React.ReactNode): ControlProps[] => {
 const press = (node: React.ReactNode, label: string) => {
   const control = controls(node).find(
     (candidate) =>
-      candidate["aria-label"] === label || words(candidate.children) === label,
+      candidate["aria-label"] === label ||
+      candidate.title === label ||
+      words(candidate.children) === label,
   );
   if (control?.onClick === undefined) {
     throw new Error(`no control labelled "${label}"`);
@@ -185,16 +193,35 @@ describe("the keyboard half of commit-on-intent", () => {
   });
 });
 
+/* One voice, two sentences: the shape the transcript is set in now. The
+ * second one is the kind that used to get a bordered row and a repeated
+ * speaker name all to itself. */
+const SENTENCES: TranscriptTurnSegment[] = [
+  {
+    segmentId: "segment-1",
+    time: "0:12",
+    text: "We ship the meetings redesign this week.",
+    removed: false,
+    landed: false,
+    flashing: false,
+    editing: false,
+  },
+  {
+    segmentId: "segment-2",
+    time: "0:15",
+    text: "Okay.",
+    removed: false,
+    landed: false,
+    flashing: false,
+    editing: false,
+  },
+];
+
 const TURN: TranscriptTurnProps = {
-  segmentId: "segment-1",
-  time: "0:12",
   speaker: "Dana",
-  text: "We ship the meetings redesign this week.",
+  time: "0:12",
+  segments: SENTENCES,
   query: "",
-  removed: false,
-  landed: false,
-  flashing: false,
-  editing: false,
   disabled: false,
   onOpenEdit: () => undefined,
   onCommit: () => undefined,
@@ -205,31 +232,53 @@ const TURN: TranscriptTurnProps = {
 const turn = (overrides: Partial<TranscriptTurnProps> = {}) =>
   render(<TranscriptTurn {...TURN} {...overrides} />);
 
+/** The same turn with one of its sentences open in its editor. */
+const correcting = (
+  segmentId: string,
+  extra: Partial<TranscriptTurnSegment> = {},
+): TranscriptTurnProps => ({
+  ...TURN,
+  segments: SENTENCES.map((segment) =>
+    segment.segmentId === segmentId
+      ? { ...segment, editing: true, ...extra }
+      : segment,
+  ),
+});
+
 describe("a transcript turn at rest", () => {
   const markup = turn();
 
-  test("is the words, the speaker and the moment — and no controls", () => {
+  test("is one paragraph: the sentences run together under one name", () => {
     expect(markup).toContain("We ship the meetings redesign this week.");
-    expect(markup).toContain(">Dana<");
-    expect(markup).toContain(">0:12<");
+    expect(markup).toContain("Okay.");
+    /* The whole readability fix, in one number: the name is said once for the
+     * stretch this voice held, not once per sentence. */
+    expect(markup.split(">Dana<").length - 1).toBe(1);
     expect(markup).not.toContain("<textarea");
     expect(markup).not.toContain(">Remove this turn<");
     expect(markup).not.toContain("__MISSING__");
   });
 
-  test("carries the dom id a citation resolves it by, and can be focused", () => {
+  test("puts one clock reading in the gutter, not one per sentence", () => {
+    expect(markup).toContain(">0:12<");
+    expect(markup).not.toContain(">0:15<");
+  });
+
+  test("every sentence keeps the dom id a citation resolves it by", () => {
     expect(markup).toContain('id="meeting-transcript-segment-segment-1"');
-    expect(markup).toContain('tabindex="0"');
+    expect(markup).toContain('id="meeting-transcript-segment-segment-2"');
+    expect(markup.split('tabindex="0"').length - 1).toBe(2);
   });
 
-  test("offers one quiet way in, named for what it does", () => {
-    expect(markup).toContain('aria-label="Edit this turn"');
+  test("each sentence says what pressing it does", () => {
+    expect(markup.split('title="Edit this turn"').length - 1).toBe(2);
   });
 
-  test("a turn nobody may edit offers no way in at all", () => {
+  test("a transcript nobody may correct is text, with nothing to press", () => {
     const locked = turn({ disabled: true });
     expect(locked).toContain("We ship the meetings redesign this week.");
-    expect(locked).not.toContain('aria-label="Edit this turn"');
+    expect(locked).not.toContain('title="Edit this turn"');
+    expect(locked).not.toContain('tabindex="0"');
   });
 
   test("the live filter marks the words it matched inside the prose", () => {
@@ -240,49 +289,57 @@ describe("a transcript turn at rest", () => {
   });
 });
 
-describe("a transcript turn being corrected", () => {
-  const markup = turn({ editing: true });
+describe("a transcript sentence being corrected", () => {
+  const markup = render(<TranscriptTurn {...correcting("segment-1")} />);
 
-  test("puts the field in the words' own place, and takes the pencil away", () => {
+  test("the field takes that sentence's place and no other", () => {
     expect(markup).toContain("<textarea");
     expect(markup).toContain('aria-label="Transcript turn"');
     expect(markup).toContain("We ship the meetings redesign this week.");
-    expect(markup).not.toContain('aria-label="Edit this turn"');
+    /* The sentence being corrected is the field; the one beside it is still
+     * the prose it was, id and all. */
+    expect(markup).not.toContain('id="meeting-transcript-segment-segment-1"');
+    expect(markup).toContain('id="meeting-transcript-segment-segment-2"');
+    expect(markup).toContain("Okay.");
   });
 
   test("is the only place removal is offered, and it reads as removal", () => {
-    expect(markup).toContain(">Remove this turn<");
+    expect(markup.split(">Remove this turn<").length - 1).toBe(1);
     expect(markup).toContain("text-red-900");
   });
 
-  test("removal asks the store to remove this turn, not to rewrite it", () => {
-    const asked: [string, boolean][] = [];
+  test("removal asks the store to remove that sentence, not to rewrite it", () => {
+    const asked: [string, string][] = [];
     const tree = treeOf(() =>
       TranscriptTurn({
-        ...TURN,
-        editing: true,
-        onRemove: () => asked.push([TURN.segmentId, true]),
+        ...correcting("segment-2"),
+        onRemove: (segmentId, current) => asked.push([segmentId, current]),
       }),
     );
 
     press(tree, "Remove this turn");
-    expect(asked).toEqual([["segment-1", true]]);
+    expect(asked).toEqual([["segment-2", "Okay."]]);
   });
 
-  test("pressing the pencil is what opens the field", () => {
+  test("pressing a sentence opens that sentence's own field", () => {
     const opened: string[] = [];
     const tree = treeOf(() =>
-      TranscriptTurn({ ...TURN, onOpenEdit: () => opened.push("open") }),
+      TranscriptTurn({
+        ...TURN,
+        onOpenEdit: (segmentId) => opened.push(segmentId),
+      }),
     );
 
     press(tree, "Edit this turn");
-    expect(opened).toEqual(["open"]);
+    expect(opened).toEqual(["segment-1"]);
   });
 
-  /* A turn already struck out has nothing left to remove, so the action that
-   * would do it a second time is not drawn. */
-  test("a turn already removed is offered no second removal", () => {
-    const gone = turn({ editing: true, removed: true });
+  /* A sentence already struck out has nothing left to remove, so the action
+   * that would do it a second time is not drawn. */
+  test("a sentence already removed is offered no second removal", () => {
+    const gone = render(
+      <TranscriptTurn {...correcting("segment-1", { removed: true })} />,
+    );
     expect(gone).toContain("<textarea");
     expect(gone).not.toContain(">Remove this turn<");
   });

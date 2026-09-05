@@ -57,14 +57,14 @@ export const WorkflowRunLog: React.FC<WorkflowRunLogProps> = ({
         <div
           role="status"
           aria-label={t("common.loading")}
-          className="space-y-2 px-4 py-3"
+          className="space-y-2 px-6 py-3"
         >
           <Skeleton className="h-9 w-full" />
           <Skeleton className="h-9 w-full" />
           <Skeleton className="h-9 w-full" />
         </div>
       ) : error && receipts.length === 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
           <Notice tone="danger">
             {t("settings.workflows.runLog.loadError")}
           </Notice>
@@ -73,9 +73,9 @@ export const WorkflowRunLog: React.FC<WorkflowRunLogProps> = ({
           </Button>
         </div>
       ) : receipts.length === 0 ? (
-        <div role="status" className="flex items-center gap-3 px-4 py-3">
+        <div role="status" className="flex items-center gap-3 px-6 py-3">
           <Minus aria-hidden="true" className="size-4 text-gray-700" />
-          <span className="text-[13px] text-gray-700">
+          <span className="text-[14px] text-gray-700">
             {t("settings.workflows.runLog.empty")}
           </span>
         </div>
@@ -85,14 +85,14 @@ export const WorkflowRunLog: React.FC<WorkflowRunLogProps> = ({
             <li
               key={receipt.id}
               data-workflow-run-id={receipt.id}
-              className="flex min-w-0 items-start gap-3 px-4 py-3"
+              className="flex min-w-0 items-start gap-3 px-6 py-3"
             >
               <WorkflowStatusGlyph status={receipt.status} className="mt-0.5" />
               <div className="min-w-0 space-y-1">
-                <p className="text-[13px] leading-5 text-gray-1000">
+                <p className="text-[14px] leading-[21px] text-gray-1000">
                   {formatWorkflowOutcome(receipt, t)}
                 </p>
-                <p className="text-[11px] text-gray-700">
+                <p className="text-[12px] text-gray-700">
                   {t(WORKFLOW_NAME_KEY[receipt.workflow_id])}
                   <span aria-hidden="true"> · </span>
                   <span className="tabular-nums">
@@ -105,7 +105,7 @@ export const WorkflowRunLog: React.FC<WorkflowRunLogProps> = ({
         </ol>
       )}
       {receipts.length > 0 && (hasMore || error) ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
           {error ? (
             <Notice tone="danger">
               {t("settings.workflows.runLog.loadMoreError")}

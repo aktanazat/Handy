@@ -121,7 +121,7 @@ export const PrivacyHistoryStorage: React.FC = () => {
         </StatusValue>
       </SettingsRow>
       {reason === null ? null : (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice tone="danger">{reason}</Notice>
         </div>
       )}

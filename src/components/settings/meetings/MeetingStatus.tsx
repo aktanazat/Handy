@@ -16,7 +16,6 @@ import {
   meetingPhaseKey,
   processingStatusKey,
   sourceAvailabilityKey,
-  sourceHealthKey,
   sourceKey,
 } from "./meetingUtils";
 
@@ -53,7 +52,7 @@ const StatusWord: React.FC<StatusWordProps> = ({
   <span
     role={live === "off" ? undefined : "status"}
     aria-live={live === "off" ? undefined : live}
-    className={cn("text-[12px] leading-4", STATUS_TONES[tone], className)}
+    className={cn("text-[13px] leading-[18px]", STATUS_TONES[tone], className)}
   >
     {children}
   </span>
@@ -199,21 +198,46 @@ const HEALTH_TONES = {
   stopped: "muted",
 } as const satisfies Record<SourceHealth, StatusTone>;
 
+/** The one word a person reads for a source, out of the two states the
+ * backend keeps: `health` is what it is doing, and it is only the answer when
+ * `availability` says it is allowed to do anything at all.
+ *
+ * "Healthy" and "Not started" describe a subsystem; "Recording" and "Ready"
+ * describe a recording. The three the wire has no human word for keep theirs:
+ * a paused source is paused, a failed one failed, and both read as what
+ * happened rather than as a status code. */
+const SOURCE_STATE_KEYS = {
+  not_started: "meetings.status.state.ready",
+  starting: "meetings.health.starting",
+  healthy: "meetings.status.state.recording",
+  paused: "meetings.health.paused",
+  degraded: "meetings.status.state.recording",
+  failed: "meetings.health.failed",
+  stopped: "meetings.status.state.recorded",
+} as const satisfies Record<SourceHealth, string>;
+
 interface MeetingSourceItemProps {
   source: MeetingSourceSnapshot;
   elapsedOffsetNs: number | null;
   showTelemetry: boolean;
 }
 
-/* One capture source per row, flat on a hairline: name, what the backend
- * reports about it, and its health. Rows, not tiles — two cards side by side
- * implied a comparison that does not exist.
+/* One capture source per row, flat on a hairline: what it is, and one word
+ * for how it went. Rows, not tiles — two cards side by side implied a
+ * comparison that does not exist.
+ *
+ * What a gap count is worth saying: the store counts one row per interruption
+ * on that track (`meeting_source_gaps`, `store.rs`), which is a number of
+ * events and not a duration — 28,106 of them was the truest and least useful
+ * sentence on the screen. What it proves is that audio is missing, so that is
+ * what the row says; the moments themselves are listed underneath it, where
+ * they carry the times and the measured loss.
  *
  * There is no level meter here and there cannot be one: capture publishes
- * availability, health, a durable offset and a gap count, and no signal
+ * availability, health, a durable offset and that gap count, and no signal
  * amplitude at any point in the pipeline. A moving bar would be drawn from
  * nothing. "SIGNAL Not reported" is the honest version of that fact, set as a
- * measurement pair, which is why it stays. */
+ * measurement pair on the live surface, which is why it stays. */
 const MeetingSourceItem: React.FC<MeetingSourceItemProps> = ({
   source,
   elapsedOffsetNs,
@@ -224,36 +248,43 @@ const MeetingSourceItem: React.FC<MeetingSourceItemProps> = ({
     source.last_durable_offset_ns === null || elapsedOffsetNs === null
       ? null
       : Math.max(0, elapsedOffsetNs - source.last_durable_offset_ns);
+  const blocked = source.availability !== "available";
 
   return (
     <li
       data-slot="meeting-source"
       data-source={source.source_kind}
-      className="flex flex-col gap-1 px-4 py-3"
+      className="flex flex-col gap-1 px-6 py-3.5"
     >
       <div className="flex items-baseline justify-between gap-4">
-        <h3 className="truncate text-[13px] text-gray-1000">
-          {t(sourceKey(source.source_kind))}
+        <h3 className="flex min-w-0 items-baseline gap-2">
+          <span className="truncate text-[14px] leading-[21px] font-medium text-gray-1000">
+            {t(sourceKey(source.source_kind))}
+          </span>
+          {source.required ? (
+            <Microlabel className="flex-none">
+              {t("meetings.status.required", "Required")}
+            </Microlabel>
+          ) : null}
         </h3>
-        <StatusWord tone={HEALTH_TONES[source.health]} className="flex-none">
-          {t(sourceHealthKey(source.health))}
+        <StatusWord
+          tone={
+            blocked
+              ? AVAILABILITY_TONES[source.availability]
+              : HEALTH_TONES[source.health]
+          }
+          className="flex-none"
+        >
+          {blocked
+            ? t(sourceAvailabilityKey(source.availability))
+            : t(SOURCE_STATE_KEYS[source.health])}
         </StatusWord>
       </div>
-      <p className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-        <StatusWord tone={AVAILABILITY_TONES[source.availability]}>
-          {t(sourceAvailabilityKey(source.availability))}
+      {source.gap_count > 0 ? (
+        <StatusWord tone="warning">
+          {t("meetings.status.someAudioMissing")}
         </StatusWord>
-        {source.required ? (
-          <Microlabel>{t("meetings.status.required", "Required")}</Microlabel>
-        ) : null}
-        {source.gap_count > 0 ? (
-          <StatusWord tone="warning" className="tabular-nums">
-            {t("meetings.status.gapCount", "Gaps: {{total}}", {
-              total: source.gap_count,
-            })}
-          </StatusWord>
-        ) : null}
-      </p>
+      ) : null}
       {showTelemetry ? (
         <p className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <FactChip

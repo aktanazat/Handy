@@ -47,8 +47,8 @@ export const PrivacyEgress: React.FC = () => {
   const thisMac = t("settings.privacy.egress.thisMac");
 
   return (
-    <div className="flex flex-col gap-3 px-4 py-3.5">
-      <p className="text-[13px] leading-5 text-gray-900">
+    <div className="flex flex-col gap-3 px-6 py-3.5">
+      <p className="text-[14px] leading-[21px] text-gray-900">
         {t("settings.privacy.egress.assurance")}
       </p>
       {/* A route whose state could not be read shows no fact at all: a chip
@@ -86,7 +86,7 @@ export const PrivacyEgress: React.FC = () => {
          * With no cloud route there is nothing leaving and nothing to say. */}
         {cloudSttRouteError ||
         cloudSttDisclosureProviders.length === 0 ? null : (
-          <p className="text-[13px] leading-5 text-gray-900">
+          <p className="text-[14px] leading-[21px] text-gray-900">
             {t("settings.privacy.cloudTranscription.disclosure")}
           </p>
         )}

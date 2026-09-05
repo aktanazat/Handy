@@ -108,7 +108,7 @@ export interface CommandPaletteProps {
  * actions section than in the results section is the shape this surface keeps
  * regressing into.
  *
- * The icon is sized to the cap height of the 13px row rather than to the
+ * The icon is sized to the cap height of the 14px row rather than to the
  * text's em box: at `size-4` it drew a 14px glyph beside a 9px capital, which
  * is the "icon larger than the thing it labels" tell. 11px is that cap height,
  * and lucide's 24-unit viewBox insets its ink, so the drawn mark lands just
@@ -122,15 +122,15 @@ export interface CommandPaletteProps {
  * rule, which is exactly what its `:not` is an escape hatch for. The muted
  * tier still comes from the kit's matching `[class*='text-']` rule. */
 const ROW =
-  "min-h-9 gap-2.5 rounded-md px-2 py-2 text-[13px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300";
+  "min-h-9 gap-2.5 rounded-md px-2 py-2 text-[14px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300";
 
 const ROW_ICON = "size-[11px]";
 
-/* 11px, secondary, sentence case: a heading over rows is the smallest type on
- * the surface, not a second row. It shipped at the rows' own 13px, which made
+/* 12px, secondary, sentence case: a heading over rows is the smallest type on
+ * the surface, not a second row. It shipped at the rows' own size, which made
  * every section label compete with the things under it. */
 const GROUP =
-  "p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:leading-4 [&_[cmdk-group-heading]]:text-gray-900";
+  "p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-[12px] [&_[cmdk-group-heading]]:leading-4 [&_[cmdk-group-heading]]:text-gray-900";
 
 interface ResultRowProps {
   row: QueryRow;
@@ -162,12 +162,12 @@ const ResultRow: React.FC<ResultRowProps> = ({
     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
       <span className="truncate">{row.title}</span>
       {row.snippet !== "" && (
-        <span className="truncate text-[11px] text-gray-900">
+        <span className="truncate text-[12px] text-gray-900">
           {row.snippet}
         </span>
       )}
     </span>
-    <span className="flex-none pt-0.5 text-[11px] text-gray-900 tabular-nums">
+    <span className="flex-none pt-0.5 text-[12px] text-gray-900 tabular-nums">
       {formatRelativeTime(row.when_utc_ms, now)}
     </span>
   </CommandItem>
@@ -189,7 +189,7 @@ const SearchNotice: React.FC<{ message: string }> = ({ message }) => {
      * whole search. gray-900 rather than gray-800 because it is prose — 3.0:1
      * is not a contrast a sentence somebody has to read may ship at. */
     <p
-      className="border-t border-gray-alpha-400 px-4 py-2 text-[11px] leading-4 text-gray-900"
+      className="border-t border-gray-alpha-400 px-4 py-2 text-[12px] leading-4 text-gray-900"
       role="status"
     >
       {message}
@@ -407,7 +407,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               footer. A palette that truncates its own contents on first open
               is a broken interaction, not a tight one. */}
           <CommandList className="max-h-[min(60vh,440px)]">
-            <CommandEmpty className="py-10 text-center text-[13px] text-gray-900">
+            <CommandEmpty className="py-10 text-center text-[14px] text-gray-900">
               {notice ?? t("commandPalette.noResults")}
             </CommandEmpty>
             {sections.map((section) => (

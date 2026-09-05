@@ -2,8 +2,8 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { HistoryTrendPoint, HistoryTrendProjection } from "@/bindings";
-import { ChartCard } from "@/components/charts";
-import { Microlabel } from "@/components/settings/rows";
+import { cn } from "@/lib/cn";
+import { Microlabel, SETTINGS_CARD } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
 import {
   ActivityBars,
@@ -33,6 +33,25 @@ const formatRange = (
   if (first === undefined || last === undefined) return "";
   return `${formatter.format(parseLocalDate(first.local_date))}–${formatter.format(parseLocalDate(last.local_date))}`;
 };
+
+/* One measurement inside the band's shared surface: what it counts, the count,
+ * and the week drawn under it. A column, not a card — the surface owns the
+ * border, and `px-6 py-5` is the same box every card on every page uses. */
+const Measure: React.FC<{
+  label: string;
+  value: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ label, value, children }) => (
+  <div className="flex min-w-0 flex-col gap-2 px-6 py-5">
+    <h3 className="min-w-0">
+      <Microlabel>{label}</Microlabel>
+    </h3>
+    <div className="text-[24px] leading-[30px] font-semibold text-gray-1000 tabular-nums">
+      {value}
+    </div>
+    <div className="mt-1">{children}</div>
+  </div>
+);
 
 export function ActivityBand({ trend }: ActivityBandProps) {
   const { t, i18n } = useTranslation();
@@ -111,12 +130,18 @@ export function ActivityBand({ trend }: ActivityBandProps) {
   const nextLabel = t("overview.activity.rangeNext", "Next 7 days");
 
   return (
-    <section aria-labelledby="overview-activity-heading" className="space-y-3">
-      <div className="flex min-h-6 flex-wrap items-center justify-between gap-x-3 gap-y-2">
+    <section
+      aria-labelledby="overview-activity-heading"
+      className="flex flex-col gap-2"
+    >
+      <div className="flex min-h-6 flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <h2 id="overview-activity-heading">
           <Microlabel>{t("overview.activity.title", "Activity")}</Microlabel>
         </h2>
-        <div className="flex shrink-0 items-center gap-1">
+        {/* The week under the label, and the two steps that change it. The
+         * range is the caption of the surface below, so it reads as a date and
+         * not as a control with a value inside it. */}
+        <div className="flex shrink-0 items-center gap-0.5">
           <Button
             type="button"
             variant="ghost"
@@ -127,7 +152,7 @@ export function ActivityBand({ trend }: ActivityBandProps) {
           >
             <ChevronLeft aria-hidden="true" />
           </Button>
-          <span className="min-w-[9.5ch] text-center text-[11px] text-gray-800 tabular-nums">
+          <span className="min-w-[11ch] text-center text-[13px] leading-[18px] text-gray-900 tabular-nums">
             {dateRange}
           </span>
           <Button
@@ -142,16 +167,19 @@ export function ActivityBand({ trend }: ActivityBandProps) {
           </Button>
         </div>
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        <ChartCard
+      {/* One surface, three measurements, hairlines between them. Three
+       * separate cards drew three borders and three radii around numbers that
+       * are one week's reading, and the eye counted boxes before it read the
+       * figures. */}
+      <div
+        className={cn(
+          SETTINGS_CARD,
+          "grid divide-y divide-gray-alpha-400 overflow-hidden sm:grid-cols-3 sm:divide-x sm:divide-y-0",
+        )}
+      >
+        <Measure
           label={t("overview.activity.dictations", "Dictations")}
-          metric={numberFormat.format(dictationTotal)}
-          footerFacts={[
-            {
-              label: t("overview.activity.peak", "Peak"),
-              value: numberFormat.format(peak?.recordings ?? 0),
-            },
-          ]}
+          value={numberFormat.format(dictationTotal)}
         >
           <ActivityBars
             values={dictations}
@@ -165,11 +193,11 @@ export function ActivityBand({ trend }: ActivityBandProps) {
               },
             )}
           />
-        </ChartCard>
+        </Measure>
 
-        <ChartCard
+        <Measure
           label={t("overview.activity.words", "Words")}
-          metric={numberFormat.format(wordTotal)}
+          value={numberFormat.format(wordTotal)}
         >
           <ActivitySparkline
             values={words}
@@ -182,11 +210,11 @@ export function ActivityBand({ trend }: ActivityBandProps) {
               },
             )}
           />
-        </ChartCard>
+        </Measure>
 
-        <ChartCard
+        <Measure
           label={t("overview.activity.streak", "Streak")}
-          metric={t("overview.activity.days", "{{count}} days", {
+          value={t("overview.activity.days", "{{count}} days", {
             count: trend.current_streak_days,
           })}
         >
@@ -201,7 +229,7 @@ export function ActivityBand({ trend }: ActivityBandProps) {
               },
             )}
           />
-        </ChartCard>
+        </Measure>
       </div>
     </section>
   );

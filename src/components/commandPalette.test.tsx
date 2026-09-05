@@ -300,11 +300,11 @@ describe("Sidebar", () => {
 
   test("the search row is a button that names the palette and shows its chord", () => {
     const markup = renderSidebar();
-    expect(markup).toContain('aria-label="Search"');
-    // One chip spelling the whole chord, matching the reference product's
-    // search affordance — not two caps with a seam between them.
-    expect(markup).toContain("\u2318 K</kbd>");
-    expect([...markup.matchAll(/<kbd/g)]).toHaveLength(1);
+    // The chord is spelled once, whole, on the row that opens the palette.
+    expect(markup).toMatch(
+      /<button[^>]*aria-label="Search"[^>]*>(?:(?!<\/button>).)*\u2318 K/,
+    );
+    expect([...markup.matchAll(/\u2318 K/g)]).toHaveLength(1);
   });
 
   /* The rail uses shared theme tokens, not hand-rolled shell CSS. */
@@ -314,8 +314,8 @@ describe("Sidebar", () => {
     expect(markup).toContain("bg-background-200");
     expect(markup).toContain("border-gray-alpha-400");
     expect(markup).toContain("hover:bg-gray-alpha-100");
-    // Selection is a wash at the control radius, not a bordered plate.
-    expect(markup).toContain("bg-gray-alpha-200 text-gray-1000");
+    // Selection is a wash on the current row, not a bordered plate.
+    expect(markup).toMatch(/aria-current="page"[^>]*bg-gray-alpha-200/);
     expect(markup).toContain("focus-visible:ring-focus-ring");
     expect(markup).not.toContain("blue");
     // Violet is dead, and so is every accent-soft fill it used to tint.
@@ -367,7 +367,7 @@ describe("the rail, collapsed for the chat column", () => {
     expect([...markup.matchAll(/aria-current="page"/g)]).toHaveLength(1);
     expect(markup).toMatch(/aria-current="page"[^>]*Meetings/);
     // Same wash the named row carries.
-    expect(markup).toContain("bg-gray-alpha-200 text-gray-1000");
+    expect(markup).toMatch(/aria-current="page"[^>]*bg-gray-alpha-200/);
   });
 
   test("the wordmark goes and the mark stays; the chord loses its keycap", () => {

@@ -8,6 +8,8 @@ import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import { TooltipProvider } from "@/components/vg/tooltip";
 import type {
+  GeneratedMeetingArtifacts,
+  MeetingArtifactState,
   MeetingHistorySummary,
   MeetingLedger,
   MeetingLoopRow,
@@ -407,12 +409,16 @@ describe("starting a meeting", () => {
     expect(occurrences(markup, ">Start recording</button>")).toBe(1);
   });
 
-  /* An import in flight cannot be started twice, and says so where the press
-   * was — the same rule Start follows while it is starting. */
-  test("an import in flight is stated on its own control, not on Start", () => {
+  /* The import dialog opens in front of this button, so the button cannot be
+   * pressed again while it stands there — and Start still can be, because a
+   * dialog nobody has filled in is not a meeting being imported. The label
+   * holds still: the dialog reports what each file is doing, and this control
+   * went back to being the door it always was. */
+  test("the open import dialog closes its own door, not Start's", () => {
     const markup = homeMarkup({ importing: true });
-    expect(buttonTag(markup, "Importing…")).toContain('disabled=""');
+    expect(buttonTag(markup, "Import")).toContain('disabled=""');
     expect(buttonTag(markup, "Start recording")).not.toContain('disabled=""');
+    expect(markup).not.toContain("Importing…");
   });
 });
 
@@ -955,9 +961,10 @@ describe("meeting review", () => {
     expect(review).toContain(LEDGER.headline);
     expect(review).not.toContain("The team agreed to ship this week.");
     /* Insights, on the same record, still carries the summary and the
-     * actions, and none of the ledger. */
+     * actions, and none of the ledger. The summary is the document's lede
+     * now, so it has no label of its own to look for — the sentence is the
+     * assertion. */
     const insights = insightsMarkup({ snapshot: withLedger });
-    expect(insights).toContain(">Summary<");
     expect(insights).toContain("The team agreed to ship this week.");
     expect(insights).toContain(">Action items<");
     expect(insights).toContain("Write the release notes.");
@@ -992,10 +999,10 @@ describe("meeting review", () => {
      * surface somebody is reading. */
     expect(onTranscript).not.toContain("<textarea");
     expect(onTranscript).not.toContain(">Remove this turn<");
-    expect(onTranscript).toContain('aria-label="Edit this turn"');
+    expect(onTranscript).toContain('title="Edit this turn"');
     expect(onTranscript).toContain("Permission lost");
-    expect(onTranscript).toContain("Dropped frames: 128");
-    expect(onTranscript).toContain("Gaps: 2");
+    expect(onTranscript).toContain("128 frames dropped");
+    expect(onTranscript).toContain("Some of this audio is missing.");
   });
 
   test("speakers are a row of names, and no roster machinery", () => {
@@ -1037,18 +1044,54 @@ describe("meeting review", () => {
     expect(onTranscript).not.toContain(">Search</button>");
   });
 
-  test("keeps the export and delete actions on the record", () => {
+  test("keeps the export actions on the record, and no delete beside them", () => {
     expect(markup).toContain(">Export Markdown<");
     expect(markup).toContain(">Export JSON<");
-    expect(markup).toContain(">Delete meeting<");
+    expect(markup).toContain(">More<");
+    /* The load-bearing half: a red delete button coming back to a surface
+     * somebody is reading fails here. Deleting a meeting lives behind the
+     * menu, which mounts nothing until it is opened. */
+    expect(markup).not.toContain(">Delete meeting<");
   });
 });
 
 describe("insights panel", () => {
+  /* One artifact, rendered through the tab that carries it, with the parts a
+   * case is about spelled out. The base is the honest hard case: a meeting
+   * that produced a summary and nothing else. */
+  const artifactWith = (
+    content: Partial<GeneratedMeetingArtifacts>,
+    state: MeetingArtifactState = "current",
+    templateId = "standard",
+  ) =>
+    insightsMarkup({
+      snapshot: {
+        ...SNAPSHOT,
+        artifacts: [
+          {
+            ...SNAPSHOT.artifacts[0],
+            template_id: templateId,
+            state,
+            content: {
+              summary: cited("The team agreed to ship this week.", "segment-1"),
+              outline: [],
+              decisions: [],
+              action_items: [],
+              key_questions: [],
+              risks: [],
+              follow_up_draft: cited("Thanks all, notes below.", null),
+              ...content,
+            },
+          },
+        ],
+      },
+    });
+
   test("renders every generated section with citations as jump controls", () => {
     const markup = insightsMarkup({});
+    /* The summary is the document's lede and carries no label; every other
+     * section is named above its rows. */
     for (const heading of [
-      "Summary",
       "Topics",
       "Decisions",
       "Action items",
@@ -1059,12 +1102,110 @@ describe("insights panel", () => {
       expect(markup).toContain(`>${heading}<`);
     }
     expect(markup).toContain("The team agreed to ship this week.");
-    expect(markup).toContain("Owner: Aktan · Due: No due date");
-    expect(markup).toContain(">Transcript 0:12</button>");
+    expect(markup).toContain(">Owner: Aktan<");
+    expect(markup).toContain(">0:12</button>");
     expect(markup).toContain(">Regenerate<");
     // Manual notes stay separate from what was generated.
     expect(markup).toContain("Ask about the export format.");
-    expect(markup).toContain("Timestamp 0:30");
+    expect(markup).toContain(">0:30<");
+  });
+
+  test("the notes are titled by their shape, and a current pass says nothing", () => {
+    const markup = artifactWith({});
+    /* The screenshotted defect: "Template: meeting-review" as the heading of
+     * the document, and "Current" beside it on every artifact that is not
+     * broken — a word that is always there tells a reader nothing. */
+    expect(markup).toContain(">Standard<");
+    expect(markup).not.toContain("Template: ");
+    expect(markup).not.toContain(">Current<");
+    /* A template this build knows is named with the same word the picker
+     * offered when somebody chose it. */
+    expect(artifactWith({}, "current", "meeting-one-on-one")).toContain(
+      ">One-to-one<",
+    );
+  });
+
+  test("notes that no longer match the transcript say so under their title", () => {
+    expect(artifactWith({}, "out_of_date")).toContain(">Out of date<");
+    expect(artifactWith({}, "failed")).toContain(">Generation failed<");
+  });
+
+  test("a section with no rows is off the page, and four empty ones say it once", () => {
+    const empty = artifactWith({});
+    for (const heading of [
+      "Topics",
+      "Decisions",
+      "Action items",
+      "Key questions",
+      "Risks",
+    ]) {
+      expect(empty).not.toContain(`>${heading}<`);
+    }
+    /* "Decisions / None" four times over is what this replaced. */
+    expect(empty).not.toContain(">None<");
+    expect(
+      occurrences(
+        empty,
+        "No decisions, action items, questions, or risks were recorded.",
+      ),
+    ).toBe(1);
+    /* One decision brings its own section back and makes that line wrong. */
+    const oneDecision = artifactWith({
+      decisions: [cited("Ship on Thursday.", "segment-1")],
+    });
+    expect(oneDecision).toContain(">Decisions<");
+    expect(oneDecision).not.toContain(
+      "No decisions, action items, questions, or risks were recorded.",
+    );
+  });
+
+  test("an action item states the owner and the date somebody recorded, and no more", () => {
+    const action = (owner: string | null, due: string | null) => ({
+      action_items: [
+        {
+          text: cited("Write the release notes.", "segment-1"),
+          owner_text: owner,
+          due_text: due,
+        },
+      ],
+    });
+
+    expect(artifactWith(action("Dana", "Thursday"))).toContain(
+      ">Owner: Dana · Due: Thursday<",
+    );
+    /* The absences used to be printed as facts: an item nobody owns read
+     * "Owner: Unassigned", and one with no date read "Due: No due date". */
+    expect(artifactWith(action("Dana", null))).toContain(">Owner: Dana<");
+    expect(artifactWith(action("Dana", null))).not.toContain("Due:");
+    expect(artifactWith(action(null, "Thursday"))).toContain(">Due: Thursday<");
+    expect(artifactWith(action(null, "Thursday"))).not.toContain("Owner:");
+    expect(artifactWith(action(null, null))).not.toContain("Owner:");
+    expect(artifactWith(action(null, null))).not.toContain("Due:");
+  });
+
+  test("manual notes read as notes until somebody presses one", () => {
+    const markup = insightsMarkup({});
+    expect(markup).toContain("Ask about the export format.");
+    expect(markup).toContain(">0:30<");
+    /* No field and no destructive control on a surface somebody is reading:
+     * this section used to open with an empty text area and an Add button
+     * above the notes, and a Delete beside every one of them. */
+    expect(markup).not.toContain('aria-label="Manual note"');
+    expect(markup).not.toContain('aria-label="New manual note"');
+    expect(markup).not.toContain(">Delete<");
+    expect(markup).toContain(">Add a note<");
+  });
+
+  test("the field that steers the next pass is an offer, not a form", () => {
+    const markup = insightsMarkup({});
+    /* A meeting nobody has steered opens with one line at the notes card's
+     * bottom edge, beside the one that adds a note. The pane it opens used to
+     * be a whole second card with a text area, a template picker and a
+     * Re-enhance button standing open above every note on the page — three
+     * controls and a form on a surface somebody came back to read. */
+    expect(markup).toContain(">Guide the summary…<");
+    expect(markup).not.toContain('aria-label="Guide the summary"');
+    expect(markup).not.toContain(">Re-enhance with my notes<");
   });
 
   test("processing in flight replaces generated notes with an honest wait", () => {
@@ -1366,8 +1507,11 @@ describe("meeting ledger", () => {
     expect(markup).toContain(
       "We never actually said which tier the trial converts into.",
     );
-    // The receipt is a citation, and a citation is a jump.
-    expect(markup).toContain(">Transcript 0:12</button>");
+    /* The receipt is a citation, and a citation is a jump: the mark prints
+     * the moment, and the word it used to print on every one of them is what
+     * a reader who cannot see it hears. */
+    expect(markup).toContain(">0:12</button>");
+    expect(markup).toContain('aria-label="Transcript 0:12"');
     // Small talk stays on the record and out of the score: the sign-off is
     // `closed`, which is a landed state, and the score is still 0 of 1 — one
     // substantive thread, unanswered — rather than 1 of 2.

@@ -1,11 +1,12 @@
 import React from "react";
-import { Check, Copy, Ellipsis, RotateCcw, Trash2 } from "lucide-react";
+import { Check, Copy, Ellipsis, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/vg/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/vg/dropdown-menu";
 import type { HistoryRowAction } from "./historyRowActions";
@@ -23,14 +24,17 @@ interface HistoryRowControlsProps {
 }
 
 /* The expanded row's action bar. It exists only while the row is open, which is
- * what buys the collapsed log its quiet: three named buttons for the three
- * things you open a recording to do — copy it, transcribe it again, throw it
- * away — and one menu for the rest.
+ * what buys the collapsed log its quiet: two named buttons for the two things
+ * you open a recording to do — copy its words, transcribe it again — and one
+ * menu for everything that changes or removes the entry.
  *
- * Named buttons rather than icons: an icon row is exactly the clutter the
- * collapsed row was cleared of, and re-drawing it one level down would only
- * move the noise. Outline rather than ghost so each one carries a hairline in
- * both themes instead of reading as loose words under the player. */
+ * Delete is in that menu rather than on the bar because the Library is a
+ * reading surface, and a reading surface carries no visible destructive
+ * control: throwing a recording away is not one of the two things this row is
+ * open for. Named buttons rather than icons: an icon row is exactly the clutter
+ * the collapsed row was cleared of. Outline rather than ghost so each one
+ * carries a hairline in both themes instead of reading as loose words under
+ * the player. */
 export const HistoryRowControls: React.FC<HistoryRowControlsProps> = ({
   menuActions,
   hasText,
@@ -75,22 +79,6 @@ export const HistoryRowControls: React.FC<HistoryRowControlsProps> = ({
         {t("libraryV2.actions.transcribeAgain")}
       </Button>
 
-      {/* Destructive by colour on an outlined button, not the filled
-       * `destructive` variant: a solid red button inside an opened row would be
-       * the loudest thing on the page, and deleting one dictation is not the
-       * page's primary action. */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onDelete}
-        disabled={busy}
-        className="text-red-900 hover:text-red-900"
-        data-testid="history-entry-delete"
-      >
-        <Trash2 aria-hidden="true" className="size-4" />
-        {t("libraryV2.actions.delete")}
-      </Button>
-
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -116,6 +104,15 @@ export const HistoryRowControls: React.FC<HistoryRowControlsProps> = ({
               {action.label}
             </DropdownMenuItem>
           ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            disabled={busy}
+            onSelect={onDelete}
+            data-testid="history-entry-delete"
+          >
+            {t("libraryV2.actions.delete")}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

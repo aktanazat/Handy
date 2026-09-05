@@ -45,7 +45,7 @@ export const LoopStatusChip: React.FC<{ status: MeetingLoopStatus }> = ({
   return (
     <span
       data-slot="loop-status"
-      className={`flex-none text-[11px] whitespace-nowrap ${STATUS_CLASSES[status]}`}
+      className={`flex-none text-[13px] leading-[18px] whitespace-nowrap ${STATUS_CLASSES[status]}`}
     >
       {t(`meetings.loops.status.${status}`)}
     </span>
@@ -115,14 +115,14 @@ export const LoopRows: React.FC<LoopRowsProps> = ({
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                   <span
-                    className={`min-w-0 text-[13px] leading-5 text-pretty text-gray-1000 ${done ? "line-through opacity-60" : ""}`}
+                    className={`min-w-0 text-[14px] leading-[21px] text-pretty text-gray-1000 ${done ? "line-through opacity-60" : ""}`}
                   >
                     {row.text}
                   </span>
                   <LoopStatusChip status={row.status} />
                 </div>
                 {row.instead === null ? null : (
-                  <span className="text-[11px] text-gray-800">
+                  <span className="text-[13px] leading-[18px] text-gray-900">
                     {t("meetings.loops.instead", { instead: row.instead })}
                   </span>
                 )}
@@ -132,7 +132,7 @@ export const LoopRows: React.FC<LoopRowsProps> = ({
                   </Microlabel>
                 )}
                 {row.carried_since_at_utc_ms === null ? null : (
-                  <span className="text-[11px] text-gray-800">
+                  <span className="text-[13px] leading-[18px] text-gray-900">
                     {t("meetings.loops.carriedForward")}
                   </span>
                 )}
@@ -142,7 +142,7 @@ export const LoopRows: React.FC<LoopRowsProps> = ({
                    * second thing a reader needs after the loop itself. */}
                   <span
                     data-slot="loop-owner"
-                    className="text-[11px] whitespace-nowrap text-gray-800"
+                    className="text-[13px] leading-[18px] whitespace-nowrap text-gray-900"
                   >
                     {t("meetings.loops.ownerIs", {
                       owner:
@@ -225,7 +225,7 @@ const OwnerPicker: React.FC<{
       <SelectTrigger
         size="sm"
         aria-label={t("meetings.loops.owner")}
-        className="max-w-56 text-[13px]"
+        className="max-w-56 text-[14px]"
       >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>

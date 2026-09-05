@@ -1,19 +1,5 @@
 import React, { useId, useState } from "react";
-import {
-  AlignLeft,
-  AppWindow,
-  Bell,
-  CalendarDays,
-  Check,
-  ChevronDown,
-  CircleDashed,
-  Clock,
-  FileText,
-  Link as LinkIcon,
-  Mic,
-  Users,
-  X,
-} from "lucide-react";
+import { Check, ChevronDown, CircleDashed, Clock, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
@@ -26,7 +12,7 @@ import type {
 } from "@/bindings";
 import { cn } from "@/lib/cn";
 import { formatDurationShort, formatEntryTimestamp } from "@/lib/utils/format";
-import { Microlabel, SETTINGS_CARD } from "@/components/settings/rows";
+import { Microlabel, SETTINGS_SURFACE } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
 import { Switch } from "@/components/vg/switch";
 import { MeetingSourceChip } from "./MeetingSourceChip";
@@ -170,10 +156,13 @@ const openLink = async (url: string, failure: string) => {
 };
 
 /**
- * A labelled list of preview cards. The heading is the microlabel every
- * settings section uses, and the content sits bare underneath it: each card
- * is already a surface, and a box around a list of boxes is the nesting the
- * grammar exists to prevent.
+ * A labelled list of preview cards: one surface, rows divided by hairlines,
+ * the section's name above it.
+ *
+ * Round 6 collapsed the old card-per-offer stack into this. A page that
+ * offered two meetings drew two bordered boxes inside a list inside a page,
+ * which is the nesting the grammar exists to prevent — and with one offer, the
+ * commonest case, the box was a border drawn around a single row.
  */
 export const MeetingPreviewList: React.FC<{
   label: string;
@@ -182,11 +171,11 @@ export const MeetingPreviewList: React.FC<{
    *  cannot live in the `<ul>`. */
   footer?: React.ReactNode;
 }> = ({ label, children, footer }) => (
-  <section className="flex flex-col gap-3">
-    <h2>
+  <section className="flex flex-col gap-2">
+    <h2 className="min-h-5">
       <Microlabel>{label}</Microlabel>
     </h2>
-    <ul aria-label={label} className="flex flex-col gap-2">
+    <ul aria-label={label} className={SETTINGS_SURFACE}>
       {children}
     </ul>
     {footer}
@@ -194,18 +183,17 @@ export const MeetingPreviewList: React.FC<{
 );
 
 interface PreviewRowProps {
-  icon: React.ReactNode;
   label: string;
   children: React.ReactNode;
 }
 
-const PreviewRow: React.FC<PreviewRowProps> = ({ icon, label, children }) => (
-  <li className="flex items-baseline justify-between gap-6 px-3 py-2">
-    <span className="flex flex-none items-center gap-1.5 text-gray-700">
-      {icon}
-      <Microlabel>{label}</Microlabel>
-    </span>
-    <span className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[13px] leading-5 text-gray-900">
+/* KEY then VALUE, both as type. The row used to lead with a glyph of its own
+ * label — a bell beside "Notify", a microphone beside "Recording" — which is
+ * the same word twice, once in a form nobody can read. */
+const PreviewRow: React.FC<PreviewRowProps> = ({ label, children }) => (
+  <li className="flex items-baseline justify-between gap-6 px-6 py-3">
+    <Microlabel className="flex-none">{label}</Microlabel>
+    <span className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[14px] leading-[21px] text-gray-1000">
       {children}
     </span>
   </li>
@@ -233,7 +221,6 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
     facts.startUtcMs === null || facts.endUtcMs === null
       ? null
       : Math.max(0, (facts.endUtcMs - facts.startUtcMs) / 1000);
-  const OriginIcon = facts.origin === "calendar" ? CalendarDays : AppWindow;
 
   const named = facts.participants;
   const unnamed =
@@ -328,10 +315,10 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
       : t("meetings.preview.untitled.app", "Microphone in use"));
 
   return (
-    <li data-slot="meeting-preview" className={SETTINGS_CARD}>
+    <li data-slot="meeting-preview">
       <div
         data-slot="preview-head"
-        className="flex items-center gap-2 px-3 py-2"
+        className="flex items-center gap-3 px-6 py-3.5"
       >
         <button
           type="button"
@@ -339,15 +326,11 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
           aria-expanded={expanded}
           aria-controls={bodyId}
           onClick={() => setExpanded(!expanded)}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-md text-start focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-start"
         >
-          <OriginIcon
-            aria-hidden="true"
-            className="size-3.5 flex-none text-gray-700"
-          />
           <span
             data-slot="preview-title"
-            className="truncate text-[13px] text-gray-1000"
+            className="truncate text-[14px] leading-[21px] font-medium text-gray-1000"
           >
             {title}
           </span>
@@ -357,10 +340,7 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
               className="flex flex-wrap items-baseline gap-x-3"
             >
               {chips.map(([key, value]) => (
-                <Microlabel
-                  key={key}
-                  className="normal-case tabular-nums text-gray-800"
-                >
+                <Microlabel key={key} className="tabular-nums text-gray-900">
                   {value}
                 </Microlabel>
               ))}
@@ -391,15 +371,12 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
         <div className="invisible overflow-hidden group-data-[open=true]/body:visible">
           <ul className="divide-y divide-gray-alpha-400 border-t border-gray-alpha-400">
             {facts.startUtcMs === null ? null : (
-              <PreviewRow
-                icon={<Clock aria-hidden="true" className="size-3.5" />}
-                label={t("meetings.preview.rows.time", "Time")}
-              >
+              <PreviewRow label={t("meetings.preview.rows.time", "Time")}>
                 <span className="tabular-nums">
                   {formatEntryTimestamp(facts.startUtcMs)}
                 </span>
                 {durationSeconds === null ? null : (
-                  <Microlabel className="normal-case tabular-nums text-gray-800">
+                  <Microlabel className="tabular-nums text-gray-900">
                     {formatDurationShort(durationSeconds)}
                   </Microlabel>
                 )}
@@ -408,7 +385,6 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
 
             {facts.calendarName === null ? null : (
               <PreviewRow
-                icon={<CalendarDays aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.calendar", "Calendar")}
               >
                 {facts.calendarName}
@@ -416,24 +392,18 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
             )}
 
             {facts.appName === null ? null : (
-              <PreviewRow
-                icon={<AppWindow aria-hidden="true" className="size-3.5" />}
-                label={t("meetings.preview.rows.app", "App")}
-              >
+              <PreviewRow label={t("meetings.preview.rows.app", "App")}>
                 {facts.appName}
               </PreviewRow>
             )}
 
             {notify === null ? null : (
-              <PreviewRow
-                icon={<Bell aria-hidden="true" className="size-3.5" />}
-                label={t("meetings.preview.rows.notify", "Notify")}
-              >
+              <PreviewRow label={t("meetings.preview.rows.notify", "Notify")}>
                 <span
                   className={cn(
-                    "text-[12px] leading-4",
+                    "text-[13px] leading-[18px]",
                     notify.access === "authorized"
-                      ? "text-gray-800"
+                      ? "text-gray-900"
                       : "text-amber-900",
                   )}
                 >
@@ -468,12 +438,11 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
 
             {recording === null ? null : (
               <PreviewRow
-                icon={<Mic aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.recording", "Recording")}
               >
                 {recording.onToggle === undefined ? (
                   recording.armed.length === 0 ? (
-                    <span className="text-[12px] leading-4 text-amber-900">
+                    <span className="text-[13px] leading-[18px] text-amber-900">
                       {t("meetings.preview.recording.none", "No source chosen")}
                     </span>
                   ) : (
@@ -496,10 +465,7 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
             )}
 
             {notesTemplate === null ? null : (
-              <PreviewRow
-                icon={<FileText aria-hidden="true" className="size-3.5" />}
-                label={t("meetings.preview.rows.notes", "Notes")}
-              >
+              <PreviewRow label={t("meetings.preview.rows.notes", "Notes")}>
                 {t(`meetings.notes.templates.${notesTemplate}`)}
                 {notesTemplateFromSeries ? (
                   <Microlabel>
@@ -511,7 +477,6 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
 
             {named.length === 0 ? null : (
               <PreviewRow
-                icon={<Users aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.participants", "Participants")}
               >
                 <span className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
@@ -537,7 +502,7 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
                         data-slot="preview-person"
                         data-status={person.status}
                         title={`${person.name} — ${status}`}
-                        className="inline-flex items-center gap-1 rounded-md border border-gray-alpha-400 px-1.5 text-[12px] leading-5 text-gray-900 data-[status=declined]:text-gray-700"
+                        className="inline-flex items-center gap-1 rounded-md border border-gray-alpha-400 px-1.5 text-[13px] leading-[18px] text-gray-900 data-[status=declined]:text-gray-700"
                       >
                         {Glyph === null ? null : (
                           <Glyph aria-hidden="true" className="size-3" />
@@ -552,7 +517,7 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
                     );
                   })}
                   {unnamed === 0 ? null : (
-                    <Microlabel className="normal-case text-gray-800">
+                    <Microlabel>
                       {t(
                         `meetings.preview.participation.unnamed_${
                           unnamed === 1 ? "one" : "other"
@@ -566,13 +531,10 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
             )}
 
             {facts.url === null ? null : (
-              <PreviewRow
-                icon={<LinkIcon aria-hidden="true" className="size-3.5" />}
-                label={t("meetings.preview.rows.link", "Link")}
-              >
+              <PreviewRow label={t("meetings.preview.rows.link", "Link")}>
                 <button
                   type="button"
-                  className="truncate rounded-md text-blue-900 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                  className="truncate rounded-md text-accent-strong hover:underline"
                   onClick={() =>
                     void openLink(
                       facts.url ?? "",
@@ -590,7 +552,6 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
 
             {facts.description === null ? null : (
               <PreviewRow
-                icon={<AlignLeft aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.description", "Description")}
               >
                 <span
@@ -604,10 +565,10 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
                   type="button"
                   aria-expanded={descriptionOpen}
                   onClick={() => setDescriptionOpen(!descriptionOpen)}
-                  /* Inline text actions on this card are blue and underline on
-                   * hover — the same affordance as the link row. A grey status
-                   * word beside prose would read as more prose. */
-                  className="flex-none rounded-md text-[12px] text-blue-900 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                  /* Inline text actions on this card carry the one accent and
+                   * underline on hover — the same affordance as the link row.
+                   * A grey status word beside prose would read as more prose. */
+                  className="flex-none rounded-md text-[13px] text-accent-strong hover:underline"
                 >
                   {descriptionOpen
                     ? t("meetings.preview.description.less", "Less")

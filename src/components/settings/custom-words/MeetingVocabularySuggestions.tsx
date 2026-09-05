@@ -31,7 +31,7 @@ export const MeetingVocabularySuggestionsList: React.FC<
   return (
     <div
       data-testid="meeting-vocabulary-suggestions"
-      className="space-y-2 border-b border-gray-alpha-400 px-4 py-3"
+      className="space-y-2 border-b border-gray-alpha-400 px-6 py-3"
     >
       <Microlabel>
         {t("settings.workflows.vocabularySuggestions.title")}
@@ -43,10 +43,10 @@ export const MeetingVocabularySuggestionsList: React.FC<
             className="flex min-w-0 flex-wrap items-center justify-between gap-3 py-2 first:pt-1 last:pb-0"
           >
             <div className="min-w-0">
-              <p className="truncate text-[13px] text-gray-1000">
+              <p className="truncate text-[14px] text-gray-1000">
                 {candidate.text}
               </p>
-              <p className="text-[11px] text-gray-700 tabular-nums">
+              <p className="text-[12px] text-gray-700 tabular-nums">
                 {t("settings.workflows.vocabularySuggestions.occurrences", {
                   count: candidate.occurrences,
                 })}{" "}

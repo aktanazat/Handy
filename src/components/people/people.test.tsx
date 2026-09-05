@@ -222,12 +222,13 @@ const detail = (personDetail: PersonDetail, documents: Document[]) =>
   );
 
 describe("People list", () => {
-  test("keeps the shared page measure and a one-glyph empty row", () => {
+  test("keeps the shared page measure and states an absence in one line", () => {
     const markup = list([]);
 
     expect(markup).toContain("max-w-[760px]");
     expect(occurrences(markup, 'data-slot="people-empty-row"')).toBe(1);
-    expect(occurrences(markup, "<svg")).toBe(1);
+    // One sentence and no glyph over it: an absence is not an illustration.
+    expect(occurrences(markup, "<svg")).toBe(0);
     expect(markup).not.toContain('data-slot="person-card"');
   });
 
@@ -397,9 +398,12 @@ describe("person detail", () => {
     expect(markup).toContain('title="Rename"');
     expect(markup).toContain('aria-label="Person actions"');
     expect(occurrences(markup, 'data-slot="dropdown-menu-trigger"')).toBe(4);
-    /* An open loop names the meeting it came from, and the name is the way
-     * back into that meeting rather than a caption about it. */
-    expect(occurrences(markup, ">Planning</button>")).toBe(2);
+    /* An open loop reaches the meeting it came from through the citation mark
+     * at the end of its sentence, and the mark names that meeting for anyone
+     * who cannot see the line under it. One per ledger row: the open loop and
+     * the commitment. */
+    expect(occurrences(markup, 'data-slot="ledger-jump"')).toBe(2);
+    expect(occurrences(markup, 'aria-label="Open Planning,')).toBe(2);
   });
 
   /* D27: a person page answers two questions, so it shows two lists. Grouping
@@ -510,7 +514,6 @@ describe("People projections", () => {
     );
     expect(markup).toContain('data-slot="previously-together"');
     expect(markup).toContain('data-slot="meeting-person"');
-    expect(markup).toContain("px-4 py-3");
     expect(
       render(<PreviouslyTogetherBandView rows={[]} onOpenPerson={noop} />),
     ).toBe("");

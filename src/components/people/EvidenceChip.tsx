@@ -1,45 +1,37 @@
 import React from "react";
-import { AudioLines, CalendarDays, Link2, Text } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PersonLinkSource } from "@/bindings";
-import { Badge } from "@/components/vg/badge";
 
-const SOURCE_ICONS = {
-  calendar: CalendarDays,
-  speaker: AudioLines,
-  title: Text,
-  manual: Link2,
-} as const satisfies Record<PersonLinkSource, LucideIcon>;
-
+/* Why a meeting is on this person's page, as a word in the Meta tier.
+ *
+ * It was a badge with an icon in it: a filled box and a glyph spent on four
+ * labels that are already one word each ("Calendar", "Speaker"). Nothing here
+ * is pressable, so nothing here gets a chip's hairline either — the brief
+ * keeps that shape for the marks that jump. */
 export const EvidenceChip: React.FC<{ source: PersonLinkSource }> = ({
   source,
 }) => {
   const { t } = useTranslation();
-  const Icon = SOURCE_ICONS[source];
 
   return (
-    <Badge
-      variant="secondary"
+    <span
       data-slot="person-evidence"
       data-source={source}
-      className="rounded-md text-[12px] font-normal"
+      className="text-[13px] leading-[18px] text-gray-900"
     >
-      <Icon aria-hidden="true" />
       {t(`people.source.${source}`)}
-    </Badge>
+    </span>
   );
 };
 
 export const SuggestedChip: React.FC = () => {
   const { t } = useTranslation();
   return (
-    <Badge
-      variant="secondary"
+    <span
       data-slot="person-suggested"
-      className="rounded-md text-[12px] font-normal"
+      className="text-[13px] leading-[18px] text-gray-800"
     >
       {t("people.source.suggested")}
-    </Badge>
+    </span>
   );
 };

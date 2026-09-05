@@ -63,7 +63,7 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({
      * width the controls sit on one line and under it they wrap whole, last
      * first. Nothing is absolutely positioned; nothing can overlap. */
     <div
-      className="flex flex-wrap items-center gap-2"
+      className="flex flex-wrap items-center gap-3"
       data-testid="history-toolbar"
     >
       <div className="relative min-w-[200px] flex-[1_1_240px]">
@@ -97,7 +97,7 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({
 
       <p
         id={countId}
-        className="flex-none text-[11px] text-gray-800 tabular-nums"
+        className="flex-none text-[13px] leading-[18px] text-gray-900 tabular-nums"
         aria-live="polite"
         data-testid="history-result-count"
       >
@@ -129,7 +129,7 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({
           <ToggleGroupItem
             key={option.value}
             value={option.value}
-            className="text-[13px]"
+            className="text-[14px]"
           >
             {t(option.labelKey)}
           </ToggleGroupItem>

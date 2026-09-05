@@ -36,7 +36,7 @@ export const MeetingsPager: React.FC<MeetingsPagerProps> = ({
           <ChevronLeft aria-hidden="true" className="size-3.5 rtl:rotate-180" />
           {t("meetings.list.previousPage", "Newer")}
         </Button>
-        <span className="rounded-full border border-gray-alpha-400 px-2 py-0.5 font-mono text-[11px] tracking-[0.08em] text-gray-900 uppercase tabular-nums">
+        <span className="snap-measured px-1 text-[13px] leading-[18px] text-gray-900 tabular-nums">
           {t("meetings.list.pagePosition", "Page {{page}}", { page })}
         </span>
         <Button

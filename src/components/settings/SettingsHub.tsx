@@ -25,7 +25,12 @@ const BASE_TABS: readonly SettingsTab[] = ["essentials", "advanced"];
  * the first tab and the page title share a left edge. The mark is the kit's own
  * `line` variant, not a hand-rolled bottom border: that variant parks its bar
  * one pixel under the list, which is exactly where this container's hairline
- * is, so the mark reads as a break in the rule. */
+ * is, so the mark reads as a break in the rule. Pulled to a single pixel in the
+ * accent, because a 2px bar in the text colour is a second heading; the active
+ * label carries the weight instead. */
+const TAB_TRIGGER =
+  "flex-none px-0 text-[14px] leading-[21px] font-normal text-gray-900 transition-colors hover:text-gray-1000 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none data-[state=active]:font-medium data-[state=active]:text-gray-1000 after:bg-primary group-data-[orientation=horizontal]/tabs:after:h-px";
+
 export const SettingsHub: React.FC<{
   /**
    * The shell's section setter, for the two editors Essentials and Advanced
@@ -62,11 +67,7 @@ export const SettingsHub: React.FC<{
           className={cn(PAGE_COLUMN, "justify-start gap-6")}
         >
           {tabs.map((tab) => (
-            <TabsTrigger
-              key={tab}
-              value={tab}
-              className="flex-none px-0 text-sm font-normal text-gray-900 hover:text-gray-1000 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none data-[state=active]:text-gray-1000 after:bg-gray-1000"
-            >
+            <TabsTrigger key={tab} value={tab} className={TAB_TRIGGER}>
               {t(`settingsV2.tabs.${tab}`)}
             </TabsTrigger>
           ))}

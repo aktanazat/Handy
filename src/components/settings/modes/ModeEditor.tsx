@@ -355,7 +355,7 @@ export const ModeEditor: React.FC<ModeEditorProps> = ({
           />
         </SettingsField>
         {mode.llm.enabled ? null : (
-          <div className="px-4 py-3">
+          <div className="px-6 py-3">
             <Notice live={false}>{t("modesV2.instructions.disabled")}</Notice>
           </div>
         )}
@@ -476,7 +476,7 @@ export const ModeEditor: React.FC<ModeEditorProps> = ({
         </SettingsRow>
 
         {selectedCloudProvider && !cloudControlsAvailable ? (
-          <div className="px-4 py-3">
+          <div className="px-6 py-3">
             <Notice tone="warning" live>
               {t("settings.modes.recognition.cloud.setupRequired", {
                 provider: t(selectedCloudProvider.labelKey),

@@ -66,7 +66,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       }}
     >
       <div className="flex items-center gap-2">
-        <span className="shrink-0 text-[11px] text-gray-900">
+        <span className="shrink-0 text-[12px] text-gray-900">
           {t("chat.scopeLabel")}
         </span>
         <div
@@ -89,7 +89,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
                  is not a difference a reader can see. `aria-checked` already
                  says it out loud; this says it on screen. */
               className={cn(
-                "rounded-full border px-2.5 py-1 text-[12px] leading-4 transition-colors disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none",
+                "rounded-full border px-2.5 py-1 text-[13px] leading-[18px] transition-colors disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none",
                 workspace === scope
                   ? "border-gray-alpha-600 bg-gray-alpha-200 font-medium text-gray-1000"
                   : "border-gray-alpha-400 text-gray-900 hover:text-gray-1000",
@@ -106,7 +106,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         <Textarea
           ref={fieldRef}
           rows={1}
-          className="max-h-28 min-h-0 flex-1 resize-none rounded-none border-0 bg-transparent px-0 py-1.5 text-[13px] leading-5 focus-visible:ring-0 md:text-[13px]"
+          className="max-h-28 min-h-0 flex-1 resize-none rounded-none border-0 bg-transparent px-0 py-1.5 text-[14px] leading-[21px] focus-visible:ring-0 md:text-[14px]"
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
           onKeyDown={composerKeys(onSend)}

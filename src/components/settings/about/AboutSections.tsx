@@ -82,11 +82,11 @@ export const AboutSections: React.FC = () => {
          * nothing, so only the identifying part is shown. The button still
          * opens the whole URL, and the accessible name still carries it.
          *
-         * A URL is a value, not a label: one step under the 13px value tier,
-         * one step over the 11px `Microlabel`. A rem-based `text-xs` would land
-         * it at 10.5px against this app's 14px root, below the labels it sits
-         * beside. */}
-        <span className="max-w-[260px] truncate text-[12px] text-gray-900">
+         * A URL is a value, not a label: one step under the 14px value tier,
+         * on the same 13px step as a `Microlabel`. A rem-based `text-xs` would
+         * land it at 10.5px against this app's 14px root, below the labels it
+         * sits beside. */}
+        <span className="max-w-[260px] truncate text-[13px] text-gray-900">
           {REPOSITORY_URL.replace("https://", "")}
         </span>
         <Button

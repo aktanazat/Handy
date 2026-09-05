@@ -21,17 +21,17 @@ export const AgentBridgePendingReplies: React.FC<
       label={t("settings.agents.pending.title", "Pending replies")}
     >
       {pendingMessages.length === 0 ? (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice>{t("settings.agents.pending.empty")}</Notice>
         </div>
       ) : (
         pendingMessages.map((pending) => (
           <div
             key={pending.id}
-            className="flex min-w-0 flex-wrap items-start justify-between gap-3 px-4 py-3"
+            className="flex min-w-0 flex-wrap items-start justify-between gap-3 px-6 py-3"
           >
             <div className="min-w-0 flex-1">
-              <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[13px] text-gray-900">
+              <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[14px] text-gray-900">
                 <span>
                   {t(
                     "settings.agents.controls.providers." +
@@ -41,7 +41,7 @@ export const AgentBridgePendingReplies: React.FC<
                 </span>
                 <code className="min-w-0 break-all">{pending.session_id}</code>
               </p>
-              <p className="mt-1 text-[13px] leading-5 break-words whitespace-pre-wrap text-gray-1000">
+              <p className="mt-1 text-[14px] leading-[21px] break-words whitespace-pre-wrap text-gray-1000">
                 {pending.text}
               </p>
               <p className="mt-1">

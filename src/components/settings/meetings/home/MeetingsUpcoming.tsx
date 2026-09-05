@@ -66,17 +66,21 @@ const templateValue = (template: MeetingNotesTemplate | null): string =>
 const templateChoice = (value: string): MeetingNotesTemplate | null =>
   MEETING_NOTES_TEMPLATES.find((template) => template === value) ?? null;
 
-interface AttendeeChipsProps {
+interface AttendeeNamesProps {
   attendees: MeetingUpcomingAttendee[];
   /** Participants EventKit would not name, shown as a count and nothing else. */
   unnamed: number;
   onOpenPerson: (personId: string) => void;
 }
 
-/* One chip per named participant. A chip is a button only when the address book
- * already knows that address: a chip that navigates nowhere would teach the
- * reader that chips do not navigate. */
-const AttendeeChips: React.FC<AttendeeChipsProps> = ({
+/* The named participants, as one run of type on the row's quiet line. A name
+ * is a button only when the address book already knows that address: a name
+ * that navigates nowhere would teach the reader that names do not navigate.
+ *
+ * Round 6 took the pills off. Five bordered capsules under a title made the
+ * row a cluster of controls rather than a line to read, and the border said
+ * nothing the name did not. */
+const AttendeeNames: React.FC<AttendeeNamesProps> = ({
   attendees,
   unnamed,
   onOpenPerson,
@@ -84,40 +88,37 @@ const AttendeeChips: React.FC<AttendeeChipsProps> = ({
   const { t } = useTranslation();
   if (attendees.length === 0 && unnamed <= 0) return null;
 
-  const chip =
-    "rounded-full border border-gray-alpha-400 px-2 py-0.5 text-[12px] leading-4 text-gray-900";
-
   return (
     <span
       data-slot="upcoming-attendees"
       role="group"
       aria-label={t("meetings.upcoming.attendees", "Attendees")}
-      className="flex flex-wrap items-center gap-1"
+      className="min-w-0 truncate"
     >
-      {attendees.map((attendee, index) =>
-        attendee.person_id === null ? (
-          <span key={`${attendee.name}-${index}`} className={chip}>
-            {attendee.is_self
-              ? t("meetings.upcoming.you", "You")
-              : attendee.name}
-          </span>
-        ) : (
-          <button
-            key={`${attendee.name}-${index}`}
-            type="button"
-            data-slot="upcoming-attendee-link"
-            onClick={() => onOpenPerson(attendee.person_id ?? "")}
-            className={cn(
-              chip,
-              "text-accent-strong transition-colors hover:border-gray-alpha-500 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none",
-            )}
-          >
-            {attendee.name}
-          </button>
-        ),
-      )}
+      {attendees.map((attendee, index) => (
+        <React.Fragment key={`${attendee.name}-${index}`}>
+          {index === 0 ? null : <span aria-hidden="true">, </span>}
+          {attendee.person_id === null ? (
+            <span>
+              {attendee.is_self
+                ? t("meetings.upcoming.you", "You")
+                : attendee.name}
+            </span>
+          ) : (
+            <button
+              type="button"
+              data-slot="upcoming-attendee-link"
+              onClick={() => onOpenPerson(attendee.person_id ?? "")}
+              className="rounded-md text-accent-strong transition-colors motion-reduce:transition-none hover:underline"
+            >
+              {attendee.name}
+            </button>
+          )}
+        </React.Fragment>
+      ))}
       {unnamed > 0 ? (
-        <span className={cn(chip, "tabular-nums")}>
+        <span className="tabular-nums">
+          {attendees.length === 0 ? null : <span aria-hidden="true">, </span>}
           {t("meetings.upcoming.attendeesMore", "+{{count}}", {
             count: unnamed,
           })}
@@ -163,11 +164,11 @@ export const SeriesControls: React.FC<SeriesControlsProps> = ({
   return (
     <div
       data-slot="upcoming-series-controls"
-      className="flex flex-col gap-3 border-t border-gray-alpha-400 px-4 py-3"
+      className="flex flex-col gap-3 border-t border-gray-alpha-400 px-6 py-3.5"
     >
       <div className="flex items-center justify-between gap-6">
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-[13px] leading-5 text-gray-1000">
+          <span className="text-[14px] leading-[21px] text-gray-1000">
             {t("meetings.upcoming.alwaysRecord", "Always record this series")}
           </span>
           {canGrant ? null : (
@@ -191,7 +192,7 @@ export const SeriesControls: React.FC<SeriesControlsProps> = ({
       </div>
 
       <div className="flex items-center justify-between gap-6">
-        <span className="text-[13px] leading-5 text-gray-1000">
+        <span className="text-[14px] leading-[21px] text-gray-1000">
           {t("meetings.upcoming.template", "Notes template")}
         </span>
         <Select
@@ -222,7 +223,7 @@ export const SeriesControls: React.FC<SeriesControlsProps> = ({
       </div>
 
       <div className="flex items-center justify-between gap-6">
-        <span className="text-[13px] leading-5 text-gray-1000">
+        <span className="text-[14px] leading-[21px] text-gray-1000">
           {t("meetings.upcoming.digest", "Include in the evening digest")}
         </span>
         <Switch
@@ -258,49 +259,59 @@ const UpcomingRow: React.FC<UpcomingRowProps> = ({
 
   return (
     <li data-slot="upcoming-row" className="flex flex-col">
-      <div className="flex items-start gap-4 px-4 py-3">
-        {/* The time column. Tabular so a column of clock times keeps one
-         * left edge instead of jittering with the digits. */}
-        <span className="flex w-[74px] flex-none flex-col gap-0.5 pt-px text-end">
-          <span className="text-[13px] leading-5 tabular-nums text-gray-1000">
+      <div className="flex items-start gap-5 px-6 py-3.5">
+        {/* When, in its own gutter. Tabular so a column of clock times keeps
+         * one right edge instead of jittering with the digits. */}
+        <span className="flex w-[62px] flex-none flex-col pt-px text-end">
+          <Microlabel className="tabular-nums">
             {formatTimeOfDay(row.start_utc_ms)}
-          </span>
+          </Microlabel>
           <Microlabel className="tabular-nums text-gray-800">
             {formatTimeOfDay(row.end_utc_ms)}
           </Microlabel>
         </span>
 
-        <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-[13px] leading-5 text-gray-1000">
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="flex min-w-0 items-baseline gap-2">
+            <span className="truncate text-[14px] leading-[21px] font-medium text-gray-1000">
               {row.title}
             </span>
             {row.series === null ? null : (
               <span
                 data-slot="upcoming-series-chip"
-                className="rounded-full border border-gray-alpha-400 px-2 py-0.5 text-[12px] leading-4 text-gray-900"
+                className="flex-none text-[13px] leading-[18px] text-gray-900"
               >
                 {t("meetings.upcoming.recurring", "Repeats")}
               </span>
             )}
           </span>
-          <AttendeeChips
-            attendees={row.attendees}
-            unnamed={unnamed}
-            onOpenPerson={onOpenPerson}
-          />
-          {row.calendar_name === null ? null : (
-            <Microlabel className="text-gray-800">
-              {row.calendar_name}
-            </Microlabel>
-          )}
+          {/* One quiet line under the title: whose calendar it is, and who is
+           * coming. Two lines of the same size read as two facts of equal
+           * weight, which is what the row spent its second line saying. */}
+          <span className="flex min-w-0 items-baseline text-[13px] leading-[18px] text-gray-900">
+            {row.calendar_name === null ? null : (
+              <span className="flex-none">{row.calendar_name}</span>
+            )}
+            {row.calendar_name === null ||
+            (row.attendees.length === 0 && unnamed <= 0) ? null : (
+              <span aria-hidden="true" className="flex-none px-1.5">
+                ·
+              </span>
+            )}
+            <AttendeeNames
+              attendees={row.attendees}
+              unnamed={unnamed}
+              onOpenPerson={onOpenPerson}
+            />
+          </span>
         </span>
 
         {row.series === null ? null : (
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="icon-sm"
+            className="-me-1.5 flex-none text-gray-900"
             aria-expanded={expanded}
             aria-label={t("meetings.upcoming.seriesOptions", {
               title: row.title,
@@ -311,7 +322,7 @@ const UpcomingRow: React.FC<UpcomingRowProps> = ({
             <ChevronDown
               aria-hidden="true"
               className={cn(
-                "size-4 transition-transform",
+                "size-4 transition-transform motion-reduce:transition-none",
                 expanded && "rotate-180",
               )}
             />
@@ -326,8 +337,8 @@ const UpcomingRow: React.FC<UpcomingRowProps> = ({
 const UpcomingSkeleton: React.FC<{ label: string }> = ({ label }) => (
   <div role="status" aria-label={label} className={SETTINGS_SURFACE}>
     {[0, 1].map((row) => (
-      <div key={row} className="flex items-center gap-4 px-4 py-3">
-        <Skeleton className="h-3.5 w-14" />
+      <div key={row} className="flex items-center gap-5 px-6 py-3.5">
+        <Skeleton className="h-3.5 w-12" />
         <Skeleton className="h-3.5 flex-1" />
       </div>
     ))}
@@ -405,46 +416,42 @@ export const MeetingsUpcomingView: React.FC<MeetingsUpcomingViewProps> = ({
   const copy = accessCopy(events?.access ?? "denied");
 
   return (
-    <section data-slot="meetings-upcoming" className="flex flex-col gap-3">
-      <div className="flex min-h-6 items-center">
-        <h2>
-          <Microlabel>{title}</Microlabel>
-        </h2>
-      </div>
+    <section data-slot="meetings-upcoming" className="flex flex-col gap-2">
+      <h2 className="min-h-5">
+        <Microlabel>{title}</Microlabel>
+      </h2>
 
       {loading ? (
         <UpcomingSkeleton
           label={t("meetings.upcoming.loading", "Reading your calendar…")}
         />
       ) : rows.length === 0 ? (
-        <SettingsCard className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-          <p className="text-[13px] leading-5 text-gray-1000">
+        <SettingsCard className="flex flex-col gap-1 px-6 py-5">
+          <p className="text-[14px] leading-[21px] text-pretty text-gray-1000">
             {t(copy.line, copy.fallback)}
           </p>
           {copy.hint ? (
-            <p className="max-w-[52ch] text-[13px] leading-5 text-gray-800">
+            <Microlabel className="max-w-[62ch] text-pretty">
               {t(
                 "meetings.upcoming.noAccessHint",
                 'Turn on "Use my calendar" in Meetings settings, then allow full access when macOS asks. Whatever macOS Calendar already shows — Google, iCloud, Outlook — comes with it.',
               )}
-            </p>
+            </Microlabel>
           ) : null}
         </SettingsCard>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5">
           {days.map((day) => {
             const heading = localDayHeading(day.startOfDayMs, t);
             return (
               <section
                 key={day.startOfDayMs}
                 data-slot="upcoming-day"
-                className="flex flex-col gap-3"
+                className="flex flex-col gap-2"
               >
-                <div className="flex min-h-6 items-center">
-                  <h3 className="text-[13px] leading-5 text-gray-900">
-                    {heading}
-                  </h3>
-                </div>
+                <h3 className="pt-2 text-[13px] leading-[18px] text-gray-900">
+                  {heading}
+                </h3>
                 <ul
                   role="list"
                   aria-label={heading}

@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from "react";
-import { AlertCircle, LoaderCircle } from "lucide-react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -324,7 +323,6 @@ export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
       <SettingsSurface>
         {loadFailed ? (
           <EmptyStateRow
-            icon={AlertCircle}
             action={
               <Button
                 type="button"
@@ -339,9 +337,7 @@ export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
             {t("people.detail.loadError")}
           </EmptyStateRow>
         ) : (
-          <EmptyStateRow icon={LoaderCircle}>
-            {t("common.loading")}
-          </EmptyStateRow>
+          <EmptyStateRow>{t("common.loading")}</EmptyStateRow>
         )}
       </SettingsSurface>
       <Button

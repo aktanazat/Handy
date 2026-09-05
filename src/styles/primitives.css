@@ -123,13 +123,16 @@
  *
  * The 2026-08 ruling, which replaces the old two-glass-surface budget: under
  * Glass, every CHROME surface goes translucent-raised over the native
- * vibrancy sample — today the sidebar rail and the command palette, which is
- * itself a dialog and opts in by wearing `.glass-surface`. Both are bounded
- * regions, so the blur cost stays bounded. Surfaces that DISPLAY MEASURED
- * DATA (content cards, settings panels, tables, the library list) stay opaque
- * --color-surface-raised in BOTH materials: numbers are never read through
- * wallpaper. Solid is the default cascade — fully opaque, zero
- * backdrop-filter — so [data-material="solid"] needs no rules at all.
+ * vibrancy sample. Today that is the sidebar rail, the command palette (which
+ * is itself a dialog and opts in by wearing `.glass-surface`), and the three
+ * floating menus in the kit — select, popover and, since the 2026-09 restyle,
+ * the dropdown menu, which was the last one still running its own entrance
+ * and its own opaque fill. Every one of them is a bounded region, and only
+ * one menu is open at a time, so the blur cost stays bounded. Surfaces that
+ * DISPLAY MEASURED DATA (content cards, settings panels, tables, the library
+ * list) stay opaque --color-surface-raised in BOTH materials: numbers are
+ * never read through wallpaper. Solid is the default cascade — fully opaque,
+ * zero backdrop-filter — so [data-material="solid"] needs no rules at all.
  *
  * Content genuinely sits beneath it, so backdrop-filter samples app content
  * plus the vibrancy underlay: blur(20px) saturate(1.4) — saturate is

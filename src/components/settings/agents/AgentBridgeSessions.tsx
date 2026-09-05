@@ -15,16 +15,16 @@ export const AgentBridgeSessions: React.FC<AgentBridgeSessionsProps> = ({
   return (
     <SettingsSection label={t("settings.agents.observed.sessions")}>
       {sessions.length === 0 ? (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice>{t("settings.agents.observed.noSessions")}</Notice>
         </div>
       ) : (
         sessions.map((session) => (
           <div
             key={session.id}
-            className="flex min-h-[52px] min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2.5"
+            className="flex min-h-[52px] min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 px-6 py-2.5"
           >
-            <span className="text-[13px] text-gray-1000">
+            <span className="text-[14px] text-gray-1000">
               {t(
                 "settings.agents.controls.providers." +
                   session.agent +

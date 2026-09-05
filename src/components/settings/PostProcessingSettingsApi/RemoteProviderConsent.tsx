@@ -145,7 +145,7 @@ const RemoteProviderConsentContent: React.FC<
         </div>
       </SettingsField>
       {endpointChanged && !currentConsent ? (
-        <div className="px-4 py-3">
+        <div className="px-6 py-3">
           <Notice tone="warning">
             {t("settings.postProcessing.remoteConsent.endpointChanged")}
           </Notice>
@@ -236,7 +236,7 @@ export const RemoteProviderConsent: React.FC<RemoteProviderConsentProps> = ({
 
   if (endpointState.kind === "invalid") {
     return (
-      <div className="px-4 py-3">
+      <div className="px-6 py-3">
         <Notice tone="danger">
           {t("settings.postProcessing.remoteConsent.invalidDestination")}
         </Notice>

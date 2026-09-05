@@ -101,8 +101,15 @@ function DialogContent({
          * replaced by `--glass-tint` and a specular line laid over
          * `--shadow-dialog` by the material rule, so it keeps exactly one
          * shadow either way. */
+        /* One width for every modal: 560px, or the window less a 14px gutter
+         * when the window is narrower than that. Written as a single
+         * `max-w-[min(...)]` rather than as the kit's `max-w-[calc(...)]` plus
+         * `sm:max-w-lg` pair, because those are two conflicting classes in two
+         * different variant groups: tailwind-merge cannot collapse them, so a
+         * caller asking for `max-w-xl` lost to the `sm:` rule in the cascade
+         * and got 448px instead. One class is one thing to override. */
         className={cn(
-          "popup-motion fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-dialog border bg-surface-raised p-6 shadow-[var(--shadow-dialog)] outline-none sm:max-w-lg",
+          "popup-motion fixed top-[50%] left-[50%] z-50 grid w-full max-w-[min(560px,calc(100%-2rem))] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-dialog border border-gray-alpha-400 bg-surface-raised p-6 shadow-[var(--shadow-dialog)] outline-none",
           material === "glass" && "glass-surface",
           className,
         )}
@@ -125,7 +132,13 @@ function DialogContent({
            * state, so those two utilities never matched anything. */
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute top-4 end-4 grid size-7 place-items-center rounded-control text-gray-900 transition-colors hover:bg-gray-alpha-200 hover:text-gray-1000 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5"
+            /* Aligned to the title, not to the corner. The dialog pads 21px,
+             * the title's line box is 25px, so its optical centre sits 33.5px
+             * down: a 28px button starts at 19px. `end-4` is 14px, which puts
+             * the 14px glyph's own right edge on the 21px text column — the
+             * button's box overhangs it by the 7px of air inside it, which is
+             * how an icon button optically aligns with type. */
+            className="absolute top-[19px] end-4 grid size-[28px] place-items-center rounded-md text-gray-900 transition-colors hover:bg-hover hover:text-gray-1000 disabled:pointer-events-none motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[14px]"
           >
             <XIcon />
             <span className="sr-only">{t("common.close")}</span>
@@ -140,10 +153,22 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      /* Logical `text-start`, for the same reason as the close button: the
-       * title has to lead from the side the reader starts on, opposite the
-       * button. */
-      className={cn("flex flex-col gap-2 text-center sm:text-start", className)}
+      /* A header band, as the reference draws it: the title leading from the
+       * reader's side, the close button opposite it, and a hairline under both
+       * that runs the full width of the sheet. `-mx-6 px-6` is what makes the
+       * rule full-bleed while the words stay on the dialog's text column; a
+       * modal that replaces the 24px padding (`p-0`) has to cancel the pull
+       * with `mx-0`, which RecorderDialog — the one such modal with a real
+       * header — does.
+       *
+       * Logical `text-start`, for the same reason as the close button: the
+       * title has to lead from the side the reader starts on. The kit's
+       * `text-center sm:text-start` pair centred it below 640px, a width this
+       * app's fixed 900px window never sees. */
+      className={cn(
+        "-mx-6 flex flex-col gap-2 border-b border-gray-alpha-400 px-6 pb-4 text-start",
+        className,
+      )}
       {...props}
     />
   );
@@ -161,8 +186,13 @@ function DialogFooter({
   return (
     <div
       data-slot="dialog-footer"
+      /* One action fills the width — the reference's black plate across the
+       * foot of a dialog — and two or more sit at the trailing edge. `:only-child`
+       * is what tells them apart, so a caller states its intent by how many
+       * buttons it renders rather than by remembering a class. `showCloseButton`
+       * adds a second child, which correctly cancels the full-width rule. */
       className={cn(
-        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        "flex flex-row justify-end gap-2 [&>:only-child]:w-full",
         className,
       )}
       {...props}
@@ -184,10 +214,18 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      /* 14/20 semibold: the app's own heading role, not the kit's 15.75px on a
+      /* 16/25 semibold: the app's own lede role, not the kit's 15.75px on a
        * zero line box. A modal title is the largest type on its surface, and
-       * the ladder's ceiling for a title is 14 (theme.css). */
-      className={cn("text-[14px] leading-5 font-semibold", className)}
+       * body on that surface is now 14 — a 14px title tied with it.
+       *
+       * `pe-12` clears the close button (14px inset + 28px box) so a long
+       * title wraps above it instead of running under the glyph. The clearance
+       * lives here rather than on the header because a caller that restates
+       * the header's padding — RecorderDialog does — would drop it. */
+      className={cn(
+        "text-[16px] leading-[25px] font-semibold pe-12",
+        className,
+      )}
       {...props}
     />
   );
@@ -200,7 +238,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-[13px] leading-5 text-gray-900", className)}
+      className={cn("text-[14px] leading-[21px] text-gray-900", className)}
       {...props}
     />
   );

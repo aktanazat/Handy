@@ -73,13 +73,13 @@ export const MeetingsTrash: React.FC<MeetingsTrashProps> = ({ onRestored }) => {
           return (
             <li
               key={entry.job_id}
-              className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-3.5"
             >
-              <span className="flex min-w-0 flex-col gap-0.5">
-                <span className="truncate text-[13px] text-gray-1000">
+              <span className="flex min-w-0 flex-col gap-1">
+                <span className="truncate text-[14px] leading-[21px] font-medium text-gray-1000">
                   {entry.title}
                 </span>
-                <Microlabel className="normal-case text-gray-800 tabular-nums">
+                <Microlabel className="snap-measured tabular-nums">
                   {days > 0
                     ? t("meetings.trash.expires", {
                         deleted: formatEntryTimestamp(entry.deleted_at_utc_ms),

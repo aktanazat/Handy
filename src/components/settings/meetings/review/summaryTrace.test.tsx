@@ -143,7 +143,10 @@ describe("a summary line is the way back to its moment", () => {
       session_id: "meeting-1",
       transcript_revision_id: "revision-1",
       input_revision: 4,
-      template_id: "standard",
+      /* A template id this build ships, so the document's title resolves in
+       * the catalogue rather than through the humanized fallback — this file
+       * treats a missing key as a failure. */
+      template_id: "meeting-review",
       template_version: 5,
       generation_key: "key-1",
       state: "current",

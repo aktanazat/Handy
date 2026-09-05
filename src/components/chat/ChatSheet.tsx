@@ -133,7 +133,7 @@ const ChatSheetHeader: React.FC<ChatSheetHeaderProps> = ({
           <X aria-hidden="true" className="size-3.5" />
         </button>
       </div>
-      <h2 className="truncate text-center text-[13px] leading-5 font-medium text-gray-1000">
+      <h2 className="truncate text-center text-[14px] leading-[21px] font-medium text-gray-1000">
         {t("chat.title")}
       </h2>
       <div className="flex items-center justify-end gap-1.5">
@@ -194,7 +194,7 @@ const ChatNotice: React.FC<ChatNoticeProps> = ({
     <p
       data-slot="chat-notice"
       role="status"
-      className="flex flex-none flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-gray-alpha-400 px-3 py-2 text-[12px] leading-4 text-gray-900"
+      className="flex flex-none flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-gray-alpha-400 px-3 py-2 text-[13px] leading-[18px] text-gray-900"
     >
       {t(`chat.status.${phase}`)}
       {(phase === "offline" || phase === "error") && (
@@ -418,7 +418,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
               data-slot="chat-empty"
               className="flex h-full items-center justify-center"
             >
-              <p className="max-w-[32ch] text-center text-[13px] leading-5 text-gray-900">
+              <p className="max-w-[32ch] text-center text-[14px] leading-[21px] text-gray-900">
                 {t("chat.empty")}
               </p>
             </div>
@@ -453,7 +453,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
           <p
             data-slot="chat-consent"
             role="status"
-            className="flex flex-none flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-gray-alpha-400 px-3 py-2 text-[12px] leading-4 text-gray-900"
+            className="flex flex-none flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-gray-alpha-400 px-3 py-2 text-[13px] leading-[18px] text-gray-900"
           >
             {t("chat.consent.notice")}
             <Button
@@ -469,7 +469,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
         {errorText !== null && (
           <p
             role="alert"
-            className="flex-none border-t border-gray-alpha-400 px-3 py-2 text-[12px] leading-4 text-red-900 [overflow-wrap:anywhere]"
+            className="flex-none border-t border-gray-alpha-400 px-3 py-2 text-[13px] leading-[18px] text-red-900 [overflow-wrap:anywhere]"
           >
             {errorText}
           </p>

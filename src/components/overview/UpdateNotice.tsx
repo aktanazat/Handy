@@ -36,8 +36,8 @@ export const UpdateBanner: React.FC<UpdateBannerProps> = ({
   };
 
   return (
-    <SettingsCard className="flex flex-wrap items-center gap-3 px-4 py-3">
-      <span className="min-w-0 flex-1 text-sm text-gray-900">
+    <SettingsCard className="flex flex-wrap items-center gap-3 px-6 py-3.5">
+      <span className="min-w-0 flex-1 text-[14px] leading-[21px] text-gray-1000">
         {t(
           "overview.update.available",
           "Sona {{latest}} is available. This install is on {{current}}.",
@@ -47,11 +47,13 @@ export const UpdateBanner: React.FC<UpdateBannerProps> = ({
           },
         )}
       </span>
+      {/* Bordered, not filled: the page's one filled button starts a meeting,
+       * and a release note is not a bigger promise than that. */}
       {url !== null && (
         <Button
           type="button"
-          variant="ghost"
-          size="sm"
+          variant="outline"
+          size="xs"
           onClick={() => void openRelease()}
         >
           {t("overview.update.view", "View release")}
@@ -60,11 +62,11 @@ export const UpdateBanner: React.FC<UpdateBannerProps> = ({
       <Button
         type="button"
         variant="ghost"
-        size="icon-sm"
+        size="icon-xs"
         aria-label={t("overview.update.dismiss", "Dismiss")}
         onClick={onDismiss}
       >
-        <X className="size-4" aria-hidden="true" />
+        <X className="size-3.5" aria-hidden="true" />
       </Button>
     </SettingsCard>
   );
@@ -84,8 +86,11 @@ export const UpdateCheckFailure: React.FC<UpdateCheckFailureProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span aria-live="polite" className="min-w-0 flex-1 text-sm text-gray-800">
+    <div className="flex flex-wrap items-center gap-3 px-1">
+      <span
+        aria-live="polite"
+        className="min-w-0 flex-1 text-[13px] leading-[18px] text-gray-900"
+      >
         {result.error === null
           ? t("overview.update.failed", "Could not check for updates.")
           : t(
@@ -97,7 +102,7 @@ export const UpdateCheckFailure: React.FC<UpdateCheckFailureProps> = ({
       <Button
         type="button"
         variant="ghost"
-        size="sm"
+        size="xs"
         onClick={onRetry}
         disabled={retrying}
       >

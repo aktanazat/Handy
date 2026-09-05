@@ -39,11 +39,17 @@ interface StatProps {
 }
 
 const Stat: React.FC<StatProps> = ({ label, value, detail }) => (
-  <div className="flex flex-col gap-0.5 px-4 py-3">
+  <div className="flex flex-col gap-0.5 px-6 py-4">
     <Microlabel>{label}</Microlabel>
-    <p className="text-lg leading-7 tabular-nums text-gray-1000">{value}</p>
+    {/* A measurement, not a headline: the page's own title is the largest
+     * type on it, and three 18px figures in a strip were competing with it. */}
+    <p className="text-[16px] leading-[25px] font-medium tabular-nums text-gray-1000">
+      {value}
+    </p>
     {detail ? (
-      <p className="truncate text-[12px] leading-4 text-gray-800">{detail}</p>
+      <p className="truncate text-[13px] leading-[18px] text-gray-800">
+        {detail}
+      </p>
     ) : null}
   </div>
 );
@@ -64,7 +70,7 @@ export const MeetingAnalyticsStrip: React.FC<MeetingAnalyticsStripProps> = ({
   if (talk.segment_count === 0) {
     return (
       <SettingsSection label={t("meetings.analytics.title", "Conversation")}>
-        <div className="px-4 py-6">
+        <div className="px-6 py-6">
           <Notice tone="muted" live={false}>
             {t(
               "meetings.analytics.noSpeech",
@@ -109,16 +115,16 @@ export const MeetingAnalyticsStrip: React.FC<MeetingAnalyticsStripProps> = ({
         {talk.speakers.map((share) => (
           <li
             key={share.speaker_id}
-            className="flex items-center justify-between gap-4 px-4 py-2.5"
+            className="flex items-center justify-between gap-4 px-6 py-3"
           >
-            <span className="min-w-0 truncate text-[13px] text-gray-1000">
+            <span className="min-w-0 truncate text-[14px] leading-[21px] text-gray-1000">
               {nameOf(share.speaker_id)}
             </span>
             <span className="flex flex-none items-baseline gap-3">
-              <span className="text-[13px] leading-5 font-medium tabular-nums text-gray-1000">
+              <span className="text-[14px] leading-[21px] font-medium tabular-nums text-gray-1000">
                 {formatTalkShare(share.share_permille)}
               </span>
-              <Microlabel className="normal-case tabular-nums text-gray-800">
+              <Microlabel className="tabular-nums text-gray-800">
                 {t("meetings.analytics.speakerDetail", "{{time}} · {{turns}}", {
                   time: formatTalkDuration(share.speaking_ns),
                   turns: t("meetings.analytics.turns", "{{count}} turns", {
@@ -133,7 +139,7 @@ export const MeetingAnalyticsStrip: React.FC<MeetingAnalyticsStripProps> = ({
 
       {trackers.length === 0 ? null : (
         <div className="flex flex-col gap-2 py-3">
-          <h3 className="px-4">
+          <h3 className="px-6">
             <Microlabel>
               {t("meetings.analytics.trackers", "Trackers")}
             </Microlabel>
@@ -142,18 +148,18 @@ export const MeetingAnalyticsStrip: React.FC<MeetingAnalyticsStripProps> = ({
             {trackers.map((tracker) => (
               <li
                 key={tracker.name}
-                className="flex items-center justify-between gap-4 px-4 py-2.5"
+                className="flex items-center justify-between gap-4 px-6 py-3"
               >
-                <span className="min-w-0 truncate text-[13px] text-gray-1000">
+                <span className="min-w-0 truncate text-[14px] leading-[21px] text-gray-1000">
                   {tracker.name}
                 </span>
                 {tracker.hit_count === 0 ? (
-                  <Microlabel className="normal-case text-gray-800">
+                  <Microlabel className="text-gray-800">
                     {t("meetings.analytics.noHits", "Not mentioned")}
                   </Microlabel>
                 ) : (
                   <span className="flex flex-none items-baseline gap-3">
-                    <Microlabel className="normal-case tabular-nums text-gray-800">
+                    <Microlabel className="tabular-nums text-gray-800">
                       {t("meetings.analytics.hits", "{{count}} mentions", {
                         count: tracker.hit_count,
                       })}
@@ -161,7 +167,7 @@ export const MeetingAnalyticsStrip: React.FC<MeetingAnalyticsStripProps> = ({
                     <button
                       type="button"
                       onClick={() => onJumpToSegment(tracker.segment_ids[0])}
-                      className="rounded-md text-[12px] leading-4 text-blue-900 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                      className="cursor-pointer rounded-md text-[13px] leading-[18px] text-accent-strong underline-offset-2 transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none"
                     >
                       {t("meetings.analytics.jumpToFirst", "Show first")}
                     </button>

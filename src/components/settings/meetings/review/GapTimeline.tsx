@@ -1,15 +1,6 @@
 import React, { useState } from "react";
-import {
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  CircleX,
-  Info,
-  TriangleAlert,
-} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { SourceGap, SourceGapReason } from "@/bindings";
-import { SettingsSection } from "@/components/settings/rows";
+import type { SourceGap } from "@/bindings";
 import { Button } from "@/components/vg/button";
 import { formatMeetingOffset } from "../meetingUtils";
 import {
@@ -18,44 +9,21 @@ import {
   type AggregatedGap,
 } from "./gapLedger";
 
+/* Where the audio went missing, moment by moment.
+ *
+ * Rows under the capture sources rather than a section of their own: a source
+ * that lost audio and the moments it lost are one fact, and the second box
+ * used to say "No gaps detected" under a header that had already said the
+ * recording was complete. Nothing at all when nothing was lost.
+ *
+ * The reason is the row: the wire's `invalid_format` reads as "Unreadable
+ * audio", and the three severity glyphs that used to sit beside it said in a
+ * shape what the words already said. */
+
 const COLLAPSED_ROW_LIMIT = 8;
-const MEASURED_FACT = "text-[11px] tabular-nums text-gray-700";
 
-type GapSeverity = "info" | "warning" | "error";
-
-const severityForReason = (reason: SourceGapReason): GapSeverity => {
-  switch (reason) {
-    case "paused":
-    case "source_stopped":
-    case "system_sleep":
-      return "info";
-    case "packet_dropped":
-    case "writer_pressure":
-    case "timestamp_missing":
-    case "timestamp_discontinuity":
-    case "invalid_format":
-    case "recovery_tail":
-      return "warning";
-    case "source_unavailable":
-    case "source_start_failed":
-    case "permission_lost":
-    case "storage_failure":
-    case "corrupt_record":
-    case "missing_record":
-      return "error";
-  }
-};
-
-const GapSeverityIcon: React.FC<{ severity: GapSeverity }> = ({ severity }) => {
-  const className = "mt-0.5 size-3.5 flex-none text-gray-800";
-  if (severity === "error") {
-    return <CircleX aria-hidden="true" className={className} />;
-  }
-  if (severity === "warning") {
-    return <TriangleAlert aria-hidden="true" className={className} />;
-  }
-  return <Info aria-hidden="true" className={className} />;
-};
+/** Meta: every measurement on the row, tabular where it is a number. */
+const META = "text-[13px] leading-[18px] tabular-nums text-gray-900";
 
 const GapRow: React.FC<{ gap: AggregatedGap }> = ({ gap }) => {
   const { t } = useTranslation();
@@ -67,32 +35,27 @@ const GapRow: React.FC<{ gap: AggregatedGap }> = ({ gap }) => {
     : t("meetings.review.timeUnknown");
 
   return (
-    <li className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5 px-4 py-2.5">
-      <span className="flex min-w-0 items-start gap-2">
-        <GapSeverityIcon severity={severityForReason(gap.reason)} />
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="flex items-baseline gap-2">
-            <span className="text-[13px] leading-5 text-gray-1000">
-              {t(`meetings.gaps.${gap.reason}`)}
-            </span>
-            {gap.count > 1 ? (
-              <span className={MEASURED_FACT}>×{gap.count}</span>
-            ) : null}
-          </span>
-          <span className={MEASURED_FACT}>{range}</span>
+    <li className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-6 py-3">
+      <span className="flex min-w-0 items-baseline gap-2">
+        <span className="text-[14px] leading-[21px] text-gray-1000">
+          {t(`meetings.gaps.${gap.reason}`)}
         </span>
+        {gap.count > 1 ? (
+          <span className={META}>{`\u00D7${gap.count}`}</span>
+        ) : null}
+        <span className={META}>{range}</span>
       </span>
       <span className="flex flex-none flex-wrap justify-end gap-x-3 gap-y-0.5">
         {gap.durationNs === null ? null : (
-          <span className={MEASURED_FACT}>
-            {t("meetings.review.gapDuration", "Duration: {{duration}}", {
+          <span className={META}>
+            {t("meetings.review.gapDuration", "{{duration}} missing", {
               duration: formatGapDuration(gap.durationNs),
             })}
           </span>
         )}
         {gap.droppedFrames === null ? null : (
-          <span className={MEASURED_FACT}>
-            {t("meetings.review.droppedFrames", "Dropped frames: {{total}}", {
+          <span className={META}>
+            {t("meetings.review.droppedFrames", "{{total}} frames dropped", {
               total: gap.droppedFrames,
             })}
           </span>
@@ -102,58 +65,46 @@ const GapRow: React.FC<{ gap: AggregatedGap }> = ({ gap }) => {
   );
 };
 
-export const GapTimeline: React.FC<{ gaps: SourceGap[] }> = ({ gaps }) => {
+export const GapRows: React.FC<{ gaps: SourceGap[] }> = ({ gaps }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const rows = aggregateSourceGaps(gaps);
+  if (rows.length === 0) return null;
+
   const hiddenCount = Math.max(0, rows.length - COLLAPSED_ROW_LIMIT);
   const visibleRows = expanded ? rows : rows.slice(0, COLLAPSED_ROW_LIMIT);
 
   return (
-    <SettingsSection label={t("meetings.review.timeline")}>
-      {rows.length === 0 ? (
-        <div className="flex items-center gap-2 px-4 py-3 text-[13px] leading-5 text-gray-800">
-          <CheckCircle2 aria-hidden="true" className="size-3.5 flex-none" />
-          <span>{t("meetings.review.noGaps")}</span>
-        </div>
-      ) : (
-        <>
-          <ul
-            id="meeting-gap-timeline"
-            role="list"
-            aria-label={t("meetings.review.timeline")}
-            className="divide-y divide-gray-alpha-400"
+    <>
+      <ul
+        id="meeting-gap-timeline"
+        role="list"
+        aria-label={t("meetings.review.timeline")}
+        className="divide-y divide-gray-alpha-400"
+      >
+        {visibleRows.map((gap) => (
+          <GapRow key={gap.key} gap={gap} />
+        ))}
+      </ul>
+      {hiddenCount > 0 ? (
+        <div className="px-4 py-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-expanded={expanded}
+            aria-controls="meeting-gap-timeline"
+            onClick={() => setExpanded((current) => !current)}
+            className="font-normal text-gray-900"
           >
-            {visibleRows.map((gap) => (
-              <GapRow key={gap.key} gap={gap} />
-            ))}
-          </ul>
-          {hiddenCount > 0 ? (
-            <div className="border-t border-gray-alpha-400 px-3 py-1.5">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                aria-expanded={expanded}
-                aria-controls="meeting-gap-timeline"
-                onClick={() => setExpanded((current) => !current)}
-                className="text-gray-900"
-              >
-                {expanded ? (
-                  <ChevronUp aria-hidden="true" className="size-3.5" />
-                ) : (
-                  <ChevronDown aria-hidden="true" className="size-3.5" />
-                )}
-                {expanded
-                  ? t("meetings.review.showFewerGaps", "Show fewer")
-                  : t("meetings.review.showMoreGaps", "Show {{count}} more", {
-                      count: hiddenCount,
-                    })}
-              </Button>
-            </div>
-          ) : null}
-        </>
-      )}
-    </SettingsSection>
+            {expanded
+              ? t("meetings.review.showFewerGaps", "Show fewer")
+              : t("meetings.review.showMoreGaps", "Show {{count}} more", {
+                  count: hiddenCount,
+                })}
+          </Button>
+        </div>
+      ) : null}
+    </>
   );
 };

@@ -43,7 +43,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
 
       {state.isAppleProvider ? (
         state.appleIntelligenceUnavailable ? (
-          <div className="px-4 py-3">
+          <div className="px-6 py-3">
             <Notice tone="danger">
               {t("settings.postProcessing.api.appleIntelligence.unavailable")}
             </Notice>

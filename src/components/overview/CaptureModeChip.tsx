@@ -60,7 +60,7 @@ export const CaptureModePicker: React.FC<CaptureModePickerProps> = ({
                 aria-current={isActive ? "true" : undefined}
                 onClick={() => onPick(mode.id)}
                 className={cn(
-                  "flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px]",
+                  "flex w-full items-center gap-2 px-3 py-1.5 text-left text-[14px]",
                   "hover:bg-gray-alpha-100 focus-visible:-outline-offset-2 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none",
                   isActive ? "text-gray-1000" : "text-gray-900",
                 )}
@@ -86,7 +86,7 @@ export const CaptureModePicker: React.FC<CaptureModePickerProps> = ({
         <button
           type="button"
           onClick={onOpenModes}
-          className="text-[13px] text-accent-strong hover:underline focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
+          className="text-[14px] text-accent-strong hover:underline focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none"
         >
           {t("modesV2.chip.editLink")}
         </button>
@@ -156,15 +156,16 @@ export const CaptureModeChip: React.FC<CaptureModeChipProps> = ({
       <PopoverTrigger
         type="button"
         disabled={switching}
-        /* Quiet at rest: the hero already has one filled button and one
-         * bordered one, and this is a statement of state you may change, not a
-         * third call to action. */
-        className="-mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-sm text-gray-900 hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none disabled:opacity-60"
+        /* Quiet at rest, and sized by the line it sits in: the hero's meta
+         * line is 12px, and a chip that set its own size broke that line into
+         * two type sizes. The name is the datum, so it carries the primary ink
+         * while the lead word beside it stays secondary. */
+        className="hover-fast -mx-1 inline-flex items-center gap-0.5 rounded-md px-1 py-0.5 font-medium text-gray-1000 hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none disabled:opacity-60"
         aria-label={t("modesV2.chip.action", { mode: active.name })}
         data-testid="overview-mode-chip"
       >
         {active.name}
-        <ChevronDown aria-hidden="true" className="size-3.5 text-gray-700" />
+        <ChevronDown aria-hidden="true" className="size-3 text-gray-800" />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-0">
         <CaptureModePicker

@@ -1,13 +1,12 @@
-import { useCallback, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { open } from "@tauri-apps/plugin-dialog";
-import { toast } from "sonner";
-import { commands, type AudioImportJob } from "@/bindings";
+import { useCallback } from "react";
+import type { AudioImportJob } from "@/bindings";
+import { useImportDialogStore } from "@/components/import/importDialogStore";
 
-/* Everything the decoder accepts. One list, because the dialog filter is the
- * only thing that reads it and three copies of it is how a format ends up
- * importable from one surface and refused by another. */
-const MEDIA_IMPORT_EXTENSIONS = [
+/* Everything the decoder accepts. One list, because the picker filter, the
+ * drop filter and the dialog's sentence are the only things that read it and
+ * three copies of it is how a format ends up importable from one surface and
+ * refused by another. */
+export const MEDIA_IMPORT_EXTENSIONS = [
   "wav",
   "mp3",
   "m4a",
@@ -31,67 +30,36 @@ export interface AudioImportOptions {
 }
 
 export interface AudioImport {
-  start: () => Promise<void>;
+  start: () => void;
   importing: boolean;
 }
 
 /**
- * Import a recording from disk: pick a file, hand it to the backend, say what
- * happened.
+ * Offer to import recordings from disk.
  *
- * Three surfaces offer this one action — the command palette, Capture's hero and
- * Library's toolbar — and they used to be three copies of it that diverged
- * exactly where a user would feel it: the palette's had no busy flag and so was
- * double-invocable, Capture's was silent on failure and dropped the job it got
- * back, and only Library's did either properly. The busy flag and the failure
- * report are part of the action, not decoration around it, so they live here.
+ * Four surfaces offer this one action — the command palette, Capture's hero,
+ * Library's toolbar and Library's empty state — and they used to be copies of
+ * it that diverged exactly where a user would feel it. What they share is now
+ * the whole action: `start` raises the app's one import dialog, which is where
+ * files are chosen, dropped, handed to the backend one at a time, and watched.
+ *
+ * `importing` is that dialog being open on this kind of import, which is what
+ * every caller wanted the flag for: it disables the control that opened it.
+ * The re-entrancy guard on the command calls themselves lives with the calls,
+ * inside the dialog.
  */
 export const useAudioImport = ({
   onQueued,
   onError,
 }: AudioImportOptions = {}): AudioImport => {
-  const { t } = useTranslation();
-  const [importing, setImporting] = useState(false);
-  /* The re-entrancy guard has to be readable in the same tick it is written —
-   * two clicks inside one frame both see the state from the last render, so the
-   * state below is the render signal and this is the lock. */
-  const running = useRef(false);
+  const openImport = useImportDialogStore((state) => state.openImport);
+  const importing = useImportDialogStore(
+    (state) => state.open && state.request?.kind === "dictation",
+  );
 
-  const start = useCallback(async () => {
-    if (running.current) return;
-    running.current = true;
-    setImporting(true);
-    const fail =
-      onError ??
-      (() => toast.error(t("settings.history.audioImport.errors.start")));
-    try {
-      const selectedPath = await open({
-        directory: false,
-        multiple: false,
-        filters: [
-          {
-            name: t("settings.history.audioImport.fileFilter"),
-            extensions: MEDIA_IMPORT_EXTENSIONS,
-          },
-        ],
-      });
-      // A dismissed dialog is not a failure, and `multiple: false` means an
-      // array can only be a plugin contract change.
-      if (selectedPath === null || Array.isArray(selectedPath)) return;
-
-      const result = await commands.importAudioFile(selectedPath);
-      if (result.status === "error") {
-        fail();
-        return;
-      }
-      onQueued?.(result.data);
-    } catch {
-      fail();
-    } finally {
-      running.current = false;
-      setImporting(false);
-    }
-  }, [onError, onQueued, t]);
+  const start = useCallback(() => {
+    openImport({ kind: "dictation", onQueued, onError });
+  }, [onError, onQueued, openImport]);
 
   return { start, importing };
 };

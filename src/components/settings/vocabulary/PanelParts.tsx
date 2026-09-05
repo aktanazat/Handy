@@ -54,7 +54,7 @@ export const RuleRow: React.FC<React.ComponentProps<"li">> = ({
 }) => (
   <li
     className={cn(
-      "group/row px-4 py-2.5 transition-colors hover:bg-gray-alpha-100 focus-within:bg-gray-alpha-100",
+      "group/row px-6 py-2.5 transition-colors hover:bg-gray-alpha-100 focus-within:bg-gray-alpha-100",
       className,
     )}
     {...props}
@@ -80,7 +80,7 @@ export const ColumnHeader: React.FC<ColumnHeaderProps> = ({
     aria-hidden="true"
     className={cn(
       gridClassName,
-      "px-4 pt-3 pb-1 text-[13px] leading-5 text-gray-900",
+      "px-6 pt-3 pb-1 text-[14px] leading-[21px] text-gray-900",
     )}
   >
     {labels.map((label) => (
@@ -136,12 +136,14 @@ export interface EmptyLineProps {
 export const EmptyLine: React.FC<EmptyLineProps> = ({ text, action }) => (
   <div
     role="status"
-    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+    className="flex flex-wrap items-center justify-between gap-3 px-6 py-3"
   >
     {/* Same optical size as `Notice`: an empty line and an assurance line are
      * the same weight of sentence, and `text-sm` is 12.25px at this app's
      * 14px root, which would demote one of them. */}
-    <p className="text-[13px] leading-5 text-pretty text-gray-700">{text}</p>
+    <p className="text-[14px] leading-[21px] text-pretty text-gray-700">
+      {text}
+    </p>
     {action}
   </div>
 );
@@ -156,7 +158,7 @@ export const LoadingRows: React.FC<LoadingRowsProps> = ({
   label,
   rows = 3,
 }) => (
-  <div role="status" aria-label={label} className="space-y-2 px-4 py-3">
+  <div role="status" aria-label={label} className="space-y-2 px-6 py-3">
     {Array.from({ length: rows }, (_, row) => (
       <div key={row} className="flex items-center gap-2">
         <Skeleton className="h-8 flex-1" />

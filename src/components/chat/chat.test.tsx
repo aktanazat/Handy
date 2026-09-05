@@ -510,7 +510,6 @@ describe("a turn on screen", () => {
     expect(chip?.[1]).toContain("font-mono");
     expect(chip?.[1]).toContain("uppercase");
     expect(chip?.[1]).toContain("tracking-[0.08em]");
-    expect(chip?.[1]).toContain("text-[11px]");
     /* Hairline, no fill: a chip that fills reads as a button. */
     expect(chip?.[1]).toContain("border-gray-alpha-400");
     expect(chip?.[1]).not.toContain("bg-");

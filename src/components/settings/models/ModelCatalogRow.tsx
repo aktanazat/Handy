@@ -243,25 +243,25 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
       {/* One line, never wrapped: a catalog of 68 rows only reads as a table
        * if every row is the same height and every column starts where the
        * one above it did. The name is the only cell allowed to shrink. */}
-      <div className="flex min-h-11 items-center gap-3 px-4 py-2">
+      <div className="flex min-h-11 items-center gap-3 px-6 py-2">
         <h3
           title={detail}
-          className="min-w-0 flex-1 truncate text-[13px] text-gray-1000"
+          className="min-w-0 flex-1 truncate text-[14px] text-gray-1000"
         >
           {displayName}
         </h3>
         {model.is_recommended ? (
-          <span className="flex-none text-[11px] text-gray-800">
+          <span className="flex-none text-[12px] text-gray-800">
             {t("onboarding.recommended")}
           </span>
         ) : null}
-        <span className="w-16 flex-none text-right text-[11px] tabular-nums text-gray-800">
+        <span className="w-16 flex-none text-right text-[12px] tabular-nums text-gray-800">
           {formatModelSize(Number(model.size_mb))}
         </span>
         <span
           aria-live={announce ? "polite" : undefined}
           className={cn(
-            "w-36 flex-none text-right text-[11px] whitespace-nowrap tabular-nums",
+            "w-36 flex-none text-right text-[12px] whitespace-nowrap tabular-nums",
             state === "active" ? "text-blue-900" : "text-gray-800",
           )}
         >
@@ -310,7 +310,7 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
       {error ? (
         <p
           role="alert"
-          className="px-4 pb-2 text-[13px] leading-5 text-red-900"
+          className="px-6 pb-2 text-[14px] leading-[21px] text-red-900"
         >
           {error}
         </p>

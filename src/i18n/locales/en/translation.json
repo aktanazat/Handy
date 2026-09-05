@@ -830,9 +830,7 @@
         "running": "Transcribing {{count}} files"
       },
       "clearSearch": "Clear search",
-      "emptyHint": "You can also transcribe an existing recording: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 or M4V, up to 30 minutes.",
       "loadMore": "Load more",
-      "noResultsHint": "Search matches whole words in both the raw and the processed transcript.",
       "results": "{{count}} matches",
       "resultsMore": "{{count}}+ matches",
       "resultsNone": "No matches",
@@ -842,8 +840,8 @@
       "derivedFromId": "from #{{id}}",
       "recalledByMeaning": "by meaning",
       "level": {
-        "peak": "peak",
-        "rms": "average"
+        "peak": "Peak",
+        "rms": "Average"
       },
       "noTextRecorded": "No text was recorded for this entry.",
       "cloudHeld": "Sona held the cloud result: nothing trustworthy came back and no local model was available.",
@@ -1987,7 +1985,6 @@
     },
     "import": {
       "action": "Import",
-      "importing": "Importing…",
       "recordingFilter": "Recording",
       "transcriptFilter": "Transcript export"
     },
@@ -2074,7 +2071,6 @@
       "loading": "Reading the current policy…"
     },
     "receipts": {
-      "title": "Correction receipt",
       "saved": "Saved locally.",
       "savedRevision": "Saved locally. Version {{revision}}.",
       "duplicate": "This action was already recorded. Sona refreshed the existing result."
@@ -2154,10 +2150,10 @@
       "started": "Started {{date}}",
       "partialRecording": "Partial recording",
       "status": "Capture status",
+      "capture": "How this was recorded",
       "timeline": "Audio timeline and gaps",
       "timeUnknown": "Unknown time",
-      "noGaps": "No gaps detected.",
-      "gapDuration": "Duration: {{duration}}",
+      "gapDuration": "{{duration}} missing",
       "showMoreGaps": "Show {{count}} more",
       "showFewerGaps": "Show fewer",
       "transcript": "Transcript",
@@ -2186,14 +2182,13 @@
       "rememberVoice": "Remember this voice on this Mac",
       "notNow": "Not now",
       "rememberVoiceFailed": "The label was saved. Sona couldn't remember this voice from this meeting. Try another meeting.",
+      "notesTitle": "Notes",
       "manualNotes": "Manual notes",
       "manualNote": "Manual note",
       "newNote": "New manual note",
       "notePlaceholder": "Add a manual note",
-      "addNote": "Add note",
-      "noNotes": "No manual notes yet.",
-      "noTimestamp": "No timestamp",
-      "timestamp": "Timestamp {{time}}",
+      "addNote": "Add a note",
+      "editNote": "Edit this note",
       "generatedNotes": "Generated notes",
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
@@ -2203,12 +2198,18 @@
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
       "exportComplete": "Meeting exported",
+      "moreActions": "More",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
-      "template": "Template: {{template}}",
-      "summary": "Summary",
       "topics": "Topics",
-      "none": "None",
+      "nothingRecorded": "No decisions, action items, questions, or risks were recorded.",
+      "templateName": {
+        "meeting-review": "General meeting",
+        "meeting-one-on-one": "One-to-one",
+        "meeting-interview": "Interview",
+        "meeting-sales-call": "Sales call",
+        "meeting-standup": "Standup"
+      },
       "decisions": "Decisions",
       "actions": "Action items",
       "keyQuestions": "Key questions",
@@ -2216,12 +2217,12 @@
       "followUp": "Follow-up",
       "artifactUnavailable": "These generated notes are unavailable. The transcript and your manual notes stay on this Mac.",
       "actionMeta": "Owner: {{owner}} · Due: {{due}}",
+      "actionOwner": "Owner: {{owner}}",
+      "actionDue": "Due: {{due}}",
       "actionDone": "Mark this action item done",
-      "unassigned": "Unassigned",
-      "noDueDate": "No due date",
       "searchPlaceholder": "Search this meeting",
       "noSearchResults": "No exact local matches.",
-      "droppedFrames": "Dropped frames: {{total}}",
+      "droppedFrames": "{{total}} frames dropped",
       "hitKind": {
         "manualNote": "Manual note",
         "title": "Meeting title"
@@ -2353,8 +2354,13 @@
       }
     },
     "status": {
-      "gapCount": "Gaps: {{total}}",
-      "required": "Required"
+      "someAudioMissing": "Some of this audio is missing.",
+      "required": "Required",
+      "state": {
+        "ready": "Ready",
+        "recording": "Recording",
+        "recorded": "Recorded"
+      }
     },
     "analytics": {
       "title": "Conversation",
@@ -2383,6 +2389,8 @@
     },
     "notes": {
       "title": "My notes",
+      "guideTitle": "Guide the summary",
+      "guidePrompt": "Guide the summary…",
       "liveDescription": "Type as roughly as you like. These notes stay on this Mac and steer the notes Sona generates when the meeting ends.",
       "placeholder": "Anything worth remembering: names, numbers, what to follow up on",
       "unsaved": "Not saved yet",
@@ -2541,8 +2549,7 @@
     },
     "talkTime": {
       "label": "Talk time",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Talk time: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Draft follow-up",
@@ -2688,7 +2695,6 @@
       "streak": "Streak",
       "rangePrevious": "Previous 7 days",
       "rangeNext": "Next 7 days",
-      "peak": "Peak",
       "dictationsAria": "Dictations per day, highest {{count}} on {{day}}",
       "wordsAria": "Words per day, {{count}} total, ending at {{last}}",
       "days_one": "{{count}} day",
@@ -2827,6 +2833,8 @@
       "voiceProfileRemoved": "Sona stopped remembering this voice on this Mac.",
       "voiceProfileRemovalFailed": "Couldn't remove the voice profile. Try again.",
       "aliases": "Also: {{aliases}}",
+      "addresses": "Invited as {{addresses}}",
+      "openMeetingAt": "Open {{title}}, {{date}}",
       "merge": "Merge",
       "mergeTitle": "Merge this person?",
       "mergeDescription": "Merge {{source}} into {{target}}? Links, aliases, and relationship history will be combined.",
@@ -2879,6 +2887,7 @@
       "operation": "Couldn't update People. Try again."
     },
     "summary": {
+      "title": "About",
       "empty": "No summary yet.",
       "regenerate": "Regenerate",
       "provenance": "Written by {{model}} on {{date}}"
@@ -3195,6 +3204,26 @@
       "primed": "Prepared a recurring meeting",
       "noticed_one": "Noticed 1 thing",
       "noticed_other": "Noticed {{count}} things"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Import audio",
+      "meeting": "Import a meeting"
+    },
+    "dropZone": {
+      "prompt": "Drag and drop or <choose>Choose file</choose> to upload"
+    },
+    "importFiles_zero": "Import files",
+    "importFiles_one": "Import file",
+    "importFiles_other": "Import {{count}} files",
+    "fileStatus": {
+      "ready": "Ready to import",
+      "queued": "Queued",
+      "running": "Working on it",
+      "done": "Imported",
+      "cancelled": "Cancelled",
+      "failed": "Failed"
     }
   },
   "recorder": {

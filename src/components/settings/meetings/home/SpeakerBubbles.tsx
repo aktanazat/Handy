@@ -42,7 +42,7 @@ export const SpeakerBubbles: React.FC<SpeakerBubblesProps> = ({ speakers }) => {
       </span>
       <span
         title={speakers.join(", ")}
-        className="truncate text-[12px] text-gray-900"
+        className="truncate text-[13px] text-gray-900"
       >
         {speakers.join(", ")}
       </span>

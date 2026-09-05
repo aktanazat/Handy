@@ -91,7 +91,7 @@ export const MeetingTrackersSettings: React.FC = () => {
       }
     >
       {trackers.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 px-4 py-6 text-center">
+        <div className="flex flex-col items-center gap-2 px-6 py-6 text-center">
           <Radar aria-hidden="true" className="size-6 text-gray-700" />
           <Notice tone="muted" live={false}>
             {t(
@@ -105,7 +105,7 @@ export const MeetingTrackersSettings: React.FC = () => {
           {trackers.map((tracker, index) => (
             <li
               key={index}
-              className="group/row flex flex-wrap items-center gap-2 px-4 py-2.5"
+              className="group/row flex flex-wrap items-center gap-2 px-6 py-2.5"
             >
               <Input
                 value={tracker.name}
@@ -116,7 +116,7 @@ export const MeetingTrackersSettings: React.FC = () => {
                 placeholder={t("meetings.analytics.trackerName", "Name")}
                 aria-label={t("meetings.analytics.trackerName", "Name")}
                 disabled={saving}
-                className="h-8 w-40 flex-none text-[13px]"
+                className="h-8 w-40 flex-none text-[14px]"
               />
               <Input
                 value={tracker.patterns.join(PATTERN_SEPARATOR)}
@@ -136,7 +136,7 @@ export const MeetingTrackersSettings: React.FC = () => {
                   "Phrases, separated by commas",
                 )}
                 disabled={saving}
-                className="h-8 min-w-48 flex-1 text-[13px]"
+                className="h-8 min-w-48 flex-1 text-[14px]"
               />
               <RowActions className="flex-none">
                 <Button

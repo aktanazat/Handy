@@ -188,7 +188,7 @@ export const ModelsSettings: React.FC = () => {
               <Skeleton className="h-4 w-24" />
               <SettingsSurface>
                 {Array.from({ length: rows }, (_row, rowIndex) => (
-                  <div key={rowIndex} className="px-4 py-3">
+                  <div key={rowIndex} className="px-6 py-3">
                     <Skeleton className="h-5 w-full" />
                   </div>
                 ))}
@@ -208,7 +208,7 @@ export const ModelsSettings: React.FC = () => {
        * and so does the sidebar chip. */
       actions={
         onDisk.count > 0 ? (
-          <span className="text-[11px] tabular-nums text-gray-800">
+          <span className="text-[12px] tabular-nums text-gray-800">
             {t("settings.models.familyCount", "{{total}} models", {
               total: onDisk.count,
             })}

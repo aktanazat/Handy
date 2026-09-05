@@ -13,14 +13,11 @@ import {
 } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
 import { Skeleton } from "@/components/vg/skeleton";
-import { destinationIcons } from "@/lib/navIcons";
 import { groupByLocalDay, localDayHeading } from "@/lib/utils/localDay";
 import { isUnfilteredMeetingList } from "../meetingUtils";
 import { MeetingCard } from "./MeetingCard";
 import { MeetingsFilterBar } from "./MeetingsFilterBar";
 import { MeetingsPager } from "./MeetingsPager";
-
-const MeetingsEmptyIcon = destinationIcons.meetings;
 
 interface MeetingsHistoryProps {
   meetings: MeetingHistorySummary[];
@@ -48,7 +45,7 @@ interface MeetingsHistoryProps {
 const MeetingListSkeleton: React.FC<{ label: string }> = ({ label }) => (
   <div role="status" aria-label={label} className={SETTINGS_SURFACE}>
     {[0, 1, 2].map((row) => (
-      <div key={row} className="flex items-center gap-3 px-4 py-2.5">
+      <div key={row} className="flex items-center gap-3 px-6 py-3.5">
         <Skeleton className="h-3.5 flex-1" />
         <Skeleton className="h-3 w-10" />
       </div>
@@ -88,17 +85,20 @@ export const MeetingsHistory: React.FC<MeetingsHistoryProps> = ({
   );
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex min-h-6 items-center">
-        <h2>
-          <Microlabel>{t("meetings.history.title")}</Microlabel>
-        </h2>
-      </div>
+    <section className="flex flex-col gap-2">
+      <h2 className="min-h-5">
+        <Microlabel>{t("meetings.history.title")}</Microlabel>
+      </h2>
 
-      <MeetingsFilterBar filter={filter} onFilterChange={onFilterChange} />
+      {/* Nothing recorded and nothing narrowed: a search box and two pickers
+       * over an empty list are three controls for a list that does not exist
+       * yet. They arrive with the first meeting. */}
+      {meetings.length === 0 && unfiltered && !loading ? null : (
+        <MeetingsFilterBar filter={filter} onFilterChange={onFilterChange} />
+      )}
 
       {error ? (
-        <SettingsCard className="flex flex-wrap items-center gap-3 px-4 py-3">
+        <SettingsCard className="flex flex-wrap items-center gap-3 px-6 py-3.5">
           <Notice tone="danger">{error}</Notice>
           <Button type="button" variant="outline" size="sm" onClick={onRetry}>
             {t("meetings.actions.retry")}
@@ -106,24 +106,22 @@ export const MeetingsHistory: React.FC<MeetingsHistoryProps> = ({
         </SettingsCard>
       ) : null}
 
-      <div data-slot="meeting-list-region" className="flex flex-col gap-6">
+      <div data-slot="meeting-list-region" className="flex flex-col gap-5">
         {loading ? (
           <MeetingListSkeleton label={t("meetings.history.loading")} />
         ) : meetings.length === 0 ? (
-          <SettingsCard className="flex flex-col items-center gap-2 px-4 py-12 text-center">
-            <MeetingsEmptyIcon
-              aria-hidden="true"
-              className="size-4 text-gray-800"
-            />
-            <p className="text-[13px] text-gray-1000">
+          <SettingsCard className="flex flex-col gap-1 px-6 py-5">
+            {/* Absence, said once. No illustration, no second invitation to
+             * press the Start that is already on screen above. */}
+            <Microlabel>
               {unfiltered
                 ? t("meetings.history.emptyTitle")
                 : t("meetings.list.noMatchesFiltered")}
-            </p>
+            </Microlabel>
             {unfiltered ? null : (
-              <p className="max-w-[52ch] text-[13px] leading-5 text-gray-800">
+              <Microlabel className="max-w-[62ch] text-pretty text-gray-800">
                 {t("meetings.list.noMatchesFilteredDescription")}
-              </p>
+              </Microlabel>
             )}
           </SettingsCard>
         ) : (
@@ -133,13 +131,11 @@ export const MeetingsHistory: React.FC<MeetingsHistoryProps> = ({
               <section
                 key={day.startOfDayMs}
                 data-slot="meeting-day"
-                className="flex flex-col gap-3"
+                className="flex flex-col gap-2"
               >
-                <div className="flex min-h-6 items-center">
-                  <h3 className="text-[13px] leading-5 text-gray-900">
-                    {heading}
-                  </h3>
-                </div>
+                <h3 className="pt-2 text-[13px] leading-[18px] text-gray-900">
+                  {heading}
+                </h3>
                 <ul
                   role="list"
                   aria-label={heading}

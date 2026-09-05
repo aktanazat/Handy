@@ -150,7 +150,7 @@ const AddAppSheet: React.FC<AddAppSheetProps> = ({
         >
           <label
             htmlFor="detection-add-app"
-            className="text-[13px] text-gray-1000"
+            className="text-[14px] text-gray-1000"
           >
             {t("settingsV2.apps.identifier")}
           </label>
@@ -260,14 +260,14 @@ export const MeetingAppsPicker: React.FC = () => {
               />
               <label
                 htmlFor={"detection-app-" + app.id}
-                className="text-[13px] text-gray-1000"
+                className="text-[14px] text-gray-1000"
               >
                 {name}
               </label>
               {/* The fact that keeps an allowlist honest: an entry only ever
                * becomes evidence while that application is running. */}
               {isRunning ? (
-                <span className="text-[13px] leading-5 text-gray-900">
+                <span className="text-[14px] leading-[21px] text-gray-900">
                   {t("settingsV2.apps.runningNow")}
                 </span>
               ) : null}
@@ -275,7 +275,7 @@ export const MeetingAppsPicker: React.FC = () => {
                 <>
                   <label
                     htmlFor={"detection-auto-" + app.id}
-                    className="ml-auto text-[13px] text-gray-900"
+                    className="ml-auto text-[14px] text-gray-900"
                   >
                     {t("settingsV2.apps.autoRecord")}
                   </label>
@@ -315,12 +315,12 @@ export const MeetingAppsPicker: React.FC = () => {
             />
             <label
               htmlFor={"detection-app-" + bundleId}
-              className="min-w-0 truncate text-[13px] text-gray-1000"
+              className="min-w-0 truncate text-[14px] text-gray-1000"
             >
               {bundleId}
             </label>
             {running.includes(bundleId) ? (
-              <span className="text-[13px] leading-5 text-gray-900">
+              <span className="text-[14px] leading-[21px] text-gray-900">
                 {t("settingsV2.apps.runningNow")}
               </span>
             ) : null}

@@ -26,6 +26,7 @@ import { PAGE_COLUMN } from "./components/settings/rows";
 import { RouteSkeleton } from "./components/RouteSkeleton";
 import { Toaster } from "./components/Toaster";
 import { RecorderDialog } from "./components/recorder/RecorderDialog";
+import { ImportDialogHost } from "./components/import/ImportDialog";
 import {
   commandActionIcons,
   isCommandPaletteChord,
@@ -1091,6 +1092,11 @@ function App() {
         open={recorderOpen}
         onOpenChange={(nextOpen) => setModal(nextOpen ? "recorder" : "none")}
       />
+      {/* The app's one import dialog. Every surface that offers an import —
+       * the palette, Capture's hero, Library's toolbar and empty state, the
+       * Meetings home — asks for it through `useAudioImport`/`useMeetingImport`
+       * and this is where it appears. */}
+      <ImportDialogHost />
     </MotionProvider>
   );
 }

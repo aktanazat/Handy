@@ -58,7 +58,7 @@ export const HistorySettings: React.FC<{
      * quiet list controls, so the title row can never crowd it. */
     <SettingsPage
       header={
-        <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex min-w-0 flex-col gap-2">
           <div className="flex items-center justify-between gap-4">
             {/* The rail names this destination Library, so the page answers to
              * the same word — one destination, one name. `settings.history.*`
@@ -93,7 +93,7 @@ export const HistorySettings: React.FC<{
         onCancel={cancelAudioImport}
       />
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         <HistoryToolbar
           state={state}
           query={query}

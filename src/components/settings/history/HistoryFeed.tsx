@@ -5,40 +5,34 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { FileAudio, type LucideIcon } from "lucide-react";
+import { FileAudio } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { HistoryRunReceipt } from "@/bindings";
 import { AudioPlayerGroup } from "@/components/audio/AudioPlayer";
 import { SETTINGS_SURFACE, SettingsCard } from "../rows";
 import { Button } from "@/components/vg/button";
 import { Skeleton } from "@/components/vg/skeleton";
-import { destinationIcons } from "@/lib/navIcons";
 import { groupByLocalDay, localDayHeading } from "@/lib/utils/localDay";
 import { HistoryEntryComponent, type HistoryTextView } from "./HistoryEntry";
 import type { ListState } from "./historyListReducer";
 
 const SKELETON_ROWS = [0, 1, 2, 3, 4];
 
-/* The feed's own empty and failed states: one centred statement inside the
- * shape the rows would have taken, carrying at most one action. */
+/* The feed's own empty and failed states: one sentence in the Meta tier inside
+ * the surface the rows would have taken, carrying at most one action. No
+ * glyph: an absence is a sentence, and an icon over it is decoration. */
 const HistoryFeedState: React.FC<{
   title: string;
-  description?: string;
   tone?: "danger";
-  icon?: LucideIcon;
   children?: React.ReactNode;
-}> = ({ title, description, tone, icon: Icon, children }) => (
-  <SettingsCard className="flex flex-col items-center gap-3 px-8 py-12 text-center">
-    {Icon ? <Icon aria-hidden="true" className="size-4 text-gray-800" /> : null}
+}> = ({ title, tone, children }) => (
+  <SettingsCard className="flex flex-wrap items-center gap-4 px-6 py-5">
     <p
-      className={`text-[13px] leading-[19px] ${tone === "danger" ? "text-red-900" : "text-gray-1000"}`}
+      className={`min-w-0 flex-1 text-[13px] leading-[18px] text-pretty ${tone === "danger" ? "text-red-900" : "text-gray-900"}`}
       role={tone === "danger" ? "alert" : undefined}
     >
       {title}
     </p>
-    {description ? (
-      <p className="max-w-[46ch] text-sm text-gray-900">{description}</p>
-    ) : null}
     {children}
   </SettingsCard>
 );
@@ -239,7 +233,7 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
         data-testid="history-loading"
       >
         {SKELETON_ROWS.map((row) => (
-          <div key={row} className="flex items-center gap-3 px-4 py-2.5">
+          <div key={row} className="flex items-center gap-4 px-6 py-3.5">
             <Skeleton className="h-4 flex-1" />
             <Skeleton className="h-3 w-12" />
           </div>
@@ -268,12 +262,7 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
   if (state.entries.length === 0) {
     return searching ? (
       <HistoryFeedState
-        icon={destinationIcons.history}
         title={t("settings.history.noResults", { query: trimmedActiveQuery })}
-        description={t(
-          "settings.history.noResultsHint",
-          "Search matches whole words in both the raw and the processed transcript.",
-        )}
       >
         <Button
           variant="outline"
@@ -285,14 +274,7 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
         </Button>
       </HistoryFeedState>
     ) : (
-      <HistoryFeedState
-        icon={destinationIcons.history}
-        title={t("settings.history.empty")}
-        description={t(
-          "settings.history.emptyHint",
-          "You can also transcribe an existing recording: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 or M4V, up to 30 minutes.",
-        )}
-      >
+      <HistoryFeedState title={t("settings.history.empty")}>
         <Button
           size="sm"
           onClick={onStartAudioImport}
@@ -311,7 +293,7 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
 
   return (
     <AudioPlayerGroup>
-      <div className="flex flex-col gap-6" data-testid="history-list">
+      <div className="flex flex-col gap-8" data-testid="history-list">
         {dayGroups.map((group) => {
           /* One day, one section: a heading over one hairline surface, which is
            * the grammar `SettingsSection` is written in. It is restated here
@@ -323,11 +305,11 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
           return (
             <section
               key={group.startOfDayMs}
-              className="flex flex-col gap-3"
+              className="flex flex-col gap-2"
               data-testid="history-day"
             >
               <h2
-                className="text-[13px] leading-5 text-gray-900"
+                className="text-[13px] leading-[18px] text-gray-900"
                 data-testid="history-day-heading"
               >
                 {heading}
@@ -363,13 +345,19 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
         {showFooter && (
           <div className="flex flex-wrap items-center justify-center gap-3">
             {state.phase === "paging" && (
-              <span className="text-sm text-gray-900" aria-live="polite">
+              <span
+                className="text-[13px] leading-[18px] text-gray-900"
+                aria-live="polite"
+              >
                 {t("settings.history.loading")}
               </span>
             )}
             {state.phase === "paging-error" && (
               <>
-                <span className="text-sm text-red-900" role="alert">
+                <span
+                  className="text-[13px] leading-[18px] text-red-900"
+                  role="alert"
+                >
                   {t("settings.history.loadError")}
                 </span>
                 <Button variant="outline" size="sm" onClick={loadNextPage}>

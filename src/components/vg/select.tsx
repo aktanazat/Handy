@@ -48,16 +48,22 @@ function SelectTrigger({
        *
        * The kit's 3px translucent focus ring is gone so base.css's 2px bronze
        * `--focus-outline` applies, which is what every other control in the
-       * app draws. Focus is an outline here, never a glow. */
+       * app draws. Focus is an outline here, never a glow.
+       *
+       * The fill is the control step (`--surface-raised`), not `transparent`:
+       * a closed select is a control sitting on a card, and a transparent one
+       * only showed as a hairline. That also retires the `dark:bg-input/30`
+       * pair, which painted a *border* colour at 30% as a surface — the
+       * clearest sign the kit had no control fill token to reach for. */
       className={cn(
-        "flex w-fit items-center justify-between gap-2 rounded-control border border-input bg-transparent px-3 py-2 text-[13px] whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:block *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+        "flex w-fit items-center justify-between gap-2 rounded-control border border-gray-alpha-400 bg-surface-raised px-3 py-2 text-[14px] leading-[21px] whitespace-nowrap transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none aria-invalid:border-destructive data-[placeholder]:text-gray-800 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:block *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[14px] [&_svg:not([class*='text-'])]:text-gray-800",
         className,
       )}
       {...props}
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="size-4 opacity-50" />
+        <ChevronDownIcon className="size-[14px] text-gray-800" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -95,7 +101,7 @@ function SelectContent({
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           className={cn(
-            "p-1",
+            "p-1.5",
             position === "popper" &&
               "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1",
           )}
@@ -115,11 +121,12 @@ function SelectLabel({
   return (
     <SelectPrimitive.Label
       data-slot="select-label"
-      /* 11px secondary, the same as a group heading in the palette: a label
-       * over rows is the smallest type on a list surface. `text-xs` rendered
-       * at 10.5px against this app's 14px root. */
+      /* A group heading is a Microlabel (settings/rows.tsx): 13/18 secondary,
+       * the same recipe the dropdown menu's label takes, so the app's two menu
+       * surfaces read alike. `text-xs` rendered at 10.5px against this app's
+       * 14px root. */
       className={cn(
-        "px-2 py-1.5 text-[11px] leading-4 text-muted-foreground",
+        "px-3 py-1.5 text-[13px] leading-[18px] text-gray-900",
         className,
       )}
       {...props}
@@ -135,19 +142,20 @@ function SelectItem({
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
-      /* The palette's row language, so the app's two list surfaces read alike:
-       * `--radius-control` corners and 13px type, not the kit's 3.5px and
-       * 10.5px. `pr-8`/`pl-2` are physical because the check indicator they
-       * clear is pinned with `right-2`; both stay as found. */
+      /* The dropdown menu's row language, so the app's menu surfaces read
+       * alike: 10px corners inside the panel's 16px, 14/21 type, and the hover
+       * wash rather than shadcn's `accent`, which is the pressed step.
+       * `pr-8`/`pl-3` are physical because the check indicator they clear is
+       * pinned with `right-3`; both stay as found. */
       className={cn(
-        "relative flex w-full cursor-default items-center gap-2 rounded-control py-1.5 pr-8 pl-2 text-[13px] outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "relative flex w-full cursor-default items-center gap-2 rounded-md py-2 pr-8 pl-3 text-[14px] leading-[21px] outline-hidden transition-colors select-none focus:bg-hover active:bg-pressed data-[disabled]:pointer-events-none data-[disabled]:opacity-50 motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-gray-800 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className,
       )}
       {...props}
     >
       <span
         data-slot="select-item-indicator"
-        className="absolute right-2 flex size-3.5 items-center justify-center"
+        className="absolute right-3 flex size-3.5 items-center justify-center"
       >
         <SelectPrimitive.ItemIndicator>
           <CheckIcon className="size-4" />
@@ -165,7 +173,10 @@ function SelectSeparator({
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"
-      className={cn("pointer-events-none -mx-1 my-1 h-px bg-border", className)}
+      className={cn(
+        "pointer-events-none -mx-1.5 my-1.5 h-px bg-gray-alpha-400",
+        className,
+      )}
       {...props}
     />
   );

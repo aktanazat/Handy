@@ -240,7 +240,7 @@ export const CloudSttProviderSettings: React.FC = () => {
       {/* Where the keys live is the one thing a reader cannot infer from a
        * password field, and it is true of every provider — so it is said once,
        * for the group, rather than once per provider. */}
-      <div className="px-4 py-3">
+      <div className="px-6 py-3">
         <Notice live={false}>
           {t("settings.models.cloud.providerDescription")}
         </Notice>

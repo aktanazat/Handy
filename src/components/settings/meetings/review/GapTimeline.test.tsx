@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import type { SourceGap, SourceGapReason } from "@/bindings";
-import { GapTimeline } from "./GapTimeline";
+import { GapRows } from "./GapTimeline";
 import { aggregateSourceGaps } from "./gapLedger";
 
 const localePath = path.join(
@@ -34,7 +34,7 @@ void i18n.init({
 const render = (gaps: SourceGap[]) =>
   renderToStaticMarkup(
     <I18nextProvider i18n={i18n}>
-      <GapTimeline gaps={gaps} />
+      <GapRows gaps={gaps} />
     </I18nextProvider>,
   );
 
@@ -99,9 +99,8 @@ describe("gap timeline", () => {
      * `invalid_format`, the row says the audio could not be read. */
     expect(markup).toContain("Unreadable audio");
     expect(markup).toContain("×3");
-    expect(markup).toContain("Dropped frames: 1536");
+    expect(markup).toContain("1536 frames dropped");
     expect(markup).toContain("Unknown time");
-    expect(markup).toContain('aria-hidden="true"');
   });
 
   test("shows eight rows before the expansion control", () => {
@@ -120,11 +119,10 @@ describe("gap timeline", () => {
     expect(markup).toContain('aria-expanded="false"');
   });
 
-  test("uses one quiet row when capture has no gaps", () => {
-    const markup = render([]);
-
-    expect(markup).toContain("No gaps detected.");
-    expect(markup).not.toContain("<ul");
-    expect(markup).toContain('aria-hidden="true"');
+  /* The rows sit under the capture sources now, and the header above them
+   * already says whether the recording came out whole. A box saying "No gaps
+   * detected" was the same fact a second time, with a hairline of its own. */
+  test("says nothing at all when capture lost nothing", () => {
+    expect(render([])).toBe("");
   });
 });

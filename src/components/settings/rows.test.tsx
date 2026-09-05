@@ -98,17 +98,23 @@ describe("a settings section", () => {
     expect(markup).not.toContain("shadow-");
   });
 
-  test("labels itself once, as a heading, in the microlabel type", () => {
+  test("labels itself once, a step quieter than the rows under it", () => {
     const markup = paint(
       <SettingsSection label="Appearance">
         <SettingsRow label="Theme" />
       </SettingsSection>,
     );
+    const heading = markup.match(/<h2[^>]*>/)?.[0] ?? "";
 
-    expect(markup).toContain("<h2");
     expect(markup.split("Appearance").length - 1).toBe(1);
-    expect(markup).toContain("text-[13px]");
-    expect(markup).toContain("text-gray-900");
+    /* The label is meta type over a body-type row. A section label set at the
+     * row's own size is the "every line looks like body text" failure the
+     * round-6 pages were redesigned out of, and the old assertion could not
+     * see it: it matched the body size anywhere in the markup, which the row
+     * inside the section supplies on its own. */
+    expect(heading).toContain("text-[13px]");
+    expect(heading).toContain("text-gray-900");
+    expect(markup).toContain("text-[14px]");
   });
 });
 
@@ -139,6 +145,15 @@ describe("a measurement chip", () => {
     expect(markup.split("DURATION").length - 1).toBe(1);
     expect(markup.split("12:04").length - 1).toBe(1);
     expect(markup).toContain("tabular-nums");
+  });
+
+  test("is meta type and wears no box, since nothing here can be pressed", () => {
+    const markup = paint(<FactChip label="Duration" value="12:04" />);
+
+    expect(markup).toContain("text-[13px]");
+    expect(markup).not.toContain("text-[14px]");
+    expect(markup).not.toContain("border");
+    expect(markup).not.toContain("rounded");
   });
 });
 

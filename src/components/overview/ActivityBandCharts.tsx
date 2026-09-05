@@ -139,7 +139,11 @@ export function ActivitySparkline({
       role="img"
       aria-label={ariaLabel}
       viewBox={`0 0 ${CHART_WIDTH} ${ACTIVITY_CHART_HEIGHT}`}
-      preserveAspectRatio="xMidYMid meet"
+      /* Bottom-aligned, not centred: the three measurements now share one
+       * surface, and a scaled-down `xMidYMid` box floats its baseline and its
+       * weekday row a few px above the neighbouring column's. `xMidYMax` puts
+       * every axis and every weekday letter on the same line across the band. */
+      preserveAspectRatio="xMidYMax meet"
       className="block h-[84px] w-full overflow-visible"
     >
       <defs>
@@ -223,7 +227,7 @@ export function ActivityBars({
       role="img"
       aria-label={ariaLabel}
       viewBox={`0 0 ${CHART_WIDTH} ${ACTIVITY_CHART_HEIGHT}`}
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="xMidYMax meet"
       className="block h-[84px] w-full overflow-visible"
     >
       <defs>

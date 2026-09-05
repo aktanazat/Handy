@@ -73,7 +73,7 @@ export const PrivacyContextSettings: React.FC = () => {
         <Notice className="mt-2">{t(contextDescriptionKey)}</Notice>
       </SettingsField>
       {ceilingError ? (
-        <FailureNotice className="px-4 py-2.5">
+        <FailureNotice className="px-6 py-2.5">
           {`${t("settings.privacy.context.ceiling.error")}: ${ceilingError}`}
         </FailureNotice>
       ) : null}
@@ -92,7 +92,7 @@ export const PrivacyContextSettings: React.FC = () => {
         />
       </SettingsRow>
       {urlCaptureError ? (
-        <FailureNotice className="px-4 py-2.5">{urlCaptureError}</FailureNotice>
+        <FailureNotice className="px-6 py-2.5">{urlCaptureError}</FailureNotice>
       ) : null}
     </>
   );

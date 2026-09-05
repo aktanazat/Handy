@@ -302,7 +302,7 @@ const useCloudSyncPanel = () => {
 
 /** The action a task's fields lead up to, on its own hairline-separated row. */
 const TaskAction: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="flex justify-end px-4 py-2.5">{children}</div>
+  <div className="flex justify-end px-6 py-2.5">{children}</div>
 );
 
 interface CloudSyncSetupSectionProps {
@@ -710,7 +710,7 @@ export const CloudSyncPanel: React.FC = () => {
         onAcceptOffer={() => void cloud.acceptOffer()}
       />
       {cloud.error ? (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice tone="danger" live={false}>
             <span role="alert">{t("cloudSync.errors." + cloud.error)}</span>
           </Notice>

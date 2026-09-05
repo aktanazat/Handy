@@ -51,14 +51,14 @@ export const AgentBridgeHook: React.FC<AgentBridgeHookProps> = ({
       }
     >
       {hookError === null ? null : (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice tone="danger">
             {`${t("settings.agents.hook.error")}: ${hookError}`}
           </Notice>
         </div>
       )}
       {hookSnippet === null ? null : (
-        <pre className="max-w-full overflow-hidden px-4 py-3 text-xs break-all whitespace-pre-wrap text-gray-900">
+        <pre className="max-w-full overflow-hidden px-6 py-3 text-xs break-all whitespace-pre-wrap text-gray-900">
           <code>{hookSnippet}</code>
         </pre>
       )}

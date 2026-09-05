@@ -59,7 +59,7 @@ const SplitSelectionGroup: React.FC<{
             <label
               key={option.value}
               htmlFor={id}
-              className="flex min-h-10 cursor-pointer items-center gap-3 px-3 py-2 text-[13px] text-gray-1000"
+              className="flex min-h-10 cursor-pointer items-center gap-3 px-3 py-2 text-[14px] text-gray-1000"
             >
               <Checkbox
                 id={id}
@@ -162,7 +162,7 @@ export const PersonSplitDialog: React.FC<PersonSplitDialogProps> = ({
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <span className="text-[13px] text-gray-1000">
+            <span className="text-[14px] text-gray-1000">
               {t("people.detail.splitTarget")}
             </span>
             <Select value={targetValue} onValueChange={setTargetValue}>
@@ -200,7 +200,7 @@ export const PersonSplitDialog: React.FC<PersonSplitDialogProps> = ({
             <div className="space-y-2">
               <label
                 htmlFor={nameInputId}
-                className="text-[13px] text-gray-1000"
+                className="text-[14px] text-gray-1000"
               >
                 {t("people.detail.splitNameLabel")}
               </label>
@@ -215,7 +215,7 @@ export const PersonSplitDialog: React.FC<PersonSplitDialogProps> = ({
           <div className="space-y-3">
             <Microlabel>{t("people.detail.splitEvidence")}</Microlabel>
             {availableCount === 0 ? (
-              <p className="text-[13px] text-gray-800">
+              <p className="text-[14px] text-gray-800">
                 {t("people.detail.splitNoItems")}
               </p>
             ) : (
@@ -265,7 +265,7 @@ export const PersonSplitDialog: React.FC<PersonSplitDialogProps> = ({
               </>
             )}
             {!createTarget && selectedCount === 0 ? (
-              <p className="text-[12px] text-gray-800">
+              <p className="text-[13px] text-gray-800">
                 {t("people.detail.splitNothingSelected")}
               </p>
             ) : null}

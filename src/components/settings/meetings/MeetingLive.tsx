@@ -2,6 +2,7 @@ import React, { useId, useMemo, useState } from "react";
 import { Pause, Play, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MeetingReviewSnapshot } from "@/bindings";
+import { cn } from "@/lib/cn";
 import {
   FactChip,
   Notice,
@@ -38,7 +39,7 @@ import { MeetingNotesPane } from "./MeetingNotesPane";
  * clock, what capture is hearing, and the three controls. */
 
 /** Tabular figures keep live measurements aligned as they update. */
-const MEASURED_VALUE = "text-[12px] tabular-nums text-gray-1000";
+const MEASURED_VALUE = "text-[13px] tabular-nums text-gray-1000";
 
 interface MeetingLiveProps {
   snapshot: MeetingReviewSnapshot;
@@ -152,11 +153,10 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
         </SettingsRow>
         <SettingsRow label={t("meetings.live.storage")}>
           <span
-            className={
-              storageAvailable
-                ? "text-sm text-gray-900"
-                : "text-sm text-red-900"
-            }
+            className={cn(
+              "text-[13px] leading-[18px]",
+              storageAvailable ? "text-gray-900" : "text-red-900",
+            )}
           >
             {storageAvailable
               ? t("meetings.live.storageHealthy")

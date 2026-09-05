@@ -146,7 +146,7 @@ export const PromptLibrary: React.FC = () => {
             >
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2">
-                  <span className="truncate text-[13px] text-gray-1000">
+                  <span className="truncate text-[14px] text-gray-1000">
                     {prompt.name}
                   </span>
                   {selected && (
@@ -262,7 +262,7 @@ export const PromptLibrary: React.FC = () => {
           {/* Two states the list cannot show on its own: nothing is selected,
            * or the last prompt is the reason delete is unavailable. */}
           {prompts.length > 0 && selectedId === null && (
-            <Notice live={false} className="px-4 py-3">
+            <Notice live={false} className="px-6 py-3">
               {t(
                 "settings.postProcessing.prompts.noSelection",
                 "No prompt selected: every mode uses the prompt it defines.",
@@ -271,7 +271,7 @@ export const PromptLibrary: React.FC = () => {
           )}
 
           {prompts.length === 1 && (
-            <Notice live={false} className="px-4 py-3">
+            <Notice live={false} className="px-6 py-3">
               {t(
                 "settings.postProcessing.prompts.lastPrompt",
                 "Sona keeps at least one prompt, so this one cannot be deleted. Create another first.",
@@ -282,7 +282,7 @@ export const PromptLibrary: React.FC = () => {
           {/* The confirm dialog covers this region, so a failed delete is
            * repeated inside the dialog instead. */}
           {error && pendingDelete === null && (
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
               <Notice tone="danger">{error}</Notice>
               <Button
                 size="sm"

@@ -1,5 +1,4 @@
 import React from "react";
-import { Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PersonBriefingRow } from "@/bindings";
 import { formatEntryTimestamp } from "@/lib/utils/format";
@@ -41,13 +40,9 @@ export const PreMeetingBriefing: React.FC<{
   return (
     <div
       data-slot="preview-briefing"
-      className="flex items-start gap-2 border-t border-gray-alpha-400 px-3 py-2.5"
+      className="border-t border-gray-alpha-400 px-6 py-3.5"
     >
-      <Users
-        aria-hidden="true"
-        className="mt-0.5 size-3.5 flex-none text-gray-700"
-      />
-      <div className="min-w-0 text-[11px] leading-[17px] text-gray-900">
+      <div className="min-w-0 text-[12px] leading-[18px] text-gray-900">
         <p className="truncate">{relationship}</p>
         {owed === undefined ? null : (
           <p className="truncate">

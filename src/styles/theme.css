@@ -1,9 +1,11 @@
-/* Sona theme tokens. Light is the Porcelain skin warmed to stone and sand;
- * dark is its Ink twin warmed the same way. Neutrals carry a little warmth in
- * OKLCH (hue 70-80, chroma under 0.012) instead of sitting on the gray axis,
- * the accent is a scarce bronze rather than a brand blue, and floating
- * surfaces are frosted. Components consume semantic names or the Tailwind
- * bridge in app/globals.css. Theme values do not live in component styles. */
+/* Sona theme tokens. Light is the Porcelain skin: a white page, a barely-warm
+ * off-white for quiet chrome, and one cream step for the band at the head of a
+ * card. Dark is its Ink twin, where the canvas is the darkest surface and each
+ * step lifts toward the reader. Neutrals carry a little warmth in OKLCH (hue
+ * 70-92, chroma under 0.013) instead of sitting on the gray axis, the accent is
+ * a scarce bronze rather than a brand blue, and floating surfaces are frosted.
+ * Components consume semantic names or the Tailwind bridge in app/globals.css.
+ * Theme values do not live in component styles. */
 
 /* =================================================== light (the default) === */
 
@@ -11,20 +13,22 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --bg-1: #f7f5f2;
-  --bg-2: #f2efea;
+  /* The page is paper white and the quiet chrome beside it is barely warm: at
+     this distance the hairline, not the fill, is what separates them. */
+  --bg-1: #ffffff;
+  --bg-2: #faf9f6;
 
   --gray-100: #f1eee9;
   --gray-200: #e8e4de;
   --gray-300: #dfdad3;
-  --gray-400: #e6e2dc;
-  --gray-500: #c9c3ba;
+  --gray-400: #ebe7e0;
+  --gray-500: #d6d0c7;
   --gray-600: #a59e94;
   --gray-700: #8e877d;
   /* Tertiary ink is a step darker than disabled ink. They used to be one
      value, which made "quiet" and "inert" indistinguishable and left every
-     11px note at 3.3:1 on the page. 4.5:1 on --bg-2, the darkest surface a
-     note sits on. */
+     11px note at 3.3:1 on the page. 4.67:1 on --surface-inset, the darkest
+     surface a note sits on. */
   --gray-800: #736c63;
   --gray-900: #5d574f;
   --gray-1000: #1c1a17;
@@ -32,8 +36,8 @@
   --gray-a-100: rgba(28, 26, 23, 0.04);
   --gray-a-200: rgba(28, 26, 23, 0.06);
   --gray-a-300: rgba(28, 26, 23, 0.08);
-  --gray-a-400: #e6e2dc;
-  --gray-a-500: #c9c3ba;
+  --gray-a-400: #ebe7e0;
+  --gray-a-500: #d6d0c7;
   --gray-a-600: #8e877d;
   --gray-a-700: rgba(28, 26, 23, 0.46);
   --gray-a-900: rgba(28, 26, 23, 0.72);
@@ -55,7 +59,7 @@
   --amber-700: #ffb224;
   --amber-900: #a35200;
   /* The one scarce accent: a bronze that reads as ink with warmth, not as a
-     brand colour. 700 on white is 5.6:1. */
+     brand colour. 700 on the white page is 5.8:1. */
   --bronze-100: #f4ebe0;
   --bronze-400: #dcc3a2;
   --bronze-700: #8b5a2b;
@@ -63,8 +67,10 @@
 
   --surface-1: var(--bg-1);
   --surface-2: var(--bg-2);
-  --surface-raised: #fbfaf8;
-  --surface-inset: var(--gray-100);
+  --surface-raised: #ffffff;
+  /* The cream band at the head of a card, and the one warm surface in the
+     skin: same lightness family as the neutrals, a little more chroma. */
+  --surface-inset: #f6f3ea;
   --border-subtle: var(--gray-a-300);
   --border: var(--gray-a-400);
   --border-hover: var(--gray-a-500);
@@ -125,8 +131,10 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --bg-1: #151311;
-  --bg-2: #100f0d;
+  /* The Ink twin runs the light skin's ladder in the other direction: the
+     canvas is the darkest thing in the window and every surface on it lifts. */
+  --bg-1: #100f0d;
+  --bg-2: #151311;
 
   --gray-100: #1c1a17;
   --gray-200: #252220;
@@ -135,7 +143,8 @@
   --gray-500: #3f3a35;
   --gray-600: #66605a;
   --gray-700: #66605a;
-  --gray-800: #8a837a;
+  /* 4.51:1 on --surface-inset, the lightest surface a note sits on. */
+  --gray-800: #8f887f;
   --gray-900: #9b948b;
   --gray-1000: #ece7e0;
 
@@ -164,7 +173,7 @@
   --amber-400: #5c4322;
   --amber-700: #ffb224;
   --amber-900: #ffc96b;
-  /* Bronze lifts on dark: 700 is the text-and-fill accent (8.1:1 on --bg-1),
+  /* Bronze lifts on dark: 700 is the text-and-fill accent (8.2:1 on --bg-1),
      900 the hover, so on-accent is the ink. */
   --bronze-100: #2b2218;
   --bronze-400: #5a4430;
@@ -174,7 +183,7 @@
   --surface-1: var(--bg-1);
   --surface-2: var(--bg-2);
   --surface-raised: #1c1a17;
-  --surface-inset: var(--bg-2);
+  --surface-inset: var(--gray-200);
   --border-subtle: var(--gray-a-300);
   --border: var(--gray-a-400);
   --border-hover: var(--gray-a-500);
@@ -462,8 +471,24 @@
   --color-inverse-background: var(--invert-bg);
   --color-inverse-text: var(--invert-fg);
 
-  /* The one scarce accent: focus, selection, the primary action, live state.
-     Bronze, and the only saturated thing the chrome is allowed. */
+  /* The primary control is the inverted pair: ink on Porcelain, paper on Ink.
+     Its hover and press states move toward the type sitting on it rather than
+     into a second hue, so one declaration serves both skins — each mixes the
+     theme's own pair, and press settles back toward rest from hover. */
+  --color-primary-hover: color-mix(
+    in oklab,
+    var(--invert-bg) 86%,
+    var(--invert-fg)
+  );
+  --color-primary-pressed: color-mix(
+    in oklab,
+    var(--invert-bg) 94%,
+    var(--invert-fg)
+  );
+
+  /* The one scarce accent: focus, selection, live state, and the one bronze
+     mark a page is allowed. The primary action is ink, not bronze — a filled
+     accent slab and a filled ink slab on the same dialog read as two firsts. */
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent);
   --color-accent-hover: var(--accent-hover);

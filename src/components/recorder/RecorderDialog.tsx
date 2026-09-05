@@ -379,7 +379,7 @@ export const RecorderDialog: React.FC<RecorderDialogProps> = ({
   const renderSetup = () => (
     <div className="divide-y divide-gray-alpha-400 border-y border-gray-alpha-400">
       <SettingsRow label={t("recorder.screen")}>
-        <span className="text-[13px] text-gray-900">
+        <span className="text-[14px] text-gray-900">
           {t("recorder.required")}
         </span>
       </SettingsRow>
@@ -469,7 +469,7 @@ export const RecorderDialog: React.FC<RecorderDialogProps> = ({
           ?.name ?? null)
       : null;
     return (
-      <div className="space-y-2 border-y border-gray-alpha-400 px-4 py-3 text-[13px] text-gray-900">
+      <div className="space-y-2 border-y border-gray-alpha-400 px-4 py-3 text-[14px] text-gray-900">
         <p>{t("recorder.screenSelected")}</p>
         {camera ? (
           <p>
@@ -522,7 +522,7 @@ export const RecorderDialog: React.FC<RecorderDialogProps> = ({
           })
         : null;
     return (
-      <div className="space-y-2 border-y border-gray-alpha-400 px-4 py-3 text-[13px] text-gray-900">
+      <div className="space-y-2 border-y border-gray-alpha-400 px-4 py-3 text-[14px] text-gray-900">
         {savedFilename ? <p>{savedFilename}</p> : null}
         <p className="tabular-nums">
           {formatDurationShort(state.snapshot.elapsedMs / 1000)}
@@ -784,7 +784,13 @@ export const RecorderDialog: React.FC<RecorderDialogProps> = ({
           if (!canClose) event.preventDefault();
         }}
       >
-        <DialogHeader className="px-6 py-5">
+        {/* `mx-0` cancels the kit header's full-bleed pull: this modal
+            replaces the dialog's 24px padding with `p-0` and pads its own
+            header, so the -mx-6 would push the band past the sheet's edge and
+            `overflow-hidden` would clip the title. The hairline the kit puts
+            under the header still runs the full width here, because with p-0
+            the header's own box already is the full width. */}
+        <DialogHeader className="mx-0 px-6 py-5">
           <div className="flex items-center justify-between gap-4 pe-8">
             <DialogTitle>{t("recorder.title")}</DialogTitle>
             <div className="flex items-center gap-3">
@@ -794,7 +800,7 @@ export const RecorderDialog: React.FC<RecorderDialogProps> = ({
                   value={formatDurationShort(state.snapshot.elapsedMs / 1000)}
                 />
               ) : null}
-              <span className="inline-flex items-center gap-2 text-[13px] text-gray-900">
+              <span className="inline-flex items-center gap-2 text-[14px] text-gray-900">
                 {phase === "recording" ? (
                   <span
                     aria-hidden="true"

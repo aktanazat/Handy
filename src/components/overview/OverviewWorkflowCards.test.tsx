@@ -197,6 +197,16 @@ describe("Overview workflow cards", () => {
     expect(markup).toContain('aria-label="Open meeting Weekly planning"');
   });
 
+  test("still reads out a promise whose meeting is gone, without a button", () => {
+    const markup = render([], [{ ...openLoop, meeting_id: "" }]);
+
+    /* A row with nothing to open is a row, not a dead button — the same rule
+     * the receipt list already follows for a skipped recording. */
+    expect(markup).toContain("Send the revised launch notes");
+    expect(markup).toContain('data-testid="overview-open-loop"');
+    expect(markup).not.toContain("<button");
+  });
+
   test("renders no wrapper or card chrome when both commands are empty", () => {
     expect(render([], [])).toBe("");
   });

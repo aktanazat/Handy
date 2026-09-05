@@ -41,23 +41,23 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
         <div
           role="status"
           aria-label={t("common.loading")}
-          className="space-y-3 px-4 py-3"
+          className="space-y-3 px-6 py-3"
         >
           <Skeleton className="h-11 w-full" />
           <Skeleton className="h-11 w-full" />
           <Skeleton className="h-11 w-full" />
         </div>
       ) : error && data === null ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
           <Notice tone="danger">{t("settings.workflows.loadError")}</Notice>
           <Button type="button" size="sm" variant="outline" onClick={onRetry}>
             {t("common.retry")}
           </Button>
         </div>
       ) : data?.entries.length === 0 ? (
-        <div role="status" className="flex items-center gap-3 px-4 py-3">
+        <div role="status" className="flex items-center gap-3 px-6 py-3">
           <Minus aria-hidden="true" className="size-4 text-gray-700" />
-          <span className="text-[13px] text-gray-700">
+          <span className="text-[14px] text-gray-700">
             {t("settings.workflows.empty")}
           </span>
         </div>
@@ -69,10 +69,10 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
             return (
               <li
                 key={workflow.id}
-                className="flex min-h-[76px] items-center justify-between gap-6 px-4 py-3"
+                className="flex min-h-[76px] items-center justify-between gap-6 px-6 py-3"
               >
                 <div className="min-w-0 space-y-1">
-                  <p className="truncate text-[13px] font-medium text-gray-1000">
+                  <p className="truncate text-[14px] font-medium text-gray-1000">
                     {name}
                   </p>
                   {description === undefined ? null : (
@@ -81,11 +81,11 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                     </p>
                   )}
                   {workflow.last_run === null ? (
-                    <p className="text-[11px] text-gray-700">
+                    <p className="text-[12px] text-gray-700">
                       {t("settings.workflows.neverRun")}
                     </p>
                   ) : (
-                    <p className="flex min-w-0 items-center gap-1.5 text-[11px] text-gray-700">
+                    <p className="flex min-w-0 items-center gap-1.5 text-[12px] text-gray-700">
                       <WorkflowStatusGlyph status={workflow.last_run.status} />
                       <span className="truncate">
                         {formatWorkflowOutcome(workflow.last_run, t)}
@@ -112,7 +112,7 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
         </ul>
       )}
       {error && data !== null ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
           <Notice tone="danger">{t("settings.workflows.updateError")}</Notice>
           <Button type="button" size="sm" variant="outline" onClick={onRetry}>
             {t("common.retry")}

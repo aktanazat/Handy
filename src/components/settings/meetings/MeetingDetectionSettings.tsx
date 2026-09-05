@@ -157,7 +157,7 @@ export const MeetingDetectionAdvanced: React.FC = () => {
 
   if (settings === null) {
     return (
-      <div className="px-4 py-3">
+      <div className="px-6 py-3">
         <Notice tone="muted">
           {t("meetings.detection.loading", "Reading detection state…")}
         </Notice>
@@ -302,7 +302,7 @@ export const MeetingDetectionState: React.FC = () => {
     <SettingsSection
       label={t("meetings.detection.state.title", "What detection can see")}
     >
-      <div className="flex flex-col gap-1.5 px-4 py-3">
+      <div className="flex flex-col gap-1.5 px-6 py-3">
         {stateLines.map((line) => (
           <Notice key={line.id} tone={line.tone} live={line.live}>
             {line.text}

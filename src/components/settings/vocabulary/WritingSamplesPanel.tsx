@@ -89,7 +89,7 @@ export const WritingSamplesPanel: React.FC = () => {
 
     if (loadState === "failed") {
       return (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
           <Notice tone="danger">
             {loadError ??
               t(
@@ -164,9 +164,9 @@ export const WritingSamplesPanel: React.FC = () => {
                 {/* Prose in the person's own voice, so it is set as prose. */}
                 <Textarea
                   id={fieldId}
-                  /* 13px prose at the app's body leading. `leading-5` is
+                  /* 14px prose at the app's body leading. `leading-5` is
                    * 17.5px at the 14px root, which is tight for paragraphs. */
-                  className="min-h-24 flex-1 text-[13px] leading-[19px]"
+                  className="min-h-24 flex-1 text-[14px] leading-[21px]"
                   rows={5}
                   value={sample.text}
                   onChange={(event) =>
@@ -212,7 +212,7 @@ export const WritingSamplesPanel: React.FC = () => {
         })}
 
         {samples.length < PERSONA_SAMPLES_MAX && (
-          <div className="px-4 py-3">
+          <div className="px-6 py-3">
             <Button
               variant="outline"
               size="sm"
@@ -227,7 +227,7 @@ export const WritingSamplesPanel: React.FC = () => {
         )}
 
         {writeError && (
-          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
             <Notice tone="danger">{writeError}</Notice>
             <Button variant="outline" size="sm" onClick={() => void load()}>
               {t("common.retry")}
@@ -256,7 +256,7 @@ export const WritingSamplesPanel: React.FC = () => {
         data-testid="persona-samples-editor"
       >
         {body()}
-        <Notice live={false} className="px-4 py-3">
+        <Notice live={false} className="px-6 py-3">
           {/* The cap moved to the count in the header, so this sentence is
            * being trimmed to its privacy half. `max` stays supplied until that
            * catalogue edit lands, so neither version renders a raw

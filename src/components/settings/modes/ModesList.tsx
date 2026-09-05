@@ -100,7 +100,7 @@ const ModeRowBody: React.FC<ModeRowBodyProps> = ({
       >
         <span
           className={cn(
-            "min-w-0 truncate text-[13px] text-gray-1000",
+            "min-w-0 truncate text-[14px] text-gray-1000",
             isActive && "font-medium",
           )}
         >
@@ -110,18 +110,18 @@ const ModeRowBody: React.FC<ModeRowBodyProps> = ({
          * not a fixture. Everything else about the row is identical, because
          * everything else about the mode is. */}
         {isPresetMode(mode.id) ? (
-          <span className="flex-none text-[11px] text-gray-700">
+          <span className="flex-none text-[12px] text-gray-700">
             {t("modesV2.list.preset")}
           </span>
         ) : null}
         {/* The one word of state the list carries. Spelled out, so it survives
          * greyscale and reads as a marker rather than as content. */}
         {isActive ? (
-          <span className="flex-none text-[13px] leading-5 text-blue-900">
+          <span className="flex-none text-[14px] leading-[21px] text-blue-900">
             {t("settings.modes.active")}
           </span>
         ) : null}
-        <span className="ml-auto flex-none text-[11px] text-gray-800">
+        <span className="ml-auto flex-none text-[12px] text-gray-800">
           {modeEngineLabel(mode.asr, t)}
         </span>
         <ShortcutChord
@@ -184,11 +184,11 @@ export const ModesList: React.FC<ModesListProps> = ({
     /* Sona keeps one mode at all times, so an empty list is a read failure
      * rather than a blank slate: say so, and pair it with the reload. */
     return (
-      <SettingsSurface className="flex flex-col items-start gap-2 px-4 py-6">
+      <SettingsSurface className="flex flex-col items-start gap-2 px-6 py-6">
         <p className="text-sm text-gray-1000">
           {t("settings.modes.listEmpty", "No modes are configured.")}
         </p>
-        <p className="text-[13px] leading-5 text-gray-800">
+        <p className="text-[14px] leading-[21px] text-gray-800">
           {t(
             "settings.modes.listEmptyHint",
             "Sona always keeps one mode. Reload to fetch the current list.",

@@ -51,18 +51,18 @@ export const PreviouslyTogetherBandView: React.FC<{
           <button
             key={row.personId}
             type="button"
-            className="flex w-full min-w-0 items-start gap-4 px-4 py-3 text-start transition-colors hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+            className="flex w-full min-w-0 cursor-pointer items-start gap-4 px-6 py-3.5 text-start transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none"
             onClick={() => onOpenPerson(row.personId)}
           >
             <span className="min-w-0 flex-1">
               <SpeakerBubbles speakers={[row.displayName]} />
               {row.openLoop === null ? null : (
-                <span className="mt-1.5 block truncate text-[13px] text-gray-900">
+                <span className="mt-1.5 block truncate text-[14px] leading-[21px] text-gray-900">
                   {row.openLoop}
                 </span>
               )}
             </span>
-            <span className="flex flex-none flex-col items-end text-[11px] leading-[17px] text-gray-800 tabular-nums">
+            <span className="flex flex-none flex-col items-end text-[13px] leading-[18px] tabular-nums text-gray-900">
               <span>
                 {t("people.review.meetingsBefore", {
                   count: row.meetingsCount,

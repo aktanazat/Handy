@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { MessageSquare, Search } from "lucide-react";
-import { Kbd } from "@/components/vg/kbd";
 import {
   Tooltip,
   TooltipContent,
@@ -65,7 +64,17 @@ const WORDMARK = "Sona";
  * hairline inside a rail that already has one, and the wash says the same
  * thing with nothing drawn. Focus is the shared bronze ring. */
 const NAV_ROW =
-  "flex items-center rounded-md text-[13px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none";
+  "flex items-center rounded-md text-[14px] leading-[21px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none motion-reduce:transition-none";
+
+/* The selected row: the same wash, and its words in the primary ink at medium.
+ * Weight is what a reader sees first at this size — the wash alone measured as
+ * a 4% step off the rail. */
+const NAV_ROW_CURRENT = "bg-gray-alpha-200 font-medium text-gray-1000";
+
+/* A destination glyph, at the em box of the 14px label beside it. Pinned
+ * in px, not `size-3.5`: base.css puts the root at 14px, so a rem box lands on
+ * half device pixels and blurs. */
+const NAV_ICON = "size-[14px] flex-none";
 
 /* The two shapes a row takes. The glyph square is the named row with its words
  * clipped off, not a second navigation: same 32pt height, same radius, same
@@ -187,7 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       inert={decorative}
       className={cn(
         "glass-surface flex min-h-0 flex-none flex-col overflow-hidden border-e border-gray-alpha-400 bg-background-200 pb-[10px] transition-none",
-        /* Chrome that carries 13px labels takes the dense tint rather than
+        /* Chrome that carries 14px labels takes the dense tint rather than
            the airy one: over a bright wallpaper the 0.70 tint left secondary
            text at 3.1:1, and the dense step measures 5.5:1 on the same
            backdrop. The token is read by the material rule in
@@ -256,31 +265,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <RowName show={collapsed} side={side} name={t("commandPalette.open")}>
           <button
             type="button"
-            className={cn(
-              "flex flex-none items-center rounded-md text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none",
-              collapsed ? NAV_ROW_GLYPH : NAV_ROW_NAMED,
-            )}
+            className={cn(NAV_ROW, collapsed ? NAV_ROW_GLYPH : NAV_ROW_NAMED)}
             aria-label={t("commandPalette.open")}
             onClick={onOpenCommand}
           >
-            {/* Pinned in px, not `size-3.5`. base.css puts the root at 14px,
-                so every rem token in this app renders at 87.5% — `size-3.5`
-                would be 12.25px, and a glyph on a fractional box lands on half
-                device pixels and blurs. Padding and gaps stay on the shared rem
-                scale deliberately; only a value that draws a shape needs
-                pinning. */}
-            <Search className="size-[14px] flex-none" aria-hidden="true" />
+            <Search className={NAV_ICON} aria-hidden="true" />
             {!collapsed && (
               <>
-                <span className="min-w-0 flex-1 truncate text-start text-[13px]">
+                <span className="min-w-0 flex-1 truncate text-start text-[14px]">
                   {t("commandPalette.open")}
                 </span>
-                {/* One keycap, spelling the whole chord — the reference product
-                    sets its search chord as a single chip, and two boxes with a
-                    seam read fussier than the row they decorate. */}
-                <Kbd className="flex-none" aria-hidden="true">
+                {/* The chord, in Meta type with tabular digits, not a keycap:
+                    the plate this row used to wear was already subtracted for
+                    being invisible on this surface, and a boxed chip beside a
+                    flat row was the last piece of that plate. */}
+                <span
+                  aria-hidden="true"
+                  className="flex-none text-[13px] leading-[18px] tabular-nums text-gray-800"
+                >
                   {isMac ? "\u2318 K" : "Ctrl K"}
-                </Kbd>
+                </span>
               </>
             )}
           </button>
@@ -328,12 +332,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={cn(
                 NAV_ROW,
                 collapsed ? NAV_ROW_GLYPH : NAV_ROW_NAMED,
-                chatOpen && "bg-gray-alpha-200 text-gray-1000",
+                chatOpen && NAV_ROW_CURRENT,
                 !agentPanel.paired &&
                   "text-gray-800 hover:bg-transparent hover:text-gray-800",
               )}
             >
-              <MessageSquare aria-hidden="true" className="size-4 flex-none" />
+              <MessageSquare aria-hidden="true" className={NAV_ICON} />
               {!collapsed && t("chat.open")}
             </button>
           </RowName>
@@ -359,14 +363,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className={cn(
                   NAV_ROW,
                   collapsed ? NAV_ROW_GLYPH : NAV_ROW_NAMED,
-                  current && "bg-gray-alpha-200 text-gray-1000",
+                  current && NAV_ROW_CURRENT,
                 )}
                 onClick={() => onSectionChange(section)}
               >
-                <DestinationIcon
-                  aria-hidden="true"
-                  className="size-4 flex-none"
-                />
+                <DestinationIcon aria-hidden="true" className={NAV_ICON} />
                 {!collapsed && label}
               </button>
             </RowName>

@@ -22,17 +22,17 @@ export const AgentBridgeRules: React.FC<AgentBridgeRulesProps> = ({
      * the exact scope the paragraph used to spell out. */
     <SettingsCard className="divide-y divide-gray-alpha-400">
       {bridge.permission_rules.length === 0 ? (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice>{t("settings.agents.rules.empty")}</Notice>
         </div>
       ) : (
         bridge.permission_rules.map((rule) => (
           <div
             key={rule.id}
-            className="flex min-w-0 flex-wrap items-start justify-between gap-3 px-4 py-3"
+            className="flex min-w-0 flex-wrap items-start justify-between gap-3 px-6 py-3"
           >
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] leading-5 break-words text-gray-1000">
+              <p className="text-[14px] leading-[21px] break-words text-gray-1000">
                 {rule.tool_name}
                 {" · "}
                 {t("settings.agents.rules.decisions." + rule.decision)}

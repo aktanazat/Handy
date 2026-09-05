@@ -127,7 +127,7 @@ export const FollowUpDraftAction: React.FC<FollowUpDraftActionProps> = ({
           {/* The draft owns the scroll, so the sheet's own footer never leaves
            * the window on a long meeting. */}
           <div className="max-h-64 overflow-y-auto">
-            <p className="text-[13px] leading-5 whitespace-pre-wrap text-pretty text-gray-1000">
+            <p className="text-[14px] leading-[21px] whitespace-pre-wrap text-pretty text-gray-1000">
               {body}
             </p>
           </div>

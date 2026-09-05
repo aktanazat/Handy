@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { CardBand, CardFooterAction } from "@/components/settings/CardBand";
 import {
   FIELD_MAX_W,
   Microlabel,
@@ -77,6 +78,12 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
   const [enhancing, setEnhancing] = useState(false);
   const [catchUp, setCatchUp] = useState<MeetingCatchUp | null>(null);
   const [catchingUp, setCatchingUp] = useState(false);
+  /* Whether the review's steer field is showing. It is derived, not stored,
+   * from the three facts that make it worth showing: somebody pressed the
+   * line, the meeting already carries steer text, or a save conflict has to
+   * be read. Pressing is the only one this flag holds — and typing sets it,
+   * so clearing the field cannot close the editor under the cursor. */
+  const [guideOpened, setGuideOpened] = useState(false);
   /* The saved revision is read inside a timer, so it lives in a ref as well as
    * in state: the timer must see the revision the last save returned, not the
    * one captured when the keystroke fired. */
@@ -128,6 +135,7 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
   const scheduleSave = (nextBody: string) => {
     if (notes === null) return;
     setBody(nextBody);
+    setGuideOpened(true);
     setSaveState("unsaved");
     clearTimeout(pendingSave.current);
     pendingSave.current = window.setTimeout(() => {
@@ -205,21 +213,155 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
           ? `${t("meetings.notes.saved", "Notes saved")}${savedAtUtcMs === null ? "" : ` ${SAVED_AT_FORMATTER.format(savedAtUtcMs)}`}`
           : null;
 
+  const guideTitle = t("meetings.notes.guideTitle", "Guide the summary");
+  const guideOpen =
+    guideOpened || body.trim().length > 0 || saveState === "conflict";
+
+  const field = (
+    <Textarea
+      id={fieldId}
+      value={body}
+      onChange={(event) => scheduleSave(event.target.value)}
+      onBlur={() => {
+        if (saveState !== "unsaved" || notes === null) return;
+        clearTimeout(pendingSave.current);
+        void persist(body, notes.template);
+      }}
+      placeholder={t(
+        "meetings.notes.placeholder",
+        "Anything worth remembering: names, numbers, what to follow up on",
+      )}
+      /* The review's band carries the name, so the field says it to a screen
+       * reader itself; the live variant's label element does that for it. */
+      aria-label={variant === "review" ? guideTitle : undefined}
+      disabled={busy}
+      rows={variant === "live" ? 8 : 5}
+      /* Body type, explicitly: the kit's textarea sets `md:text-sm`,
+       * which under this app's 14px root renders at 12.25px and demotes
+       * the words somebody typed below every other sentence on the page. */
+      className="resize-none text-[14px] leading-[21px] md:text-[14px]"
+    />
+  );
+
+  const actions = (
+    <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+      {variant === "live" ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => void runCatchUp()}
+          disabled={catchingUp}
+        >
+          {catchingUp
+            ? t("meetings.notes.catchingUp", "Catching up…")
+            : t("meetings.notes.catchUp", "Catch me up")}
+        </Button>
+      ) : (
+        <>
+          <Select
+            value={notes?.template ?? "general"}
+            onValueChange={(value) => void changeTemplate(value)}
+            disabled={busy || enhancing}
+          >
+            <SelectTrigger
+              size="sm"
+              className={`w-auto ${FIELD_MAX_W}`}
+              aria-label={t("meetings.notes.template", "Template")}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MEETING_NOTES_TEMPLATES.map((template) => (
+                <SelectItem key={template} value={template}>
+                  {t(`meetings.notes.templates.${template}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void reenhance()}
+            disabled={busy || enhancing}
+          >
+            {enhancing
+              ? t("meetings.notes.enhancing", "Rebuilding…")
+              : t("meetings.notes.reenhance", "Re-enhance with my notes")}
+          </Button>
+          <SeriesTemplateAction
+            sessionId={sessionId}
+            template={notes?.template ?? "general"}
+            disabled={busy || enhancing}
+          />
+        </>
+      )}
+    </div>
+  );
+
+  /* The live card divides its own rows, so only the review shell — which is
+   * a run of bands inside somebody else's card — draws this hairline. */
+  const conflictNotice =
+    saveState === "conflict" ? (
+      <div
+        className={
+          variant === "review"
+            ? "border-t border-gray-alpha-400 px-6 py-3"
+            : "px-6 py-3"
+        }
+      >
+        <Notice tone="danger" assertive>
+          {t(
+            "meetings.notes.conflict",
+            "These notes changed somewhere else. Reopen the meeting to load the current version.",
+          )}
+        </Notice>
+      </div>
+    ) : null;
+
+  /* After the meeting this pane is not a card of its own: it is the last
+   * stretch of the review's notes card. At rest that is one quiet line at the
+   * card's bottom edge; opened it is a second cream band and the field under
+   * it, which is the same shape the notes above it are written in. */
+  if (variant === "review") {
+    if (!guideOpen) {
+      return (
+        <CardFooterAction disabled={busy} onClick={() => setGuideOpened(true)}>
+          {t("meetings.notes.guidePrompt", "Guide the summary…")}
+        </CardFooterAction>
+      );
+    }
+    return (
+      <>
+        <CardBand
+          title={guideTitle}
+          meta={
+            saveLabel === null ? undefined : (
+              <span role="status" aria-live="polite">
+                {saveLabel}
+              </span>
+            )
+          }
+          className="border-t"
+        />
+        <div className="px-6 py-3.5">
+          {field}
+          {actions}
+        </div>
+        {conflictNotice}
+      </>
+    );
+  }
+
   return (
     <SettingsCard className="divide-y divide-gray-alpha-400">
       <SettingsField
         label={t("meetings.notes.title", "My notes")}
-        /* Only the live variant carries a hint. After the meeting, the
-         * "Re-enhance with my notes" button states the same fact the review
-         * sentence did, and the sentence was the third place it was said. */
-        hint={
-          variant === "live"
-            ? t(
-                "meetings.notes.liveDescription",
-                "Type as roughly as you like. These notes stay on this Mac and steer the notes Sona generates when the meeting ends.",
-              )
-            : undefined
-        }
+        hint={t(
+          "meetings.notes.liveDescription",
+          "Type as roughly as you like. These notes stay on this Mac and steer the notes Sona generates when the meeting ends.",
+        )}
         fact={
           saveLabel === null ? undefined : (
             <span role="status" aria-live="polite">
@@ -230,90 +372,11 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
         controlId={fieldId}
         disabled={busy}
       >
-        <Textarea
-          id={fieldId}
-          value={body}
-          onChange={(event) => scheduleSave(event.target.value)}
-          onBlur={() => {
-            if (saveState !== "unsaved" || notes === null) return;
-            clearTimeout(pendingSave.current);
-            void persist(body, notes.template);
-          }}
-          placeholder={t(
-            "meetings.notes.placeholder",
-            "Anything worth remembering: names, numbers, what to follow up on",
-          )}
-          disabled={busy}
-          rows={variant === "live" ? 8 : 5}
-          className="resize-none"
-        />
-
-        <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
-          {variant === "live" ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void runCatchUp()}
-              disabled={catchingUp}
-            >
-              {catchingUp
-                ? t("meetings.notes.catchingUp", "Catching up…")
-                : t("meetings.notes.catchUp", "Catch me up")}
-            </Button>
-          ) : (
-            <>
-              <Select
-                value={notes?.template ?? "general"}
-                onValueChange={(value) => void changeTemplate(value)}
-                disabled={busy || enhancing}
-              >
-                <SelectTrigger
-                  size="sm"
-                  className={`w-auto ${FIELD_MAX_W}`}
-                  aria-label={t("meetings.notes.template", "Template")}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MEETING_NOTES_TEMPLATES.map((template) => (
-                    <SelectItem key={template} value={template}>
-                      {t(`meetings.notes.templates.${template}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => void reenhance()}
-                disabled={busy || enhancing}
-              >
-                {enhancing
-                  ? t("meetings.notes.enhancing", "Rebuilding…")
-                  : t("meetings.notes.reenhance", "Re-enhance with my notes")}
-              </Button>
-              <SeriesTemplateAction
-                sessionId={sessionId}
-                template={notes?.template ?? "general"}
-                disabled={busy || enhancing}
-              />
-            </>
-          )}
-        </div>
+        {field}
+        {actions}
       </SettingsField>
 
-      {saveState === "conflict" ? (
-        <div className="px-4 py-3">
-          <Notice tone="danger" assertive>
-            {t(
-              "meetings.notes.conflict",
-              "These notes changed somewhere else. Reopen the meeting to load the current version.",
-            )}
-          </Notice>
-        </div>
-      ) : null}
+      {conflictNotice}
 
       {catchUp === null ? null : <CatchUpResult result={catchUp} />}
     </SettingsCard>
@@ -387,7 +450,7 @@ export const CatchUpResult: React.FC<CatchUpResultProps> = ({ result }) => {
 
   if (result.state !== "ready") {
     return (
-      <div className="px-4 py-3">
+      <div className="px-6 py-3">
         <Notice
           tone={result.state === "no_transcript_yet" ? "muted" : "warning"}
         >
@@ -416,7 +479,7 @@ export const CatchUpResult: React.FC<CatchUpResultProps> = ({ result }) => {
   }
 
   return (
-    <div className="flex flex-col gap-2 px-4 py-3" data-slot="catch-up">
+    <div className="flex flex-col gap-2 px-6 py-3" data-slot="catch-up">
       <h3>
         <Microlabel>{t("meetings.notes.catchUpTitle", "So far")}</Microlabel>
       </h3>

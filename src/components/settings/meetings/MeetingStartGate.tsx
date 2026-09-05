@@ -9,6 +9,7 @@ import type {
 import { cn } from "@/lib/cn";
 import {
   PageTitle,
+  SETTINGS_SURFACE,
   SettingsPage,
   SettingsRow,
   SettingsSection,
@@ -132,7 +133,7 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
        * as the acknowledgment. Sources read as settled text here because the
        * session already exists with them. */}
       {options.preview === null ? null : (
-        <ul className="flex flex-col gap-2">
+        <ul className={SETTINGS_SURFACE}>
           <MeetingPreviewCard
             facts={options.preview}
             defaultExpanded
@@ -150,8 +151,8 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
         <SettingsRow label={t("meetings.preflight.storage")}>
           <span
             className={cn(
-              "text-[12px] leading-4",
-              storageAvailable ? "text-gray-800" : "text-red-900",
+              "text-[13px] leading-[18px]",
+              storageAvailable ? "text-gray-900" : "text-red-900",
             )}
           >
             {storageAvailable
@@ -170,7 +171,7 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
       </SettingsSection>
 
       <div className="flex flex-col gap-4">
-        <p className="text-[13px] leading-5 text-gray-800">
+        <p className="text-[14px] leading-[21px] text-pretty text-gray-1000">
           {t(
             "meetings.start.assurance",
             "Records your Mac's audio locally. Nothing joins the call.",
@@ -188,7 +189,7 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
             />
             <label
               htmlFor="gate-accept-partial"
-              className="text-pretty text-[13px] leading-5 text-gray-900"
+              className="text-pretty text-[14px] leading-[21px] text-gray-900"
             >
               {t(
                 "meetings.gate.recordAnywayHint",
@@ -199,7 +200,7 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
         ) : null}
 
         {canStart ? null : (
-          <p role="status" className="text-[13px] leading-5 text-red-900">
+          <p role="status" className="text-[14px] leading-[21px] text-red-900">
             {t("meetings.reasons.invalid_transition")}
           </p>
         )}

@@ -52,13 +52,13 @@ const FilterSelect = <T extends string>({
       <SelectTrigger
         size="sm"
         aria-label={filterKey}
-        className="min-w-[112px] gap-1.5 px-2 text-[12px] [&_svg]:size-3"
+        className="min-w-[112px] gap-1.5 px-2 text-[13px] [&_svg]:size-3"
       >
-        <Microlabel className="text-[12px] leading-4 text-gray-900">
+        <Microlabel className="text-[13px] leading-[18px] text-gray-900">
           {filterKey}:
         </Microlabel>
         <SelectValue>
-          <span className="text-[12px] text-gray-1000">{selected}</span>
+          <span className="text-[13px] text-gray-1000">{selected}</span>
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
@@ -104,7 +104,7 @@ export const MeetingsFilterBar: React.FC<MeetingsFilterBarProps> = ({
       aria-label={t("meetings.list.filters.label", "Filter meetings")}
       className={cn(
         SETTINGS_CARD,
-        "flex flex-nowrap items-center gap-4 px-4 py-2",
+        "flex flex-nowrap items-center gap-4 px-6 py-2.5",
       )}
     >
       <FilterSelect<MeetingStatusFilter>
@@ -138,7 +138,7 @@ export const MeetingsFilterBar: React.FC<MeetingsFilterBarProps> = ({
         onChange={(event) => setQuery(event.target.value)}
         aria-label={t("meetings.list.searchLabel", "Search meetings")}
         placeholder={t("meetings.list.searchPlaceholder", "Search by title")}
-        className="ms-auto h-8 min-w-40 flex-1 text-[13px] sm:max-w-64"
+        className="ms-auto h-8 min-w-40 flex-1 text-[14px] sm:max-w-64"
       />
     </div>
   );

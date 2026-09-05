@@ -44,16 +44,17 @@ export const SETTINGS_SURFACE =
 
 /* Explicit px, not a `text-*` utility. This app sets `:root { font-size: 14px }`
  * (styles/base.css), so every rem utility renders at 87.5% of its name. The
- * page's own name is chrome, not a headline: 14px semibold is the size the
- * reference sets its panel titles at, and it leaves the largest type on a page
- * to whatever the page is actually about. */
+ * page's name is the largest type on the page and the thing a reader lands on
+ * first: 24/30 semibold, balanced so a two-word title never leaves one word
+ * alone on a second line. It was 14px, which read as chrome and left the page
+ * with no entry point at all. */
 export const PageTitle: React.FC<React.ComponentProps<"h1">> = ({
   className,
   ...props
 }) => (
   <h1
     className={cn(
-      "text-[14px] leading-[20px] font-semibold tracking-[-0.01em] text-gray-1000",
+      "text-[24px] leading-[30px] font-semibold tracking-[-0.01em] text-balance text-gray-1000",
       className,
     )}
     {...props}
@@ -79,9 +80,9 @@ export const SettingsPage: React.FC<
   <div
     className={cn(
       PAGE_COLUMN,
-      /* Section gap 28, page head 28 over the first section. `gap-10` and
-         `pt-12` were sized for a 24px page title; against a 14px one they
-         read as a hole rather than as air. */
+      /* The page's rhythm: 8 between sections, 8 over the first one. The
+         head is a 24/30 title, so this is air around a real heading rather
+         than the hole it was when the title was 14px chrome. */
       "flex flex-col gap-8 pt-8 pb-[72px]",
       className,
     )}
@@ -97,13 +98,13 @@ export const SettingsPage: React.FC<
   </div>
 );
 
-/** Sentence-case SF at 12px in the secondary text colour: the label above a
+/** Sentence-case SF at 13px in the secondary text colour: the label above a
  * section, the caption under a title, the name of a measurement. */
 export const Microlabel: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ children, className }) => (
-  <span className={cn("text-[12px] leading-4 text-gray-900", className)}>
+  <span className={cn("text-[13px] leading-[18px] text-gray-900", className)}>
     {children}
   </span>
 );
@@ -127,14 +128,19 @@ const HintTooltip: React.FC<{ label: string; hint: React.ReactNode }> = ({
   </Tooltip>
 );
 
-/** A named measurement: label and value, nothing else. */
+/** A named measurement: label and value, nothing else. Meta type, because a
+ * count beside a title is not the title's equal, and no box at all: a chip
+ * outline is for something you can press, and this cannot be pressed. */
 export const FactChip: React.FC<{
   label: string;
   value: React.ReactNode;
   className?: string;
 }> = ({ label, value, className }) => (
   <span
-    className={cn("inline-flex items-baseline gap-1.5 text-[13px]", className)}
+    className={cn(
+      "inline-flex items-baseline gap-1.5 text-[13px] leading-[18px]",
+      className,
+    )}
   >
     <span className="text-gray-900">{label}</span>
     <span className="tabular-nums text-gray-1000">{value}</span>
@@ -148,9 +154,9 @@ export const SettingsSection: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ label, action, children, className }) => (
-  <section className={cn("flex flex-col gap-3", className)}>
-    <div className="flex min-h-6 items-center justify-between gap-4">
-      <h2 className="text-[12px] leading-4 text-gray-900">{label}</h2>
+  <section className={cn("flex flex-col gap-2", className)}>
+    <div className="flex min-h-5 items-center justify-between gap-4">
+      <h2 className="text-[13px] leading-[18px] text-gray-900">{label}</h2>
       {action}
     </div>
     <div className={SETTINGS_SURFACE}>{children}</div>
@@ -171,7 +177,12 @@ export const SettingsSurface: React.FC<React.ComponentProps<"div">> = ({
 /* One concept, one box, on the same raised fill as a section surface. A class
  * string as well as a component because four of its sites cannot be a
  * `<section>`: two are `<div>`s inside a `<dl>`, one is the `<p role="alert">`
- * that states an import failure, and the meeting preview is an `<li>`. */
+ * that states an import failure, and the meeting preview is an `<li>`.
+ *
+ * Surface only, no padding: more than twenty callers put already-padded rows
+ * (`SettingsRow`, `SettingsField`, `SettingsDisclosure`) straight inside one,
+ * and a default here would pad them twice. A card whose content is not rows
+ * writes the round's own recipe on that content — `px-6 py-5`. */
 export const SETTINGS_CARD =
   "rounded-card border border-gray-alpha-400 bg-surface-raised";
 
@@ -213,10 +224,11 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
 }) => {
   /* Disabled rows dim their type without changing the controls beside it. */
   const labelClass = cn(
-    /* 13px, the size a settings row has always been here — `text-sm` is
-     * 12.25px under the 14px root and would quietly demote every label to the
-     * secondary tier. */
-    "truncate text-[13px]",
+    /* 14px, the body size this round set the app in — `text-sm` is 12.25px
+     * under the 14px root and would quietly demote every label to the
+     * secondary tier. Regular weight, not the brief's row-title medium: this
+     * label names the control beside it, it does not title a document. */
+    "truncate text-[14px] leading-[21px]",
     disabled ? "text-gray-700" : "text-gray-1000",
   );
   return (
@@ -224,7 +236,10 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
       data-slot="settings-row"
       data-disabled={disabled || undefined}
       className={cn(
-        "flex min-h-[52px] items-center justify-between gap-6 px-4 py-2.5",
+        /* The padding is the row height. A `min-h` floor on top of it made
+         * the pair fight: at 52px the floor won and re-tuning the padding
+         * changed nothing a reader could see. */
+        "flex items-center justify-between gap-6 px-6 py-3.5",
         className,
       )}
     >
@@ -287,14 +302,14 @@ export const SettingsField: React.FC<SettingsRowProps> = ({
   className,
 }) => {
   const labelClass = cn(
-    "text-[13px]",
+    "text-[14px] leading-[21px]",
     disabled ? "text-gray-700" : "text-gray-1000",
   );
   return (
     <div
       data-slot="settings-field"
       data-disabled={disabled || undefined}
-      className={cn("flex flex-col gap-2 px-4 py-3", className)}
+      className={cn("flex flex-col gap-2 px-6 py-3.5", className)}
     >
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-2">
@@ -366,7 +381,7 @@ export const SettingsDisclosure: React.FC<{
         if (event.currentTarget.open) setOpened(true);
       }}
     >
-      <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between gap-4 px-4 py-2.5 text-[13px] text-gray-1000 transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-3.5 text-[14px] leading-[21px] text-gray-1000 transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
         {label}
         <span className="flex shrink-0 items-center gap-3">
           {fact ? (
@@ -419,7 +434,7 @@ export const Notice: React.FC<{
   <p
     role={assertive ? "alert" : live ? "status" : undefined}
     aria-live={assertive ? "assertive" : live ? "polite" : undefined}
-    className={cn("text-[13px] leading-5", NOTICE_TONES[tone], className)}
+    className={cn("text-[14px] leading-[21px]", NOTICE_TONES[tone], className)}
   >
     {children}
   </p>

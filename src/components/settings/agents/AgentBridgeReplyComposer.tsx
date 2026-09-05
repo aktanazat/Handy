@@ -42,7 +42,7 @@ export const AgentBridgeReplyComposer: React.FC<
      * the two-step flow shows what the paragraph used to promise. */
     <SettingsCard className="divide-y divide-gray-alpha-400">
       {interactiveReady ? null : (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice>
             {t(
               "settings.agents.replyQueue.notReady",
@@ -93,7 +93,7 @@ export const AgentBridgeReplyComposer: React.FC<
           disabled={!interactiveReady || !replySessionId}
         />
       </SettingsField>
-      <div className="flex justify-end px-4 py-2.5">
+      <div className="flex justify-end px-6 py-2.5">
         <Button
           size="sm"
           onClick={() => void createReplyPreview()}

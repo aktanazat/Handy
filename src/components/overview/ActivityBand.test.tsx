@@ -152,7 +152,7 @@ describe("ActivityBand charts", () => {
     );
 
     expect(words).toContain('role="img"');
-    expect(words).toContain('preserveAspectRatio="xMidYMid meet"');
+    expect(words).toContain('preserveAspectRatio="xMidYMax meet"');
     expect(words).toContain(" C ");
     expect(words.includes("<polyline")).toBe(false);
     expect(words).toContain('stroke-width="1.5"');

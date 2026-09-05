@@ -95,14 +95,14 @@ export const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({
   if (receipt.mode.input_peak != null) {
     pairs.push({
       id: "peak",
-      label: t("settings.history.level.peak", "peak"),
+      label: t("settings.history.level.peak", "Peak"),
       value: receipt.mode.input_peak.toFixed(AMPLITUDE_DIGITS),
     });
   }
   if (receipt.mode.input_rms != null) {
     pairs.push({
       id: "rms",
-      label: t("settings.history.level.rms", "average"),
+      label: t("settings.history.level.rms", "Average"),
       value: receipt.mode.input_rms.toFixed(AMPLITUDE_DIGITS),
     });
   }
@@ -158,7 +158,7 @@ export const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({
   }
 
   return (
-    <section className="flex flex-col gap-3 not-first:mt-3 not-first:border-t not-first:border-gray-alpha-400 not-first:pt-3">
+    <section className="flex flex-col gap-4 not-first:mt-4 not-first:border-t not-first:border-gray-alpha-400 not-first:pt-4">
       {/* Two columns sharing one hairline per pair: microlabel key left,
        * measured value right. The key/value inspector, not a paragraph of
        * provenance. */}
@@ -168,11 +168,11 @@ export const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({
       <dl className="grid grid-cols-[minmax(0,140px)_minmax(0,1fr)]">
         {pairs.map((pair) => (
           <React.Fragment key={pair.id}>
-            <dt className="border-t border-gray-alpha-400 py-1 pr-4 first-of-type:border-t-0">
+            <dt className="border-t border-gray-alpha-400 py-1.5 pr-4 first-of-type:border-t-0">
               <Microlabel>{pair.label}</Microlabel>
             </dt>
             <dd
-              className={`border-t border-gray-alpha-400 py-1 text-end text-[11px] break-words tabular-nums first-of-type:border-t-0 ${
+              className={`border-t border-gray-alpha-400 py-1.5 text-end text-[13px] leading-[18px] break-words tabular-nums first-of-type:border-t-0 ${
                 pair.status ? CAPTURE_STATUS_TONE[pair.status] : "text-gray-900"
               }`}
             >
@@ -215,7 +215,7 @@ export const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({
           </Microlabel>
         </h4>
         {receipt.delivery_attempts.length === 0 ? (
-          <p className="text-sm text-gray-900">
+          <p className="text-[13px] leading-[18px] text-gray-900">
             {t("settings.history.receipts.noDeliveryAttempts")}
           </p>
         ) : (

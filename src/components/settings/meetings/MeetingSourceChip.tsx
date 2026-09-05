@@ -20,9 +20,15 @@ export interface MeetingSourceChipProps {
  * shows what the next press will record while there is still time to change
  * it. Two copies of this chip would be two answers to one question.
  *
- * `aria-pressed` is the state, and the tick is its second channel: the armed
- * chip is legible in greyscale, which is the whole reason the fill is a gray
- * alpha and not the accent. */
+ * Round 6 took the pill off it. Beside a filled Start and a bordered Import,
+ * two bordered pills read as two more buttons, so the source reads as what it
+ * is: a quiet line of type that either carries a tick or does not. The tick
+ * keeps its column while unticked, so arming a source moves no text — and
+ * `aria-pressed` remains the state, with the tick as its second channel, which
+ * is what keeps the armed source legible in greyscale.
+ *
+ * No focus classes: base.css paints one bronze outline for every button in the
+ * app, and a local ring would both cancel and replace it. */
 export const MeetingSourceChip: React.FC<MeetingSourceChipProps> = ({
   source,
   selected,
@@ -39,13 +45,14 @@ export const MeetingSourceChip: React.FC<MeetingSourceChipProps> = ({
       disabled={disabled}
       onClick={onToggle}
       className={cn(
-        "inline-flex h-6 flex-none items-center gap-1 rounded-md border border-gray-alpha-400 px-2 text-[12px] transition-colors focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none disabled:pointer-events-none disabled:text-gray-700",
-        selected
-          ? "bg-gray-alpha-200 text-gray-1000"
-          : "text-gray-800 hover:bg-gray-alpha-100 hover:text-gray-1000",
+        "inline-flex h-6 flex-none items-center gap-1 rounded-md px-1.5 text-[13px] leading-[18px] transition-colors motion-reduce:transition-none hover:bg-hover disabled:pointer-events-none disabled:text-gray-700",
+        selected ? "text-gray-1000" : "text-gray-900 hover:text-gray-1000",
       )}
     >
-      {selected ? <Check aria-hidden="true" className="size-3" /> : null}
+      <Check
+        aria-hidden="true"
+        className={cn("size-3", selected ? null : "invisible")}
+      />
       {t(sourceKey(source))}
     </button>
   );

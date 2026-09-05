@@ -60,7 +60,7 @@ export function ChartCard({
         {delta === undefined ? null : (
           <span
             className={cn(
-              "rounded-full px-1.5 py-0.5 text-[11px] tabular-nums",
+              "rounded-full px-1.5 py-0.5 text-[12px] tabular-nums",
               deltaClass[delta.direction ?? "neutral"],
             )}
           >

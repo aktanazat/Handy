@@ -28,7 +28,7 @@ export const AgentBridgeRequests: React.FC<AgentBridgeRequestsProps> = ({
   return (
     <SettingsSection label={t("settings.agents.observed.requests")}>
       {requests.length === 0 ? (
-        <div className="px-4 py-2.5">
+        <div className="px-6 py-2.5">
           <Notice>{t("settings.agents.observed.noRequests")}</Notice>
         </div>
       ) : (
@@ -55,10 +55,10 @@ export const AgentBridgeRequests: React.FC<AgentBridgeRequestsProps> = ({
             <div
               key={request.id}
               data-slot="agent-bridge-request"
-              className="flex min-w-0 flex-wrap items-start justify-between gap-3 px-4 py-3"
+              className="flex min-w-0 flex-wrap items-start justify-between gap-3 px-6 py-3"
             >
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] leading-5 break-words text-gray-1000">
+                <p className="text-[14px] leading-[21px] break-words text-gray-1000">
                   {agent}
                   {" · "}
                   {t("settings.agents.observed.requestKinds." + request.kind)}

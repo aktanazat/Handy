@@ -34,15 +34,17 @@ export const LedgerReceiptRow: React.FC<LedgerReceiptRowProps> = ({
   return (
     <div className="flex flex-col gap-1">
       {quote === null ? null : (
-        <blockquote className="border-s border-gray-alpha-400 ps-2.5 text-[13px] leading-5 text-pretty text-gray-900">
+        /* The quote marks are the quotation. The rule that used to sit down
+         * its start edge said the same thing a second time, in the one shape
+         * the direction rules out. */
+        <blockquote className="text-[14px] leading-[21px] text-pretty text-gray-900">
           {`\u201C${quote}\u201D`}
         </blockquote>
       )}
-      {/* The attribution names who said it and when; the jumps go there. They
-       * sit on one line, so the citation control keeps its own gap instead of
-       * the negative inline start a left-aligned citation row wants. */}
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 ps-2.5">
-        <span className="text-[11px] text-gray-700">
+      {/* The attribution names who said it and when; the marks that jump sit
+       * on the same line, `gap-1` from each other. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="text-[13px] leading-[18px] text-gray-900">
           {attribution || t("meetings.ledger.unattributed")}
         </span>
         <span className="flex flex-wrap items-center gap-1">
