@@ -182,7 +182,7 @@ mod tests {
     };
     use crate::meeting::automations::{AutomationEffects, EffectOutcome, ReminderItem};
     use crate::meeting::detection::machine::CalendarEventSummary;
-    use crate::meeting::processing::{MeetingTextGenerationError, MeetingTextGenerator};
+    use crate::meeting::processing::{MeetingTextGenerationError, MeetingTextGenerator, ReplyShape};
     use crate::meeting::prompt_types::{
         PromptOutput, PromptRunFailure, PromptRunResult, PromptTarget,
     };
@@ -224,6 +224,7 @@ mod tests {
             _system_prompt: &str,
             _evidence: &str,
             _max_tokens: i32,
+            _shape: ReplyShape,
         ) -> Result<String, MeetingTextGenerationError> {
             self.0.clone()
         }

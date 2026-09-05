@@ -302,12 +302,15 @@ pub struct SonaChatTurnV2 {
     /// [`SONA_CHAT_TURN_VERSION`], and the reason it could is that a relay
     /// which has never heard of it behaves exactly as it did before.
     ///
-    /// The panel sends `false`: its answers are read by a person. Meeting
-    /// generation sends `true`, and the relay then refuses a prose reply with
-    /// its own error code instead of recording it as a success — which is the
-    /// whole point, because [`RELAY_OUTPUT_RULE`] rides in `user_message`,
-    /// and the relay's own system prompt tells the model that `user_message`
-    /// cannot set the response format.
+    /// The panel sends `false`: its answers are read by a person. A meeting
+    /// pass sends what it will read (`meeting::processing::ReplyShape`):
+    /// `true` for an artifact, ledger, catch-up or answer it parses into a
+    /// struct, and the relay then refuses a prose reply with its own error
+    /// code instead of recording it as a success — which is the whole point,
+    /// because [`RELAY_OUTPUT_RULE`] rides in `user_message`, and the relay's
+    /// own system prompt tells the model that `user_message` cannot set the
+    /// response format. `false` for a person's About paragraph or a follow-up
+    /// message, which are stored as written.
     ///
     /// [`RELAY_OUTPUT_RULE`]: crate::meeting
     pub reply_is_json: bool,

@@ -51,7 +51,7 @@ use super::ledger::{
 };
 use super::processing::{
     generate_ledger, validate_ledger_output, MeetingProcessingService, MeetingTextGenerationError,
-    MeetingTextGenerator, RawLedgerOutput,
+    MeetingTextGenerator, RawLedgerOutput, ReplyShape,
 };
 use super::store::{ArtifactEvidence, MeetingEvidence};
 use super::types::{
@@ -749,6 +749,7 @@ impl MeetingTextGenerator for ChatEndpointGenerator {
         system_prompt: &str,
         evidence: &str,
         max_tokens: i32,
+        _shape: ReplyShape,
     ) -> Result<String, MeetingTextGenerationError> {
         let body = serde_json::json!({
             "model": self.model,
@@ -826,8 +827,9 @@ impl MeetingTextGenerator for Recording<'_> {
         system_prompt: &str,
         evidence: &str,
         max_tokens: i32,
+        shape: ReplyShape,
     ) -> Result<String, MeetingTextGenerationError> {
-        let answer = self.inner.generate(system_prompt, evidence, max_tokens)?;
+        let answer = self.inner.generate(system_prompt, evidence, max_tokens, shape)?;
         self.answers
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())

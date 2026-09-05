@@ -21,7 +21,7 @@ use super::loop_types::{
 use super::people_types::{PersonDetailResult, PersonId, PersonLinkConfidence};
 use super::processing::{
     write_relationship_summary, LiveTranscript, LiveTranscriptWorker, MeetingProcessingService,
-    ProcessingOrigin, QuestionGenerationRequest,
+    ProcessingOrigin, QuestionGenerationRequest, ReplyShape,
 };
 use super::store::{
     InterruptedRecovery, MeetingStore, MeetingTrackWriter, RecoveredMeeting, SegmentEdit,
@@ -2661,6 +2661,7 @@ impl MeetingSessionManager {
                     &follow_up_prompt(),
                     &evidence.as_prompt_input(),
                     FOLLOW_UP_MAX_TOKENS,
+                    ReplyShape::Prose,
                 )
                 .ok()
                 .map(|message| message.trim().to_string())
@@ -6042,6 +6043,7 @@ pub(crate) mod tests {
             _system_prompt: &str,
             _evidence: &str,
             _max_tokens: i32,
+            _shape: ReplyShape,
         ) -> Result<String, super::super::processing::MeetingTextGenerationError> {
             Ok(self.output.clone())
         }

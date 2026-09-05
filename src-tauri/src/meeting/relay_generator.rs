@@ -13,7 +13,7 @@
 //! setting, their pairing, and the series' own answer, and one place decides
 //! all three.
 
-use super::processing::{MeetingTextGenerationError, MeetingTextGenerator};
+use super::processing::{MeetingTextGenerationError, MeetingTextGenerator, ReplyShape};
 use crate::agent_panel::{self, ChatTurnError};
 use std::sync::mpsc;
 use std::time::Duration;
@@ -106,13 +106,13 @@ const RELAY_TRANSPORT_TAIL: Duration = Duration::from_millis(750 + 15_000 + 15_0
 /// false failure the deadline above exists to prevent, one layer down.
 const RELAY_JOIN_TIMEOUT: Duration = Duration::from_secs(275);
 
-/// The one instruction this engine adds to a caller's prompt.
+/// The one instruction this engine adds to a structured caller's prompt.
 ///
-/// Every caller already asks for strict JSON, because the on-device engine is a
-/// structured-output model that answers in it. The engine on the far side of
-/// the relay is a chat model, and a chat model's habit is to introduce its JSON,
-/// wrap it in a fence, or add a closing remark once it is done. Saying so is
-/// the cheapest way to stop all three.
+/// The on-device engine is a structured-output model that answers in the JSON
+/// the prompt asks for. The engine on the far side of the relay is a chat
+/// model, and a chat model's habit is to introduce its JSON, wrap it in a
+/// fence, or add a closing remark once it is done. Saying so is the cheapest
+/// way to stop all three.
 ///
 /// This is the belt, and it is no longer the only thing holding. It used to
 /// be: nothing on the wire made a message JSON, the relay bounded its size and
@@ -130,6 +130,13 @@ const RELAY_JOIN_TIMEOUT: Duration = Duration::from_secs(275);
 /// `processing::first_json_value` still reads the first value and ignores what
 /// trails it.
 ///
+/// A prose caller gets neither the belt nor the braces. The rule was appended
+/// to every prompt and the declaration was hard-wired on, so a person's About
+/// paragraph came back as a JSON object and was stored as one, which is what
+/// the operator saw in the field. [`ReplyShape`] is how a caller says which
+/// it wants, and it is a parameter so that the next prose caller cannot
+/// forget to.
+///
 /// This comment used to argue the opposite, that tolerance belonged in the
 /// prompt so that "an answer that arrives fenced is a failed answer, and stays
 /// one". That reasoning survives for a fence, which is a formatting failure
@@ -139,6 +146,14 @@ const RELAY_JOIN_TIMEOUT: Duration = Duration::from_secs(275);
 /// generation that had worked. A fenced answer is still a failed answer; a
 /// complete answer with a postscript is not.
 const RELAY_OUTPUT_RULE: &str = "\n\nReply with the JSON object only. No prose before or after it, no code fence, and no closing note once the object is complete.";
+
+/// The prompt a turn carries for the shape its caller reads.
+fn relay_prompt(system_prompt: &str, shape: ReplyShape) -> String {
+    match shape {
+        ReplyShape::Json => format!("{system_prompt}{RELAY_OUTPUT_RULE}"),
+        ReplyShape::Prose => system_prompt.to_string(),
+    }
+}
 
 pub(crate) struct RelayTextGenerator {
     /// `None` in a build with no Tauri app — a unit test, or the CLI. Without
@@ -185,23 +200,35 @@ impl MeetingTextGenerator for RelayTextGenerator {
     /// budget, and the workspace's own response ceiling is what bounds the
     /// answer. Every caller validates the text it gets back, so an answer that
     /// runs long fails the same way an answer that runs wrong does.
+    ///
+    /// `shape` is declared twice: in the prompt, for a model that reads it,
+    /// and on the wire, for the relay that holds the model to it. A prose
+    /// caller declares nothing on either.
     fn generate(
         &self,
         system_prompt: &str,
         evidence: &str,
         max_tokens: i32,
+        shape: ReplyShape,
     ) -> Result<String, MeetingTextGenerationError> {
         let _ = max_tokens;
         let app = self
             .app
             .clone()
             .ok_or(MeetingTextGenerationError::Unreachable)?;
-        let prompt = format!("{system_prompt}{RELAY_OUTPUT_RULE}");
+        let prompt = relay_prompt(system_prompt, shape);
         let pack = evidence.to_string();
+        let reply_is_json = shape == ReplyShape::Json;
         let (sender, receiver) = mpsc::channel();
         tauri::async_runtime::spawn(async move {
-            let answer =
-                agent_panel::run_chat_turn(&app, &prompt, Some(pack), RELAY_TURN_DEADLINE).await;
+            let answer = agent_panel::run_chat_turn(
+                &app,
+                &prompt,
+                Some(pack),
+                RELAY_TURN_DEADLINE,
+                reply_is_json,
+            )
+            .await;
             /* The receiver is gone only if this thread stopped waiting, which
              * it does only after the join timeout. Nothing to report to. */
             let _ = sender.send(answer);
@@ -255,7 +282,7 @@ mod tests {
 
         assert!(!generator.is_available());
         assert_eq!(
-            generator.generate("prompt", "{}", 100),
+            generator.generate("prompt", "{}", 100, ReplyShape::Json),
             Err(MeetingTextGenerationError::Unreachable)
         );
     }
@@ -311,13 +338,20 @@ mod tests {
         );
     }
 
-    /// The rule that keeps JSON tolerance out of every parser in the meeting
-    /// pipeline: the instruction travels with the prompt, so a fenced answer
-    /// stays a failure instead of quietly becoming acceptable.
+    /// The instruction follows the shape the caller reads. A structured caller
+    /// gets the JSON-only rule appended, so a chat model is told once, in the
+    /// prompt, what the wire will hold it to. A prose caller's prompt goes
+    /// through untouched: appending the rule there is how a person's About
+    /// paragraph came back as a JSON object.
     #[test]
-    fn the_json_only_rule_is_appended_to_the_callers_prompt() {
-        assert!(RELAY_OUTPUT_RULE.contains("JSON object only"));
-        assert!(RELAY_OUTPUT_RULE.contains("no code fence"));
+    fn the_json_only_rule_follows_the_shape_the_caller_reads() {
+        let prompt = "Write one paragraph about this person.";
+
+        let structured = relay_prompt(prompt, ReplyShape::Json);
+        assert!(structured.starts_with(prompt));
+        assert!(structured.contains("JSON object only"));
+
+        assert_eq!(relay_prompt(prompt, ReplyShape::Prose), prompt);
     }
 
     /// Both budgets against the two ceilings behind them.

@@ -210,6 +210,25 @@ pub enum MeetingTextGenerationError {
     Unreachable,
 }
 
+/// The shape a caller reads its reply in, declared where the wire can hold
+/// the model to it.
+///
+/// An on-device engine answers in whatever shape the prompt asks for. A
+/// relayed engine is a chat model behind a relay that states the shape from
+/// its own trusted position and refuses a reply that ignores it, so the
+/// request has to say which shape it wants. The prompt cannot carry the fact:
+/// it travels as `user_message`, which the relay's system prompt tells the
+/// model is data that cannot set the response format. Declared once as a
+/// parameter, a prose caller can no longer be answered in JSON — which is
+/// what a person's About paragraph was, until this existed.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ReplyShape {
+    /// One JSON object, read by [`first_json_value`].
+    Json,
+    /// Prose, stored or shown as written.
+    Prose,
+}
+
 pub trait MeetingTextGenerator: Send + Sync {
     fn is_available(&self) -> bool;
     fn model_id(&self) -> &'static str;
@@ -228,6 +247,7 @@ pub trait MeetingTextGenerator: Send + Sync {
         system_prompt: &str,
         evidence: &str,
         max_tokens: i32,
+        shape: ReplyShape,
     ) -> Result<String, MeetingTextGenerationError>;
 }
 
@@ -259,11 +279,15 @@ impl MeetingTextGenerator for AppleIntelligenceGenerator {
         usize::MAX
     }
 
+    /// The shape is the prompt's to ask for here: nothing sits between this
+    /// engine and the caller that could hold the model to one, and the caller
+    /// checks what comes back either way.
     fn generate(
         &self,
         system_prompt: &str,
         evidence: &str,
         max_tokens: i32,
+        _shape: ReplyShape,
     ) -> Result<String, MeetingTextGenerationError> {
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         {
@@ -775,7 +799,7 @@ impl MeetingProcessingService {
                             }
                         })
                         .map_err(|_| ProcessingFailure::EngineFailure)?;
-                    match generator.generate(&prompt, &input, 1_200) {
+                    match generator.generate(&prompt, &input, 1_200, ReplyShape::Json) {
                         Ok(model_output) => {
                             let generated: RawAnswerOutput = first_json_value(&model_output)
                                 .map_err(|()| ProcessingFailure::EngineFailure)?;
@@ -885,8 +909,12 @@ impl MeetingProcessingService {
                 failed(PromptRunFailure::NoEvidence),
             );
         };
+        let shape = match &prompt.output {
+            PromptOutput::Text => ReplyShape::Prose,
+            PromptOutput::Schema { .. } => ReplyShape::Json,
+        };
         let result =
-            match generator.generate(&prompt_system_prompt(&prompt), &input, PROMPT_MAX_TOKENS) {
+            match generator.generate(&prompt_system_prompt(&prompt), &input, PROMPT_MAX_TOKENS, shape) {
                 Ok(output) => prompt_answer(&prompt.output, &output),
                 Err(MeetingTextGenerationError::Unreachable) => {
                     failed(PromptRunFailure::ModelUnreachable)
@@ -1793,7 +1821,12 @@ impl MeetingProcessingService {
             });
         };
         let system_prompt = artifact_system_prompt(template, !evidence.user_notes.is_empty());
-        let model_output = match generator.generate(&system_prompt, &canonical_input, 3_200) {
+        let model_output = match generator.generate(
+            &system_prompt,
+            &canonical_input,
+            3_200,
+            ReplyShape::Json,
+        ) {
             Ok(output) => output,
             /* The engine was never reached, so nothing is recorded as having
              * failed to generate: a revision marked Failed would tell a reader
@@ -2054,7 +2087,12 @@ impl MeetingProcessingService {
             }
         })
         .map_err(|_| ProcessingFailure::EngineFailure)?;
-        let model_output = match generator.generate(&catch_up_prompt(), &canonical_input, 900) {
+        let model_output = match generator.generate(
+            &catch_up_prompt(),
+            &canonical_input,
+            900,
+            ReplyShape::Json,
+        ) {
             Ok(output) => output,
             /* An engine nobody could reach is reported as an engine that is not
              * there, which is what the recap surface already knows how to say. */
@@ -3454,6 +3492,7 @@ pub(crate) fn write_relationship_summary(
         &relationship_summary_prompt(&detail.person.display_name),
         &pack.pack,
         RELATIONSHIP_SUMMARY_MAX_TOKENS,
+        ReplyShape::Prose,
     ) else {
         return Ok(());
     };
@@ -3944,7 +3983,7 @@ fn read_ledger(
     let mut last: Option<MeetingLedger> = None;
     for _ in 0..=LEDGER_RECEIPT_RETRIES {
         let output = generator
-            .generate(&prompt, &input, LEDGER_MAX_TOKENS)
+            .generate(&prompt, &input, LEDGER_MAX_TOKENS, ReplyShape::Json)
             .ok()?;
         let raw: RawLedgerOutput = first_json_value(&output).ok()?;
         let candidate = validate_ledger_output(&raw, &evidence.transcript).ok()?;
@@ -4818,6 +4857,7 @@ mod tests {
             _system_prompt: &str,
             _evidence: &str,
             _max_tokens: i32,
+            _shape: ReplyShape,
         ) -> Result<String, MeetingTextGenerationError> {
             self.answer.clone()
         }
