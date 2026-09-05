@@ -830,9 +830,7 @@
         "running": "{{count}} dosya çevriliyor"
       },
       "clearSearch": "Aramayı temizle",
-      "emptyHint": "Mevcut bir kaydı da çevirebilirsiniz: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 veya M4V, en fazla 30 dakika.",
       "loadMore": "Daha fazla yükle",
-      "noResultsHint": "Arama, hem ham hem de işlenmiş transkriptteki tam kelimelerle eşleşir.",
       "results": "{{count}} eşleşme",
       "resultsMore": "{{count}}+ eşleşme",
       "resultsNone": "Eşleşme yok",
@@ -842,8 +840,8 @@
       "derivedFromId": "#{{id}} kaydından",
       "recalledByMeaning": "anlama göre",
       "level": {
-        "peak": "peak",
-        "rms": "ortalama"
+        "peak": "Peak",
+        "rms": "Ortalama"
       },
       "noTextRecorded": "Bu kayıt için metin kaydedilmedi.",
       "cloudHeld": "Sona bulut sonucunu alıkoydu: güvenilir hiçbir şey dönmedi ve kullanılabilir yerel model yoktu.",
@@ -1987,7 +1985,6 @@
     },
     "import": {
       "action": "İçe aktar",
-      "importing": "İçe aktarılıyor…",
       "recordingFilter": "Kayıt",
       "transcriptFilter": "Transkript dışa aktarımı"
     },
@@ -2074,7 +2071,6 @@
       "loading": "Geçerli politika okunuyor…"
     },
     "receipts": {
-      "title": "Düzeltme kaydı",
       "saved": "Yerel olarak kaydedildi.",
       "savedRevision": "Yerel olarak kaydedildi. Sürüm {{revision}}.",
       "duplicate": "Bu eylem daha önce kaydedilmişti. Sona mevcut sonucu yeniledi."
@@ -2154,10 +2150,10 @@
       "started": "Başlangıç {{date}}",
       "partialRecording": "Kısmi kayıt",
       "status": "Yakalama durumu",
+      "capture": "Bu nasıl kaydedildi",
       "timeline": "Ses zaman çizelgesi ve boşluklar",
       "timeUnknown": "Bilinmeyen saat",
-      "noGaps": "Boşluk algılanmadı.",
-      "gapDuration": "Süre: {{duration}}",
+      "gapDuration": "{{duration}} eksik",
       "showMoreGaps": "{{count}} tane daha göster",
       "showFewerGaps": "Daha az göster",
       "transcript": "Transkript",
@@ -2186,14 +2182,13 @@
       "rememberVoice": "Bu sesi bu Mac'te hatırla",
       "notNow": "Şimdi değil",
       "rememberVoiceFailed": "Etiket kaydedildi. Sona bu toplantıdan bu sesi hatırlayamadı. Başka bir toplantıyı deneyin.",
+      "notesTitle": "Notlar",
       "manualNotes": "Elle alınan notlar",
       "manualNote": "Elle alınan not",
       "newNote": "Yeni elle alınan not",
       "notePlaceholder": "Elle bir not ekleyin",
       "addNote": "Not ekle",
-      "noNotes": "Henüz elle alınmış not yok.",
-      "noTimestamp": "Zaman damgası yok",
-      "timestamp": "Zaman damgası {{time}}",
+      "editNote": "Bu notu düzenle",
       "generatedNotes": "Oluşturulan notlar",
       "regenerate": "Yeniden üret",
       "remoteCancellationPending": "Uzak iptal beklemede. Yerel silme, uzak kopyanın silindiği anlamına gelmez.",
@@ -2203,12 +2198,18 @@
       "exportMarkdown": "Markdown'ı dışa aktar",
       "exportJson": "JSON'u dışa aktar",
       "exportComplete": "Toplantı dışa aktarıldı",
+      "moreActions": "Daha fazla",
       "citation": "Transkript {{time}}",
       "noGeneratedNotes": "Henüz oluşturulmuş not yok.",
-      "template": "Şablon: {{template}}",
-      "summary": "Özet",
       "topics": "Konular",
-      "none": "Yok",
+      "nothingRecorded": "Hiçbir karar, iş maddesi, soru veya risk kaydedilmedi.",
+      "templateName": {
+        "meeting-review": "Genel toplantı",
+        "meeting-one-on-one": "Bire bir",
+        "meeting-interview": "Görüşme",
+        "meeting-sales-call": "Satış görüşmesi",
+        "meeting-standup": "Standup"
+      },
       "decisions": "Kararlar",
       "actions": "İş maddeleri",
       "keyQuestions": "Temel sorular",
@@ -2216,12 +2217,12 @@
       "followUp": "Takip",
       "artifactUnavailable": "Bu oluşturulan notlar kullanılamıyor. Transkript ve kendi notlarınız bu Mac'te kalır.",
       "actionMeta": "Sahibi: {{owner}} · Bitiş: {{due}}",
+      "actionOwner": "Sahibi: {{owner}}",
+      "actionDue": "Bitiş: {{due}}",
       "actionDone": "Bu maddeyi yapıldı olarak işaretle",
-      "unassigned": "Atanmamış",
-      "noDueDate": "Bitiş tarihi yok",
       "searchPlaceholder": "Bu toplantıda ara",
       "noSearchResults": "Tam yerel eşleşme yok.",
-      "droppedFrames": "Düşen kareler: {{total}}",
+      "droppedFrames": "{{total}} kare düştü",
       "hitKind": {
         "manualNote": "Elle alınan not",
         "title": "Toplantı başlığı"
@@ -2353,8 +2354,13 @@
       }
     },
     "status": {
-      "gapCount": "Boşluklar: {{total}}",
-      "required": "Gerekli"
+      "someAudioMissing": "Bu sesin bir kısmı eksik.",
+      "required": "Gerekli",
+      "state": {
+        "ready": "Hazır",
+        "recording": "Kaydediyor",
+        "recorded": "Kaydedildi"
+      }
     },
     "analytics": {
       "title": "Konuşma",
@@ -2383,6 +2389,8 @@
     },
     "notes": {
       "title": "Notlarım",
+      "guideTitle": "Özeti yönlendir",
+      "guidePrompt": "Özeti yönlendir…",
       "liveDescription": "İstediğiniz kadar dağınık yazın. Bu notlar bu Mac'te kalır ve toplantı bittiğinde Sona'nın ürettiği notları yönlendirir.",
       "placeholder": "Hatırlanmaya değer her şey: adlar, sayılar, takip edilecekler",
       "unsaved": "Henüz kaydedilmedi",
@@ -2541,8 +2549,7 @@
     },
     "talkTime": {
       "label": "Konuşma süresi",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Konuşma süresi: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Takip mesajı yaz",
@@ -2688,7 +2695,6 @@
       "streak": "Seri",
       "rangePrevious": "Önceki 7 gün",
       "rangeNext": "Sonraki 7 gün",
-      "peak": "Zirve",
       "dictationsAria": "Günlük dikte, en yüksek {{day}} günü {{count}}",
       "wordsAria": "Günlük kelime, toplam {{count}}, son değer {{last}}",
       "days_one": "{{count}} gün",
@@ -2827,6 +2833,8 @@
       "voiceProfileRemoved": "Sona bu sesi bu Mac'te hatırlamayı bıraktı.",
       "voiceProfileRemovalFailed": "Ses profili kaldırılamadı. Tekrar deneyin.",
       "aliases": "Diğer adlar: {{aliases}}",
+      "addresses": "{{addresses}} olarak davet edildi",
+      "openMeetingAt": "{{title}} aç, {{date}}",
       "merge": "Birleştir",
       "mergeTitle": "Bu kişi birleştirilsin mi?",
       "mergeDescription": "{{source}}, {{target}} ile birleştirilsin mi? Bağlantılar, diğer adlar ve ilişki geçmişi birleştirilecek.",
@@ -2879,6 +2887,7 @@
       "operation": "Kişiler güncellenemedi. Tekrar deneyin."
     },
     "summary": {
+      "title": "Hakkında",
       "empty": "Henüz özet yok.",
       "regenerate": "Yeniden oluştur",
       "provenance": "{{date}} tarihinde {{model}} tarafından yazıldı"
@@ -3195,6 +3204,26 @@
       "primed": "Yinelenen bir toplantı hazırladı",
       "noticed_one": "1 şey fark etti",
       "noticed_other": "{{count}} şey fark etti"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Ses içe aktar",
+      "meeting": "Toplantı içe aktar"
+    },
+    "dropZone": {
+      "prompt": "Sürükleyip bırakın ya da yüklemek için <choose>dosya seçin</choose>"
+    },
+    "importFiles_zero": "Dosyaları içe aktar",
+    "importFiles_one": "Dosyayı içe aktar",
+    "importFiles_other": "{{count}} dosyayı içe aktar",
+    "fileStatus": {
+      "ready": "İçe aktarmaya hazır",
+      "queued": "Kuyrukta",
+      "running": "Üzerinde çalışılıyor",
+      "done": "İçe aktarıldı",
+      "cancelled": "İptal edildi",
+      "failed": "Başarısız"
     }
   },
   "recorder": {

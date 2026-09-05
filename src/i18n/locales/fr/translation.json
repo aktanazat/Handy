@@ -830,9 +830,7 @@
         "running": "Transcription de {{count}} fichiers"
       },
       "clearSearch": "Effacer la recherche",
-      "emptyHint": "Vous pouvez aussi transcrire un enregistrement existant : WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 ou M4V, jusqu'à 30 minutes.",
       "loadMore": "Charger plus",
-      "noResultsHint": "La recherche porte sur des mots entiers dans la transcription brute et la transcription traitée.",
       "results": "{{count}} résultats",
       "resultsMore": "{{count}}+ résultats",
       "resultsNone": "Aucun résultat",
@@ -842,8 +840,8 @@
       "derivedFromId": "de #{{id}}",
       "recalledByMeaning": "par le sens",
       "level": {
-        "peak": "peak",
-        "rms": "moyen"
+        "peak": "Peak",
+        "rms": "Moyen"
       },
       "noTextRecorded": "Aucun texte n'a été enregistré pour cette entrée.",
       "cloudHeld": "Sona a retenu le résultat cloud : rien de fiable n'est revenu et aucun modèle local n'était disponible.",
@@ -1993,7 +1991,6 @@
     },
     "import": {
       "action": "Importer",
-      "importing": "Importation…",
       "recordingFilter": "Enregistrement",
       "transcriptFilter": "Export de transcription"
     },
@@ -2080,7 +2077,6 @@
       "loading": "Lecture de la politique actuelle…"
     },
     "receipts": {
-      "title": "Reçu de correction",
       "saved": "Enregistré en local.",
       "savedRevision": "Enregistré localement. Version {{revision}}.",
       "duplicate": "Cette action a déjà été enregistrée. Sona a actualisé le résultat existant."
@@ -2160,10 +2156,10 @@
       "started": "Démarrée le {{date}}",
       "partialRecording": "Enregistrement partiel",
       "status": "État de la capture",
+      "capture": "Comment cela a été enregistré",
       "timeline": "Chronologie audio et lacunes",
       "timeUnknown": "Heure inconnue",
-      "noGaps": "Aucune lacune détectée.",
-      "gapDuration": "Durée : {{duration}}",
+      "gapDuration": "{{duration}} manquantes",
       "showMoreGaps": "Afficher {{count}} de plus",
       "showFewerGaps": "Afficher moins",
       "transcript": "Transcription",
@@ -2193,14 +2189,13 @@
       "rememberVoice": "Mémoriser cette voix sur ce Mac",
       "notNow": "Pas maintenant",
       "rememberVoiceFailed": "L’étiquette a été enregistrée. Sona n’a pas pu mémoriser cette voix à partir de cette réunion. Essayez une autre réunion.",
+      "notesTitle": "Notes",
       "manualNotes": "Notes manuelles",
       "manualNote": "Note manuelle",
       "newNote": "Nouvelle note manuelle",
       "notePlaceholder": "Ajouter une note manuelle",
       "addNote": "Ajouter une note",
-      "noNotes": "Pas encore de notes manuelles.",
-      "noTimestamp": "Aucun horodatage",
-      "timestamp": "Horodatage {{time}}",
+      "editNote": "Modifier cette note",
       "generatedNotes": "Notes générées",
       "regenerate": "Régénérer",
       "remoteCancellationPending": "L'annulation distante est en attente. La suppression locale n'affirme pas que la copie distante est supprimée.",
@@ -2210,12 +2205,18 @@
       "exportMarkdown": "Exporter en Markdown",
       "exportJson": "Exporter en JSON",
       "exportComplete": "Réunion exportée",
+      "moreActions": "Plus",
       "citation": "Transcription {{time}}",
       "noGeneratedNotes": "Aucune note générée n'est encore disponible.",
-      "template": "Modèle : {{template}}",
-      "summary": "Résumé",
       "topics": "Sujets",
-      "none": "Aucune",
+      "nothingRecorded": "Aucune décision, action à mener, question ou risque n'a été relevé.",
+      "templateName": {
+        "meeting-review": "Réunion générale",
+        "meeting-one-on-one": "Entretien individuel",
+        "meeting-interview": "Entretien d'embauche",
+        "meeting-sales-call": "Appel commercial",
+        "meeting-standup": "Point d'équipe"
+      },
       "decisions": "Décisions",
       "actions": "Actions à mener",
       "keyQuestions": "Questions clés",
@@ -2223,12 +2224,12 @@
       "followUp": "Suivi",
       "artifactUnavailable": "Ces notes générées sont indisponibles. La transcription et vos notes manuelles restent sur ce Mac.",
       "actionMeta": "Responsable : {{owner}} · Échéance : {{due}}",
+      "actionOwner": "Responsable : {{owner}}",
+      "actionDue": "Échéance : {{due}}",
       "actionDone": "Marquer cette action comme faite",
-      "unassigned": "Non attribué",
-      "noDueDate": "Aucune échéance",
       "searchPlaceholder": "Rechercher dans cette réunion",
       "noSearchResults": "Aucune correspondance exacte en local.",
-      "droppedFrames": "Trames perdues : {{total}}",
+      "droppedFrames": "{{total}} trames perdues",
       "hitKind": {
         "manualNote": "Note manuelle",
         "title": "Titre de la réunion"
@@ -2360,8 +2361,13 @@
       }
     },
     "status": {
-      "gapCount": "Lacunes : {{total}}",
-      "required": "Requis"
+      "someAudioMissing": "Une partie de cet audio manque.",
+      "required": "Requis",
+      "state": {
+        "ready": "Prêt",
+        "recording": "Enregistrement",
+        "recorded": "Enregistré"
+      }
     },
     "analytics": {
       "title": "Conversation",
@@ -2390,6 +2396,8 @@
     },
     "notes": {
       "title": "Mes notes",
+      "guideTitle": "Orienter le résumé",
+      "guidePrompt": "Orienter le résumé…",
       "liveDescription": "Écrivez aussi grossièrement que vous voulez. Ces notes restent sur ce Mac et orientent celles que Sona génère à la fin de la réunion.",
       "placeholder": "Tout ce qui mérite d'être retenu : noms, chiffres, points à suivre",
       "unsaved": "Pas encore enregistré",
@@ -2548,8 +2556,7 @@
     },
     "talkTime": {
       "label": "Temps de parole",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Temps de parole : {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Rédiger un suivi",
@@ -2695,7 +2702,6 @@
       "streak": "Série",
       "rangePrevious": "7 jours précédents",
       "rangeNext": "7 jours suivants",
-      "peak": "Maximum",
       "dictationsAria": "Dictées par jour, maximum de {{count}} le {{day}}",
       "wordsAria": "Mots par jour, {{count}} au total, dernière valeur {{last}}",
       "days_one": "{{count}} jour",
@@ -2837,6 +2843,8 @@
       "voiceProfileRemoved": "Sona ne mémorise plus cette voix sur ce Mac.",
       "voiceProfileRemovalFailed": "Impossible de supprimer le profil vocal. Réessayez.",
       "aliases": "Aussi : {{aliases}}",
+      "addresses": "Invité en tant que {{addresses}}",
+      "openMeetingAt": "Ouvrir {{title}}, {{date}}",
       "merge": "Fusionner",
       "mergeTitle": "Fusionner cette personne ?",
       "mergeDescription": "Fusionner {{source}} avec {{target}} ? Les liens, alias et l’historique de la relation seront regroupés.",
@@ -2889,6 +2897,7 @@
       "operation": "Impossible de mettre à jour les personnes. Réessayez."
     },
     "summary": {
+      "title": "À propos",
       "empty": "Aucun résumé pour l'instant.",
       "regenerate": "Régénérer",
       "provenance": "Rédigé par {{model}} le {{date}}"
@@ -2964,7 +2973,7 @@
   },
   "peopleV2": {
     "list": {
-      "lastMet": "Dernière réunion le {{date}}"
+      "lastMet": "Dernière réunion : {{date}}"
     },
     "detail": {
       "openLoops": "Questions en suspens",
@@ -3215,6 +3224,27 @@
       "noticed_one": "1 chose remarquée",
       "noticed_many": "{{count}} choses remarquées",
       "noticed_other": "{{count}} choses remarquées"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Importer un fichier audio",
+      "meeting": "Importer une réunion"
+    },
+    "dropZone": {
+      "prompt": "Glissez-déposez ou <choose>choisissez un fichier</choose> pour l'importer"
+    },
+    "importFiles_zero": "Importer les fichiers",
+    "importFiles_one": "Importer le fichier",
+    "importFiles_many": "Importer {{count}} fichiers",
+    "importFiles_other": "Importer {{count}} fichiers",
+    "fileStatus": {
+      "ready": "Prêt à importer",
+      "queued": "En attente",
+      "running": "Traitement en cours",
+      "done": "Importé",
+      "cancelled": "Annulé",
+      "failed": "Échec"
     }
   },
   "recorder": {

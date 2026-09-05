@@ -830,9 +830,7 @@
         "running": "Transskriberer {{count}} filer"
       },
       "clearSearch": "Ryd søgning",
-      "emptyHint": "Du kan også transskribere en eksisterende optagelse: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 eller M4V, op til 30 minutter.",
       "loadMore": "Indlæs flere",
-      "noResultsHint": "Søgningen matcher hele ord i både den rå og den behandlede transskription.",
       "results": "{{count}} resultater",
       "resultsMore": "{{count}}+ resultater",
       "resultsNone": "Ingen resultater",
@@ -842,8 +840,8 @@
       "derivedFromId": "fra #{{id}}",
       "recalledByMeaning": "via betydning",
       "level": {
-        "peak": "peak",
-        "rms": "gennemsnit"
+        "peak": "Peak",
+        "rms": "Gennemsnit"
       },
       "noTextRecorded": "Der blev ikke registreret nogen tekst for denne post.",
       "cloudHeld": "Sona holdt cloud-resultatet tilbage: der kom intet troværdigt tilbage, og ingen lokal model var tilgængelig.",
@@ -1987,7 +1985,6 @@
     },
     "import": {
       "action": "Importer",
-      "importing": "Importerer…",
       "recordingFilter": "Optagelse",
       "transcriptFilter": "Transskripteksport"
     },
@@ -2074,7 +2071,6 @@
       "loading": "Læser den aktuelle politik…"
     },
     "receipts": {
-      "title": "Korrektionskvittering",
       "saved": "Gemt lokalt.",
       "savedRevision": "Gemt lokalt. Version {{revision}}.",
       "duplicate": "Denne handling er allerede registreret. Sona opdaterede det eksisterende resultat."
@@ -2154,10 +2150,10 @@
       "started": "Startet {{date}}",
       "partialRecording": "Delvis optagelse",
       "status": "Optagelsesstatus",
+      "capture": "Sådan blev det optaget",
       "timeline": "Lydtidslinje og huller",
       "timeUnknown": "Ukendt tidspunkt",
-      "noGaps": "Ingen huller registreret.",
-      "gapDuration": "Varighed: {{duration}}",
+      "gapDuration": "{{duration}} mangler",
       "showMoreGaps": "Vis {{count}} mere",
       "showFewerGaps": "Vis færre",
       "transcript": "Transskription",
@@ -2186,14 +2182,13 @@
       "rememberVoice": "Husk denne stemme på denne Mac",
       "notNow": "Ikke nu",
       "rememberVoiceFailed": "Navnet blev gemt. Sona kunne ikke huske denne stemme fra dette møde. Prøv et andet møde.",
+      "notesTitle": "Noter",
       "manualNotes": "Manuelle noter",
       "manualNote": "Manuel note",
       "newNote": "Ny manuel note",
       "notePlaceholder": "Tilføj en manuel note",
       "addNote": "Tilføj note",
-      "noNotes": "Endnu ingen manuelle noter.",
-      "noTimestamp": "Intet tidsstempel",
-      "timestamp": "Tidsstempel {{time}}",
+      "editNote": "Rediger denne note",
       "generatedNotes": "Genererede noter",
       "regenerate": "Regenerér",
       "remoteCancellationPending": "Fjernannulleringen afventer stadig. Lokal sletning hævder ikke, at fjernkopien er slettet.",
@@ -2203,12 +2198,18 @@
       "exportMarkdown": "Eksportér Markdown",
       "exportJson": "Eksportér JSON",
       "exportComplete": "Mødet eksporteret",
+      "moreActions": "Mere",
       "citation": "Transskription {{time}}",
       "noGeneratedNotes": "Der er endnu ingen genererede noter tilgængelige.",
-      "template": "Skabelon: {{template}}",
-      "summary": "Resumé",
       "topics": "Emner",
-      "none": "Ingen",
+      "nothingRecorded": "Der blev ikke registreret beslutninger, handlingspunkter, spørgsmål eller risici.",
+      "templateName": {
+        "meeting-review": "Almindeligt møde",
+        "meeting-one-on-one": "En-til-en",
+        "meeting-interview": "Jobsamtale",
+        "meeting-sales-call": "Salgsopkald",
+        "meeting-standup": "Standup"
+      },
       "decisions": "Beslutninger",
       "actions": "Handlingspunkter",
       "keyQuestions": "Vigtige spørgsmål",
@@ -2216,12 +2217,12 @@
       "followUp": "Opfølgning",
       "artifactUnavailable": "Disse genererede noter er ikke tilgængelige. Transskriptionen og dine manuelle noter bliver på denne Mac.",
       "actionMeta": "Ansvarlig: {{owner}} · Frist: {{due}}",
+      "actionOwner": "Ansvarlig: {{owner}}",
+      "actionDue": "Frist: {{due}}",
       "actionDone": "Markér denne handling som udført",
-      "unassigned": "Ikke tildelt",
-      "noDueDate": "Ingen frist",
       "searchPlaceholder": "Søg i dette møde",
       "noSearchResults": "Ingen præcise lokale match.",
-      "droppedFrames": "Tabte frames: {{total}}",
+      "droppedFrames": "{{total}} frames tabt",
       "hitKind": {
         "manualNote": "Manuel note",
         "title": "Mødetitel"
@@ -2353,8 +2354,13 @@
       }
     },
     "status": {
-      "gapCount": "Huller: {{total}}",
-      "required": "Påkrævet"
+      "someAudioMissing": "En del af denne lyd mangler.",
+      "required": "Påkrævet",
+      "state": {
+        "ready": "Klar",
+        "recording": "Optager",
+        "recorded": "Optaget"
+      }
     },
     "analytics": {
       "title": "Samtale",
@@ -2383,6 +2389,8 @@
     },
     "notes": {
       "title": "Mine noter",
+      "guideTitle": "Styr resuméet",
+      "guidePrompt": "Styr resuméet…",
       "liveDescription": "Skriv så råt du vil. Disse noter bliver på denne Mac og styrer de noter, Sona laver, når mødet slutter.",
       "placeholder": "Alt der er værd at huske: navne, tal, hvad der skal følges op på",
       "unsaved": "Ikke gemt endnu",
@@ -2541,8 +2549,7 @@
     },
     "talkTime": {
       "label": "Taletid",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Taletid: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Skriv opfølgning",
@@ -2688,7 +2695,6 @@
       "streak": "Serie",
       "rangePrevious": "Forrige 7 dage",
       "rangeNext": "Næste 7 dage",
-      "peak": "Top",
       "dictationsAria": "Dikteringer pr. dag, højest {{count}} på {{day}}",
       "wordsAria": "Ord pr. dag, {{count}} i alt, slutter på {{last}}",
       "days_one": "{{count}} dag",
@@ -2827,6 +2833,8 @@
       "voiceProfileRemoved": "Sona holder op med at huske denne stemme på denne Mac.",
       "voiceProfileRemovalFailed": "Stemmeprofilen kunne ikke fjernes. Prøv igen.",
       "aliases": "Også: {{aliases}}",
+      "addresses": "Inviteret som {{addresses}}",
+      "openMeetingAt": "Åbn {{title}}, {{date}}",
       "merge": "Flet",
       "mergeTitle": "Flet denne person?",
       "mergeDescription": "Flet {{source}} ind i {{target}}? Tilknytninger, aliasser og relationshistorik bliver samlet.",
@@ -2879,6 +2887,7 @@
       "operation": "Personer kunne ikke opdateres. Prøv igen."
     },
     "summary": {
+      "title": "Om personen",
       "empty": "Intet resumé endnu.",
       "regenerate": "Generer igen",
       "provenance": "Skrevet af {{model}} den {{date}}"
@@ -3195,6 +3204,26 @@
       "primed": "Forberedte et gentaget møde",
       "noticed_one": "Bemærkede 1 ting",
       "noticed_other": "Bemærkede {{count}} ting"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Importér lyd",
+      "meeting": "Importér et møde"
+    },
+    "dropZone": {
+      "prompt": "Træk og slip, eller <choose>vælg en fil</choose> for at uploade"
+    },
+    "importFiles_zero": "Importér filer",
+    "importFiles_one": "Importér fil",
+    "importFiles_other": "Importér {{count}} filer",
+    "fileStatus": {
+      "ready": "Klar til import",
+      "queued": "I kø",
+      "running": "Arbejder på det",
+      "done": "Importeret",
+      "cancelled": "Annulleret",
+      "failed": "Mislykkedes"
     }
   },
   "recorder": {

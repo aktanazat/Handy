@@ -830,9 +830,7 @@
         "running": "正在轉錄 {{count}} 個檔案"
       },
       "clearSearch": "清除搜尋",
-      "emptyHint": "你也可以轉錄現有錄音：WAV、MP3、M4A、AAC、FLAC、OGG、MOV、MP4 或 M4V，最長 30 分鐘。",
       "loadMore": "載入更多",
-      "noResultsHint": "搜尋會比對原始與處理後逐字稿中的完整單字。",
       "results": "{{count}} 個符合項目",
       "resultsMore": "{{count}}+ 個符合項目",
       "resultsNone": "沒有符合項目",
@@ -842,7 +840,7 @@
       "derivedFromId": "來自 #{{id}}",
       "recalledByMeaning": "依語意",
       "level": {
-        "peak": "peak",
+        "peak": "Peak",
         "rms": "平均"
       },
       "noTextRecorded": "此項目未記錄任何文字。",
@@ -1981,7 +1979,6 @@
     },
     "import": {
       "action": "匯入",
-      "importing": "正在匯入…",
       "recordingFilter": "錄音",
       "transcriptFilter": "逐字稿匯出檔"
     },
@@ -2068,7 +2065,6 @@
       "loading": "正在讀取目前的政策…"
     },
     "receipts": {
-      "title": "更正記錄",
       "saved": "已儲存在本機。",
       "savedRevision": "已儲存到本機。版本 {{revision}}。",
       "duplicate": "此動作已被記錄。Sona 已重新整理現有結果。"
@@ -2148,10 +2144,10 @@
       "started": "{{date}} 開始",
       "partialRecording": "部分錄音",
       "status": "擷取狀態",
+      "capture": "這段錄音是如何記錄的",
       "timeline": "音訊時間軸與間隔",
       "timeUnknown": "時間未知",
-      "noGaps": "未偵測到間隔。",
-      "gapDuration": "時長：{{duration}}",
+      "gapDuration": "缺失 {{duration}}",
       "showMoreGaps": "再顯示 {{count}} 筆",
       "showFewerGaps": "收合",
       "transcript": "逐字稿",
@@ -2179,14 +2175,13 @@
       "rememberVoice": "在此 Mac 上記住此聲音",
       "notNow": "暫不",
       "rememberVoiceFailed": "標記已儲存。Sona 無法從這場會議記住此聲音。請在另一場會議中再試。",
+      "notesTitle": "筆記",
       "manualNotes": "手動筆記",
       "manualNote": "手動筆記",
       "newNote": "新增手動筆記",
       "notePlaceholder": "新增手動筆記",
       "addNote": "新增筆記",
-      "noNotes": "還沒有手動筆記。",
-      "noTimestamp": "無時間戳記",
-      "timestamp": "時間戳記 {{time}}",
+      "editNote": "編輯這則筆記",
       "generatedNotes": "生成的筆記",
       "regenerate": "重新產生",
       "remoteCancellationPending": "遠端取消仍在等待中。本機刪除並不表示遠端副本已被刪除。",
@@ -2196,12 +2191,18 @@
       "exportMarkdown": "匯出 Markdown",
       "exportJson": "匯出 JSON",
       "exportComplete": "會議已匯出",
+      "moreActions": "更多",
       "citation": "逐字稿 {{time}}",
       "noGeneratedNotes": "目前還沒有可用的生成筆記。",
-      "template": "範本: {{template}}",
-      "summary": "摘要",
       "topics": "話題",
-      "none": "無",
+      "nothingRecorded": "沒有記錄到決定事項、行動項目、問題或風險。",
+      "templateName": {
+        "meeting-review": "一般會議",
+        "meeting-one-on-one": "一對一",
+        "meeting-interview": "面試",
+        "meeting-sales-call": "銷售通話",
+        "meeting-standup": "站立會議"
+      },
       "decisions": "決定事項",
       "actions": "行動項目",
       "keyQuestions": "關鍵問題",
@@ -2209,12 +2210,12 @@
       "followUp": "後續追蹤",
       "artifactUnavailable": "這些生成的筆記無法使用。轉錄和你自己寫的筆記都留在這台 Mac 上。",
       "actionMeta": "負責人：{{owner}} · 期限：{{due}}",
+      "actionOwner": "負責人：{{owner}}",
+      "actionDue": "期限：{{due}}",
       "actionDone": "把這條行動項目標記為完成",
-      "unassigned": "未指派",
-      "noDueDate": "無期限",
       "searchPlaceholder": "搜尋這場會議",
       "noSearchResults": "沒有完全符合的本機結果。",
-      "droppedFrames": "丟失影格：{{total}}",
+      "droppedFrames": "丟失 {{total}} 個影格",
       "hitKind": {
         "manualNote": "手動筆記",
         "title": "會議標題"
@@ -2346,8 +2347,13 @@
       }
     },
     "status": {
-      "gapCount": "間隔：{{total}}",
-      "required": "必要"
+      "someAudioMissing": "這段音訊有一部分缺失。",
+      "required": "必要",
+      "state": {
+        "ready": "就緒",
+        "recording": "錄製中",
+        "recorded": "已錄製"
+      }
     },
     "analytics": {
       "title": "對話",
@@ -2376,6 +2382,8 @@
     },
     "notes": {
       "title": "我的筆記",
+      "guideTitle": "引導摘要",
+      "guidePrompt": "引導摘要…",
       "liveDescription": "想寫得多粗略都行。這些筆記留在這台 Mac 上，並會引導會議結束時 Sona 產生的筆記。",
       "placeholder": "任何值得記下的東西：名字、數字、需要跟進的事",
       "unsaved": "尚未儲存",
@@ -2534,8 +2542,7 @@
     },
     "talkTime": {
       "label": "發言時間",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "發言時間：{{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "草擬後續訊息",
@@ -2681,7 +2688,6 @@
       "streak": "連續紀錄",
       "rangePrevious": "前 7 天",
       "rangeNext": "後 7 天",
-      "peak": "最高",
       "dictationsAria": "每日口述，{{day}}最高 {{count}} 次",
       "wordsAria": "每日字詞，共 {{count}} 個，最後為 {{last}}",
       "days_other": "{{count}} 天",
@@ -2818,6 +2824,8 @@
       "voiceProfileRemoved": "Sona 已不再在此 Mac 上記住此聲音。",
       "voiceProfileRemovalFailed": "無法移除聲音檔案。請再試一次。",
       "aliases": "其他名稱：{{aliases}}",
+      "addresses": "以 {{addresses}} 受邀",
+      "openMeetingAt": "開啟 {{title}}，{{date}}",
       "merge": "合併",
       "mergeTitle": "合併此人物？",
       "mergeDescription": "將 {{source}} 合併到 {{target}}？連結、其他名稱與關係記錄都會合併。",
@@ -2870,6 +2878,7 @@
       "operation": "無法更新人物資料。請再試一次。"
     },
     "summary": {
+      "title": "簡介",
       "empty": "尚無摘要。",
       "regenerate": "重新產生",
       "provenance": "由 {{model}} 於 {{date}} 撰寫"
@@ -3179,6 +3188,25 @@
     "outcomes": {
       "primed": "已為週期性會議做準備",
       "noticed_other": "注意到 {{count}} 項"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "匯入音訊",
+      "meeting": "匯入會議"
+    },
+    "dropZone": {
+      "prompt": "拖放檔案，或<choose>選擇檔案</choose>上傳"
+    },
+    "importFiles_zero": "匯入檔案",
+    "importFiles_other": "匯入 {{count}} 個檔案",
+    "fileStatus": {
+      "ready": "可以匯入",
+      "queued": "已排入佇列",
+      "running": "處理中",
+      "done": "已匯入",
+      "cancelled": "已取消",
+      "failed": "失敗"
     }
   },
   "recorder": {

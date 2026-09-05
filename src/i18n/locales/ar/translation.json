@@ -830,9 +830,7 @@
         "running": "جارٍ تفريغ {{count}} ملفات"
       },
       "clearSearch": "مسح البحث",
-      "emptyHint": "يمكنك أيضًا تفريغ تسجيل موجود: WAV أو MP3 أو M4A أو AAC أو FLAC أو OGG أو MOV أو MP4 أو M4V، حتى 30 دقيقة.",
       "loadMore": "تحميل المزيد",
-      "noResultsHint": "يطابق البحث الكلمات الكاملة في النص الخام والنص المعالج معًا.",
       "results": "{{count}} نتيجة مطابقة",
       "resultsMore": "{{count}}+ نتيجة مطابقة",
       "resultsNone": "لا توجد نتائج مطابقة",
@@ -842,7 +840,7 @@
       "derivedFromId": "من #{{id}}",
       "recalledByMeaning": "بالمعنى",
       "level": {
-        "peak": "peak",
+        "peak": "Peak",
         "rms": "المتوسط"
       },
       "noTextRecorded": "لم يُسجَّل أي نص لهذا العنصر.",
@@ -2011,7 +2009,6 @@
     },
     "import": {
       "action": "استيراد",
-      "importing": "جارٍ الاستيراد…",
       "recordingFilter": "تسجيل",
       "transcriptFilter": "نص مفرّغ مُصدَّر"
     },
@@ -2098,7 +2095,6 @@
       "loading": "جارٍ قراءة السياسة الحالية…"
     },
     "receipts": {
-      "title": "سجل التصحيح",
       "saved": "تم الحفظ محليًا.",
       "savedRevision": "حُفظ محليًا. الإصدار {{revision}}.",
       "duplicate": "تم تسجيل هذا الإجراء بالفعل. حدّث Sona النتيجة الموجودة."
@@ -2178,10 +2174,10 @@
       "started": "بدأ {{date}}",
       "partialRecording": "تسجيل جزئي",
       "status": "حالة التسجيل",
+      "capture": "كيف سُجِّل هذا",
       "timeline": "الخط الزمني للصوت والفجوات",
       "timeUnknown": "وقت غير معروف",
-      "noGaps": "لم تُكتشف أي فجوات.",
-      "gapDuration": "المدة: {{duration}}",
+      "gapDuration": "{{duration}} مفقودة",
       "showMoreGaps": "عرض {{count}} إضافية",
       "showFewerGaps": "عرض عدد أقل",
       "transcript": "النص",
@@ -2214,14 +2210,13 @@
       "rememberVoice": "تذكّر هذا الصوت على جهاز Mac هذا",
       "notNow": "ليس الآن",
       "rememberVoiceFailed": "تم حفظ التسمية. تعذر على Sona تذكّر هذا الصوت من هذا الاجتماع. جرّب اجتماعًا آخر.",
+      "notesTitle": "ملاحظات",
       "manualNotes": "الملاحظات اليدوية",
       "manualNote": "ملاحظة يدوية",
       "newNote": "ملاحظة يدوية جديدة",
       "notePlaceholder": "أضف ملاحظة يدوية",
       "addNote": "إضافة ملاحظة",
-      "noNotes": "لا توجد ملاحظات يدوية بعد.",
-      "noTimestamp": "بلا طابع زمني",
-      "timestamp": "الطابع الزمني {{time}}",
+      "editNote": "تعديل هذه الملاحظة",
       "generatedNotes": "الملاحظات المولّدة",
       "regenerate": "إعادة التوليد",
       "remoteCancellationPending": "الإلغاء عن بُعد معلّق. الحذف المحلي لا يعني أن النسخة البعيدة قد حُذفت.",
@@ -2231,12 +2226,18 @@
       "exportMarkdown": "تصدير Markdown",
       "exportJson": "تصدير JSON",
       "exportComplete": "تم تصدير الاجتماع",
+      "moreActions": "المزيد",
       "citation": "النص {{time}}",
       "noGeneratedNotes": "لا تتوفر ملاحظات مولّدة بعد.",
-      "template": "القالب: {{template}}",
-      "summary": "الملخص",
       "topics": "الموضوعات",
-      "none": "بلا",
+      "nothingRecorded": "لم تُسجَّل أي قرارات أو بنود عمل أو أسئلة أو مخاطر.",
+      "templateName": {
+        "meeting-review": "اجتماع عام",
+        "meeting-one-on-one": "فرد لفرد",
+        "meeting-interview": "مقابلة",
+        "meeting-sales-call": "مكالمة بيع",
+        "meeting-standup": "اجتماع سريع"
+      },
       "decisions": "القرارات",
       "actions": "بنود العمل",
       "keyQuestions": "الأسئلة الرئيسية",
@@ -2244,12 +2245,12 @@
       "followUp": "المتابعة",
       "artifactUnavailable": "هذه الملاحظات المولَّدة غير متاحة. يبقى النص وملاحظاتك اليدوية على هذا الـMac.",
       "actionMeta": "المسؤول: {{owner}} · الاستحقاق: {{due}}",
+      "actionOwner": "المسؤول: {{owner}}",
+      "actionDue": "الاستحقاق: {{due}}",
       "actionDone": "وسم هذا البند بأنه منجز",
-      "unassigned": "غير مُعيَّن",
-      "noDueDate": "بلا تاريخ استحقاق",
       "searchPlaceholder": "البحث في هذا الاجتماع",
       "noSearchResults": "لا توجد مطابقات محلية دقيقة.",
-      "droppedFrames": "الإطارات المفقودة: {{total}}",
+      "droppedFrames": "{{total}} إطارًا مفقودًا",
       "hitKind": {
         "manualNote": "ملاحظة يدوية",
         "title": "عنوان الاجتماع"
@@ -2381,8 +2382,13 @@
       }
     },
     "status": {
-      "gapCount": "الفجوات: {{total}}",
-      "required": "مطلوب"
+      "someAudioMissing": "جزء من هذا الصوت مفقود.",
+      "required": "مطلوب",
+      "state": {
+        "ready": "جاهز",
+        "recording": "يسجّل",
+        "recorded": "مسجَّل"
+      }
     },
     "analytics": {
       "title": "المحادثة",
@@ -2411,6 +2417,8 @@
     },
     "notes": {
       "title": "ملاحظاتي",
+      "guideTitle": "وجّه الملخص",
+      "guidePrompt": "وجّه الملخص…",
       "liveDescription": "اكتب بأي قدر من الخشونة تريد. تبقى هذه الملاحظات على جهاز Mac هذا وتوجّه الملاحظات التي ينشئها Sona عند انتهاء الاجتماع.",
       "placeholder": "كل ما يستحق التذكر: أسماء وأرقام وما يجب متابعته",
       "unsaved": "لم يُحفظ بعد",
@@ -2569,8 +2577,7 @@
     },
     "talkTime": {
       "label": "وقت التحدث",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "وقت التحدث: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "صياغة متابعة",
@@ -2716,7 +2723,6 @@
       "streak": "التتابع",
       "rangePrevious": "الأيام السبعة السابقة",
       "rangeNext": "الأيام السبعة التالية",
-      "peak": "الذروة",
       "dictationsAria": "الإملاءات يوميًا، الأعلى {{count}} يوم {{day}}",
       "wordsAria": "الكلمات يوميًا، المجموع {{count}}، وتنتهي عند {{last}}",
       "days_zero": "0 يوم",
@@ -2867,6 +2873,8 @@
       "voiceProfileRemoved": "توقف Sona عن تذكّر هذا الصوت على جهاز Mac هذا.",
       "voiceProfileRemovalFailed": "تعذر إزالة ملف تعريف الصوت. حاول مرة أخرى.",
       "aliases": "أيضًا: {{aliases}}",
+      "addresses": "تمت الدعوة باسم {{addresses}}",
+      "openMeetingAt": "فتح {{title}}، {{date}}",
       "merge": "دمج",
       "mergeTitle": "دمج هذا الشخص؟",
       "mergeDescription": "دمج {{source}} مع {{target}}؟ ستُجمع الروابط والأسماء البديلة وسجل العلاقة.",
@@ -2919,6 +2927,7 @@
       "operation": "تعذر تحديث الأشخاص. حاول مجددًا."
     },
     "summary": {
+      "title": "نبذة",
       "empty": "لا يوجد ملخص بعد.",
       "regenerate": "إعادة الإنشاء",
       "provenance": "كتبه {{model}} في {{date}}"
@@ -3275,6 +3284,29 @@
       "noticed_few": "لاحظنا {{count}} أمور",
       "noticed_many": "لاحظنا {{count}} أمور",
       "noticed_other": "لاحظنا {{count}} أمور"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "استيراد صوت",
+      "meeting": "استيراد اجتماع"
+    },
+    "dropZone": {
+      "prompt": "اسحب وأفلِت أو <choose>اختر ملفًا</choose> للتحميل"
+    },
+    "importFiles_zero": "استيراد الملفات",
+    "importFiles_one": "استيراد ملف",
+    "importFiles_two": "استيراد ملفين",
+    "importFiles_few": "استيراد {{count}} ملفات",
+    "importFiles_many": "استيراد {{count}} ملفًا",
+    "importFiles_other": "استيراد {{count}} ملف",
+    "fileStatus": {
+      "ready": "جاهز للاستيراد",
+      "queued": "في قائمة الانتظار",
+      "running": "جارٍ العمل عليه",
+      "done": "تم الاستيراد",
+      "cancelled": "أُلغي",
+      "failed": "فشل"
     }
   },
   "recorder": {

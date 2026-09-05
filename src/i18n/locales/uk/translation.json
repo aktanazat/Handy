@@ -830,9 +830,7 @@
         "running": "Транскрибування файлів: {{count}}"
       },
       "clearSearch": "Очистити пошук",
-      "emptyHint": "Можна також транскрибувати наявний запис: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 або M4V, до 30 хвилин.",
       "loadMore": "Завантажити ще",
-      "noResultsHint": "Пошук збігається з цілими словами і в сирій, і в опрацьованій стенограмі.",
       "results": "Збігів: {{count}}",
       "resultsMore": "Збігів: {{count}}+",
       "resultsNone": "Немає збігів",
@@ -842,8 +840,8 @@
       "derivedFromId": "з #{{id}}",
       "recalledByMeaning": "за змістом",
       "level": {
-        "peak": "peak",
-        "rms": "середній"
+        "peak": "Peak",
+        "rms": "Середній"
       },
       "noTextRecorded": "Для цього запису текст не збережено.",
       "cloudHeld": "Sona затримала хмарний результат: нічого надійного не повернулося, а локальна модель була недоступна.",
@@ -1999,7 +1997,6 @@
     },
     "import": {
       "action": "Імпортувати",
-      "importing": "Імпортуємо…",
       "recordingFilter": "Запис",
       "transcriptFilter": "Експорт транскрипту"
     },
@@ -2086,7 +2083,6 @@
       "loading": "Читання поточної політики…"
     },
     "receipts": {
-      "title": "Звіт про виправлення",
       "saved": "Збережено локально.",
       "savedRevision": "Збережено локально. Версія {{revision}}.",
       "duplicate": "Цю дію вже було записано. Sona оновила наявний результат."
@@ -2166,10 +2162,10 @@
       "started": "Початок {{date}}",
       "partialRecording": "Частковий запис",
       "status": "Стан захоплення",
+      "capture": "Як це записувалося",
       "timeline": "Хронологія звуку та прогалини",
       "timeUnknown": "Час невідомий",
-      "noGaps": "Прогалин не виявлено.",
-      "gapDuration": "Тривалість: {{duration}}",
+      "gapDuration": "Пропущено {{duration}}",
       "showMoreGaps": "Показати ще {{count}}",
       "showFewerGaps": "Показати менше",
       "transcript": "Стенограма",
@@ -2200,14 +2196,13 @@
       "rememberVoice": "Запам’ятати цей голос на цьому Mac",
       "notNow": "Не зараз",
       "rememberVoiceFailed": "Позначку збережено. Sona не змогла запам’ятати цей голос із цієї зустрічі. Спробуйте іншу зустріч.",
+      "notesTitle": "Нотатки",
       "manualNotes": "Ручні нотатки",
       "manualNote": "Ручна нотатка",
       "newNote": "Нова ручна нотатка",
       "notePlaceholder": "Додайте ручну нотатку",
       "addNote": "Додати нотатку",
-      "noNotes": "Ручних нотаток поки немає.",
-      "noTimestamp": "Без позначки часу",
-      "timestamp": "Позначка часу {{time}}",
+      "editNote": "Змінити цю нотатку",
       "generatedNotes": "Згенеровані нотатки",
       "regenerate": "Згенерувати заново",
       "remoteCancellationPending": "Віддалене скасування очікує. Локальне видалення не означає, що віддалену копію видалено.",
@@ -2217,12 +2212,18 @@
       "exportMarkdown": "Експортувати Markdown",
       "exportJson": "Експортувати JSON",
       "exportComplete": "Зустріч експортовано",
+      "moreActions": "Ще",
       "citation": "Стенограма {{time}}",
       "noGeneratedNotes": "Згенерованих нотаток поки немає.",
-      "template": "Шаблон: {{template}}",
-      "summary": "Підсумок",
       "topics": "Теми",
-      "none": "Немає",
+      "nothingRecorded": "Рішення, завдання, питання чи ризики не записано.",
+      "templateName": {
+        "meeting-review": "Звичайна зустріч",
+        "meeting-one-on-one": "Один на один",
+        "meeting-interview": "Співбесіда",
+        "meeting-sales-call": "Дзвінок з продажу",
+        "meeting-standup": "Стендап"
+      },
       "decisions": "Рішення",
       "actions": "Завдання",
       "keyQuestions": "Ключові питання",
@@ -2230,12 +2231,12 @@
       "followUp": "Подальші дії",
       "artifactUnavailable": "Ці згенеровані нотатки недоступні. Транскрипція та ваші власні нотатки залишаються на цьому Mac.",
       "actionMeta": "Відповідальний: {{owner}} · Термін: {{due}}",
+      "actionOwner": "Відповідальний: {{owner}}",
+      "actionDue": "Термін: {{due}}",
       "actionDone": "Позначити це завдання виконаним",
-      "unassigned": "Не призначений",
-      "noDueDate": "Без терміну",
       "searchPlaceholder": "Пошук у цій зустрічі",
       "noSearchResults": "Точних локальних відповідників немає.",
-      "droppedFrames": "Втрачені кадри: {{total}}",
+      "droppedFrames": "{{total}} кадрів втрачено",
       "hitKind": {
         "manualNote": "Ручна нотатка",
         "title": "Назва зустрічі"
@@ -2367,8 +2368,13 @@
       }
     },
     "status": {
-      "gapCount": "Прогалини: {{total}}",
-      "required": "Обов'язково"
+      "someAudioMissing": "Частина цього звуку відсутня.",
+      "required": "Обов'язково",
+      "state": {
+        "ready": "Готово",
+        "recording": "Записує",
+        "recorded": "Записано"
+      }
     },
     "analytics": {
       "title": "Розмова",
@@ -2397,6 +2403,8 @@
     },
     "notes": {
       "title": "Мої нотатки",
+      "guideTitle": "Спрямуйте підсумок",
+      "guidePrompt": "Спрямуйте підсумок…",
       "liveDescription": "Пишіть настільки чорново, як хочете. Ці нотатки залишаються на цьому Mac і спрямовують нотатки, які Sona створює після завершення зустрічі.",
       "placeholder": "Усе, що варто запам'ятати: імена, числа, що потрібно відстежити",
       "unsaved": "Ще не збережено",
@@ -2555,8 +2563,7 @@
     },
     "talkTime": {
       "label": "Час мовлення",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Час мовлення: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Скласти лист",
@@ -2702,7 +2709,6 @@
       "streak": "Серія",
       "rangePrevious": "Попередні 7 днів",
       "rangeNext": "Наступні 7 днів",
-      "peak": "Пік",
       "dictationsAria": "Диктувань на день, найбільше {{count}} у {{day}}",
       "wordsAria": "Слів на день, усього {{count}}, останнє значення {{last}}",
       "days_one": "{{count}} день",
@@ -2847,6 +2853,8 @@
       "voiceProfileRemoved": "Sona перестала запам’ятовувати цей голос на цьому Mac.",
       "voiceProfileRemovalFailed": "Не вдалося видалити голосовий профіль. Спробуйте ще раз.",
       "aliases": "Також: {{aliases}}",
+      "addresses": "Запрошено як {{addresses}}",
+      "openMeetingAt": "Відкрити {{title}}, {{date}}",
       "merge": "Об’єднати",
       "mergeTitle": "Об’єднати цю людину?",
       "mergeDescription": "Об’єднати {{source}} з {{target}}? Зв’язки, псевдоніми та історію стосунків буде поєднано.",
@@ -2899,6 +2907,7 @@
       "operation": "Не вдалося оновити дані про людей. Повторіть спробу."
     },
     "summary": {
+      "title": "Про людину",
       "empty": "Підсумку поки немає.",
       "regenerate": "Створити заново",
       "provenance": "Написано {{model}} {{date}}"
@@ -3235,6 +3244,28 @@
       "noticed_few": "Помічено {{count}}",
       "noticed_many": "Помічено {{count}}",
       "noticed_other": "Помічено {{count}}"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Імпорт аудіо",
+      "meeting": "Імпорт зустрічі"
+    },
+    "dropZone": {
+      "prompt": "Перетягніть файл або <choose>виберіть його</choose> для завантаження"
+    },
+    "importFiles_zero": "Імпортувати файли",
+    "importFiles_one": "Імпортувати {{count}} файл",
+    "importFiles_few": "Імпортувати {{count}} файли",
+    "importFiles_many": "Імпортувати {{count}} файлів",
+    "importFiles_other": "Імпортувати {{count}} файла",
+    "fileStatus": {
+      "ready": "Готово до імпорту",
+      "queued": "У черзі",
+      "running": "У роботі",
+      "done": "Імпортовано",
+      "cancelled": "Скасовано",
+      "failed": "Не вдалося"
     }
   },
   "recorder": {

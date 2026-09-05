@@ -830,9 +830,7 @@
         "running": "{{count}} bestanden transcriberen"
       },
       "clearSearch": "Zoekopdracht wissen",
-      "emptyHint": "Je kunt ook een bestaande opname transcriberen: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 of M4V, tot 30 minuten.",
       "loadMore": "Meer laden",
-      "noResultsHint": "Zoeken matcht hele woorden in zowel het ruwe als het verwerkte transcript.",
       "results": "{{count}} resultaten",
       "resultsMore": "{{count}}+ resultaten",
       "resultsNone": "Geen resultaten",
@@ -842,8 +840,8 @@
       "derivedFromId": "uit #{{id}}",
       "recalledByMeaning": "op betekenis",
       "level": {
-        "peak": "peak",
-        "rms": "gemiddeld"
+        "peak": "Peak",
+        "rms": "Gemiddeld"
       },
       "noTextRecorded": "Voor dit item is geen tekst vastgelegd.",
       "cloudHeld": "Sona hield het cloudresultaat tegen: er kwam niets betrouwbaars terug en er was geen lokaal model beschikbaar.",
@@ -1987,7 +1985,6 @@
     },
     "import": {
       "action": "Importeer",
-      "importing": "Importeren…",
       "recordingFilter": "Opname",
       "transcriptFilter": "Transcriptexport"
     },
@@ -2074,7 +2071,6 @@
       "loading": "Huidig beleid lezen…"
     },
     "receipts": {
-      "title": "Correctiebevestiging",
       "saved": "Lokaal opgeslagen.",
       "savedRevision": "Lokaal opgeslagen. Versie {{revision}}.",
       "duplicate": "Deze actie is al vastgelegd. Sona heeft het bestaande resultaat vernieuwd."
@@ -2154,10 +2150,10 @@
       "started": "Gestart {{date}}",
       "partialRecording": "Gedeeltelijke opname",
       "status": "Opnamestatus",
+      "capture": "Hoe dit is opgenomen",
       "timeline": "Audiotijdlijn en hiaten",
       "timeUnknown": "Onbekend tijdstip",
-      "noGaps": "Geen opnamehiaten gedetecteerd.",
-      "gapDuration": "Duur: {{duration}}",
+      "gapDuration": "{{duration}} ontbreekt",
       "showMoreGaps": "Nog {{count}} tonen",
       "showFewerGaps": "Minder tonen",
       "transcript": "Transcript",
@@ -2186,14 +2182,13 @@
       "rememberVoice": "Deze stem op deze Mac onthouden",
       "notNow": "Niet nu",
       "rememberVoiceFailed": "Het label is opgeslagen. Sona kon deze stem niet onthouden uit deze vergadering. Probeer een andere vergadering.",
+      "notesTitle": "Notities",
       "manualNotes": "Handmatige notities",
       "manualNote": "Handmatige notitie",
       "newNote": "Nieuwe handmatige notitie",
       "notePlaceholder": "Een handmatige notitie toevoegen",
       "addNote": "Notitie toevoegen",
-      "noNotes": "Nog geen handmatige notities.",
-      "noTimestamp": "Geen tijdstempel",
-      "timestamp": "Tijdstempel {{time}}",
+      "editNote": "Deze notitie bewerken",
       "generatedNotes": "Gegenereerde notities",
       "regenerate": "Opnieuw genereren",
       "remoteCancellationPending": "De externe annulering is nog in behandeling. Lokale verwijdering beweert niet dat de externe kopie is verwijderd.",
@@ -2203,12 +2198,18 @@
       "exportMarkdown": "Markdown exporteren",
       "exportJson": "JSON exporteren",
       "exportComplete": "Vergadering geëxporteerd",
+      "moreActions": "Meer",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "Er zijn nog geen gegenereerde notities beschikbaar.",
-      "template": "Sjabloon: {{template}}",
-      "summary": "Samenvatting",
       "topics": "Onderwerpen",
-      "none": "Geen",
+      "nothingRecorded": "Er zijn geen besluiten, actiepunten, vragen of risico's vastgelegd.",
+      "templateName": {
+        "meeting-review": "Algemene vergadering",
+        "meeting-one-on-one": "Eén-op-één",
+        "meeting-interview": "Sollicitatiegesprek",
+        "meeting-sales-call": "Verkoopgesprek",
+        "meeting-standup": "Standup"
+      },
       "decisions": "Besluiten",
       "actions": "Actiepunten",
       "keyQuestions": "Belangrijkste vragen",
@@ -2216,12 +2217,12 @@
       "followUp": "Opvolging",
       "artifactUnavailable": "Deze gegenereerde notities zijn niet beschikbaar. De transcriptie en je eigen notities blijven op deze Mac.",
       "actionMeta": "Eigenaar: {{owner}} · Deadline: {{due}}",
+      "actionOwner": "Eigenaar: {{owner}}",
+      "actionDue": "Deadline: {{due}}",
       "actionDone": "Deze actie als gedaan markeren",
-      "unassigned": "Niet toegewezen",
-      "noDueDate": "Geen deadline",
       "searchPlaceholder": "Deze vergadering doorzoeken",
       "noSearchResults": "Geen exacte lokale overeenkomsten.",
-      "droppedFrames": "Verloren frames: {{total}}",
+      "droppedFrames": "{{total}} frames verloren",
       "hitKind": {
         "manualNote": "Handmatige notitie",
         "title": "Vergadertitel"
@@ -2353,8 +2354,13 @@
       }
     },
     "status": {
-      "gapCount": "Hiaten: {{total}}",
-      "required": "Vereist"
+      "someAudioMissing": "Een deel van deze audio ontbreekt.",
+      "required": "Vereist",
+      "state": {
+        "ready": "Gereed",
+        "recording": "Neemt op",
+        "recorded": "Opgenomen"
+      }
     },
     "analytics": {
       "title": "Gesprek",
@@ -2383,6 +2389,8 @@
     },
     "notes": {
       "title": "Mijn aantekeningen",
+      "guideTitle": "Stuur de samenvatting",
+      "guidePrompt": "Stuur de samenvatting…",
       "liveDescription": "Schrijf zo grof als je wilt. Deze aantekeningen blijven op deze Mac en sturen de aantekeningen die Sona maakt als de vergadering eindigt.",
       "placeholder": "Alles wat het onthouden waard is: namen, cijfers, wat je moet opvolgen",
       "unsaved": "Nog niet opgeslagen",
@@ -2541,8 +2549,7 @@
     },
     "talkTime": {
       "label": "Spreektijd",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Spreektijd: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Opvolging opstellen",
@@ -2688,7 +2695,6 @@
       "streak": "Reeks",
       "rangePrevious": "Vorige 7 dagen",
       "rangeNext": "Volgende 7 dagen",
-      "peak": "Piek",
       "dictationsAria": "Dictees per dag, hoogste aantal {{count}} op {{day}}",
       "wordsAria": "Woorden per dag, {{count}} in totaal, laatste waarde {{last}}",
       "days_one": "{{count}} dag",
@@ -2827,6 +2833,8 @@
       "voiceProfileRemoved": "Sona onthoudt deze stem niet meer op deze Mac.",
       "voiceProfileRemovalFailed": "Het spraakprofiel kon niet worden verwijderd. Probeer het opnieuw.",
       "aliases": "Ook: {{aliases}}",
+      "addresses": "Uitgenodigd als {{addresses}}",
+      "openMeetingAt": "{{title}} openen, {{date}}",
       "merge": "Samenvoegen",
       "mergeTitle": "Deze persoon samenvoegen?",
       "mergeDescription": "{{source}} samenvoegen met {{target}}? Koppelingen, aliassen en de relatiegeschiedenis worden gecombineerd.",
@@ -2879,6 +2887,7 @@
       "operation": "Personen konden niet worden bijgewerkt. Probeer het opnieuw."
     },
     "summary": {
+      "title": "Over deze persoon",
       "empty": "Nog geen samenvatting.",
       "regenerate": "Opnieuw genereren",
       "provenance": "Geschreven door {{model}} op {{date}}"
@@ -2948,7 +2957,7 @@
   },
   "peopleV2": {
     "list": {
-      "lastMet": "Laatste vergadering op {{date}}"
+      "lastMet": "Laatste vergadering: {{date}}"
     },
     "detail": {
       "openLoops": "Open vragen",
@@ -3195,6 +3204,26 @@
       "primed": "Terugkerende vergadering voorbereid",
       "noticed_one": "1 ding opgemerkt",
       "noticed_other": "{{count}} dingen opgemerkt"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Audio importeren",
+      "meeting": "Een vergadering importeren"
+    },
+    "dropZone": {
+      "prompt": "Sleep een bestand hierheen of <choose>kies een bestand</choose> om te uploaden"
+    },
+    "importFiles_zero": "Bestanden importeren",
+    "importFiles_one": "Bestand importeren",
+    "importFiles_other": "{{count}} bestanden importeren",
+    "fileStatus": {
+      "ready": "Klaar om te importeren",
+      "queued": "In wachtrij",
+      "running": "Wordt verwerkt",
+      "done": "Geïmporteerd",
+      "cancelled": "Geannuleerd",
+      "failed": "Mislukt"
     }
   },
   "recorder": {

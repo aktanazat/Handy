@@ -830,9 +830,7 @@
         "running": "파일 {{count}}개 전사 중"
       },
       "clearSearch": "검색 지우기",
-      "emptyHint": "기존 녹음 파일도 전사할 수 있습니다: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 또는 M4V, 최대 30분.",
       "loadMore": "더 불러오기",
-      "noResultsHint": "검색은 원본 전사와 처리된 전사 모두에서 전체 단어와 일치합니다.",
       "results": "일치 {{count}}건",
       "resultsMore": "일치 {{count}}+건",
       "resultsNone": "일치 없음",
@@ -842,7 +840,7 @@
       "derivedFromId": "#{{id}} 에서",
       "recalledByMeaning": "의미 일치",
       "level": {
-        "peak": "peak",
+        "peak": "Peak",
         "rms": "평균"
       },
       "noTextRecorded": "이 항목에는 텍스트가 기록되지 않았습니다.",
@@ -1981,7 +1979,6 @@
     },
     "import": {
       "action": "가져오기",
-      "importing": "가져오는 중…",
       "recordingFilter": "녹음",
       "transcriptFilter": "대화록 내보내기 파일"
     },
@@ -2068,7 +2065,6 @@
       "loading": "현재 정책 읽는 중…"
     },
     "receipts": {
-      "title": "교정 기록",
       "saved": "로컬에 저장했습니다.",
       "savedRevision": "로컬에 저장됨. 버전 {{revision}}.",
       "duplicate": "이 작업은 이미 기록되었습니다. Sona가 기존 결과를 새로 고쳤습니다."
@@ -2148,10 +2144,10 @@
       "started": "{{date}} 시작",
       "partialRecording": "부분 녹음",
       "status": "수집 상태",
+      "capture": "어떻게 녹음되었는지",
       "timeline": "오디오 타임라인과 공백",
       "timeUnknown": "시각 불명",
-      "noGaps": "공백이 감지되지 않았습니다.",
-      "gapDuration": "길이: {{duration}}",
+      "gapDuration": "{{duration}} 없음",
       "showMoreGaps": "{{count}}개 더 보기",
       "showFewerGaps": "적게 보기",
       "transcript": "전사",
@@ -2179,14 +2175,13 @@
       "rememberVoice": "이 Mac에서 이 음성 기억",
       "notNow": "나중에",
       "rememberVoiceFailed": "이름을 저장했습니다. Sona가 이 회의에서 이 음성을 기억하지 못했습니다. 다른 회의에서 시도하세요.",
+      "notesTitle": "메모",
       "manualNotes": "수동 메모",
       "manualNote": "수동 메모",
       "newNote": "새 수동 메모",
       "notePlaceholder": "수동 메모 추가",
       "addNote": "메모 추가",
-      "noNotes": "수동 메모가 아직 없습니다.",
-      "noTimestamp": "타임스탬프 없음",
-      "timestamp": "타임스탬프 {{time}}",
+      "editNote": "이 메모 편집",
       "generatedNotes": "생성된 노트",
       "regenerate": "다시 생성",
       "remoteCancellationPending": "원격 취소가 대기 중입니다. 로컬 삭제가 원격 사본이 삭제되었음을 뜻하지는 않습니다.",
@@ -2196,12 +2191,18 @@
       "exportMarkdown": "Markdown 내보내기",
       "exportJson": "JSON 내보내기",
       "exportComplete": "미팅을 내보냈습니다",
+      "moreActions": "더 보기",
       "citation": "전사 {{time}}",
       "noGeneratedNotes": "아직 사용할 수 있는 생성된 노트가 없습니다.",
-      "template": "템플릿: {{template}}",
-      "summary": "요약",
       "topics": "주제",
-      "none": "없음",
+      "nothingRecorded": "결정 사항, 실행 항목, 질문, 위험이 기록되지 않았습니다.",
+      "templateName": {
+        "meeting-review": "일반 미팅",
+        "meeting-one-on-one": "일대일",
+        "meeting-interview": "면접",
+        "meeting-sales-call": "영업 통화",
+        "meeting-standup": "스탠드업"
+      },
       "decisions": "결정 사항",
       "actions": "실행 항목",
       "keyQuestions": "핵심 질문",
@@ -2209,12 +2210,12 @@
       "followUp": "후속 조치",
       "artifactUnavailable": "이 생성 메모는 사용할 수 없습니다. 기록과 직접 쓴 메모는 이 Mac에 남아 있습니다.",
       "actionMeta": "담당: {{owner}} · 기한: {{due}}",
+      "actionOwner": "담당: {{owner}}",
+      "actionDue": "기한: {{due}}",
       "actionDone": "이 실행 항목을 완료로 표시",
-      "unassigned": "미배정",
-      "noDueDate": "기한 없음",
       "searchPlaceholder": "이 회의 검색",
       "noSearchResults": "정확히 일치하는 로컬 결과가 없습니다.",
-      "droppedFrames": "누락된 프레임: {{total}}",
+      "droppedFrames": "{{total}} 프레임 누락",
       "hitKind": {
         "manualNote": "수동 메모",
         "title": "회의 제목"
@@ -2346,8 +2347,13 @@
       }
     },
     "status": {
-      "gapCount": "공백: {{total}}",
-      "required": "필수"
+      "someAudioMissing": "이 오디오의 일부가 없습니다.",
+      "required": "필수",
+      "state": {
+        "ready": "준비됨",
+        "recording": "녹음 중",
+        "recorded": "녹음됨"
+      }
     },
     "analytics": {
       "title": "대화",
@@ -2376,6 +2382,8 @@
     },
     "notes": {
       "title": "내 메모",
+      "guideTitle": "요약 방향 잡기",
+      "guidePrompt": "요약 방향 잡기…",
       "liveDescription": "원하는 만큼 거칠게 쓰세요. 이 메모는 이 Mac에 남고, 미팅이 끝날 때 Sona가 만드는 메모를 이끕니다.",
       "placeholder": "기억해 둘 만한 모든 것: 이름, 숫자, 이어서 챙길 일",
       "unsaved": "아직 저장되지 않음",
@@ -2534,8 +2542,7 @@
     },
     "talkTime": {
       "label": "발언 시간",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "발언 시간: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "후속 메시지 작성",
@@ -2681,7 +2688,6 @@
       "streak": "연속 기록",
       "rangePrevious": "이전 7일",
       "rangeNext": "다음 7일",
-      "peak": "최고",
       "dictationsAria": "일별 받아쓰기, {{day}}에 최고 {{count}}회",
       "wordsAria": "일별 단어, 총 {{count}}개, 마지막 값 {{last}}",
       "days_other": "{{count}}일",
@@ -2818,6 +2824,8 @@
       "voiceProfileRemoved": "Sona가 이 Mac에서 이 음성을 기억하지 않게 되었습니다.",
       "voiceProfileRemovalFailed": "음성 프로필을 제거할 수 없습니다. 다시 시도하세요.",
       "aliases": "다른 이름: {{aliases}}",
+      "addresses": "{{addresses}}(으)로 초대됨",
+      "openMeetingAt": "{{title}} 열기, {{date}}",
       "merge": "병합",
       "mergeTitle": "이 사람을 병합할까요?",
       "mergeDescription": "{{source}}을(를) {{target}}에 병합할까요? 연결, 다른 이름, 관계 기록이 합쳐집니다.",
@@ -2870,6 +2878,7 @@
       "operation": "사람 정보를 업데이트하지 못했습니다. 다시 시도하세요."
     },
     "summary": {
+      "title": "소개",
       "empty": "아직 요약이 없습니다.",
       "regenerate": "다시 생성",
       "provenance": "{{date}}에 {{model}}이(가) 작성"
@@ -3179,6 +3188,25 @@
     "outcomes": {
       "primed": "반복 회의를 준비했습니다",
       "noticed_other": "{{count}}가지를 발견했습니다"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "오디오 가져오기",
+      "meeting": "회의 가져오기"
+    },
+    "dropZone": {
+      "prompt": "끌어다 놓거나 <choose>파일 선택</choose>으로 업로드하세요"
+    },
+    "importFiles_zero": "파일 가져오기",
+    "importFiles_other": "파일 {{count}}개 가져오기",
+    "fileStatus": {
+      "ready": "가져올 준비됨",
+      "queued": "대기 중",
+      "running": "처리 중",
+      "done": "가져옴",
+      "cancelled": "취소됨",
+      "failed": "실패"
     }
   },
   "recorder": {

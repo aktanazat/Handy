@@ -830,9 +830,7 @@
         "running": "Расшифровка файлов: {{count}}"
       },
       "clearSearch": "Очистить поиск",
-      "emptyHint": "Можно также расшифровать существующую запись: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 или M4V, до 30 минут.",
       "loadMore": "Загрузить ещё",
-      "noResultsHint": "Поиск сопоставляет целые слова и в исходной, и в обработанной расшифровке.",
       "results": "Совпадений: {{count}}",
       "resultsMore": "Совпадений: {{count}}+",
       "resultsNone": "Совпадений нет",
@@ -842,8 +840,8 @@
       "derivedFromId": "из #{{id}}",
       "recalledByMeaning": "по смыслу",
       "level": {
-        "peak": "peak",
-        "rms": "средний"
+        "peak": "Peak",
+        "rms": "Средний"
       },
       "noTextRecorded": "Для этой записи текст не сохранён.",
       "cloudHeld": "Sona задержала облачный результат: ничего надёжного не вернулось, а локальная модель была недоступна.",
@@ -1999,7 +1997,6 @@
     },
     "import": {
       "action": "Импортировать",
-      "importing": "Импортируем…",
       "recordingFilter": "Запись",
       "transcriptFilter": "Экспорт транскрипта"
     },
@@ -2086,7 +2083,6 @@
       "loading": "Чтение текущей политики…"
     },
     "receipts": {
-      "title": "Отчёт об исправлении",
       "saved": "Сохранено локально.",
       "savedRevision": "Сохранено локально. Версия {{revision}}.",
       "duplicate": "Это действие уже было записано. Sona обновила существующий результат."
@@ -2166,10 +2162,10 @@
       "started": "Начало {{date}}",
       "partialRecording": "Частичная запись",
       "status": "Состояние захвата",
+      "capture": "Как это записывалось",
       "timeline": "Хронология звука и пропуски",
       "timeUnknown": "Время неизвестно",
-      "noGaps": "Пропуски не обнаружены.",
-      "gapDuration": "Длительность: {{duration}}",
+      "gapDuration": "Пропущено {{duration}}",
       "showMoreGaps": "Показать ещё {{count}}",
       "showFewerGaps": "Показать меньше",
       "transcript": "Расшифровка",
@@ -2200,14 +2196,13 @@
       "rememberVoice": "Запомнить этот голос на этом Mac",
       "notNow": "Не сейчас",
       "rememberVoiceFailed": "Подпись сохранена. Sona не смогла запомнить этот голос по этой встрече. Попробуйте другую встречу.",
+      "notesTitle": "Заметки",
       "manualNotes": "Ручные заметки",
       "manualNote": "Ручная заметка",
       "newNote": "Новая ручная заметка",
       "notePlaceholder": "Добавьте ручную заметку",
       "addNote": "Добавить заметку",
-      "noNotes": "Ручных заметок пока нет.",
-      "noTimestamp": "Без метки времени",
-      "timestamp": "Метка времени {{time}}",
+      "editNote": "Изменить эту заметку",
       "generatedNotes": "Сгенерированные заметки",
       "regenerate": "Сгенерировать заново",
       "remoteCancellationPending": "Удалённая отмена ожидает выполнения. Локальное удаление не утверждает, что удалённая копия удалена.",
@@ -2217,12 +2212,18 @@
       "exportMarkdown": "Экспортировать Markdown",
       "exportJson": "Экспортировать JSON",
       "exportComplete": "Встреча экспортирована",
+      "moreActions": "Ещё",
       "citation": "Расшифровка {{time}}",
       "noGeneratedNotes": "Сгенерированных заметок пока нет.",
-      "template": "Шаблон: {{template}}",
-      "summary": "Краткое содержание",
       "topics": "Темы",
-      "none": "Нет",
+      "nothingRecorded": "Решения, задачи, вопросы и риски не записаны.",
+      "templateName": {
+        "meeting-review": "Обычная встреча",
+        "meeting-one-on-one": "Один на один",
+        "meeting-interview": "Интервью",
+        "meeting-sales-call": "Звонок по продажам",
+        "meeting-standup": "Стендап"
+      },
       "decisions": "Решения",
       "actions": "Задачи",
       "keyQuestions": "Ключевые вопросы",
@@ -2230,12 +2231,12 @@
       "followUp": "Последующие действия",
       "artifactUnavailable": "Эти сгенерированные заметки недоступны. Расшифровка и ваши собственные заметки остаются на этом Mac.",
       "actionMeta": "Ответственный: {{owner}} · Срок: {{due}}",
+      "actionOwner": "Ответственный: {{owner}}",
+      "actionDue": "Срок: {{due}}",
       "actionDone": "Отметить эту задачу выполненной",
-      "unassigned": "Не назначен",
-      "noDueDate": "Без срока",
       "searchPlaceholder": "Поиск по этой встрече",
       "noSearchResults": "Точных локальных совпадений нет.",
-      "droppedFrames": "Потерянные кадры: {{total}}",
+      "droppedFrames": "{{total}} кадров потеряно",
       "hitKind": {
         "manualNote": "Ручная заметка",
         "title": "Название встречи"
@@ -2367,8 +2368,13 @@
       }
     },
     "status": {
-      "gapCount": "Пропуски: {{total}}",
-      "required": "Обязательно"
+      "someAudioMissing": "Часть этой записи отсутствует.",
+      "required": "Обязательно",
+      "state": {
+        "ready": "Готово",
+        "recording": "Записывается",
+        "recorded": "Записано"
+      }
     },
     "analytics": {
       "title": "Разговор",
@@ -2397,6 +2403,8 @@
     },
     "notes": {
       "title": "Мои заметки",
+      "guideTitle": "Направьте сводку",
+      "guidePrompt": "Направьте сводку…",
       "liveDescription": "Пишите настолько черново, насколько хотите. Эти заметки остаются на этом Mac и направляют заметки, которые Sona создаёт по окончании встречи.",
       "placeholder": "Всё, что стоит запомнить: имена, числа, что нужно отследить",
       "unsaved": "Ещё не сохранено",
@@ -2555,8 +2563,7 @@
     },
     "talkTime": {
       "label": "Время речи",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Время речи: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Составить письмо",
@@ -2702,7 +2709,6 @@
       "streak": "Серия",
       "rangePrevious": "Предыдущие 7 дней",
       "rangeNext": "Следующие 7 дней",
-      "peak": "Пик",
       "dictationsAria": "Диктовок в день, максимум {{count}} в {{day}}",
       "wordsAria": "Слов в день, всего {{count}}, последнее значение {{last}}",
       "days_one": "{{count}} день",
@@ -2847,6 +2853,8 @@
       "voiceProfileRemoved": "Sona перестала запоминать этот голос на этом Mac.",
       "voiceProfileRemovalFailed": "Не удалось удалить голосовой профиль. Попробуйте ещё раз.",
       "aliases": "Также: {{aliases}}",
+      "addresses": "Приглашён как {{addresses}}",
+      "openMeetingAt": "Открыть {{title}}, {{date}}",
       "merge": "Объединить",
       "mergeTitle": "Объединить этого человека?",
       "mergeDescription": "Объединить {{source}} с {{target}}? Связи, псевдонимы и история отношений будут объединены.",
@@ -2899,6 +2907,7 @@
       "operation": "Не удалось обновить данные о людях. Повторите попытку."
     },
     "summary": {
+      "title": "О человеке",
       "empty": "Сводки пока нет.",
       "regenerate": "Создать заново",
       "provenance": "Написано {{model}} {{date}}"
@@ -3235,6 +3244,28 @@
       "noticed_few": "Замечено {{count}}",
       "noticed_many": "Замечено {{count}}",
       "noticed_other": "Замечено {{count}}"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Импорт аудио",
+      "meeting": "Импорт встречи"
+    },
+    "dropZone": {
+      "prompt": "Перетащите файл или <choose>выберите его</choose> для загрузки"
+    },
+    "importFiles_zero": "Импортировать файлы",
+    "importFiles_one": "Импортировать {{count}} файл",
+    "importFiles_few": "Импортировать {{count}} файла",
+    "importFiles_many": "Импортировать {{count}} файлов",
+    "importFiles_other": "Импортировать {{count}} файла",
+    "fileStatus": {
+      "ready": "Готово к импорту",
+      "queued": "В очереди",
+      "running": "В работе",
+      "done": "Импортировано",
+      "cancelled": "Отменено",
+      "failed": "Не удалось"
     }
   },
   "recorder": {

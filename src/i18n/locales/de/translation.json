@@ -830,9 +830,7 @@
         "running": "{{count}} Dateien werden transkribiert"
       },
       "clearSearch": "Suche löschen",
-      "emptyHint": "Du kannst auch eine vorhandene Aufnahme transkribieren: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 oder M4V, bis zu 30 Minuten.",
       "loadMore": "Mehr laden",
-      "noResultsHint": "Die Suche findet ganze Wörter sowohl im rohen als auch im verarbeiteten Transkript.",
       "results": "{{count}} Treffer",
       "resultsMore": "{{count}}+ Treffer",
       "resultsNone": "Keine Treffer",
@@ -842,7 +840,7 @@
       "derivedFromId": "aus #{{id}}",
       "recalledByMeaning": "per Bedeutung",
       "level": {
-        "peak": "peak",
+        "peak": "Peak",
         "rms": "Mittel"
       },
       "noTextRecorded": "Für diesen Eintrag wurde kein Text aufgezeichnet.",
@@ -1987,7 +1985,6 @@
     },
     "import": {
       "action": "Importieren",
-      "importing": "Wird importiert…",
       "recordingFilter": "Aufnahme",
       "transcriptFilter": "Transkript-Export"
     },
@@ -2074,7 +2071,6 @@
       "loading": "Aktuelle Richtlinie wird gelesen…"
     },
     "receipts": {
-      "title": "Korrekturbeleg",
       "saved": "Lokal gespeichert.",
       "savedRevision": "Lokal gespeichert. Version {{revision}}.",
       "duplicate": "Diese Aktion wurde bereits erfasst. Sona hat das vorhandene Ergebnis aktualisiert."
@@ -2154,10 +2150,10 @@
       "started": "Begonnen {{date}}",
       "partialRecording": "Teilweise Aufnahme",
       "status": "Aufnahmestatus",
+      "capture": "Wie das aufgenommen wurde",
       "timeline": "Audio-Zeitleiste und Lücken",
       "timeUnknown": "Unbekannte Zeit",
-      "noGaps": "Keine Lücken erkannt.",
-      "gapDuration": "Dauer: {{duration}}",
+      "gapDuration": "{{duration}} fehlen",
       "showMoreGaps": "{{count}} weitere anzeigen",
       "showFewerGaps": "Weniger anzeigen",
       "transcript": "Transkript",
@@ -2186,14 +2182,13 @@
       "rememberVoice": "Diese Stimme auf diesem Mac merken",
       "notNow": "Jetzt nicht",
       "rememberVoiceFailed": "Die Benennung wurde gespeichert. Sona konnte sich diese Stimme aus diesem Meeting nicht merken. Versuche es bei einem anderen Meeting.",
+      "notesTitle": "Notizen",
       "manualNotes": "Manuelle Notizen",
       "manualNote": "Manuelle Notiz",
       "newNote": "Neue manuelle Notiz",
       "notePlaceholder": "Manuelle Notiz hinzufügen",
       "addNote": "Notiz hinzufügen",
-      "noNotes": "Noch keine manuellen Notizen.",
-      "noTimestamp": "Kein Zeitstempel",
-      "timestamp": "Zeitstempel {{time}}",
+      "editNote": "Diese Notiz bearbeiten",
       "generatedNotes": "Generierte Notizen",
       "regenerate": "Neu generieren",
       "remoteCancellationPending": "Der Abbruch beim entfernten Ziel steht noch aus. Das lokale Löschen behauptet nicht, dass die entfernte Kopie gelöscht ist.",
@@ -2203,12 +2198,18 @@
       "exportMarkdown": "Markdown exportieren",
       "exportJson": "JSON exportieren",
       "exportComplete": "Besprechung exportiert",
+      "moreActions": "Mehr",
       "citation": "Transkript {{time}}",
       "noGeneratedNotes": "Es sind noch keine generierten Notizen verfügbar.",
-      "template": "Vorlage: {{template}}",
-      "summary": "Zusammenfassung",
       "topics": "Themen",
-      "none": "Keine",
+      "nothingRecorded": "Es wurden keine Entscheidungen, Aufgaben, Fragen oder Risiken festgehalten.",
+      "templateName": {
+        "meeting-review": "Allgemeine Besprechung",
+        "meeting-one-on-one": "Einzelgespräch",
+        "meeting-interview": "Vorstellungsgespräch",
+        "meeting-sales-call": "Verkaufsgespräch",
+        "meeting-standup": "Standup"
+      },
       "decisions": "Entscheidungen",
       "actions": "Aufgaben",
       "keyQuestions": "Zentrale Fragen",
@@ -2216,12 +2217,12 @@
       "followUp": "Nachfassen",
       "artifactUnavailable": "Diese generierten Notizen sind nicht verfügbar. Das Transkript und deine manuellen Notizen bleiben auf diesem Mac.",
       "actionMeta": "Verantwortlich: {{owner}} · Fällig: {{due}}",
+      "actionOwner": "Verantwortlich: {{owner}}",
+      "actionDue": "Fällig: {{due}}",
       "actionDone": "Diese Aufgabe als erledigt markieren",
-      "unassigned": "Nicht zugewiesen",
-      "noDueDate": "Kein Fälligkeitsdatum",
       "searchPlaceholder": "Diese Besprechung durchsuchen",
       "noSearchResults": "Keine genauen lokalen Treffer.",
-      "droppedFrames": "Verlorene Frames: {{total}}",
+      "droppedFrames": "{{total}} Frames verloren",
       "hitKind": {
         "manualNote": "Manuelle Notiz",
         "title": "Meeting-Titel"
@@ -2353,8 +2354,13 @@
       }
     },
     "status": {
-      "gapCount": "Lücken: {{total}}",
-      "required": "Erforderlich"
+      "someAudioMissing": "Ein Teil dieses Tons fehlt.",
+      "required": "Erforderlich",
+      "state": {
+        "ready": "Bereit",
+        "recording": "Nimmt auf",
+        "recorded": "Aufgenommen"
+      }
     },
     "analytics": {
       "title": "Gespräch",
@@ -2383,6 +2389,8 @@
     },
     "notes": {
       "title": "Meine Notizen",
+      "guideTitle": "Zusammenfassung lenken",
+      "guidePrompt": "Zusammenfassung lenken …",
       "liveDescription": "Schreiben Sie so grob, wie Sie mögen. Diese Notizen bleiben auf diesem Mac und lenken die Notizen, die Sona am Ende der Besprechung erzeugt.",
       "placeholder": "Alles, was es wert ist, erinnert zu werden: Namen, Zahlen, was nachzuverfolgen ist",
       "unsaved": "Noch nicht gespeichert",
@@ -2541,8 +2549,7 @@
     },
     "talkTime": {
       "label": "Redeanteil",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Redeanteil: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Nachfassen entwerfen",
@@ -2688,7 +2695,6 @@
       "streak": "Serie",
       "rangePrevious": "Vorherige 7 Tage",
       "rangeNext": "Nächste 7 Tage",
-      "peak": "Spitze",
       "dictationsAria": "Diktate pro Tag, höchster Wert {{count}} am {{day}}",
       "wordsAria": "Wörter pro Tag, {{count}} insgesamt, zuletzt {{last}}",
       "days_one": "{{count}} Tag",
@@ -2827,6 +2833,8 @@
       "voiceProfileRemoved": "Sona merkt sich diese Stimme auf diesem Mac nicht mehr.",
       "voiceProfileRemovalFailed": "Das Stimmprofil konnte nicht entfernt werden. Versuche es erneut.",
       "aliases": "Auch: {{aliases}}",
+      "addresses": "Eingeladen als {{addresses}}",
+      "openMeetingAt": "{{title}} öffnen, {{date}}",
       "merge": "Zusammenführen",
       "mergeTitle": "Diese Person zusammenführen?",
       "mergeDescription": "{{source}} mit {{target}} zusammenführen? Verknüpfungen, Aliasse und der Beziehungsverlauf werden kombiniert.",
@@ -2879,6 +2887,7 @@
       "operation": "Personen konnten nicht aktualisiert werden. Erneut versuchen."
     },
     "summary": {
+      "title": "Zur Person",
       "empty": "Noch keine Zusammenfassung.",
       "regenerate": "Neu erstellen",
       "provenance": "Geschrieben von {{model}} am {{date}}"
@@ -2948,7 +2957,7 @@
   },
   "peopleV2": {
     "list": {
-      "lastMet": "Zuletzt getroffen am {{date}}"
+      "lastMet": "Zuletzt getroffen: {{date}}"
     },
     "detail": {
       "openLoops": "Offene Fragen",
@@ -3195,6 +3204,26 @@
       "primed": "Wiederkehrende Besprechung vorbereitet",
       "noticed_one": "1 Sache bemerkt",
       "noticed_other": "{{count}} Sachen bemerkt"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Audio importieren",
+      "meeting": "Meeting importieren"
+    },
+    "dropZone": {
+      "prompt": "Ziehen und ablegen oder <choose>Datei auswählen</choose> zum Hochladen"
+    },
+    "importFiles_zero": "Dateien importieren",
+    "importFiles_one": "Datei importieren",
+    "importFiles_other": "{{count}} Dateien importieren",
+    "fileStatus": {
+      "ready": "Bereit zum Importieren",
+      "queued": "In Warteschlange",
+      "running": "Wird bearbeitet",
+      "done": "Importiert",
+      "cancelled": "Abgebrochen",
+      "failed": "Fehlgeschlagen"
     }
   },
   "recorder": {

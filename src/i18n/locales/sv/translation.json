@@ -830,9 +830,7 @@
         "running": "Transkriberar {{count}} filer"
       },
       "clearSearch": "Rensa sökning",
-      "emptyHint": "Du kan också transkribera en befintlig inspelning: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 eller M4V, upp till 30 minuter.",
       "loadMore": "Läs in fler",
-      "noResultsHint": "Sökningen matchar hela ord i både det råa och det bearbetade transkriptet.",
       "results": "{{count}} träffar",
       "resultsMore": "{{count}}+ träffar",
       "resultsNone": "Inga träffar",
@@ -842,8 +840,8 @@
       "derivedFromId": "från #{{id}}",
       "recalledByMeaning": "via betydelse",
       "level": {
-        "peak": "peak",
-        "rms": "medel"
+        "peak": "Peak",
+        "rms": "Medel"
       },
       "noTextRecorded": "Ingen text registrerades för den här posten.",
       "cloudHeld": "Sona höll tillbaka molnresultatet: inget tillförlitligt kom tillbaka och ingen lokal modell var tillgänglig.",
@@ -1987,7 +1985,6 @@
     },
     "import": {
       "action": "Importera",
-      "importing": "Importerar…",
       "recordingFilter": "Inspelning",
       "transcriptFilter": "Transkriptexport"
     },
@@ -2074,7 +2071,6 @@
       "loading": "Läser aktuell policy…"
     },
     "receipts": {
-      "title": "Korrigeringskvitto",
       "saved": "Sparat lokalt.",
       "savedRevision": "Sparat lokalt. Version {{revision}}.",
       "duplicate": "Den här åtgärden har redan registrerats. Sona uppdaterade det befintliga resultatet."
@@ -2154,10 +2150,10 @@
       "started": "Startade {{date}}",
       "partialRecording": "Delvis inspelning",
       "status": "Inspelningsstatus",
+      "capture": "Så här spelades det in",
       "timeline": "Ljudtidslinje och luckor",
       "timeUnknown": "Okänd tid",
-      "noGaps": "Inga luckor upptäcktes.",
-      "gapDuration": "Längd: {{duration}}",
+      "gapDuration": "{{duration}} saknas",
       "showMoreGaps": "Visa {{count}} till",
       "showFewerGaps": "Visa färre",
       "transcript": "Transkript",
@@ -2186,14 +2182,13 @@
       "rememberVoice": "Kom ihåg den här rösten på denna Mac",
       "notNow": "Inte nu",
       "rememberVoiceFailed": "Etiketten sparades. Sona kunde inte komma ihåg den här rösten från det här mötet. Prova ett annat möte.",
+      "notesTitle": "Anteckningar",
       "manualNotes": "Manuella anteckningar",
       "manualNote": "Manuell anteckning",
       "newNote": "Ny manuell anteckning",
       "notePlaceholder": "Lägg till en manuell anteckning",
       "addNote": "Lägg till anteckning",
-      "noNotes": "Inga manuella anteckningar än.",
-      "noTimestamp": "Ingen tidsstämpel",
-      "timestamp": "Tidsstämpel {{time}}",
+      "editNote": "Redigera den här anteckningen",
       "generatedNotes": "Genererade anteckningar",
       "regenerate": "Generera om",
       "remoteCancellationPending": "Fjärravbrytningen väntar fortfarande. Lokal borttagning gör inget anspråk på att fjärrkopian är borttagen.",
@@ -2203,12 +2198,18 @@
       "exportMarkdown": "Exportera Markdown",
       "exportJson": "Exportera JSON",
       "exportComplete": "Mötet exporterat",
+      "moreActions": "Mer",
       "citation": "Transkript {{time}}",
       "noGeneratedNotes": "Inga genererade anteckningar är tillgängliga än.",
-      "template": "Mall: {{template}}",
-      "summary": "Sammanfattning",
       "topics": "Ämnen",
-      "none": "Ingen",
+      "nothingRecorded": "Inga beslut, åtgärdspunkter, frågor eller risker registrerades.",
+      "templateName": {
+        "meeting-review": "Allmänt möte",
+        "meeting-one-on-one": "Ett-till-ett",
+        "meeting-interview": "Intervju",
+        "meeting-sales-call": "Säljsamtal",
+        "meeting-standup": "Standup"
+      },
       "decisions": "Beslut",
       "actions": "Åtgärdspunkter",
       "keyQuestions": "Viktiga frågor",
@@ -2216,12 +2217,12 @@
       "followUp": "Uppföljning",
       "artifactUnavailable": "De här genererade anteckningarna är inte tillgängliga. Transkriptionen och dina egna anteckningar stannar på den här datorn.",
       "actionMeta": "Ansvarig: {{owner}} · Klart senast: {{due}}",
+      "actionOwner": "Ansvarig: {{owner}}",
+      "actionDue": "Klart senast: {{due}}",
       "actionDone": "Markera den här punkten som klar",
-      "unassigned": "Ej tilldelad",
-      "noDueDate": "Inget slutdatum",
       "searchPlaceholder": "Sök i det här mötet",
       "noSearchResults": "Inga exakta lokala träffar.",
-      "droppedFrames": "Tappade bildrutor: {{total}}",
+      "droppedFrames": "{{total}} bildrutor tappade",
       "hitKind": {
         "manualNote": "Manuell anteckning",
         "title": "Mötestitel"
@@ -2353,8 +2354,13 @@
       }
     },
     "status": {
-      "gapCount": "Luckor: {{total}}",
-      "required": "Krävs"
+      "someAudioMissing": "En del av det här ljudet saknas.",
+      "required": "Krävs",
+      "state": {
+        "ready": "Klar",
+        "recording": "Spelar in",
+        "recorded": "Inspelat"
+      }
     },
     "analytics": {
       "title": "Samtal",
@@ -2383,6 +2389,8 @@
     },
     "notes": {
       "title": "Mina anteckningar",
+      "guideTitle": "Styr sammanfattningen",
+      "guidePrompt": "Styr sammanfattningen…",
       "liveDescription": "Skriv hur grovt du vill. Dessa anteckningar stannar på den här Macen och styr de anteckningar Sona skapar när mötet slutar.",
       "placeholder": "Allt värt att minnas: namn, tal, vad som ska följas upp",
       "unsaved": "Inte sparat än",
@@ -2541,8 +2549,7 @@
     },
     "talkTime": {
       "label": "Taltid",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Taltid: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Skriv uppföljning",
@@ -2688,7 +2695,6 @@
       "streak": "Svit",
       "rangePrevious": "Föregående 7 dagar",
       "rangeNext": "Nästa 7 dagar",
-      "peak": "Topp",
       "dictationsAria": "Dikteringar per dag, högst {{count}} på {{day}}",
       "wordsAria": "Ord per dag, totalt {{count}}, sista värde {{last}}",
       "days_one": "{{count}} dag",
@@ -2827,6 +2833,8 @@
       "voiceProfileRemoved": "Sona slutade komma ihåg den här rösten på denna Mac.",
       "voiceProfileRemovalFailed": "Det gick inte att ta bort röstprofilen. Försök igen.",
       "aliases": "Även: {{aliases}}",
+      "addresses": "Inbjuden som {{addresses}}",
+      "openMeetingAt": "Öppna {{title}}, {{date}}",
       "merge": "Slå ihop",
       "mergeTitle": "Slå ihop den här personen?",
       "mergeDescription": "Slå ihop {{source}} med {{target}}? Länkar, alias och relationshistorik kombineras.",
@@ -2879,6 +2887,7 @@
       "operation": "Det gick inte att uppdatera personer. Försök igen."
     },
     "summary": {
+      "title": "Om personen",
       "empty": "Ingen sammanfattning ännu.",
       "regenerate": "Skapa på nytt",
       "provenance": "Skriven av {{model}} den {{date}}"
@@ -3195,6 +3204,26 @@
       "primed": "Förberedde ett återkommande möte",
       "noticed_one": "Lade märke till 1 sak",
       "noticed_other": "Lade märke till {{count}} saker"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Importera ljud",
+      "meeting": "Importera ett möte"
+    },
+    "dropZone": {
+      "prompt": "Dra och släpp eller <choose>välj en fil</choose> för att ladda upp"
+    },
+    "importFiles_zero": "Importera filer",
+    "importFiles_one": "Importera fil",
+    "importFiles_other": "Importera {{count}} filer",
+    "fileStatus": {
+      "ready": "Klar att importera",
+      "queued": "I kö",
+      "running": "Arbetar på det",
+      "done": "Importerad",
+      "cancelled": "Avbruten",
+      "failed": "Misslyckades"
     }
   },
   "recorder": {

@@ -830,9 +830,7 @@
         "running": "{{count}} फाइलहरू ट्रान्सक्राइब गर्दै"
       },
       "clearSearch": "खोज हटाउनुहोस्",
-      "emptyHint": "तपाईं पहिलेको रेकर्डिङ पनि ट्रान्सक्राइब गर्न सक्नुहुन्छ: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 वा M4V, ३० मिनेटसम्म।",
       "loadMore": "थप लोड गर्नुहोस्",
-      "noResultsHint": "खोजले कच्चा र प्रशोधित दुवै ट्रान्सक्रिप्टका पूरा शब्दहरू मिलाउँछ।",
       "results": "{{count}} मिल्दा",
       "resultsMore": "{{count}}+ मिल्दा",
       "resultsNone": "कुनै मिल्दो छैन",
@@ -842,7 +840,7 @@
       "derivedFromId": "#{{id}} बाट",
       "recalledByMeaning": "अर्थबाट",
       "level": {
-        "peak": "peak",
+        "peak": "Peak",
         "rms": "औसत"
       },
       "noTextRecorded": "यो प्रविष्टिको लागि कुनै पाठ अभिलेख भएन।",
@@ -1987,7 +1985,6 @@
     },
     "import": {
       "action": "आयात गर्नुहोस्",
-      "importing": "आयात गर्दै…",
       "recordingFilter": "रेकर्डिङ",
       "transcriptFilter": "ट्रान्सक्रिप्ट निर्यात"
     },
@@ -2074,7 +2071,6 @@
       "loading": "हालको नीति पढ्दै…"
     },
     "receipts": {
-      "title": "सुधार रसिद",
       "saved": "स्थानीय रूपमा सुरक्षित भयो।",
       "savedRevision": "स्थानीय रूपमा बचत गरियो। संस्करण {{revision}}।",
       "duplicate": "यो कार्य पहिले नै अभिलेख भइसकेको थियो। Sona ले भइरहेको नतिजा रिफ्रेस गर्‍यो।"
@@ -2154,10 +2150,10 @@
       "started": "{{date}} मा सुरु भयो",
       "partialRecording": "आंशिक रेकर्डिङ",
       "status": "क्याप्चरको अवस्था",
+      "capture": "यो कसरी रेकर्ड भयो",
       "timeline": "अडियो टाइमलाइन र खाली अन्तरहरू",
       "timeUnknown": "अज्ञात समय",
-      "noGaps": "कुनै खाली अन्तर भेटिएन।",
-      "gapDuration": "अवधि: {{duration}}",
+      "gapDuration": "{{duration}} छुटेको",
       "showMoreGaps": "थप {{count}} देखाउनुहोस्",
       "showFewerGaps": "कम देखाउनुहोस्",
       "transcript": "ट्रान्सक्रिप्ट",
@@ -2186,14 +2182,13 @@
       "rememberVoice": "यस Mac मा यो आवाज सम्झनुहोस्",
       "notNow": "अहिले होइन",
       "rememberVoiceFailed": "लेबल सुरक्षित गरियो। Sona ले यस बैठकबाट यो आवाज सम्झन सकेन। अर्को बैठकमा प्रयास गर्नुहोस्।",
+      "notesTitle": "नोटहरू",
       "manualNotes": "म्यानुअल नोटहरू",
       "manualNote": "म्यानुअल नोट",
       "newNote": "नयाँ म्यानुअल नोट",
       "notePlaceholder": "म्यानुअल नोट थप्नुहोस्",
       "addNote": "नोट थप्नुहोस्",
-      "noNotes": "अझै कुनै म्यानुअल नोट छैन।",
-      "noTimestamp": "टाइमस्टाम्प छैन",
-      "timestamp": "टाइमस्टाम्प {{time}}",
+      "editNote": "यो नोट सम्पादन गर्नुहोस्",
       "generatedNotes": "उत्पन्न नोटहरू",
       "regenerate": "पुन: उत्पन्न गर्नुहोस्",
       "remoteCancellationPending": "रिमोट रद्दीकरण बाँकी छ। स्थानीय मेटाइले रिमोट प्रतिलिपि मेटियो भन्ने दाबी गर्दैन।",
@@ -2203,12 +2198,18 @@
       "exportMarkdown": "Markdown निर्यात गर्नुहोस्",
       "exportJson": "JSON निर्यात गर्नुहोस्",
       "exportComplete": "बैठक निर्यात भयो",
+      "moreActions": "थप",
       "citation": "ट्रान्सक्रिप्ट {{time}}",
       "noGeneratedNotes": "अझै कुनै उत्पन्न नोट उपलब्ध छैन।",
-      "template": "टेम्प्लेट: {{template}}",
-      "summary": "सारांश",
       "topics": "विषयहरू",
-      "none": "कुनै होइन",
+      "nothingRecorded": "कुनै निर्णय, कार्य बिन्दु, प्रश्न वा जोखिम दर्ता भएन।",
+      "templateName": {
+        "meeting-review": "सामान्य बैठक",
+        "meeting-one-on-one": "एक-एक",
+        "meeting-interview": "अन्तर्वार्ता",
+        "meeting-sales-call": "बिक्री कल",
+        "meeting-standup": "स्ट्यान्डअप"
+      },
       "decisions": "निर्णयहरू",
       "actions": "कार्य बिन्दुहरू",
       "keyQuestions": "मुख्य प्रश्नहरू",
@@ -2216,12 +2217,12 @@
       "followUp": "पछिको कार्य",
       "artifactUnavailable": "यी उत्पन्न नोटहरू उपलब्ध छैनन्। ट्रान्सक्रिप्ट र तपाईंका आफ्नै नोटहरू यही Mac मा रहन्छन्।",
       "actionMeta": "जिम्मेवार: {{owner}} · म्याद: {{due}}",
+      "actionOwner": "जिम्मेवार: {{owner}}",
+      "actionDue": "म्याद: {{due}}",
       "actionDone": "यो कार्य सम्पन्न चिह्नित गर्नुहोस्",
-      "unassigned": "तोकिएको छैन",
-      "noDueDate": "म्याद तोकिएको छैन",
       "searchPlaceholder": "यस बैठकमा खोज्नुहोस्",
       "noSearchResults": "ठ्याक्कै मिल्ने कुनै स्थानीय नतिजा छैन।",
-      "droppedFrames": "छुटेका फ्रेमहरू: {{total}}",
+      "droppedFrames": "{{total}} फ्रेम छुटे",
       "hitKind": {
         "manualNote": "म्यानुअल नोट",
         "title": "बैठकको शीर्षक"
@@ -2353,8 +2354,13 @@
       }
     },
     "status": {
-      "gapCount": "खाली अन्तरहरू: {{total}}",
-      "required": "आवश्यक"
+      "someAudioMissing": "यो अडियोको केही भाग छुटेको छ।",
+      "required": "आवश्यक",
+      "state": {
+        "ready": "तयार",
+        "recording": "रेकर्ड हुँदै",
+        "recorded": "रेकर्ड भयो"
+      }
     },
     "analytics": {
       "title": "कुराकानी",
@@ -2383,6 +2389,8 @@
     },
     "notes": {
       "title": "मेरा टिप्पणी",
+      "guideTitle": "सारांशलाई दिशा दिनुहोस्",
+      "guidePrompt": "सारांशलाई दिशा दिनुहोस्…",
       "liveDescription": "जति कच्चा लेख्न चाहनुहुन्छ लेख्नुहोस्। यी टिप्पणी यही Mac मा रहन्छन् र बैठक सकिँदा Sona बनाउने टिप्पणीलाई दिशा दिन्छन्।",
       "placeholder": "सम्झनलायक सबै कुरा: नाम, अंक, पछि गर्नुपर्ने काम",
       "unsaved": "अझै सुरक्षित भएको छैन",
@@ -2541,8 +2549,7 @@
     },
     "talkTime": {
       "label": "बोल्ने समय",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "बोल्ने समय: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "फलोअप लेख्नुहोस्",
@@ -2688,7 +2695,6 @@
       "streak": "निरन्तरता",
       "rangePrevious": "अघिल्ला ७ दिन",
       "rangeNext": "अर्का ७ दिन",
-      "peak": "उच्चतम",
       "dictationsAria": "दैनिक श्रुतिलेख, {{day}} मा सबैभन्दा धेरै {{count}}",
       "wordsAria": "दैनिक शब्दहरू, जम्मा {{count}}, अन्तिम मान {{last}}",
       "days_one": "{{count}} दिन",
@@ -2827,6 +2833,8 @@
       "voiceProfileRemoved": "Sona ले यस Mac मा यो आवाज सम्झन छोड्यो।",
       "voiceProfileRemovalFailed": "आवाज प्रोफाइल हटाउन सकिएन। फेरि प्रयास गर्नुहोस्।",
       "aliases": "अन्य नाम: {{aliases}}",
+      "addresses": "{{addresses}} को रूपमा निम्त्याइएको",
+      "openMeetingAt": "{{title}} खोल्नुहोस्, {{date}}",
       "merge": "गाभ्नुहोस्",
       "mergeTitle": "यस व्यक्तिलाई गाभ्ने?",
       "mergeDescription": "{{source}} लाई {{target}} सँग गाभ्ने? लिङ्क, अन्य नाम र सम्बन्धको इतिहास एकत्रित हुनेछ।",
@@ -2879,6 +2887,7 @@
       "operation": "व्यक्तिहरू अद्यावधिक गर्न सकिएन। फेरि प्रयास गर्नुहोस्।"
     },
     "summary": {
+      "title": "परिचय",
       "empty": "अहिलेसम्म कुनै सारांश छैन।",
       "regenerate": "फेरि बनाउनुहोस्",
       "provenance": "{{model}} द्वारा {{date}} मा लेखिएको"
@@ -3195,6 +3204,26 @@
       "primed": "एक दोहोरिने बैठक तयार पार्यो",
       "noticed_one": "१ कुरा देख्यो",
       "noticed_other": "{{count}} कुरा देख्यो"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "अडियो आयात गर्नुहोस्",
+      "meeting": "बैठक आयात गर्नुहोस्"
+    },
+    "dropZone": {
+      "prompt": "तान्नुहोस् र छोड्नुहोस्, वा अपलोड गर्न <choose>फाइल छान्नुहोस्</choose>"
+    },
+    "importFiles_zero": "फाइलहरू आयात गर्नुहोस्",
+    "importFiles_one": "फाइल आयात गर्नुहोस्",
+    "importFiles_other": "{{count}} फाइल आयात गर्नुहोस्",
+    "fileStatus": {
+      "ready": "आयात गर्न तयार",
+      "queued": "लाइनमा",
+      "running": "काम भइरहेको छ",
+      "done": "आयात गरियो",
+      "cancelled": "रद्द गरियो",
+      "failed": "असफल"
     }
   },
   "recorder": {

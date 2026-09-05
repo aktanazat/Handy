@@ -830,9 +830,7 @@
         "running": "Transkrybowanie {{count}} plików"
       },
       "clearSearch": "Wyczyść wyszukiwanie",
-      "emptyHint": "Możesz też transkrybować istniejące nagranie: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 lub M4V, do 30 minut.",
       "loadMore": "Wczytaj więcej",
-      "noResultsHint": "Wyszukiwanie dopasowuje całe słowa zarówno w surowej, jak i przetworzonej transkrypcji.",
       "results": "Dopasowania: {{count}}",
       "resultsMore": "Dopasowania: {{count}}+",
       "resultsNone": "Brak dopasowań",
@@ -842,8 +840,8 @@
       "derivedFromId": "z #{{id}}",
       "recalledByMeaning": "po znaczeniu",
       "level": {
-        "peak": "peak",
-        "rms": "średnia"
+        "peak": "Peak",
+        "rms": "Średnia"
       },
       "noTextRecorded": "Dla tego wpisu nie zapisano żadnego tekstu.",
       "cloudHeld": "Sona wstrzymała wynik z chmury: nie wróciło nic wiarygodnego i nie było dostępnego modelu lokalnego.",
@@ -1999,7 +1997,6 @@
     },
     "import": {
       "action": "Importuj",
-      "importing": "Importowanie…",
       "recordingFilter": "Nagranie",
       "transcriptFilter": "Eksport transkrypcji"
     },
@@ -2086,7 +2083,6 @@
       "loading": "Odczytywanie bieżącej zasady…"
     },
     "receipts": {
-      "title": "Potwierdzenie korekty",
       "saved": "Zapisano lokalnie.",
       "savedRevision": "Zapisano lokalnie. Wersja {{revision}}.",
       "duplicate": "Ta akcja została już zapisana. Sona odświeżyła istniejący wynik."
@@ -2166,10 +2162,10 @@
       "started": "Rozpoczęto {{date}}",
       "partialRecording": "Częściowe nagranie",
       "status": "Stan nagrywania",
+      "capture": "Jak to nagrano",
       "timeline": "Oś czasu audio i luki",
       "timeUnknown": "Nieznana godzina",
-      "noGaps": "Nie wykryto luk.",
-      "gapDuration": "Czas trwania: {{duration}}",
+      "gapDuration": "Brakuje {{duration}}",
       "showMoreGaps": "Pokaż jeszcze {{count}}",
       "showFewerGaps": "Pokaż mniej",
       "transcript": "Transkrypcja",
@@ -2200,14 +2196,13 @@
       "rememberVoice": "Zapamiętaj ten głos na tym Macu",
       "notNow": "Nie teraz",
       "rememberVoiceFailed": "Etykieta została zapisana. Sona nie mogła zapamiętać tego głosu z tego spotkania. Spróbuj innego spotkania.",
+      "notesTitle": "Notatki",
       "manualNotes": "Notatki ręczne",
       "manualNote": "Notatka ręczna",
       "newNote": "Nowa notatka ręczna",
       "notePlaceholder": "Dodaj notatkę ręczną",
       "addNote": "Dodaj notatkę",
-      "noNotes": "Brak notatek ręcznych.",
-      "noTimestamp": "Bez znacznika czasu",
-      "timestamp": "Znacznik czasu {{time}}",
+      "editNote": "Edytuj tę notatkę",
       "generatedNotes": "Wygenerowane notatki",
       "regenerate": "Wygeneruj ponownie",
       "remoteCancellationPending": "Zdalne anulowanie jest w toku. Lokalne usunięcie nie oznacza, że zdalna kopia została usunięta.",
@@ -2217,12 +2212,18 @@
       "exportMarkdown": "Eksportuj Markdown",
       "exportJson": "Eksportuj JSON",
       "exportComplete": "Spotkanie wyeksportowane",
+      "moreActions": "Więcej",
       "citation": "Transkrypcja {{time}}",
       "noGeneratedNotes": "Nie ma jeszcze wygenerowanych notatek.",
-      "template": "Szablon: {{template}}",
-      "summary": "Podsumowanie",
       "topics": "Tematy",
-      "none": "Brak",
+      "nothingRecorded": "Nie zapisano żadnych decyzji, zadań, pytań ani ryzyk.",
+      "templateName": {
+        "meeting-review": "Spotkanie ogólne",
+        "meeting-one-on-one": "Jeden na jeden",
+        "meeting-interview": "Rozmowa kwalifikacyjna",
+        "meeting-sales-call": "Rozmowa sprzedażowa",
+        "meeting-standup": "Standup"
+      },
       "decisions": "Decyzje",
       "actions": "Zadania",
       "keyQuestions": "Kluczowe pytania",
@@ -2230,12 +2231,12 @@
       "followUp": "Dalsze kroki",
       "artifactUnavailable": "Te wygenerowane notatki są niedostępne. Transkrypcja i Twoje własne notatki pozostają na tym Macu.",
       "actionMeta": "Właściciel: {{owner}} · Termin: {{due}}",
+      "actionOwner": "Właściciel: {{owner}}",
+      "actionDue": "Termin: {{due}}",
       "actionDone": "Oznacz to zadanie jako wykonane",
-      "unassigned": "Nieprzypisane",
-      "noDueDate": "Bez terminu",
       "searchPlaceholder": "Szukaj w tym spotkaniu",
       "noSearchResults": "Brak dokładnych trafień lokalnych.",
-      "droppedFrames": "Utracone klatki: {{total}}",
+      "droppedFrames": "{{total}} utraconych klatek",
       "hitKind": {
         "manualNote": "Notatka ręczna",
         "title": "Tytuł spotkania"
@@ -2367,8 +2368,13 @@
       }
     },
     "status": {
-      "gapCount": "Luki: {{total}}",
-      "required": "Wymagane"
+      "someAudioMissing": "Brakuje części tego dźwięku.",
+      "required": "Wymagane",
+      "state": {
+        "ready": "Gotowe",
+        "recording": "Nagrywa",
+        "recorded": "Nagrane"
+      }
     },
     "analytics": {
       "title": "Rozmowa",
@@ -2397,6 +2403,8 @@
     },
     "notes": {
       "title": "Moje notatki",
+      "guideTitle": "Ukierunkuj podsumowanie",
+      "guidePrompt": "Ukierunkuj podsumowanie…",
       "liveDescription": "Pisz tak zgrubnie, jak chcesz. Te notatki zostają na tym Macu i kierują notatkami, które Sona tworzy po zakończeniu spotkania.",
       "placeholder": "Wszystko, co warto zapamiętać: nazwiska, liczby, co trzeba dopilnować",
       "unsaved": "Jeszcze nie zapisano",
@@ -2555,8 +2563,7 @@
     },
     "talkTime": {
       "label": "Czas mówienia",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Czas mówienia: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Napisz wiadomość",
@@ -2702,7 +2709,6 @@
       "streak": "Seria",
       "rangePrevious": "Poprzednie 7 dni",
       "rangeNext": "Następne 7 dni",
-      "peak": "Szczyt",
       "dictationsAria": "Dyktowania dziennie, najwięcej {{count}} w {{day}}",
       "wordsAria": "Słowa dziennie, łącznie {{count}}, ostatnia wartość {{last}}",
       "days_one": "{{count}} dzień",
@@ -2847,6 +2853,8 @@
       "voiceProfileRemoved": "Sona przestała zapamiętywać ten głos na tym Macu.",
       "voiceProfileRemovalFailed": "Nie udało się usunąć profilu głosowego. Spróbuj ponownie.",
       "aliases": "Także: {{aliases}}",
+      "addresses": "Zaproszony jako {{addresses}}",
+      "openMeetingAt": "Otwórz {{title}}, {{date}}",
       "merge": "Scal",
       "mergeTitle": "Scalić tę osobę?",
       "mergeDescription": "Scalić {{source}} z {{target}}? Połączenia, aliasy i historia relacji zostaną połączone.",
@@ -2899,6 +2907,7 @@
       "operation": "Nie udało się zaktualizować osób. Spróbuj ponownie."
     },
     "summary": {
+      "title": "O tej osobie",
       "empty": "Nie ma jeszcze podsumowania.",
       "regenerate": "Wygeneruj ponownie",
       "provenance": "Napisane przez {{model}} dnia {{date}}"
@@ -3235,6 +3244,28 @@
       "noticed_few": "Zauważono {{count}} rzeczy",
       "noticed_many": "Zauważono {{count}} rzeczy",
       "noticed_other": "Zauważono {{count}} rzeczy"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Importuj audio",
+      "meeting": "Importuj spotkanie"
+    },
+    "dropZone": {
+      "prompt": "Przeciągnij i upuść albo <choose>wybierz plik</choose>, aby przesłać"
+    },
+    "importFiles_zero": "Importuj pliki",
+    "importFiles_one": "Importuj plik",
+    "importFiles_few": "Importuj {{count}} pliki",
+    "importFiles_many": "Importuj {{count}} plików",
+    "importFiles_other": "Importuj {{count}} pliku",
+    "fileStatus": {
+      "ready": "Gotowe do zaimportowania",
+      "queued": "W kolejce",
+      "running": "W trakcie",
+      "done": "Zaimportowano",
+      "cancelled": "Anulowano",
+      "failed": "Niepowodzenie"
     }
   },
   "recorder": {

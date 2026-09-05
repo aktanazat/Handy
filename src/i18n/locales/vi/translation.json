@@ -830,9 +830,7 @@
         "running": "Đang chuyển thành văn bản {{count}} tệp"
       },
       "clearSearch": "Xóa tìm kiếm",
-      "emptyHint": "Bạn cũng có thể chuyển một bản ghi âm sẵn có thành văn bản: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 hoặc M4V, tối đa 30 phút.",
       "loadMore": "Tải thêm",
-      "noResultsHint": "Tìm kiếm khớp nguyên từ trong cả bản ghi thoại thô và bản đã xử lý.",
       "results": "{{count}} kết quả khớp",
       "resultsMore": "{{count}}+ kết quả khớp",
       "resultsNone": "Không có kết quả khớp",
@@ -842,8 +840,8 @@
       "derivedFromId": "từ #{{id}}",
       "recalledByMeaning": "theo ý nghĩa",
       "level": {
-        "peak": "peak",
-        "rms": "trung bình"
+        "peak": "Peak",
+        "rms": "Trung bình"
       },
       "noTextRecorded": "Không có văn bản nào được ghi cho mục này.",
       "cloudHeld": "Sona đã giữ lại kết quả từ đám mây: không có gì đáng tin cậy trả về và không có mô hình cục bộ nào khả dụng.",
@@ -1981,7 +1979,6 @@
     },
     "import": {
       "action": "Nhập",
-      "importing": "Đang nhập…",
       "recordingFilter": "Bản ghi âm",
       "transcriptFilter": "Bản chép lời đã xuất"
     },
@@ -2068,7 +2065,6 @@
       "loading": "Đang đọc chính sách hiện tại…"
     },
     "receipts": {
-      "title": "Biên lai chỉnh sửa",
       "saved": "Đã lưu trên máy.",
       "savedRevision": "Đã lưu cục bộ. Phiên bản {{revision}}.",
       "duplicate": "Thao tác này đã được ghi lại. Sona đã làm mới kết quả hiện có."
@@ -2148,10 +2144,10 @@
       "started": "Bắt đầu {{date}}",
       "partialRecording": "Bản ghi một phần",
       "status": "Trạng thái ghi",
+      "capture": "Cách bản ghi này được tạo",
       "timeline": "Dòng thời gian âm thanh và khoảng trống",
       "timeUnknown": "Không rõ thời gian",
-      "noGaps": "Không phát hiện khoảng trống.",
-      "gapDuration": "Thời lượng: {{duration}}",
+      "gapDuration": "Thiếu {{duration}}",
       "showMoreGaps": "Hiển thị thêm {{count}}",
       "showFewerGaps": "Hiển thị ít hơn",
       "transcript": "Bản ghi thoại",
@@ -2179,14 +2175,13 @@
       "rememberVoice": "Ghi nhớ giọng nói này trên máy Mac này",
       "notNow": "Để sau",
       "rememberVoiceFailed": "Nhãn đã được lưu. Sona không thể ghi nhớ giọng nói này từ cuộc họp này. Hãy thử một cuộc họp khác.",
+      "notesTitle": "Ghi chú",
       "manualNotes": "Ghi chú thủ công",
       "manualNote": "Ghi chú thủ công",
       "newNote": "Ghi chú thủ công mới",
       "notePlaceholder": "Thêm một ghi chú thủ công",
       "addNote": "Thêm ghi chú",
-      "noNotes": "Chưa có ghi chú thủ công nào.",
-      "noTimestamp": "Không có dấu thời gian",
-      "timestamp": "Dấu thời gian {{time}}",
+      "editNote": "Sửa ghi chú này",
       "generatedNotes": "Ghi chú được tạo",
       "regenerate": "Tạo lại",
       "remoteCancellationPending": "Việc hủy từ xa đang chờ. Xóa trên máy không có nghĩa là bản sao từ xa đã bị xóa.",
@@ -2196,12 +2191,18 @@
       "exportMarkdown": "Xuất Markdown",
       "exportJson": "Xuất JSON",
       "exportComplete": "Đã xuất buổi họp",
+      "moreActions": "Thêm",
       "citation": "Bản ghi thoại {{time}}",
       "noGeneratedNotes": "Chưa có ghi chú được tạo nào.",
-      "template": "Mẫu: {{template}}",
-      "summary": "Tóm tắt",
       "topics": "Chủ đề",
-      "none": "Không có",
+      "nothingRecorded": "Không có quyết định, việc cần làm, câu hỏi hay rủi ro nào được ghi lại.",
+      "templateName": {
+        "meeting-review": "Buổi họp chung",
+        "meeting-one-on-one": "Một đối một",
+        "meeting-interview": "Phỏng vấn",
+        "meeting-sales-call": "Cuộc gọi bán hàng",
+        "meeting-standup": "Họp nhanh đầu ngày"
+      },
       "decisions": "Quyết định",
       "actions": "Việc cần làm",
       "keyQuestions": "Câu hỏi chính",
@@ -2209,12 +2210,12 @@
       "followUp": "Bước tiếp theo",
       "artifactUnavailable": "Các ghi chú được tạo này không khả dụng. Bản ghi và ghi chú tay của bạn vẫn ở trên máy Mac này.",
       "actionMeta": "Phụ trách: {{owner}} · Hạn: {{due}}",
+      "actionOwner": "Phụ trách: {{owner}}",
+      "actionDue": "Hạn: {{due}}",
       "actionDone": "Đánh dấu việc cần làm này là đã xong",
-      "unassigned": "Chưa gán",
-      "noDueDate": "Không có hạn",
       "searchPlaceholder": "Tìm trong cuộc họp này",
       "noSearchResults": "Không có kết quả khớp chính xác trên máy.",
-      "droppedFrames": "Khung hình bị mất: {{total}}",
+      "droppedFrames": "Mất {{total}} khung hình",
       "hitKind": {
         "manualNote": "Ghi chú thủ công",
         "title": "Tiêu đề cuộc họp"
@@ -2346,8 +2347,13 @@
       }
     },
     "status": {
-      "gapCount": "Khoảng trống: {{total}}",
-      "required": "Bắt buộc"
+      "someAudioMissing": "Một phần âm thanh này bị thiếu.",
+      "required": "Bắt buộc",
+      "state": {
+        "ready": "Sẵn sàng",
+        "recording": "Đang ghi",
+        "recorded": "Đã ghi"
+      }
     },
     "analytics": {
       "title": "Cuộc hội thoại",
@@ -2376,6 +2382,8 @@
     },
     "notes": {
       "title": "Ghi chú của tôi",
+      "guideTitle": "Định hướng bản tóm tắt",
+      "guidePrompt": "Định hướng bản tóm tắt…",
       "liveDescription": "Cứ viết thô đến mức nào bạn muốn. Những ghi chú này ở lại trên chiếc Mac này và định hướng phần ghi chú Sona tạo ra khi buổi họp kết thúc.",
       "placeholder": "Bất cứ điều gì đáng nhớ: tên, số, việc cần theo tiếp",
       "unsaved": "Chưa lưu",
@@ -2534,8 +2542,7 @@
     },
     "talkTime": {
       "label": "Thời lượng nói",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Thời lượng nói: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Soạn thư theo dõi",
@@ -2681,7 +2688,6 @@
       "streak": "Chuỗi ngày",
       "rangePrevious": "7 ngày trước",
       "rangeNext": "7 ngày tiếp theo",
-      "peak": "Cao nhất",
       "dictationsAria": "Số lần đọc chính tả mỗi ngày, cao nhất {{count}} vào {{day}}",
       "wordsAria": "Số từ mỗi ngày, tổng cộng {{count}}, giá trị cuối {{last}}",
       "days_other": "{{count}} ngày",
@@ -2818,6 +2824,8 @@
       "voiceProfileRemoved": "Sona đã ngừng ghi nhớ giọng nói này trên máy Mac này.",
       "voiceProfileRemovalFailed": "Không thể xóa hồ sơ giọng nói. Hãy thử lại.",
       "aliases": "Còn gọi là: {{aliases}}",
+      "addresses": "Được mời với {{addresses}}",
+      "openMeetingAt": "Mở {{title}}, {{date}}",
       "merge": "Hợp nhất",
       "mergeTitle": "Hợp nhất người này?",
       "mergeDescription": "Hợp nhất {{source}} vào {{target}}? Các liên kết, tên khác và lịch sử mối quan hệ sẽ được gộp lại.",
@@ -2870,6 +2878,7 @@
       "operation": "Không thể cập nhật danh sách người. Hãy thử lại."
     },
     "summary": {
+      "title": "Giới thiệu",
       "empty": "Chưa có tóm tắt.",
       "regenerate": "Tạo lại",
       "provenance": "Được viết bởi {{model}} vào {{date}}"
@@ -3179,6 +3188,25 @@
     "outcomes": {
       "primed": "Đã chuẩn bị một cuộc họp định kỳ",
       "noticed_other": "Nhận thấy {{count}} điều"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Nhập âm thanh",
+      "meeting": "Nhập cuộc họp"
+    },
+    "dropZone": {
+      "prompt": "Kéo và thả hoặc <choose>chọn tệp</choose> để tải lên"
+    },
+    "importFiles_zero": "Nhập tệp",
+    "importFiles_other": "Nhập {{count}} tệp",
+    "fileStatus": {
+      "ready": "Sẵn sàng nhập",
+      "queued": "Đã xếp hàng",
+      "running": "Đang xử lý",
+      "done": "Đã nhập",
+      "cancelled": "Đã hủy",
+      "failed": "Thất bại"
     }
   },
   "recorder": {

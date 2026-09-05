@@ -830,9 +830,7 @@
         "running": "{{count}} 個のファイルを文字起こし中"
       },
       "clearSearch": "検索をクリア",
-      "emptyHint": "既存の録音も文字起こしできます: WAV、MP3、M4A、AAC、FLAC、OGG、MOV、MP4、M4V、最大30分まで。",
       "loadMore": "さらに読み込む",
-      "noResultsHint": "検索は元の文字起こしと処理後の文字起こしの両方で単語単位に一致します。",
       "results": "{{count}} 件の一致",
       "resultsMore": "{{count}}+ 件の一致",
       "resultsNone": "一致なし",
@@ -842,7 +840,7 @@
       "derivedFromId": "#{{id}} から",
       "recalledByMeaning": "意味一致",
       "level": {
-        "peak": "peak",
+        "peak": "Peak",
         "rms": "平均"
       },
       "noTextRecorded": "このエントリではテキストが記録されませんでした。",
@@ -1981,7 +1979,6 @@
     },
     "import": {
       "action": "読み込む",
-      "importing": "読み込んでいます…",
       "recordingFilter": "録音",
       "transcriptFilter": "文字起こしの書き出し"
     },
@@ -2068,7 +2065,6 @@
       "loading": "現在のポリシーを読み取り中…"
     },
     "receipts": {
-      "title": "修正のレシート",
       "saved": "ローカルに保存しました。",
       "savedRevision": "ローカルに保存しました。バージョン {{revision}}。",
       "duplicate": "この操作はすでに記録されています。Sona は既存の結果を更新しました。"
@@ -2148,10 +2144,10 @@
       "started": "開始 {{date}}",
       "partialRecording": "部分的な録音",
       "status": "収録の状態",
+      "capture": "どのように録音されたか",
       "timeline": "音声のタイムラインと欠落",
       "timeUnknown": "時刻不明",
-      "noGaps": "欠落は検出されませんでした。",
-      "gapDuration": "長さ: {{duration}}",
+      "gapDuration": "{{duration}} 欠落",
       "showMoreGaps": "さらに{{count}}件表示",
       "showFewerGaps": "表示を減らす",
       "transcript": "文字起こし",
@@ -2179,14 +2175,13 @@
       "rememberVoice": "このMacでこの声を記憶する",
       "notNow": "今はしない",
       "rememberVoiceFailed": "名前を保存しました。この会議からこの声を記憶できませんでした。別の会議で試してください。",
+      "notesTitle": "メモ",
       "manualNotes": "手動メモ",
       "manualNote": "手動メモ",
       "newNote": "新しい手動メモ",
       "notePlaceholder": "手動メモを追加",
       "addNote": "メモを追加",
-      "noNotes": "手動メモはまだありません。",
-      "noTimestamp": "タイムスタンプなし",
-      "timestamp": "タイムスタンプ {{time}}",
+      "editNote": "このメモを編集",
       "generatedNotes": "生成ノート",
       "regenerate": "再生成",
       "remoteCancellationPending": "リモートのキャンセルは保留中です。ローカルの削除は、リモートの複製が削除されたことを保証しません。",
@@ -2196,12 +2191,18 @@
       "exportMarkdown": "Markdown を書き出す",
       "exportJson": "JSON を書き出す",
       "exportComplete": "ミーティングを書き出しました",
+      "moreActions": "その他",
       "citation": "文字起こし {{time}}",
       "noGeneratedNotes": "利用できる生成ノートはまだありません。",
-      "template": "テンプレート: {{template}}",
-      "summary": "要約",
       "topics": "トピック",
-      "none": "なし",
+      "nothingRecorded": "決定事項、アクション項目、問い、リスクは記録されませんでした。",
+      "templateName": {
+        "meeting-review": "一般のミーティング",
+        "meeting-one-on-one": "1 対 1",
+        "meeting-interview": "面接",
+        "meeting-sales-call": "営業の通話",
+        "meeting-standup": "スタンドアップ"
+      },
       "decisions": "決定事項",
       "actions": "アクション項目",
       "keyQuestions": "主な問い",
@@ -2209,12 +2210,12 @@
       "followUp": "フォローアップ",
       "artifactUnavailable": "この生成メモは利用できません。文字起こしと手動メモはこの Mac に残っています。",
       "actionMeta": "担当: {{owner}} · 期限: {{due}}",
+      "actionOwner": "担当: {{owner}}",
+      "actionDue": "期限: {{due}}",
       "actionDone": "このアクション項目を完了にする",
-      "unassigned": "未割り当て",
-      "noDueDate": "期限なし",
       "searchPlaceholder": "このミーティングを検索",
       "noSearchResults": "完全に一致するローカルの結果はありません。",
-      "droppedFrames": "ドロップフレーム: {{total}}",
+      "droppedFrames": "{{total}} フレーム欠落",
       "hitKind": {
         "manualNote": "手動メモ",
         "title": "ミーティングタイトル"
@@ -2346,8 +2347,13 @@
       }
     },
     "status": {
-      "gapCount": "欠落: {{total}}",
-      "required": "必須"
+      "someAudioMissing": "この音声の一部が欠けています。",
+      "required": "必須",
+      "state": {
+        "ready": "準備完了",
+        "recording": "録音中",
+        "recorded": "録音済み"
+      }
     },
     "analytics": {
       "title": "会話",
@@ -2376,6 +2382,8 @@
     },
     "notes": {
       "title": "自分のメモ",
+      "guideTitle": "要約を導く",
+      "guidePrompt": "要約を導く…",
       "liveDescription": "どれだけ粗く書いても構いません。このメモはこの Mac に残り、ミーティング終了時に Sona が生成するメモを導きます。",
       "placeholder": "覚えておく価値のあること: 名前、数字、追いかけること",
       "unsaved": "まだ保存されていません",
@@ -2534,8 +2542,7 @@
     },
     "talkTime": {
       "label": "発話時間",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "発話時間: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "フォローアップを作成",
@@ -2681,7 +2688,6 @@
       "streak": "連続記録",
       "rangePrevious": "前の7日間",
       "rangeNext": "次の7日間",
-      "peak": "最大",
       "dictationsAria": "1日あたりの口述、{{day}}に最多{{count}}件",
       "wordsAria": "1日あたりの単語、合計{{count}}語、最終値{{last}}",
       "days_other": "{{count}}日",
@@ -2818,6 +2824,8 @@
       "voiceProfileRemoved": "SonaはこのMacでこの声を記憶しなくなりました。",
       "voiceProfileRemovalFailed": "声のプロフィールを削除できませんでした。もう一度試してください。",
       "aliases": "別名: {{aliases}}",
+      "addresses": "{{addresses}} として招待",
+      "openMeetingAt": "{{title}} を開く、{{date}}",
       "merge": "統合",
       "mergeTitle": "この人物を統合しますか？",
       "mergeDescription": "{{source}}を{{target}}に統合しますか？リンク、別名、関係の履歴がまとめられます。",
@@ -2870,6 +2878,7 @@
       "operation": "人物情報を更新できませんでした。もう一度お試しください。"
     },
     "summary": {
+      "title": "プロフィール",
       "empty": "要約はまだありません。",
       "regenerate": "再生成",
       "provenance": "{{date}}に{{model}}が作成"
@@ -3179,6 +3188,25 @@
     "outcomes": {
       "primed": "定例会議を下準備しました",
       "noticed_other": "{{count}} 件気づきました"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "音声を読み込む",
+      "meeting": "会議を読み込む"
+    },
+    "dropZone": {
+      "prompt": "ドラッグ＆ドロップ、または<choose>ファイルを選択</choose>してアップロード"
+    },
+    "importFiles_zero": "ファイルを読み込む",
+    "importFiles_other": "{{count}} 件のファイルを読み込む",
+    "fileStatus": {
+      "ready": "読み込む準備完了",
+      "queued": "待機中",
+      "running": "処理中",
+      "done": "読み込み済み",
+      "cancelled": "キャンセル済み",
+      "failed": "失敗"
     }
   },
   "recorder": {

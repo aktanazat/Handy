@@ -830,9 +830,7 @@
         "running": "正在转录 {{count}} 个文件"
       },
       "clearSearch": "清除搜索",
-      "emptyHint": "你也可以转录现有录音：WAV、MP3、M4A、AAC、FLAC、OGG、MOV、MP4 或 M4V，最长 30 分钟。",
       "loadMore": "加载更多",
-      "noResultsHint": "搜索会在原始转录和处理后转录中按整词匹配。",
       "results": "{{count}} 个匹配",
       "resultsMore": "{{count}}+ 个匹配",
       "resultsNone": "无匹配",
@@ -842,7 +840,7 @@
       "derivedFromId": "来自 #{{id}}",
       "recalledByMeaning": "按含义",
       "level": {
-        "peak": "peak",
+        "peak": "Peak",
         "rms": "平均"
       },
       "noTextRecorded": "此条目未记录任何文本。",
@@ -1981,7 +1979,6 @@
     },
     "import": {
       "action": "导入",
-      "importing": "正在导入…",
       "recordingFilter": "录音",
       "transcriptFilter": "转录文本导出"
     },
@@ -2068,7 +2065,6 @@
       "loading": "正在读取当前策略…"
     },
     "receipts": {
-      "title": "更正记录",
       "saved": "已保存在本地。",
       "savedRevision": "已保存到本机。版本 {{revision}}。",
       "duplicate": "此操作已被记录。Sona 已刷新现有结果。"
@@ -2148,10 +2144,10 @@
       "started": "{{date}} 开始",
       "partialRecording": "部分录音",
       "status": "采集状态",
+      "capture": "这段录音是如何记录的",
       "timeline": "音频时间线与间隙",
       "timeUnknown": "时间未知",
-      "noGaps": "未检测到间隙。",
-      "gapDuration": "时长：{{duration}}",
+      "gapDuration": "缺失 {{duration}}",
       "showMoreGaps": "再显示 {{count}} 条",
       "showFewerGaps": "收起",
       "transcript": "转录",
@@ -2179,14 +2175,13 @@
       "rememberVoice": "在此 Mac 上记住此声音",
       "notNow": "暂不",
       "rememberVoiceFailed": "标签已保存。Sona 无法从此次会议中记住此声音。请在其他会议中再试。",
+      "notesTitle": "笔记",
       "manualNotes": "手动笔记",
       "manualNote": "手动笔记",
       "newNote": "新建手动笔记",
       "notePlaceholder": "添加手动笔记",
       "addNote": "添加笔记",
-      "noNotes": "还没有手动笔记。",
-      "noTimestamp": "无时间戳",
-      "timestamp": "时间戳 {{time}}",
+      "editNote": "编辑这条笔记",
       "generatedNotes": "生成的笔记",
       "regenerate": "重新生成",
       "remoteCancellationPending": "远程取消仍在等待中。本地删除并不表示远程副本已被删除。",
@@ -2196,12 +2191,18 @@
       "exportMarkdown": "导出 Markdown",
       "exportJson": "导出 JSON",
       "exportComplete": "会议已导出",
+      "moreActions": "更多",
       "citation": "转录 {{time}}",
       "noGeneratedNotes": "目前还没有可用的生成笔记。",
-      "template": "模板: {{template}}",
-      "summary": "摘要",
       "topics": "话题",
-      "none": "无",
+      "nothingRecorded": "没有记录到决定事项、行动项、问题或风险。",
+      "templateName": {
+        "meeting-review": "一般会议",
+        "meeting-one-on-one": "一对一",
+        "meeting-interview": "面试",
+        "meeting-sales-call": "销售通话",
+        "meeting-standup": "站会"
+      },
       "decisions": "决定事项",
       "actions": "行动项",
       "keyQuestions": "关键问题",
@@ -2209,12 +2210,12 @@
       "followUp": "后续跟进",
       "artifactUnavailable": "这些生成的笔记不可用。转录和你自己写的笔记都留在这台 Mac 上。",
       "actionMeta": "负责人：{{owner}} · 截止：{{due}}",
+      "actionOwner": "负责人：{{owner}}",
+      "actionDue": "截止：{{due}}",
       "actionDone": "把这条行动项标记为完成",
-      "unassigned": "未分配",
-      "noDueDate": "无截止日期",
       "searchPlaceholder": "搜索这场会议",
       "noSearchResults": "没有完全匹配的本地结果。",
-      "droppedFrames": "丢帧数：{{total}}",
+      "droppedFrames": "丢失 {{total}} 帧",
       "hitKind": {
         "manualNote": "手动笔记",
         "title": "会议标题"
@@ -2346,8 +2347,13 @@
       }
     },
     "status": {
-      "gapCount": "间隙：{{total}}",
-      "required": "必需"
+      "someAudioMissing": "这段音频有一部分缺失。",
+      "required": "必需",
+      "state": {
+        "ready": "就绪",
+        "recording": "录制中",
+        "recorded": "已录制"
+      }
     },
     "analytics": {
       "title": "对话",
@@ -2376,6 +2382,8 @@
     },
     "notes": {
       "title": "我的笔记",
+      "guideTitle": "引导摘要",
+      "guidePrompt": "引导摘要…",
       "liveDescription": "想写得多粗略都行。这些笔记留在这台 Mac 上，并会引导会议结束时 Sona 生成的笔记。",
       "placeholder": "任何值得记下的东西：名字、数字、需要跟进的事",
       "unsaved": "尚未保存",
@@ -2534,8 +2542,7 @@
     },
     "talkTime": {
       "label": "发言时长",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "发言时长：{{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "起草跟进",
@@ -2681,7 +2688,6 @@
       "streak": "连续记录",
       "rangePrevious": "前 7 天",
       "rangeNext": "后 7 天",
-      "peak": "最高",
       "dictationsAria": "每日口述，{{day}}最高 {{count}} 次",
       "wordsAria": "每日字词，共 {{count}} 个，最后为 {{last}}",
       "days_other": "{{count}} 天",
@@ -2818,6 +2824,8 @@
       "voiceProfileRemoved": "Sona 已不再在此 Mac 上记住此声音。",
       "voiceProfileRemovalFailed": "无法移除声音档案。请重试。",
       "aliases": "其他名称：{{aliases}}",
+      "addresses": "以 {{addresses}} 受邀",
+      "openMeetingAt": "打开 {{title}}，{{date}}",
       "merge": "合并",
       "mergeTitle": "合并此人物？",
       "mergeDescription": "将 {{source}} 合并到 {{target}}？关联、其他名称和关系历史将被合并。",
@@ -2870,6 +2878,7 @@
       "operation": "无法更新人物数据。请重试。"
     },
     "summary": {
+      "title": "简介",
       "empty": "还没有摘要。",
       "regenerate": "重新生成",
       "provenance": "由 {{model}} 于 {{date}} 撰写"
@@ -3179,6 +3188,25 @@
     "outcomes": {
       "primed": "已为周期性会议做准备",
       "noticed_other": "注意到 {{count}} 项"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "导入音频",
+      "meeting": "导入会议"
+    },
+    "dropZone": {
+      "prompt": "拖放文件，或<choose>选择文件</choose>上传"
+    },
+    "importFiles_zero": "导入文件",
+    "importFiles_other": "导入 {{count}} 个文件",
+    "fileStatus": {
+      "ready": "可以导入",
+      "queued": "排队中",
+      "running": "处理中",
+      "done": "已导入",
+      "cancelled": "已取消",
+      "failed": "失败"
     }
   },
   "recorder": {

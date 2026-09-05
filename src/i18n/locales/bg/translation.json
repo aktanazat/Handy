@@ -830,9 +830,7 @@
         "running": "Транскрибиране на {{count}} файла"
       },
       "clearSearch": "Изчисти търсенето",
-      "emptyHint": "Можете също да транскрибирате съществуващ запис: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 или M4V, до 30 минути.",
       "loadMore": "Зареди още",
-      "noResultsHint": "Търсенето съвпада с цели думи както в суровия, така и в обработения транскрипт.",
       "results": "{{count}} съвпадения",
       "resultsMore": "{{count}}+ съвпадения",
       "resultsNone": "Няма съвпадения",
@@ -842,8 +840,8 @@
       "derivedFromId": "от #{{id}}",
       "recalledByMeaning": "по смисъл",
       "level": {
-        "peak": "peak",
-        "rms": "средно"
+        "peak": "Peak",
+        "rms": "Средно"
       },
       "noTextRecorded": "За този запис не е записан текст.",
       "cloudHeld": "Sona задържа облачния резултат: не се върна нищо надеждно и нямаше наличен локален модел.",
@@ -1987,7 +1985,6 @@
     },
     "import": {
       "action": "Импортиране",
-      "importing": "Импортиране…",
       "recordingFilter": "Запис",
       "transcriptFilter": "Експорт на транскрипция"
     },
@@ -2074,7 +2071,6 @@
       "loading": "Четене на текущата политика…"
     },
     "receipts": {
-      "title": "Запис за корекцията",
       "saved": "Запазено локално.",
       "savedRevision": "Запазено локално. Версия {{revision}}.",
       "duplicate": "Това действие вече беше записано. Sona опресни съществуващия резултат."
@@ -2154,10 +2150,10 @@
       "started": "Започна {{date}}",
       "partialRecording": "Частичен запис",
       "status": "Състояние на заснемането",
+      "capture": "Как е записано това",
       "timeline": "Времева линия на звука и пропуски",
       "timeUnknown": "Неизвестно време",
-      "noGaps": "Не са открити пропуски.",
-      "gapDuration": "Продължителност: {{duration}}",
+      "gapDuration": "Липсват {{duration}}",
       "showMoreGaps": "Покажи още {{count}}",
       "showFewerGaps": "Покажи по-малко",
       "transcript": "Транскрипт",
@@ -2186,14 +2182,13 @@
       "rememberVoice": "Запомни този глас на този Mac",
       "notNow": "Не сега",
       "rememberVoiceFailed": "Етикетът е запазен. Sona не можа да запомни този глас от тази среща. Опитайте от друга среща.",
+      "notesTitle": "Бележки",
       "manualNotes": "Ръчни бележки",
       "manualNote": "Ръчна бележка",
       "newNote": "Нова ръчна бележка",
       "notePlaceholder": "Добавете ръчна бележка",
       "addNote": "Добави бележка",
-      "noNotes": "Още няма ръчни бележки.",
-      "noTimestamp": "Без времеви маркер",
-      "timestamp": "Времеви маркер {{time}}",
+      "editNote": "Редактиране на тази бележка",
       "generatedNotes": "Генерирани бележки",
       "regenerate": "Генерирай отново",
       "remoteCancellationPending": "Отдалеченото отменяне е в очакване. Локалното изтриване не твърди, че отдалеченото копие е изтрито.",
@@ -2203,12 +2198,18 @@
       "exportMarkdown": "Експортирай Markdown",
       "exportJson": "Експортирай JSON",
       "exportComplete": "Срещата е изнесена",
+      "moreActions": "Още",
       "citation": "Транскрипт {{time}}",
       "noGeneratedNotes": "Още няма генерирани бележки.",
-      "template": "Шаблон: {{template}}",
-      "summary": "Резюме",
       "topics": "Теми",
-      "none": "Няма",
+      "nothingRecorded": "Не са записани решения, задачи, въпроси или рискове.",
+      "templateName": {
+        "meeting-review": "Обща среща",
+        "meeting-one-on-one": "Един на един",
+        "meeting-interview": "Интервю",
+        "meeting-sales-call": "Търговски разговор",
+        "meeting-standup": "Стендъп"
+      },
       "decisions": "Решения",
       "actions": "Задачи",
       "keyQuestions": "Ключови въпроси",
@@ -2216,12 +2217,12 @@
       "followUp": "Последващи действия",
       "artifactUnavailable": "Тези генерирани бележки не са достъпни. Преписът и вашите ръчни бележки остават на този Mac.",
       "actionMeta": "Отговорник: {{owner}} · Срок: {{due}}",
+      "actionOwner": "Отговорник: {{owner}}",
+      "actionDue": "Срок: {{due}}",
       "actionDone": "Отбележи тази задача като готова",
-      "unassigned": "Неопределен",
-      "noDueDate": "Без срок",
       "searchPlaceholder": "Търсене в тази среща",
       "noSearchResults": "Няма точни локални съвпадения.",
-      "droppedFrames": "Изпуснати кадри: {{total}}",
+      "droppedFrames": "{{total}} изпуснати кадъра",
       "hitKind": {
         "manualNote": "Ръчна бележка",
         "title": "Заглавие на срещата"
@@ -2353,8 +2354,13 @@
       }
     },
     "status": {
-      "gapCount": "Пропуски: {{total}}",
-      "required": "Задължително"
+      "someAudioMissing": "Част от този звук липсва.",
+      "required": "Задължително",
+      "state": {
+        "ready": "Готово",
+        "recording": "Записва",
+        "recorded": "Записано"
+      }
     },
     "analytics": {
       "title": "Разговор",
@@ -2383,6 +2389,8 @@
     },
     "notes": {
       "title": "Моите бележки",
+      "guideTitle": "Насочете обобщението",
+      "guidePrompt": "Насочете обобщението…",
       "liveDescription": "Пишете колкото грубо искате. Тези бележки остават на този Mac и насочват бележките, които Sona създава, когато срещата свърши.",
       "placeholder": "Всичко, което си струва да се запомни: имена, числа, какво да се проследи",
       "unsaved": "Още не е запазено",
@@ -2541,8 +2549,7 @@
     },
     "talkTime": {
       "label": "Време на говорене",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Време на говорене: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Чернова за проследяване",
@@ -2688,7 +2695,6 @@
       "streak": "Поредица",
       "rangePrevious": "Предишните 7 дни",
       "rangeNext": "Следващите 7 дни",
-      "peak": "Пик",
       "dictationsAria": "Диктовки на ден, най-много {{count}} в {{day}}",
       "wordsAria": "Думи на ден, общо {{count}}, последно {{last}}",
       "days_one": "{{count}} ден",
@@ -2827,6 +2833,8 @@
       "voiceProfileRemoved": "Sona спря да запомня този глас на този Mac.",
       "voiceProfileRemovalFailed": "Гласовият профил не можа да бъде премахнат. Опитайте отново.",
       "aliases": "Също: {{aliases}}",
+      "addresses": "Поканен като {{addresses}}",
+      "openMeetingAt": "Отваряне на {{title}}, {{date}}",
       "merge": "Обединяване",
       "mergeTitle": "Обединяване на този човек?",
       "mergeDescription": "Да се обедини {{source}} с {{target}}? Връзките, псевдонимите и историята на отношенията ще бъдат събрани.",
@@ -2879,6 +2887,7 @@
       "operation": "Хората не можаха да се актуализират. Опитайте отново."
     },
     "summary": {
+      "title": "Накратко",
       "empty": "Все още няма обобщение.",
       "regenerate": "Генерирай отново",
       "provenance": "Написано от {{model}} на {{date}}"
@@ -3195,6 +3204,26 @@
       "primed": "Подготви повтаряща се среща",
       "noticed_one": "Забеляза 1 нещо",
       "noticed_other": "Забеляза {{count}} неща"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Импортиране на аудио",
+      "meeting": "Импортиране на среща"
+    },
+    "dropZone": {
+      "prompt": "Плъзнете и пуснете или <choose>изберете файл</choose>, за да качите"
+    },
+    "importFiles_zero": "Импортиране на файлове",
+    "importFiles_one": "Импортиране на файл",
+    "importFiles_other": "Импортиране на {{count}} файла",
+    "fileStatus": {
+      "ready": "Готов за импортиране",
+      "queued": "На опашка",
+      "running": "Обработва се",
+      "done": "Импортирано",
+      "cancelled": "Отказано",
+      "failed": "Неуспешно"
     }
   },
   "recorder": {

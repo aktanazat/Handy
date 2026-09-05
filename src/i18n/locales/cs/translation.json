@@ -830,9 +830,7 @@
         "running": "Přepisování {{count}} souborů"
       },
       "clearSearch": "Vymazat hledání",
-      "emptyHint": "Můžete také přepsat existující nahrávku: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 nebo M4V, až 30 minut.",
       "loadMore": "Načíst více",
-      "noResultsHint": "Hledání porovnává celá slova v surovém i zpracovaném přepisu.",
       "results": "Shod: {{count}}",
       "resultsMore": "Shod: {{count}}+",
       "resultsNone": "Žádné shody",
@@ -842,8 +840,8 @@
       "derivedFromId": "z #{{id}}",
       "recalledByMeaning": "podle významu",
       "level": {
-        "peak": "peak",
-        "rms": "průměr"
+        "peak": "Peak",
+        "rms": "Průměr"
       },
       "noTextRecorded": "Pro tento záznam nebyl zaznamenán žádný text.",
       "cloudHeld": "Sona zadržela cloudový výsledek: nic důvěryhodného se nevrátilo a nebyl dostupný žádný místní model.",
@@ -1999,7 +1997,6 @@
     },
     "import": {
       "action": "Importovat",
-      "importing": "Importuje se…",
       "recordingFilter": "Nahrávka",
       "transcriptFilter": "Export přepisu"
     },
@@ -2086,7 +2083,6 @@
       "loading": "Načítání aktuálních zásad…"
     },
     "receipts": {
-      "title": "Protokol o opravě",
       "saved": "Uloženo lokálně.",
       "savedRevision": "Uloženo místně. Verze {{revision}}.",
       "duplicate": "Tato akce už byla zaznamenána. Sona obnovila stávající výsledek."
@@ -2166,10 +2162,10 @@
       "started": "Začátek {{date}}",
       "partialRecording": "Částečný záznam",
       "status": "Stav záznamu",
+      "capture": "Jak se to nahrávalo",
       "timeline": "Časová osa audia a mezery",
       "timeUnknown": "Neznámý čas",
-      "noGaps": "Nebyly zjištěny žádné mezery.",
-      "gapDuration": "Délka: {{duration}}",
+      "gapDuration": "Chybí {{duration}}",
       "showMoreGaps": "Zobrazit dalších {{count}}",
       "showFewerGaps": "Zobrazit méně",
       "transcript": "Přepis",
@@ -2200,14 +2196,13 @@
       "rememberVoice": "Zapamatovat si tento hlas na tomto Macu",
       "notNow": "Teď ne",
       "rememberVoiceFailed": "Označení bylo uloženo. Sona si z této schůzky tento hlas nemohla zapamatovat. Zkuste jinou schůzku.",
+      "notesTitle": "Poznámky",
       "manualNotes": "Ruční poznámky",
       "manualNote": "Ruční poznámka",
       "newNote": "Nová ruční poznámka",
       "notePlaceholder": "Přidejte ruční poznámku",
       "addNote": "Přidat poznámku",
-      "noNotes": "Zatím žádné ruční poznámky.",
-      "noTimestamp": "Bez časové značky",
-      "timestamp": "Časová značka {{time}}",
+      "editNote": "Upravit tuto poznámku",
       "generatedNotes": "Generované poznámky",
       "regenerate": "Vygenerovat znovu",
       "remoteCancellationPending": "Vzdálené zrušení probíhá. Místní smazání netvrdí, že vzdálená kopie je smazaná.",
@@ -2217,12 +2212,18 @@
       "exportMarkdown": "Exportovat Markdown",
       "exportJson": "Exportovat JSON",
       "exportComplete": "Schůzka exportována",
+      "moreActions": "Více",
       "citation": "Přepis {{time}}",
       "noGeneratedNotes": "Zatím nejsou dostupné žádné generované poznámky.",
-      "template": "Šablona: {{template}}",
-      "summary": "Shrnutí",
       "topics": "Témata",
-      "none": "Žádné",
+      "nothingRecorded": "Nebyla zaznamenána žádná rozhodnutí, úkoly, otázky ani rizika.",
+      "templateName": {
+        "meeting-review": "Obecná schůzka",
+        "meeting-one-on-one": "Jeden na jednoho",
+        "meeting-interview": "Pohovor",
+        "meeting-sales-call": "Prodejní hovor",
+        "meeting-standup": "Standup"
+      },
       "decisions": "Rozhodnutí",
       "actions": "Úkoly",
       "keyQuestions": "Klíčové otázky",
@@ -2230,12 +2231,12 @@
       "followUp": "Další kroky",
       "artifactUnavailable": "Tyto vygenerované poznámky nejsou dostupné. Přepis i vaše ruční poznámky zůstávají na tomto Macu.",
       "actionMeta": "Vlastník: {{owner}} · Termín: {{due}}",
+      "actionOwner": "Vlastník: {{owner}}",
+      "actionDue": "Termín: {{due}}",
       "actionDone": "Označit tento úkol jako hotový",
-      "unassigned": "Nepřiřazeno",
-      "noDueDate": "Bez termínu",
       "searchPlaceholder": "Hledat v této schůzce",
       "noSearchResults": "Žádné přesné místní shody.",
-      "droppedFrames": "Ztracené snímky: {{total}}",
+      "droppedFrames": "{{total}} ztracených snímků",
       "hitKind": {
         "manualNote": "Ruční poznámka",
         "title": "Název schůzky"
@@ -2367,8 +2368,13 @@
       }
     },
     "status": {
-      "gapCount": "Mezery: {{total}}",
-      "required": "Vyžadováno"
+      "someAudioMissing": "Část tohoto zvuku chybí.",
+      "required": "Vyžadováno",
+      "state": {
+        "ready": "Připraveno",
+        "recording": "Nahrává se",
+        "recorded": "Nahráno"
+      }
     },
     "analytics": {
       "title": "Konverzace",
@@ -2397,6 +2403,8 @@
     },
     "notes": {
       "title": "Moje poznámky",
+      "guideTitle": "Nasměrujte shrnutí",
+      "guidePrompt": "Nasměrujte shrnutí…",
       "liveDescription": "Pište tak nahrubo, jak chcete. Tyto poznámky zůstávají na tomto Macu a určují poznámky, které Sona vytvoří po skončení schůzky.",
       "placeholder": "Cokoli, co stojí za zapamatování: jména, čísla, co dořešit",
       "unsaved": "Zatím neuloženo",
@@ -2555,8 +2563,7 @@
     },
     "talkTime": {
       "label": "Čas mluvení",
-      "speakerShare": "{{name}} {{share}}",
-      "sentence": "Čas mluvení: {{speakers}}"
+      "speakerShare": "{{name}} {{share}}"
     },
     "followUp": {
       "draft": "Návrh navazující zprávy",
@@ -2702,7 +2709,6 @@
       "streak": "Série",
       "rangePrevious": "Předchozích 7 dní",
       "rangeNext": "Následujících 7 dní",
-      "peak": "Maximum",
       "dictationsAria": "Diktáty za den, nejvíce {{count}} v {{day}}",
       "wordsAria": "Slova za den, celkem {{count}}, poslední hodnota {{last}}",
       "days_one": "{{count}} den",
@@ -2847,6 +2853,8 @@
       "voiceProfileRemoved": "Sona si tento hlas na tomto Macu přestala pamatovat.",
       "voiceProfileRemovalFailed": "Hlasový profil se nepodařilo odstranit. Zkuste to znovu.",
       "aliases": "Také: {{aliases}}",
+      "addresses": "Pozván jako {{addresses}}",
+      "openMeetingAt": "Otevřít {{title}}, {{date}}",
       "merge": "Sloučit",
       "mergeTitle": "Sloučit tuto osobu?",
       "mergeDescription": "Sloučit {{source}} do {{target}}? Propojení, přezdívky a historie vztahu se spojí.",
@@ -2899,6 +2907,7 @@
       "operation": "Lidi se nepodařilo aktualizovat. Zkuste to znovu."
     },
     "summary": {
+      "title": "O osobě",
       "empty": "Zatím žádné shrnutí.",
       "regenerate": "Vytvořit znovu",
       "provenance": "Napsal model {{model}} dne {{date}}"
@@ -3235,6 +3244,28 @@
       "noticed_few": "Všimla si {{count}} věcí",
       "noticed_many": "Všimla si {{count}} věcí",
       "noticed_other": "Všimla si {{count}} věcí"
+    }
+  },
+  "import": {
+    "title": {
+      "dictation": "Importovat zvuk",
+      "meeting": "Importovat schůzku"
+    },
+    "dropZone": {
+      "prompt": "Přetáhněte sem soubor nebo jej <choose>vyberte</choose> k nahrání"
+    },
+    "importFiles_zero": "Importovat soubory",
+    "importFiles_one": "Importovat soubor",
+    "importFiles_few": "Importovat {{count}} soubory",
+    "importFiles_many": "Importovat {{count}} souboru",
+    "importFiles_other": "Importovat {{count}} souborů",
+    "fileStatus": {
+      "ready": "Připraveno k importu",
+      "queued": "Ve frontě",
+      "running": "Zpracovává se",
+      "done": "Importováno",
+      "cancelled": "Zrušeno",
+      "failed": "Selhalo"
     }
   },
   "recorder": {
