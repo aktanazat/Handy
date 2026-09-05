@@ -23,6 +23,10 @@ const HEARTBEAT_INTERVAL_MS: u64 = 15_000;
 const APP_LEASE_TTL_MS: u64 = 30_000;
 const HEARTBEAT_TTL_MS: u64 = 30_000;
 const POLICY_TTL_MS: u64 = 30_000;
+/// The worker sleeps on the wake socket; this bounds how long the heartbeat,
+/// lease check, and expiry sweeps wait when no hook has written anything.
+/// It must stay well inside `HEARTBEAT_TTL_MS - HEARTBEAT_INTERVAL_MS`.
+const IDLE_FALLBACK: std::time::Duration = std::time::Duration::from_secs(1);
 /// The app is the only reader of hook acknowledgements.
 const MAX_ACK_BYTES: usize = 8 * 1024;
 /// The only reply lifetime comes from the existing hook request boundary.
@@ -284,6 +288,7 @@ impl AgentBridgeCore {
                 remove_private_file(&self.paths.app_lock_path());
                 remove_private_file(&self.paths.heartbeat_path());
                 remove_private_file(&self.paths.policy_path());
+                let _ = fs::remove_file(self.paths.wake_path());
             }
         }
         self.running = false;
@@ -1062,9 +1067,18 @@ impl AgentBridgeManager {
         if lock_recover(&self.worker).is_some() {
             return Ok(());
         }
-        lock_recover(&self.core)
-            .start(&settings, now_ms())
-            .map_err(|error| error.to_string())?;
+        let listener = {
+            let mut core = lock_recover(&self.core);
+            core.start(&settings, now_ms())
+                .map_err(|error| error.to_string())?;
+            match core.paths.bind_wake_listener(IDLE_FALLBACK) {
+                Ok(listener) => listener,
+                Err(error) => {
+                    core.stop();
+                    return Err(format!("agent wake socket unavailable: {error}"));
+                }
+            }
+        };
 
         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let worker_stop = stop.clone();
@@ -1125,7 +1139,7 @@ impl AgentBridgeManager {
                     );
                     previous = Some(signature);
                 }
-                std::thread::sleep(std::time::Duration::from_millis(100));
+                listener.wait();
             }
         });
         *lock_recover(&self.worker) = Some(BridgeWorker { stop, join });
@@ -1142,6 +1156,7 @@ impl AgentBridgeManager {
         let worker = lock_recover(&self.worker).take();
         if let Some(worker) = worker {
             worker.stop.store(true, Ordering::Release);
+            lock_recover(&self.core).paths.wake_app();
             let _ = worker.join.join();
         }
     }

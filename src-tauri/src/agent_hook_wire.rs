@@ -20,9 +20,12 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt};
+#[cfg(unix)]
+use std::os::unix::net::UnixDatagram;
 
 pub const SCHEMA_VERSION: u8 = 3;
 pub const PROTOCOL_GENERATION: u32 = 3;
@@ -426,6 +429,64 @@ pub struct SessionPaths {
     responses: PathBuf,
     claimed: PathBuf,
     acks: PathBuf,
+    wake: PathBuf,
+}
+
+/// The app's end of the wake socket. A hook that lands a request or an ack
+/// sends one datagram here, so the bridge worker sleeps until there is
+/// something to read instead of walking the session tree on a timer.
+pub struct WakeListener {
+    #[cfg(unix)]
+    socket: UnixDatagram,
+    #[cfg(not(unix))]
+    fallback: Duration,
+}
+
+impl WakeListener {
+    #[cfg(unix)]
+    fn bind(path: &Path, fallback: Duration) -> io::Result<Self> {
+        // A killed app leaves its socket file behind; the lease already
+        // proves nobody else is listening, so the stale entry is replaced.
+        match fs::remove_file(path) {
+            Ok(()) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error),
+        }
+        let socket = UnixDatagram::bind(path)?;
+        socket.set_read_timeout(Some(fallback))?;
+        Ok(Self { socket })
+    }
+
+    #[cfg(not(unix))]
+    fn bind(_path: &Path, fallback: Duration) -> io::Result<Self> {
+        Ok(Self { fallback })
+    }
+
+    /// Blocks until a writer wakes the listener or the fallback interval
+    /// elapses, and says which one happened.
+    pub fn wait(&self) -> bool {
+        #[cfg(unix)]
+        {
+            let mut byte = [0u8; 1];
+            self.socket.recv(&mut byte).is_ok()
+        }
+        #[cfg(not(unix))]
+        {
+            std::thread::sleep(self.fallback);
+            false
+        }
+    }
+}
+
+/// Best effort by design: with no listener the datagram has nowhere to go,
+/// and the worker's fallback tick reads the file instead.
+fn send_wake(path: &Path) {
+    #[cfg(unix)]
+    if let Ok(socket) = UnixDatagram::unbound() {
+        let _ = socket.send_to(&[1], path);
+    }
+    #[cfg(not(unix))]
+    let _ = path;
 }
 
 impl RuntimePaths {
@@ -463,6 +524,18 @@ impl RuntimePaths {
         self.root.join("policy.json")
     }
 
+    pub fn wake_path(&self) -> PathBuf {
+        self.root.join("wake.sock")
+    }
+
+    pub fn wake_app(&self) {
+        send_wake(&self.wake_path());
+    }
+
+    pub fn bind_wake_listener(&self, fallback: Duration) -> io::Result<WakeListener> {
+        WakeListener::bind(&self.wake_path(), fallback)
+    }
+
     pub fn session(&self, binding: &SessionBinding) -> io::Result<SessionPaths> {
         if !binding.is_well_formed() {
             return Err(invalid_input("invalid session binding"));
@@ -472,7 +545,7 @@ impl RuntimePaths {
         let session_root = agent_root.join(&binding.session_handle);
         ensure_private_directory(&session_root)?;
         let root = session_root.join(binding.session_generation.to_string());
-        SessionPaths::from_root(root)
+        SessionPaths::from_root(root, self.wake_path())
     }
 
     pub fn read_lease(&self) -> io::Result<AppLease> {
@@ -489,7 +562,7 @@ impl RuntimePaths {
 }
 
 impl SessionPaths {
-    fn from_root(root: PathBuf) -> io::Result<Self> {
+    fn from_root(root: PathBuf, wake: PathBuf) -> io::Result<Self> {
         ensure_private_directory(&root)?;
         let requests = root.join("requests");
         let responses = root.join("responses");
@@ -503,6 +576,7 @@ impl SessionPaths {
             responses,
             claimed,
             acks,
+            wake,
         })
     }
 
@@ -527,7 +601,9 @@ impl SessionPaths {
             &self.request_path(&request.invocation_id)?,
             request,
             WriteMode::CreateNew,
-        )
+        )?;
+        send_wake(&self.wake);
+        Ok(())
     }
 
     pub fn persist_ack(&self, ack: &HookAck) -> io::Result<()> {
@@ -535,7 +611,9 @@ impl SessionPaths {
             &self.ack_path(&ack.invocation_id)?,
             ack,
             WriteMode::CreateNew,
-        )
+        )?;
+        send_wake(&self.wake);
+        Ok(())
     }
 
     pub fn claim_response(&self, invocation_id: &str) -> io::Result<PathBuf> {
@@ -846,6 +924,34 @@ mod tests {
         assert!(rendered.contains(binding.agent.as_str()));
         assert!(rendered.contains(&binding.session_handle));
         assert!(!rendered.contains("session-a"));
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn persisting_a_request_wakes_the_app_before_its_fallback() -> Result<(), Box<dyn Error>> {
+        let root = test_root("wake")?;
+        let paths = RuntimePaths::from_root(root.clone(), true)?;
+        let fallback = Duration::from_secs(30);
+        let listener = paths.bind_wake_listener(fallback)?;
+        let request = HookRequest::new(
+            digest_parts(&[b"app-instance"]),
+            binding(&root)?,
+            &event(),
+            b"payload",
+            1_000,
+        )?;
+        paths.session(&request.binding)?.persist_request(&request)?;
+        let started = std::time::Instant::now();
+        assert!(
+            listener.wait(),
+            "the request write did not wake the listener"
+        );
+        assert!(started.elapsed() < fallback);
+        // Nothing else was written, so the next wait is the plain timeout.
+        let quiet = paths.bind_wake_listener(Duration::from_millis(20))?;
+        assert!(!quiet.wait());
         fs::remove_dir_all(root)?;
         Ok(())
     }
