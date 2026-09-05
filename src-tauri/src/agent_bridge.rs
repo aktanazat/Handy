@@ -155,7 +155,6 @@ pub enum AgentBridgeError {
     UnknownRequest,
     WrongAgent,
     WrongDestination,
-    StalePolicy,
     Expired,
     DuplicatePending,
     EmptyMessage,
@@ -308,10 +307,13 @@ impl AgentBridgeCore {
             self.diagnostic = AgentBridgeDiagnostic::AppLockHeld;
             return Err(AgentBridgeError::AppLockHeld);
         }
-        if lease.policy_generation != settings.policy_generation {
-            return Err(AgentBridgeError::StalePolicy);
-        }
-        if now_ms.saturating_sub(self.last_heartbeat_ms) >= HEARTBEAT_INTERVAL_MS {
+        // The lease is ours (checked above), so a generation it does not
+        // carry can only mean the settings moved under a running worker.
+        // Hooks read the projection with that generation, so it is republished
+        // at once rather than on the heartbeat.
+        if lease.policy_generation != settings.policy_generation
+            || now_ms.saturating_sub(self.last_heartbeat_ms) >= HEARTBEAT_INTERVAL_MS
+        {
             self.write_control_state(settings, now_ms)?;
         }
         self.expire_pending(now_ms);
@@ -1712,6 +1714,29 @@ mod tests {
         assert!(!session.request_path(&request.invocation_id)?.exists());
         assert!(!session.ack_path(&request.invocation_id)?.exists());
         assert!(core.requests().is_empty());
+        core.stop();
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn policy_change_under_a_running_worker_is_republished_at_once() -> Result<(), Box<dyn Error>> {
+        let root = test_root("policy-change")?;
+        let paths = RuntimePaths::from_root(root.clone(), true)?;
+        let binding = binding(&root)?;
+        let mut settings = enabled_settings(binding.project_hash.clone());
+        let mut core = AgentBridgeCore::new(paths.clone(), opaque_hash(&[b"policy-change"]))?;
+        core.start(&settings, 1_000)?;
+        settings.advance_policy_generation();
+        // Well inside the heartbeat interval: only the generation mismatch
+        // can trigger the write, and a hook reading the projection must see
+        // the new generation on the next tick.
+        core.tick(&settings, 1_001)?;
+        assert_eq!(paths.read_policy()?.generation, settings.policy_generation);
+        assert_eq!(
+            paths.read_lease()?.policy_generation,
+            settings.policy_generation
+        );
         core.stop();
         fs::remove_dir_all(root)?;
         Ok(())
