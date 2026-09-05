@@ -596,6 +596,52 @@ async changeContextUrlCaptureEnabledSetting(enabled: boolean) : Promise<void> {
     await TAURI_INVOKE("change_context_url_capture_enabled_setting", { enabled });
 },
 /**
+ * The two consent rows on Settings > Agents and the three meeting rows
+ * beside them. Each writes the one field the row shows; a row with no write
+ * behind it is the worst kind of switch, one that reports a grant the corpus
+ * never received - or keeps one the operator believes withdrawn.
+ */
+async changeExternalQueryEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_external_query_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeExternalMutationsEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_external_mutations_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeMeetingRemoteIntelligenceEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_meeting_remote_intelligence_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeMeetingDigestEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_meeting_digest_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeMeetingDigestMinuteOfDaySetting(minuteOfDay: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_meeting_digest_minute_of_day_setting", { minuteOfDay }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Record the complete, versioned cloud-transfer acknowledgement. Declining is
  * intentionally a frontend no-op, so the mode keeps its prior local engine.
  */
@@ -3026,7 +3072,12 @@ export type AgentPanelActorV1 = "user"
  */
 export type AgentPanelApplyChangeRequestV1 = { proposal_id: string; expected_revision: number; confirmed: boolean }
 export type AgentPanelCancelTurnRequestV1 = { turn_id: string }
-export type AgentPanelCommandErrorV1 = "unauthorized_window" | "disabled" | "unpaired" | "offline" | "invalid_configuration" | "secret_unavailable" | "untrusted_response" | "remote_rejected" | "ownership_rejected" | "unknown_conversation" | "invalid_request" | "turn_active" | "unknown_turn" | "unknown_proposal" |
+export type AgentPanelCommandErrorV1 = "unauthorized_window" | "disabled" | "unpaired" | "offline" | "invalid_configuration" | "secret_unavailable" | "untrusted_response" |
+/**
+ * The reply was signed and then did not fit the turn it answered, so
+ * nothing in it was taken. A shape mismatch, not a signature failure.
+ */
+"workspace_mismatch" | "remote_rejected" | "ownership_rejected" | "unknown_conversation" | "invalid_request" | "turn_active" | "unknown_turn" | "unknown_proposal" |
 /**
  * No card at that index on that turn.
  */
@@ -3056,7 +3107,13 @@ export type AgentPanelProposalChangedEvent = { invalidation_id: number; proposal
 export type AgentPanelProposalPreviewV1 = { proposal_id: string; summary: string; rationale: string; actions: SonaSettingChangeV1[]; follow_up_question: string | null; source_settings_revision: number; confirmation: SonaConfirmationClassV1; state: AgentPanelProposalStateV1; receipt_id: string | null; applied_revision: number | null }
 export type AgentPanelProposalStateV1 = "pending" | "applied" | "undone" | "rejected"
 export type AgentPanelPublicIdentityV1 = { key_id: string; public_key: string }
-export type AgentPanelRelayStatusV1 = "disabled" | "unpaired" | "ready" | "offline" | "invalid_configuration" | "secret_unavailable" | "untrusted_response" | "remote_rejected" | "ownership_rejected"
+export type AgentPanelRelayStatusV1 = "disabled" | "unpaired" | "ready" | "offline" | "invalid_configuration" | "secret_unavailable" | "untrusted_response" |
+/**
+ * A signed answer that did not fit the turn it answered: a settings
+ * proposal for an Ask turn, or prose for a Configure one. The signature
+ * held; the shape did not.
+ */
+"workspace_mismatch" | "remote_rejected" | "ownership_rejected"
 export type AgentPanelSendTurnRequestV1 = { turn_id: string; message: string; locale: string; workspace: AgentPanelWorkspaceV1;
 /**
  * Evidence for this one question: quotes, ids and `sona://` links, built

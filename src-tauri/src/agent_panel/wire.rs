@@ -15,6 +15,10 @@ pub enum AgentPanelRelayStatusV1 {
     InvalidConfiguration,
     SecretUnavailable,
     UntrustedResponse,
+    /// A signed answer that did not fit the turn it answered: a settings
+    /// proposal for an Ask turn, or prose for a Configure one. The signature
+    /// held; the shape did not.
+    WorkspaceMismatch,
     RemoteRejected,
     OwnershipRejected,
 }
@@ -292,6 +296,9 @@ pub enum AgentPanelCommandErrorV1 {
     InvalidConfiguration,
     SecretUnavailable,
     UntrustedResponse,
+    /// The reply was signed and then did not fit the turn it answered, so
+    /// nothing in it was taken. A shape mismatch, not a signature failure.
+    WorkspaceMismatch,
     RemoteRejected,
     OwnershipRejected,
     UnknownConversation,

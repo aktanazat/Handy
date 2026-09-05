@@ -15,9 +15,9 @@ use crate::query::tools::{self, ToolCall, ToolResult};
 use actions::{ActionUndo, AppliedAction};
 use config::{AppliedSettings, ConfigError, SettingUndo};
 use protocol::{
-    AgentPanelWorkspaceV1, PanelTurnV1, SonaAgentChatRoleV1, SonaAgentChatTurnV1,
-    SonaAgentResponseV1, SonaAgentStepStateV1, SonaAgentStepV1, SonaAgentTurnV1,
-    SonaAllowedValuesV1, SonaChatActionV1, SonaChatTurnV2, SonaConfigProposalV1,
+    AgentPanelWorkspaceV1, PanelTurnV1, ProposalValidationError, SonaAgentChatRoleV1,
+    SonaAgentChatTurnV1, SonaAgentResponseV1, SonaAgentStepStateV1, SonaAgentStepV1,
+    SonaAgentTurnV1, SonaAllowedValuesV1, SonaChatActionV1, SonaChatTurnV2, SonaConfigProposalV1,
     SonaConfirmationClassV1, SonaSettingChangeV1, MAX_CONTEXT_PACK_BYTES, MAX_RECENT_TURNS,
     MAX_RECENT_TURN_BYTES, MAX_TOOL_ROUNDS, SONA_AGENT_TURN_VERSION, SONA_CHAT_TURN_VERSION,
 };
@@ -953,12 +953,16 @@ impl AgentPanelManager {
                 return Err(AgentPanelCommandErrorV1::OwnershipRejected);
             }
             Err(RelayJobRefusal::InvalidProposal) => {
-                self.record_protocol_failure(turn_id);
+                self.record_protocol_failure(turn_id, AgentPanelRelayStatusV1::UntrustedResponse);
                 return Err(AgentPanelCommandErrorV1::InvalidProposal);
             }
             Err(RelayJobRefusal::UntrustedResponse) => {
-                self.record_protocol_failure(turn_id);
+                self.record_protocol_failure(turn_id, AgentPanelRelayStatusV1::UntrustedResponse);
                 return Err(AgentPanelCommandErrorV1::UntrustedResponse);
+            }
+            Err(RelayJobRefusal::WorkspaceMismatch) => {
+                self.record_protocol_failure(turn_id, AgentPanelRelayStatusV1::WorkspaceMismatch);
+                return Err(AgentPanelCommandErrorV1::WorkspaceMismatch);
             }
         };
         self.emit_status(invalidation_id, AgentPanelRelayStatusV1::Ready);
@@ -1329,10 +1333,10 @@ impl AgentPanelManager {
         self.emit_turn(invalidation_id, Some(turn_id.to_string()), turn_state);
     }
 
-    fn record_protocol_failure(&self, turn_id: &str) {
+    fn record_protocol_failure(&self, turn_id: &str, relay_status: AgentPanelRelayStatusV1) {
         let (invalidation_id, turn_state) = {
             let mut state = self.lock_state();
-            state.relay_status = AgentPanelRelayStatusV1::UntrustedResponse;
+            state.relay_status = relay_status;
             let turn_state = state
                 .turn
                 .as_mut()
@@ -1344,7 +1348,7 @@ impl AgentPanelManager {
             let invalidation_id = state.invalidate();
             (invalidation_id, turn_state)
         };
-        self.emit_status(invalidation_id, AgentPanelRelayStatusV1::UntrustedResponse);
+        self.emit_status(invalidation_id, relay_status);
         self.emit_turn(invalidation_id, Some(turn_id.to_string()), turn_state);
     }
 
@@ -1540,6 +1544,29 @@ enum RelayJobRefusal {
     OwnershipRejected,
     InvalidProposal,
     UntrustedResponse,
+    /// The answer was signed, and answers the other workspace: a proposal on
+    /// an Ask turn, or prose on a Configure one. Held apart from
+    /// [`RelayJobRefusal::UntrustedResponse`] because the reader's fix differs
+    /// — this one is the relay's own bug, not a key that stopped matching.
+    WorkspaceMismatch,
+}
+
+/// Which refusal a rejected answer is.
+///
+/// The error decides, not the shape that carried it: a mismatch is a
+/// well-formed answer on the workspace that did not ask, and either shape can
+/// be one — a proposal on an Ask turn, prose on a Configure one.
+fn refusal_for_validation(
+    error: ProposalValidationError,
+    response: &SonaAgentResponseV1,
+) -> RelayJobRefusal {
+    match error {
+        ProposalValidationError::WorkspaceMismatch => RelayJobRefusal::WorkspaceMismatch,
+        _ if matches!(response, SonaAgentResponseV1::Proposal { .. }) => {
+            RelayJobRefusal::InvalidProposal
+        }
+        _ => RelayJobRefusal::UntrustedResponse,
+    }
 }
 
 fn accept_job_in_state(
@@ -1569,14 +1596,10 @@ fn accept_job_in_state(
         {
             return Err(RelayJobRefusal::OwnershipRejected);
         }
-        if response
-            .as_ref()
-            .is_some_and(|response| response.validate(&active.request, &active.allowed).is_err())
-        {
-            return Err(match response.as_ref() {
-                Some(SonaAgentResponseV1::Proposal { .. }) => RelayJobRefusal::InvalidProposal,
-                _ => RelayJobRefusal::UntrustedResponse,
-            });
+        if let Some(response) = response.as_ref() {
+            if let Err(error) = response.validate(&active.request, &active.allowed) {
+                return Err(refusal_for_validation(error, response));
+            }
         }
         active.last_progress = Instant::now();
         let lookups = match response.as_ref() {
@@ -1739,10 +1762,12 @@ async fn poll_loop(app: AppHandle, generation: u64) {
         let Some(plan) = plan else {
             return;
         };
-        let result = poll_once(&app, &plan).await;
-        if result.is_err() {
+        if let Err(error) = poll_once(&app, &plan).await {
+            /* The refusal was already named where it was raised; the loop
+             * records the status again, so it must not flatten a mismatch back
+             * into an answer this side could not verify. */
             let manager = app.state::<AgentPanelManager>();
-            manager.record_protocol_failure(&plan.turn_id);
+            manager.record_protocol_failure(&plan.turn_id, protocol_failure_status(error));
             return;
         }
         tokio::time::sleep(plan.delay).await;
@@ -2099,6 +2124,18 @@ fn relay_status_for_error(error: RelayError) -> AgentPanelRelayStatusV1 {
             AgentPanelRelayStatusV1::RemoteRejected
         }
         RelayError::OwnershipRejected => AgentPanelRelayStatusV1::OwnershipRejected,
+    }
+}
+
+/// The status a poll that ended in a refusal leaves on the pairing row.
+///
+/// Every refusal but one says the far side spoke something this Mac would not
+/// take, which is the same row a bad signature lands on. The mismatch is the
+/// exception: it verified, and answered the workspace that did not ask.
+const fn protocol_failure_status(error: AgentPanelCommandErrorV1) -> AgentPanelRelayStatusV1 {
+    match error {
+        AgentPanelCommandErrorV1::WorkspaceMismatch => AgentPanelRelayStatusV1::WorkspaceMismatch,
+        _ => AgentPanelRelayStatusV1::UntrustedResponse,
     }
 }
 
@@ -2702,5 +2739,75 @@ mod tests {
             turn_failure_for_job(RelayJobFailure::Failed),
             AgentPanelTurnFailureV1::Failed
         );
+    }
+
+    fn prose() -> SonaAgentResponseV1 {
+        SonaAgentResponseV1::Text {
+            message: "The deck ships Thursday.".to_string(),
+            actions: Vec::new(),
+            steps: Vec::new(),
+        }
+    }
+
+    fn settings_proposal() -> SonaAgentResponseV1 {
+        SonaAgentResponseV1::Proposal {
+            proposal: SonaConfigProposalV1 {
+                version: protocol::SONA_CONFIG_PROPOSAL_VERSION.to_string(),
+                summary: "Use dark mode.".to_string(),
+                rationale: "It is the requested local setting.".to_string(),
+                actions: vec![SonaSettingChangeV1::Theme(Theme::Dark)],
+                follow_up_question: None,
+                source_settings_revision: 7,
+            },
+            steps: Vec::new(),
+        }
+    }
+
+    /// An answer on the workspace that did not ask is the relay's own bug, and
+    /// the reader is owed that rather than "this Mac could not verify it" —
+    /// which is what the shape used to decide, wrongly, in both directions: a
+    /// crossed proposal read as a malformed one, crossed prose as unverified.
+    #[test]
+    fn a_crossed_workspace_is_not_an_unverified_answer() {
+        for response in [prose(), settings_proposal()] {
+            assert_eq!(
+                refusal_for_validation(ProposalValidationError::WorkspaceMismatch, &response),
+                RelayJobRefusal::WorkspaceMismatch,
+                "{response:?} crossed the workspace line"
+            );
+        }
+        assert_eq!(
+            refusal_for_validation(ProposalValidationError::InvalidAssistantMessage, &prose()),
+            RelayJobRefusal::UntrustedResponse
+        );
+        assert_eq!(
+            refusal_for_validation(
+                ProposalValidationError::InvalidSettingValue,
+                &settings_proposal()
+            ),
+            RelayJobRefusal::InvalidProposal
+        );
+    }
+
+    /// The poll loop records the status a second time, after the refusal was
+    /// already named. Flattening every refusal onto one row is how the
+    /// distinction died on the path that actually carries answers.
+    #[test]
+    fn the_poll_loop_keeps_the_status_the_refusal_earned() {
+        assert_eq!(
+            protocol_failure_status(AgentPanelCommandErrorV1::WorkspaceMismatch),
+            AgentPanelRelayStatusV1::WorkspaceMismatch
+        );
+        for error in [
+            AgentPanelCommandErrorV1::UntrustedResponse,
+            AgentPanelCommandErrorV1::InvalidProposal,
+            AgentPanelCommandErrorV1::Offline,
+        ] {
+            assert_eq!(
+                protocol_failure_status(error),
+                AgentPanelRelayStatusV1::UntrustedResponse,
+                "{error:?} is not a workspace mismatch"
+            );
+        }
     }
 }

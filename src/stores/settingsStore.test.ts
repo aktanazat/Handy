@@ -67,6 +67,13 @@ const catalog = (
 let settings = settingsFor();
 let catalogResponse: () => CatalogResponse = () => catalog("openai");
 let asked: string[] = [];
+/* Commands the host refuses, and the refusal it sends. Tauri rejects a
+ * command that answered `Err(String)` with that plain string rather than an
+ * `Error`, which is why the generated bindings hand a backend refusal back as
+ * a resolved `{ status: "error" }` instead of throwing. A fixture that
+ * rejects with an `Error` exercises a path production never takes. */
+const REFUSAL = "policy pins this setting";
+let refused = new Set<string>();
 const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
 
 const answer = (command: string, args: HostArgs): HostReply => {
@@ -99,6 +106,8 @@ const answer = (command: string, args: HostArgs): HostReply => {
     }
     case "change_post_process_model_setting":
       return null;
+    case "change_external_mutations_enabled_setting":
+      return null;
     default:
       throw new Error(`unexpected command: ${command}`);
   }
@@ -111,7 +120,9 @@ beforeAll(() => {
       ...globalThis.window,
       __TAURI_INTERNALS__: {
         invoke: (command: string, args: HostArgs = {}) =>
-          Promise.resolve(answer(command, args)),
+          refused.has(command)
+            ? Promise.reject(REFUSAL)
+            : Promise.resolve(answer(command, args)),
         transformCallback: <Callback>(callback: Callback) => callback,
       },
     },
@@ -125,6 +136,7 @@ afterAll(() => {
 
 const reset = (providerId = "openai") => {
   asked = [];
+  refused = new Set();
   settings = settingsFor(providerId);
   catalogResponse = () => catalog(providerId);
   useSettingsStore.setState({
@@ -321,5 +333,81 @@ describe("post-processing model catalog state", () => {
         (scope) => scope.startsWith("custom\u0000"),
       ),
     ).toBe(false);
+  });
+});
+
+/* The Agents consent rows had no command registered against their keys: the
+ * switch moved, this store kept the new value, and nothing was ever sent. */
+describe("a consent row's write", () => {
+  test("reaches the command that owns the key", async () => {
+    reset();
+    useSettingsStore.setState({
+      settings: { ...settingsFor(), external_mutations_enabled: true },
+    });
+
+    await useSettingsStore
+      .getState()
+      .updateSetting("external_mutations_enabled", false);
+
+    expect(asked).toContain("change_external_mutations_enabled_setting");
+    expect(
+      useSettingsStore.getState().settings?.external_mutations_enabled,
+    ).toBe(false);
+  });
+});
+
+/* Every row on Settings reads its value out of this store, and a write is
+ * shown before it lands. What the store does with a refusal is therefore what
+ * the switch claims: the consent rows on Agents are the sharp end of it - a
+ * grant a reader believes withdrawn, because the switch moved, while the
+ * backend still holds it. */
+describe("a write the backend refuses", () => {
+  test("leaves a consent row reading the grant the backend still holds", async () => {
+    reset();
+    refused.add("change_external_mutations_enabled_setting");
+    useSettingsStore.setState({
+      settings: { ...settingsFor(), external_mutations_enabled: true },
+    });
+
+    await useSettingsStore
+      .getState()
+      .updateSetting("external_mutations_enabled", false);
+
+    expect(
+      useSettingsStore.getState().settings?.external_mutations_enabled,
+    ).toBe(true);
+  });
+
+  test("puts back the provider without waiting on a second read to correct it", async () => {
+    reset();
+    refused.add("set_post_process_provider");
+    /* The read that would otherwise paper over the failed write is out too,
+     * which is the state a backend in trouble is actually in. */
+    refused.add("get_app_settings");
+
+    await useSettingsStore.getState().setPostProcessProvider("custom");
+
+    expect(useSettingsStore.getState().settings?.post_process_provider_id).toBe(
+      "openai",
+    );
+  });
+
+  /* A key no command writes is the same lie by a different route: the row
+   * moves, nothing is sent, and the store is the only place the new value
+   * exists. */
+  test("puts back a key no settings command writes", async () => {
+    reset();
+    useSettingsStore.setState({
+      settings: { ...settingsFor(), selected_model: "parakeet-v3" },
+    });
+
+    await useSettingsStore
+      .getState()
+      .updateSetting("selected_model", "whisper-large-v3");
+
+    expect(useSettingsStore.getState().settings?.selected_model).toBe(
+      "parakeet-v3",
+    );
+    expect(asked).toEqual([]);
   });
 });

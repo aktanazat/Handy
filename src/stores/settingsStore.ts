@@ -151,13 +151,7 @@ const settingUpdaters: SettingUpdaters = {
     commands.changeCommandModeEnabledSetting(value),
   selected_microphone: (value) =>
     commands.setSelectedMicrophone(deviceName(value)),
-  selected_channel: async (value) => {
-    const result = await commands.setSelectedChannel(value);
-    if (result.status === "error") {
-      throw new Error(result.error);
-    }
-    return result;
-  },
+  selected_channel: (value) => commands.setSelectedChannel(value),
   clamshell_microphone: (value) =>
     commands.setClamshellMicrophone(deviceName(value)),
   selected_output_device: (value) =>
@@ -210,6 +204,23 @@ const settingUpdaters: SettingUpdaters = {
   transcribe_gpu_device: (value) => commands.changeTranscribeGpuDevice(value),
   extra_recording_buffer_ms: (value) =>
     commands.changeExtraRecordingBufferSetting(value),
+  external_query_enabled: (value) =>
+    commands.changeExternalQueryEnabledSetting(value),
+  external_mutations_enabled: (value) =>
+    commands.changeExternalMutationsEnabledSetting(value),
+  meeting_remote_intelligence_enabled: (value) =>
+    commands.changeMeetingRemoteIntelligenceEnabledSetting(value),
+  meeting_digest_enabled: (value) =>
+    commands.changeMeetingDigestEnabledSetting(value),
+  meeting_digest_minute_of_day: (value) =>
+    commands.changeMeetingDigestMinuteOfDaySetting(value),
+  /* The one settings command generated without a `Result`: the backend cannot
+   * refuse a timeout it already validated as an enum, so only the transport
+   * can fail, and that arrives as a rejection. */
+  model_unload_timeout: async (value) => {
+    await commands.setModelUnloadTimeout(value);
+    return { status: "ok", data: null };
+  },
 };
 
 /* The in-flight (then settled) first load. See `initialize` for why the latch
@@ -345,11 +356,19 @@ export const useSettingsStore = create<SettingsStore>()(
         }));
 
         const updater = settingUpdaters[key];
-        if (updater) {
-          await updater(value);
-        } else if (key !== "bindings" && key !== "selected_model") {
-          console.warn(`No handler for setting: ${String(key)}`);
+        if (updater === undefined) {
+          /* Nothing sends this key, so the optimistic value above is the whole
+           * of what happened and the row would be showing a write that never
+           * left the app. Fail it the way a refusal fails. */
+          throw new Error(`no settings command writes ${String(key)}`);
         }
+        /* A refused write answers, it does not throw: the backend's `Err`
+         * arrives as a resolved `{ status: "error" }`. Reaching the rollback
+         * below is what keeps the row from claiming a write the backend never
+         * took - on the consent rows, a grant a reader believes withdrawn
+         * while it is still live. */
+        const result = await updater(value);
+        if (result.status === "error") throw new Error(result.error);
       } catch (error) {
         console.error(`Failed to update setting ${String(key)}:`, error);
         if (settings) {
@@ -470,7 +489,8 @@ export const useSettingsStore = create<SettingsStore>()(
       }
 
       try {
-        await commands.setPostProcessProvider(providerId);
+        const result = await commands.setPostProcessProvider(providerId);
+        if (result.status === "error") throw new Error(result.error);
         await refreshSettings();
       } catch (error) {
         console.error("Failed to set post-process provider:", error);

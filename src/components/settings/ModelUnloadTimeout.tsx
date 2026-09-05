@@ -1,7 +1,7 @@
 import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { useSettings } from "../../hooks/useSettings";
-import { commands, type ModelUnloadTimeout } from "@/bindings";
+import { type ModelUnloadTimeout } from "@/bindings";
 import {
   Select,
   SelectContent,
@@ -18,16 +18,10 @@ export const ModelUnloadTimeoutSetting: React.FC = () => {
   const { settings, getSetting, updateSetting } = useSettings();
   const id = useId();
 
-  const handleChange = async (value: string) => {
+  const handleChange = (value: string) => {
     /* SAFETY: the items below are exactly the ModelUnloadTimeout values, and a
        Radix select can only report an item's own value. */
-    const newTimeout = value as ModelUnloadTimeout;
-    try {
-      await commands.setModelUnloadTimeout(newTimeout);
-      updateSetting("model_unload_timeout", newTimeout);
-    } catch (error) {
-      console.error("Failed to update model unload timeout:", error);
-    }
+    void updateSetting("model_unload_timeout", value as ModelUnloadTimeout);
   };
 
   /* Spelled out rather than mapped over the union: a static key per option is
@@ -60,7 +54,7 @@ export const ModelUnloadTimeoutSetting: React.FC = () => {
     >
       <Select
         value={getSetting("model_unload_timeout") ?? "never"}
-        onValueChange={(value) => void handleChange(value)}
+        onValueChange={handleChange}
       >
         <SelectTrigger id={id} size="sm" className="w-50">
           <SelectValue />

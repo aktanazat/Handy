@@ -1607,6 +1607,7 @@
           "invalid_configuration": "That address or key is not one Sona will use.",
           "secret_unavailable": "This Mac's key could not be read.",
           "untrusted_response": "The reply was not signed by the paired server.",
+          "workspace_mismatch": "The reply did not match the question that was asked.",
           "remote_rejected": "The server refused the request.",
           "ownership_rejected": "The server replied for someone else."
         }

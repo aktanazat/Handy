@@ -49,7 +49,7 @@ const CHAT_FRAME =
  *
  * Twelve of them share `chat.error.failed` because no catalogue has copy for
  * them yet. That request is filed; until it lands this is the sentence the
- * sheet already showed. The nine pairing reasons are read from where the
+ * sheet already showed. The ten pairing reasons are read from where the
  * pairing panel keeps them, so one refusal is worded once. */
 export const CHAT_ERROR_KEYS = {
   link_failed: "meetings.preview.linkFailed",
@@ -61,6 +61,7 @@ export const CHAT_ERROR_KEYS = {
     "settings.agents.sonaAgent.reason.invalid_configuration",
   secret_unavailable: "settings.agents.sonaAgent.reason.secret_unavailable",
   untrusted_response: "settings.agents.sonaAgent.reason.untrusted_response",
+  workspace_mismatch: "settings.agents.sonaAgent.reason.workspace_mismatch",
   remote_rejected: "settings.agents.sonaAgent.reason.remote_rejected",
   ownership_rejected: "settings.agents.sonaAgent.reason.ownership_rejected",
   unknown_conversation: "chat.error.failed",
