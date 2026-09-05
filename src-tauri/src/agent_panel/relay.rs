@@ -29,16 +29,30 @@ const MAX_SKEW_SECONDS: u64 = 300;
 /// result: the two identifiers, the state, the workspace, the granted
 /// capabilities and the empty tool list.
 const JOB_ENVELOPE_BYTES: usize = 8 * 1024;
+/// How many times a job row carries the submission. Once under `payload`, and
+/// once more because the relay (`RelayDB._row`) hoists every payload key to
+/// the top of the row — `request` included. That hoisting is also where this
+/// client's `kind`, `workspace_id`, `model_alias`, `capabilities` and `tools`
+/// come from, so it cannot go on the relay without `RelayJobWire` changing.
+const SUBMISSION_COPIES_IN_A_JOB_ROW: usize = 2;
+/// How much longer the relay's JSON can be than this client's for the same
+/// value. aiohttp's `json_response` keeps Python's `ensure_ascii`, so a
+/// two-byte character here is a six-byte `\uXXXX` on the wire, an astral one
+/// twelve, and every separator carries a space. Three bounds any character.
+const RELAY_JSON_INFLATION: usize = 3;
 /// The largest response body this client will read, in bytes.
 ///
 /// Not a number of its own: the relay answers a submit, a poll and a cancel
-/// with the whole job row, and a job row carries the submission back verbatim
-/// beside the result. So a ceiling below "one max submission plus one max
-/// result" turns a pack the relay accepted into a reply this client refuses to
-/// read — the pack ceiling raised on one side and the answer unreadable on the
-/// other. Derived from both so the two cannot come apart.
-const MAX_RESPONSE_BYTES: usize =
-    MAX_CHAT_SUBMISSION_BYTES + MAX_PROPOSAL_BYTES + JOB_ENVELOPE_BYTES;
+/// with the whole job row, and a job row carries the submission back beside
+/// the result — twice, escaped. A ceiling that models that row wrongly turns
+/// a pack the relay accepted into a reply this client refuses to read, and
+/// that shipped: sized for one unescaped copy, this refused the 283 173-byte
+/// row that answered a 141 310-byte English pack, and every meeting
+/// regenerate failed as `EngineFailure` while the relay's job succeeded.
+/// Derived from the row's real shape so the two cannot come apart again.
+const MAX_RESPONSE_BYTES: usize = RELAY_JSON_INFLATION
+    * (SUBMISSION_COPIES_IN_A_JOB_ROW * MAX_CHAT_SUBMISSION_BYTES + MAX_PROPOSAL_BYTES)
+    + JOB_ENVELOPE_BYTES;
 const RESPONSE_NONCE_TTL: Duration = Duration::from_secs(MAX_SKEW_SECONDS * 2);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1377,6 +1391,35 @@ mod tests {
                 .into_job("sona-me", expectation(AgentPanelWorkspaceV1::SonaConfig))
                 .err(),
             Some(RelayError::ResponseMalformed)
+        );
+    }
+
+    #[test]
+    fn a_row_echoing_a_maximal_cyrillic_pack_twice_fits_the_response_ceiling() {
+        /* The relay hands the job row back through Python's `json.dumps`
+         * with `ensure_ascii`: a character outside ASCII becomes a `\uXXXX`
+         * escape, two of them past the BMP. The row holds the submission
+         * twice — under `payload` and hoisted beside it — and the result
+         * once. The literal two is the relay's shape, not the constant that
+         * models it, so shrinking that constant back to one goes red here.
+         * The English row that shipped the failure was 283 173 bytes for a
+         * 141 310-byte pack; a Cyrillic pack costs three for every one. */
+        let wire_len = |utf8: &str| -> usize {
+            utf8.chars()
+                .map(|character| match character.len_utf8() {
+                    1 => 1,
+                    4 => 12,
+                    _ => 6,
+                })
+                .sum()
+        };
+        let cyrillic = |bytes: usize| "б".repeat(bytes / "б".len());
+        let row = 2 * wire_len(&cyrillic(MAX_CHAT_SUBMISSION_BYTES))
+            + wire_len(&cyrillic(MAX_PROPOSAL_BYTES))
+            + JOB_ENVELOPE_BYTES;
+        assert!(
+            row <= MAX_RESPONSE_BYTES,
+            "a job row answering a maximal Cyrillic pack is {row} bytes on the wire, over the {MAX_RESPONSE_BYTES}-byte ceiling: a pack the relay accepted would come back unreadable"
         );
     }
 
